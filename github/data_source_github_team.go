@@ -35,6 +35,11 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"members": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -44,17 +49,29 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Gitub Team: %s", slug)
 
 	client := meta.(*Organization).client
+	ctx := context.Background()
 
 	team, err := getGithubTeamBySlug(client, meta.(*Organization).name, slug)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(strconv.Itoa(*team.ID))
-	d.Set("name", *team.Name)
-	d.Set("description", *team.Description)
-	d.Set("privacy", *team.Privacy)
-	d.Set("permission", *team.Permission)
+	member, _, err := client.Organizations.ListTeamMembers(ctx, team.GetID(), nil)
+	if err != nil {
+		return err
+	}
+
+	members := []string{}
+	for _, v := range member {
+		members = append(members, v.GetLogin())
+	}
+
+	d.SetId(strconv.Itoa(team.GetID()))
+	d.Set("name", team.GetName())
+	d.Set("members", members)
+	d.Set("description", team.GetDescription())
+	d.Set("privacy", team.GetPrivacy())
+	d.Set("permission", team.GetPermission())
 
 	return nil
 }
