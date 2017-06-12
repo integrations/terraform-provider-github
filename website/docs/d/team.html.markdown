@@ -28,3 +28,4 @@ data "github_team" "example" {
  * `description` - the team's description.
  * `privacy` - the team's privacy type.
  * `permission` - the team's permission level.
+ * `members` - List of team members
