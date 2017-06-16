@@ -6,4 +6,5 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* Adding merge types to repository resource [GH-1]
 * added attributes to github_user and github_team data sources [GH-2]
