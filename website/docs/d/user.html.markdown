@@ -33,6 +33,8 @@ data "github_user" "example" {
  * `blog` - the user's blog location.
  * `location` - the user's location.
  * `email` - the user's email.
+ * `gpg_keys` - list of user's GPG keys
+ * `ssh_keys` - list of user's SSH keys
  * `bio` - the user's bio.
  * `public_repos` - the number of public repositories.
  * `public_gists` - the number of public gists.

@@ -57,6 +57,16 @@ func dataSourceGithubUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"gpg_keys": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"ssh_keys": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"public_repos": &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -90,29 +100,51 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Gitub User: %s", username)
 
 	client := meta.(*Organization).client
+	ctx := context.Background()
 
-	user, _, err := client.Users.Get(context.TODO(), username)
+	user, _, err := client.Users.Get(ctx, username)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(strconv.Itoa(*user.ID))
-	d.Set("login", *user.Login)
-	d.Set("avatar_url", *user.AvatarURL)
-	d.Set("gravatar_id", *user.GravatarID)
-	d.Set("site_admin", *user.SiteAdmin)
-	d.Set("company", *user.Company)
-	d.Set("blog", *user.Blog)
-	d.Set("location", *user.Location)
-	d.Set("name", *user.Name)
-	d.Set("email", *user.Email)
-	d.Set("bio", *user.Bio)
-	d.Set("public_repos", *user.PublicRepos)
-	d.Set("public_gists", *user.PublicGists)
-	d.Set("followers", *user.Followers)
-	d.Set("following", *user.Following)
-	d.Set("created_at", *user.CreatedAt)
-	d.Set("updated_at", *user.UpdatedAt)
+	gpg, _, err := client.Users.ListGPGKeys(ctx, username, nil)
+	if err != nil {
+		return err
+	}
+	ssh, _, err := client.Users.ListKeys(ctx, username, nil)
+	if err != nil {
+		return err
+	}
+
+	gpgKeys := []string{}
+	for _, v := range gpg {
+		gpgKeys = append(gpgKeys, v.GetPublicKey())
+	}
+
+	sshKeys := []string{}
+	for _, v := range ssh {
+		sshKeys = append(sshKeys, v.GetKey())
+	}
+
+	d.SetId(strconv.Itoa(user.GetID()))
+	d.Set("login", user.GetLogin())
+	d.Set("avatar_url", user.GetAvatarURL())
+	d.Set("gravatar_id", user.GetGravatarID())
+	d.Set("site_admin", user.GetSiteAdmin())
+	d.Set("company", user.GetCompany())
+	d.Set("blog", user.GetBlog())
+	d.Set("location", user.GetLocation())
+	d.Set("name", user.GetName())
+	d.Set("email", user.GetEmail())
+	d.Set("bio", user.GetBio())
+	d.Set("gpg_keys", gpgKeys)
+	d.Set("ssh_keys", sshKeys)
+	d.Set("public_repos", user.GetPublicRepos())
+	d.Set("public_gists", user.GetPublicGists())
+	d.Set("followers", user.GetFollowers())
+	d.Set("following", user.GetFollowing())
+	d.Set("created_at", user.GetCreatedAt())
+	d.Set("updated_at", user.GetUpdatedAt())
 
 	return nil
 }
