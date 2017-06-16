@@ -33,7 +33,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						Homepage:         "http://example.com/",
 						HasIssues:        true,
 						HasWiki:          true,
-						AllowMergeCommit: false,
+						AllowMergeCommit: true,
 						AllowSquashMerge: false,
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
@@ -49,7 +49,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						Name:             name,
 						Description:      "Updated " + description,
 						Homepage:         "http://example.com/",
-						AllowMergeCommit: true,
+						AllowMergeCommit: false,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
 						DefaultBranch:    "master",
@@ -226,7 +226,7 @@ resource "github_repository" "foo" {
 
   has_issues = true
   has_wiki = true
-  allow_merge_commit = false
+  allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
   has_downloads = true
@@ -247,7 +247,7 @@ resource "github_repository" "foo" {
 
   has_issues = false
   has_wiki = false
-  allow_merge_commit = true
+  allow_merge_commit = false
   allow_squash_merge = true
   allow_rebase_merge = true
   has_downloads = false
