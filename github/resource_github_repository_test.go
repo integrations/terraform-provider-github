@@ -216,7 +216,7 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 
 		if repo.AutoInit != nil {
 			if *repo.AutoInit != want.AutoInit {
-				return fmt.Errorf("got auto init %q; want %q", *repo.AutoInit, want.AutoInit)
+				return fmt.Errorf("got auto init %t; want %t", *repo.AutoInit, want.AutoInit)
 			}
 		}
 
