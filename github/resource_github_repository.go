@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/github"
@@ -68,12 +69,14 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"default_branch": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Can only be set after initial repository creation, and only if the target branch exists",
+			},
 
 			"full_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"default_branch": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -130,6 +133,10 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
+	if _, ok := d.GetOk("default_branch"); ok {
+		return fmt.Errorf("Cannot set the default branch on a new repository.")
+	}
+
 	repoReq := resourceGithubRepositoryObject(d)
 	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
 	repo, _, err := client.Repositories.Create(context.TODO(), meta.(*Organization).name, repoReq)
@@ -181,6 +188,10 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	repoReq := resourceGithubRepositoryObject(d)
+	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
+	defaultBranch := d.Get("default_branch").(string)
+	repoReq.DefaultBranch = &defaultBranch
+
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
 	repo, _, err := client.Repositories.Edit(context.TODO(), meta.(*Organization).name, repoName, repoReq)

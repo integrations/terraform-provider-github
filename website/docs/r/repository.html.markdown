@@ -56,13 +56,15 @@ The following arguments are supported:
 * `auto_init` - (Optional) Meaningful only during create; set to `true` to
   produce an initial commit in the repository.
 
+* `default_branch` - (Optional) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created,
+and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
+initial repository creation and create the target branch inside of the repository prior to setting this attribute.
+
 ## Attributes Reference
 
 The following additional attributes are exported:
 
 * `full_name` - A string of the form "orgname/reponame".
-
-* `default_branch` - The name of the repository's default branch.
 
 * `ssh_clone_url` - URL that can be provided to `git clone` to clone the
   repository via SSH.
