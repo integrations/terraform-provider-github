@@ -1,4 +1,9 @@
 ## 0.1.1 (Unreleased)
+
+IMPROVEMENTS:
+
+* r/github_repository: Allow updating default_branch [GH-23]
+
 ## 0.1.0 (June 20, 2017)
 
 FEATURES:
