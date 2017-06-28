@@ -137,6 +137,42 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_templates(t *testing.T) {
+	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigTemplates(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:              name,
+						Description:       description,
+						Homepage:          "http://example.com/",
+						HasIssues:         true,
+						HasWiki:           true,
+						AllowMergeCommit:  true,
+						AutoInit:          true,
+						AllowSquashMerge:  false,
+						AllowRebaseMerge:  false,
+						HasDownloads:      true,
+						DefaultBranch:     "master",
+						LicenseTemplate:   "ms-pl",
+						GitignoreTemplate: "C++",
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -161,19 +197,20 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 }
 
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name             string
-	Description      string
-	Homepage         string
-	Private          bool
-	HasIssues        bool
-	HasWiki          bool
-	AllowMergeCommit bool
-	AllowSquashMerge bool
-	AllowRebaseMerge bool
-	HasDownloads     bool
-	AutoInit         bool
-
-	DefaultBranch string
+	Name              string
+	Description       string
+	Homepage          string
+	Private           bool
+	HasIssues         bool
+	HasWiki           bool
+	AllowMergeCommit  bool
+	AllowSquashMerge  bool
+	AllowRebaseMerge  bool
+	HasDownloads      bool
+	AutoInit          bool
+	DefaultBranch     string
+	LicenseTemplate   string
+	GitignoreTemplate string
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
@@ -217,6 +254,18 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if repo.AutoInit != nil {
 			if *repo.AutoInit != want.AutoInit {
 				return fmt.Errorf("got auto init %t; want %t", *repo.AutoInit, want.AutoInit)
+			}
+		}
+
+		if repo.GitignoreTemplate != nil {
+			if *repo.GitignoreTemplate != want.GitignoreTemplate {
+				return fmt.Errorf("got gitignore_template %q; want %q", *repo.GitignoreTemplate, want.GitignoreTemplate)
+			}
+		}
+
+		if repo.LicenseTemplate != nil {
+			if *repo.LicenseTemplate != want.LicenseTemplate {
+				return fmt.Errorf("got license_template %q; want %q", *repo.LicenseTemplate, want.LicenseTemplate)
 			}
 		}
 
@@ -396,6 +445,30 @@ resource "github_repository" "foo" {
   has_downloads = true
   auto_init = true
   default_branch = "foo"
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryConfigTemplates(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = true
+  has_wiki = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads = true
+
+  license_template = "ms-pl"
+  gitignore_template = "C++"
 }
 `, randString, randString)
 }

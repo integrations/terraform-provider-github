@@ -75,6 +75,14 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "Can only be set after initial repository creation, and only if the target branch exists",
 			},
+			"license_template": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"gitignore_template": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 
 			"full_name": {
 				Type:     schema.TypeString,
@@ -112,19 +120,23 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
 	hasDownloads := d.Get("has_downloads").(bool)
 	autoInit := d.Get("auto_init").(bool)
+	licenseTemplate := d.Get("license_template").(string)
+	gitIgnoreTemplate := d.Get("gitignore_template").(string)
 
 	repo := &github.Repository{
-		Name:             &name,
-		Description:      &description,
-		Homepage:         &homepageUrl,
-		Private:          &private,
-		HasIssues:        &hasIssues,
-		HasWiki:          &hasWiki,
-		AllowMergeCommit: &allowMergeCommit,
-		AllowSquashMerge: &allowSquashMerge,
-		AllowRebaseMerge: &allowRebaseMerge,
-		HasDownloads:     &hasDownloads,
-		AutoInit:         &autoInit,
+		Name:              &name,
+		Description:       &description,
+		Homepage:          &homepageUrl,
+		Private:           &private,
+		HasIssues:         &hasIssues,
+		HasWiki:           &hasWiki,
+		AllowMergeCommit:  &allowMergeCommit,
+		AllowSquashMerge:  &allowSquashMerge,
+		AllowRebaseMerge:  &allowRebaseMerge,
+		HasDownloads:      &hasDownloads,
+		AutoInit:          &autoInit,
+		LicenseTemplate:   &licenseTemplate,
+		GitignoreTemplate: &gitIgnoreTemplate,
 	}
 
 	return repo
@@ -189,8 +201,13 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
-	defaultBranch := d.Get("default_branch").(string)
-	repoReq.DefaultBranch = &defaultBranch
+	if v, ok := d.GetOk("default_branch"); ok {
+		branch := v.(string)
+		// If branch is "master", and the repository hasn't been initialized yet, setting this value will fail
+		if branch != "master" {
+			repoReq.DefaultBranch = &branch
+		}
+	}
 
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
