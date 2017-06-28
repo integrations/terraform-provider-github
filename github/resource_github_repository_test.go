@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -80,6 +81,62 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_defaultBranch(t *testing.T) {
+	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigDefaultBranch(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AutoInit:         true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
+					}),
+				),
+			},
+			{
+				PreConfig: func() {
+					testAccCreateRepositoryBranch("foo", *repo.Name)
+				},
+				Config: testAccGithubRepositoryUpdateConfigDefaultBranch(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      "Updated " + description,
+						Homepage:         "http://example.com/",
+						AutoInit:         true,
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "foo",
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -114,6 +171,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	AllowSquashMerge bool
 	AllowRebaseMerge bool
 	HasDownloads     bool
+	AutoInit         bool
 
 	DefaultBranch string
 }
@@ -154,6 +212,12 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 
 		if *repo.DefaultBranch != want.DefaultBranch {
 			return fmt.Errorf("got default branch %q; want %q", *repo.DefaultBranch, want.DefaultBranch)
+		}
+
+		if repo.AutoInit != nil {
+			if *repo.AutoInit != want.AutoInit {
+				return fmt.Errorf("got auto init %q; want %q", *repo.AutoInit, want.AutoInit)
+			}
 		}
 
 		// For the rest of these, we just want to make sure they've been
@@ -213,6 +277,42 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCreateRepositoryBranch(branch, repository string) error {
+	org := os.Getenv("GITHUB_ORGANIZATION")
+	token := os.Getenv("GITHUB_TOKEN")
+
+	config := Config{
+		Token:        token,
+		Organization: org,
+	}
+
+	c, err := config.Client()
+	if err != nil {
+		panic(fmt.Sprintf("Error creating github client: %s", err))
+	}
+	client := c.(*Organization).client
+
+	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
+	if err != nil {
+		panic(fmt.Sprintf("Error getting reference commit: %s", err))
+	}
+	ref := refs[0]
+
+	newRef := &github.Reference{
+		Ref: github.String(fmt.Sprintf("refs/heads/%s", branch)),
+		Object: &github.GitObject{
+			SHA: ref.Object.SHA,
+		},
+	}
+
+	_, _, err = client.Git.CreateRef(context.TODO(), org, repository, newRef)
+	if err != nil {
+		panic(fmt.Sprintf("Error creating git reference: %s", err))
+	}
+
+	return nil
+}
+
 func testAccGithubRepositoryConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
@@ -251,6 +351,51 @@ resource "github_repository" "foo" {
   allow_squash_merge = true
   allow_rebase_merge = true
   has_downloads = false
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryConfigDefaultBranch(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = true
+  has_wiki = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads = true
+  auto_init = true
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryUpdateConfigDefaultBranch(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Updated Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = true
+  has_wiki = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads = true
+  auto_init = true
+  default_branch = "foo"
 }
 `, randString, randString)
 }
