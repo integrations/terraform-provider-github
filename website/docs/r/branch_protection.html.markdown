@@ -21,18 +21,21 @@ This resource allows you to configure branch protection for repositories in your
 resource "github_branch_protection" "foo_master" {
   repository = "foo"
   branch = "master"
+  enforce_admins = true
 
   required_status_checks {
-    include_admins = true
     strict = false
     contexts = ["ci/travis"]
   }
 
   required_pull_request_reviews {
-    include_admins = true
+    dismiss_stale_reviews = true
+    dismissal_users = ["foo-user"]
+    dismissal_teams = ["admins", "engineers"]
   }
 
   restrictions {
+    users = ["foo-user"]
     teams = ["engineers"]
   }
 }
@@ -44,6 +47,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository name.
 * `branch` - (Required) The Git branch to protect.
+* `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
 * `restrictions` - (Optional) Enforce restrictions for the users and teams that may push to the branch. See [Restrictions](#restrictions) below for details.
@@ -52,7 +56,6 @@ The following arguments are supported:
 
 `required_status_checks` supports the following arguments:
 
-* `include_admins`: (Optional) Enforce required status checks for repository administrators. Defaults to `false`.
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 
@@ -60,7 +63,9 @@ The following arguments are supported:
 
 `required_pull_request_reviews` supports the following arguments:
 
-* `include_admins`: (Optional) Enforce required status checks for repository administrators. Defaults to `false`.
+* `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
+* `dismissal_users`: (Optional) The list of user logins with dismissal access
+* `dismissal_teams`: (Optional) The list of team slugs with dismissal access
 
 ### Restrictions
 
