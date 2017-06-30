@@ -42,6 +42,8 @@ The following arguments are supported:
 
 * `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
 
+* `url` - (Computed) The URL to the issue label
+
 ## Import
 
 Github Issue Labels can be imported using an id made up of `repository:name`, e.g.
