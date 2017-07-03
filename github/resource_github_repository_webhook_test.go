@@ -59,6 +59,27 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryWebhook_importBasic(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryWebhookConfig(randString),
+			},
+			{
+				ResourceName:        "github_repository_webhook.foo",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *github.Hook) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

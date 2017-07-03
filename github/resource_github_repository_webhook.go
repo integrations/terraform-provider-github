@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,6 +16,17 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Read:   resourceGithubRepositoryWebhookRead,
 		Update: resourceGithubRepositoryWebhookUpdate,
 		Delete: resourceGithubRepositoryWebhookDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				combined := strings.Split(d.Id(), "/")
+				if len(combined) != 2 {
+					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<webhook_id>")
+				}
+				d.Set("repository", combined[0])
+				d.SetId(combined[1])
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,7 +39,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"events": &schema.Schema{
+			"events": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
