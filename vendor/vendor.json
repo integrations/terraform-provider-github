@@ -241,10 +241,10 @@
 			"revisionTime": "2017-01-17T13:00:17Z"
 		},
 		{
-			"checksumSHA1": "JUiM+lVkaSVET43yWGhTZpnfdSE=",
+			"checksumSHA1": "Un9C9OhF/NK5DeD4hHtY+k2riF4=",
 			"path": "github.com/google/go-github/github",
-			"revision": "7a51fb928f52a196d5f31daefb8a489453ef54ff",
-			"revisionTime": "2017-06-04T03:01:11Z",
+			"revision": "b5b6d4c9c91636b0513e1c29fcfd243162331d36",
+			"revisionTime": "2017-06-28T21:52:13Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -508,6 +508,18 @@
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": "bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d",
 			"revisionTime": "2016-08-03T19:07:31Z"
+		},
+		{
+			"checksumSHA1": "0xjvz/KGzXhAFsnDRvzofE0xNzI=",
+			"path": "github.com/kylelemons/godebug/diff",
+			"revision": "a616ab194758ae0a11290d87ca46ee8c440117b0",
+			"revisionTime": "2017-02-24T01:00:52Z"
+		},
+		{
+			"checksumSHA1": "ED154c1vFO2UMbFwdOZZ9KdfAzw=",
+			"path": "github.com/kylelemons/godebug/pretty",
+			"revision": "a616ab194758ae0a11290d87ca46ee8c440117b0",
+			"revisionTime": "2017-02-24T01:00:52Z"
 		},
 		{
 			"checksumSHA1": "guxbLo8KHHBeM0rzou4OTzzpDNs=",
