@@ -24,6 +24,7 @@ data "github_team" "example" {
 
 ## Attributes Reference
 
+ * `id` - the ID of the team.
  * `name` - the team's full name.
  * `description` - the team's description.
  * `privacy` - the team's privacy type.
