@@ -61,3 +61,14 @@ The following arguments are supported:
 The following additional attributes are exported:
 
 * `url` - URL of the webhook
+
+## Import
+
+Repository Webhooks can be imported using the `name` of the repository, combined with the `id` of the webhook, separated by a `/` character.
+The `id` of the webhook can be found in the URL of the webhook. For example: `"https://github.com/foo-org/foo-repo/settings/hooks/14711452"`.
+
+Importing uses the name of the repository, as well as the ID of the webhook, e.g.
+
+```
+$ terraform import github_repository_webhook.terraform terraform/11235813
+```
