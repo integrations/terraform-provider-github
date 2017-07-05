@@ -18,12 +18,12 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Delete: resourceGithubRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				combined := strings.Split(d.Id(), "/")
-				if len(combined) != 2 {
+				parts := strings.Split(d.Id(), "/")
+				if len(parts) != 2 {
 					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<webhook_id>")
 				}
-				d.Set("repository", combined[0])
-				d.SetId(combined[1])
+				d.Set("repository", parts[0])
+				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},
 		},
