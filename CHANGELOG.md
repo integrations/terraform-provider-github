@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * r/github_repository: Allow updating default_branch [GH-23]
 * r/github_repository: Add license_template and gitignore_template [GH-24]
+* r/github_repository_webhook: Add import [GH-29]
 
 ## 0.1.0 (June 20, 2017)
 
