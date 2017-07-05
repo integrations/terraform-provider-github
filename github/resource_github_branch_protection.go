@@ -42,6 +42,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return true
+							},
 						},
 						"strict": {
 							Type:     schema.TypeBool,
@@ -69,6 +72,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return true
+							},
 						},
 						"dismiss_stale_reviews": {
 							Type:     schema.TypeBool,
