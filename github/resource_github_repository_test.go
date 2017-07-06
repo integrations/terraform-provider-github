@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -12,6 +13,40 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("github_repository", &resource.Sweeper{
+		Name: "github_repository",
+		F:    testSweepRepositories,
+	})
+
+}
+
+func testSweepRepositories(region string) error {
+	meta, err := sharedConfigForRegion(region)
+	if err != nil {
+		return err
+	}
+
+	client := meta.(*Organization).client
+
+	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Organization).name, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range repos {
+		if strings.HasPrefix(*r.Name, "tf-acc-") || strings.HasPrefix(*r.Name, "foo-") {
+			log.Printf("Destroying Repository %s", *r.Name)
+
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, *r.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
 
 func TestAccGithubRepository_basic(t *testing.T) {
 	var repo github.Repository
