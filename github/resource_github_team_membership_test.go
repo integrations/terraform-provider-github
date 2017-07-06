@@ -31,7 +31,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 			username = "%s"
 			role = "maintainer"
 		}
-	`, testUser, randString, testUser)
+	`, testCollaborator, randString, testCollaborator)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,7 +39,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig(randString, testUser),
+				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
@@ -65,7 +65,7 @@ func TestAccGithubTeamMembership_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig(randString, testUser),
+				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator),
 			},
 			{
 				ResourceName:      "github_team_membership.test_team_membership",
