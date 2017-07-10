@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * r/github_repository: Add license_template and gitignore_template [GH-24]
 * r/github_repository_webhook: Add import [GH-29]
 * r/github_branch_protection: Support enforce_admins [GH-26]
+* Supports managing a team's LDAP DN in GitHub Enterprise [GH-39]
 
 BUG FIXES: 
 
