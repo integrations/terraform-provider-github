@@ -1,4 +1,4 @@
-## 0.1.1 (Unreleased)
+## 0.1.1 (July 18, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -6,15 +6,15 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
-* r/github_repository: Allow updating default_branch [GH-23]
-* r/github_repository: Add license_template and gitignore_template [GH-24]
-* r/github_repository_webhook: Add import [GH-29]
-* r/github_branch_protection: Support enforce_admins [GH-26]
-* Supports managing a team's LDAP DN in GitHub Enterprise [GH-39]
+* r/github_repository: Allow updating default_branch ([#23](https://github.com/terraform-providers/terraform-provider-github/issues/23))
+* r/github_repository: Add license_template and gitignore_template ([#24](https://github.com/terraform-providers/terraform-provider-github/issues/24))
+* r/github_repository_webhook: Add import ([#29](https://github.com/terraform-providers/terraform-provider-github/issues/29))
+* r/github_branch_protection: Support enforce_admins ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
+* Supports managing a team's LDAP DN in GitHub Enterprise ([#39](https://github.com/terraform-providers/terraform-provider-github/issues/39))
 
 BUG FIXES: 
 
-* r/github_branch_protection: Fix crash on nil values [GH-26]
+* r/github_branch_protection: Fix crash on nil values ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 
 ## 0.1.0 (June 20, 2017)
 
