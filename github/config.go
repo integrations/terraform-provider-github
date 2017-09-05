@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"net/url"
 
 	"github.com/google/go-github/github"
@@ -13,6 +15,7 @@ type Config struct {
 	Token        string
 	Organization string
 	BaseURL      string
+	Insecure     bool
 }
 
 type Organization struct {
@@ -28,7 +31,15 @@ func (c *Config) Client() (interface{}, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	ctx := context.Background()
+
+	if c.Insecure {
+		httpClient := insecureHttpClient()
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+	}
+
+	tc := oauth2.NewClient(ctx, ts)
 
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
@@ -42,4 +53,14 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	return &org, nil
+}
+
+func insecureHttpClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 }

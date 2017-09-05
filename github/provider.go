@@ -29,6 +29,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_BASE_URL", ""),
 				Description: descriptions["base_url"],
 			},
+			"insecure": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["insecure"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -67,6 +73,8 @@ func init() {
 		"organization": "The GitHub organization name to manage.",
 
 		"base_url": "The GitHub Base API URL",
+
+		"insecure": "Set this to allow use with self-signed SSL certs",
 	}
 }
 
@@ -76,6 +84,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Token:        d.Get("token").(string),
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
+			Insecure:     d.Get("insecure").(bool),
 		}
 
 		meta, err := config.Client()
