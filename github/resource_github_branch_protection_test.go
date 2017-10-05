@@ -29,7 +29,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
 					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, []string{"github/foo"}),
 					testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
-					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}, true),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
@@ -38,6 +38,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_users.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_teams.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.require_code_owner_reviews", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "0"),
 				),
@@ -180,7 +181,7 @@ func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protectio
 	}
 }
 
-func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Protection, expectedStale bool, expectedUsers, expectedTeams []string) resource.TestCheckFunc {
+func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Protection, expectedStale bool, expectedUsers, expectedTeams []string, expectedCodeOwners bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		reviews := protection.RequiredPullRequestReviews
 		if reviews == nil {
@@ -205,6 +206,10 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 		}
 		if diff := pretty.Compare(teams, expectedTeams); diff != "" {
 			return fmt.Errorf("diff %q: (-got +want)\n%s", "dismissal_teams", diff)
+		}
+
+		if reviews.RequireCodeOwnerReviews != expectedCodeOwners {
+			return fmt.Errorf("Expected `require_code_owner_reviews` to be %t, got %t", expectedCodeOwners, reviews.RequireCodeOwnerReviews)
 		}
 
 		return nil
@@ -278,6 +283,7 @@ resource "github_branch_protection" "master" {
   required_pull_request_reviews {
     dismiss_stale_reviews = true
     dismissal_users = ["%s"]
+    require_code_owner_reviews = true
   }
 
   restrictions {
