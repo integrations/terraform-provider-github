@@ -91,6 +91,10 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						"require_code_owner_reviews": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -187,6 +191,14 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	if protectionRequest.RequiredPullRequestReviews == nil {
+		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Organization).name, r, b)
+		if err != nil {
+			return err
+		}
+	}
+
 	d.SetId(buildTwoPartID(&r, &b))
 
 	return resourceGithubBranchProtectionRead(d, meta)
@@ -268,9 +280,10 @@ func flattenRequiredPullRequestReviews(d *schema.ResourceData, protection *githu
 
 		if err := d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"dismiss_stale_reviews": rprr.DismissStaleReviews,
-				"dismissal_users":       schema.NewSet(schema.HashString, users),
-				"dismissal_teams":       schema.NewSet(schema.HashString, teams),
+				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
+				"dismissal_users":            schema.NewSet(schema.HashString, users),
+				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
+				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
 			},
 		}); err != nil {
 			return err
@@ -363,6 +376,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
+			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 		}
 
 		return rprr, nil
