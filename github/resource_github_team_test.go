@@ -26,14 +26,38 @@ func TestAccGithubTeam_basic(t *testing.T) {
 				Config: testAccGithubTeamConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),
-					testAccCheckGithubTeamAttributes(&team, name, "Terraform acc test group"),
+					testAccCheckGithubTeamAttributes(&team, name, "Terraform acc test group", nil),
 				),
 			},
 			{
 				Config: testAccGithubTeamUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),
-					testAccCheckGithubTeamAttributes(&team, updatedName, "Terraform acc test group - updated"),
+					testAccCheckGithubTeamAttributes(&team, updatedName, "Terraform acc test group - updated", nil),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeam_hierarchical(t *testing.T) {
+	var parent, child github.Team
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	parentName := fmt.Sprintf("tf-acc-parent-%s", randString)
+	childName := fmt.Sprintf("tf-acc-child-%s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamHierarchicalConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamExists("github_team.parent", &parent),
+					testAccCheckGithubTeamAttributes(&parent, parentName, "Terraform acc test parent team", nil),
+					testAccCheckGithubTeamExists("github_team.child", &child),
+					testAccCheckGithubTeamAttributes(&child, childName, "Terraform acc test child team", &parent),
 				),
 			},
 		},
@@ -81,7 +105,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 	}
 }
 
-func testAccCheckGithubTeamAttributes(team *github.Team, name, description string) resource.TestCheckFunc {
+func testAccCheckGithubTeamAttributes(team *github.Team, name, description string, parentTeam *github.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *team.Name != name {
 			return fmt.Errorf("Team name does not match: %s, %s", *team.Name, name)
@@ -89,6 +113,14 @@ func testAccCheckGithubTeamAttributes(team *github.Team, name, description strin
 
 		if *team.Description != description {
 			return fmt.Errorf("Team description does not match: %s, %s", *team.Description, description)
+		}
+
+		if parentTeam == nil && team.Parent != nil {
+			return fmt.Errorf("Team parent ID was expected to be empty, but was %d", team.Parent.GetID())
+		} else if parentTeam != nil && team.Parent == nil {
+			return fmt.Errorf("Team parent ID was expected to be %d, but was not present", parentTeam.GetID())
+		} else if parentTeam != nil && team.Parent.GetID() != parentTeam.GetID() {
+			return fmt.Errorf("Team parent ID does not match: %d, %d", team.Parent.GetID(), parentTeam.GetID())
 		}
 
 		return nil
@@ -136,4 +168,20 @@ resource "github_team" "foo" {
 	privacy = "closed"
 }
 `, randString)
+}
+
+func testAccGithubTeamHierarchicalConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "github_team" "parent" {
+	name = "tf-acc-parent-%s"
+	description = "Terraform acc test parent team"
+	privacy = "closed"
+}
+resource "github_team" "child" {
+	name = "tf-acc-child-%s"
+	description = "Terraform acc test child team"
+	privacy = "closed"
+	parent_team_id = "${github_team.parent.id}"
+}
+`, randString, randString)
 }

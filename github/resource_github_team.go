@@ -33,6 +33,10 @@ func resourceGithubTeam() *schema.Resource {
 				Default:      "secret",
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
+			"parent_team_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"ldap_dn": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -46,11 +50,17 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.Team{
-		Name:        &n,
+
+	newTeam := &github.NewTeam{
+		Name:        n,
 		Description: &desc,
 		Privacy:     &p,
-	})
+	}
+	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
+		newTeam.ParentTeamID = github.Int(parentTeamID.(int))
+	}
+
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, newTeam)
 	if err != nil {
 		return err
 	}
@@ -80,6 +90,11 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
 	d.Set("privacy", team.Privacy)
+	if parent := team.Parent; parent != nil {
+		d.Set("parent_team_id", parent.GetID())
+	} else {
+		d.Set("parent_team_id", "")
+	}
 	d.Set("ldap_dn", team.GetLDAPDN())
 	return nil
 }
@@ -96,11 +111,17 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	privacy := d.Get("privacy").(string)
-	team.Description = &description
-	team.Name = &name
-	team.Privacy = &privacy
 
-	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, team)
+	newTeam := &github.NewTeam{
+		Name:        name,
+		Description: &description,
+		Privacy:     &privacy,
+	}
+	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
+		newTeam.ParentTeamID = github.Int(parentTeamID.(int))
+	}
+
+	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, newTeam)
 	if err != nil {
 		return err
 	}
