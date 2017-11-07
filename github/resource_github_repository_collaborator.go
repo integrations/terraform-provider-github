@@ -78,7 +78,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 
 	// Next, check if the user has accepted the invite and is a full collaborator
-	opt := &github.ListOptions{PerPage: maxPerPage}
+	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}
+
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(), meta.(*Organization).name, r, opt)
 		if err != nil {

@@ -107,10 +107,14 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 const testAccGithubRepositoryDeployKeytestDeployKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDnDk1liOxXwE27fjOVVHl6RNVgQznGqGIfhsoa5QNfLOcoWJR3EIv44dSUx1GSvxQ7uR9qBY/i/SEdAbKdupo3Ru5sykc0GqaMRVys+Cin/Lgnl6+ntmTZOudNjIbz10Vfu/dKmexSzqlD3XWzPGXRI5WyKWzvc2XKjRdfnOOzogJpqJ5kh/CN0ZhCzBPTu/b4mJl2ionTEzEeLK2g4Re4IuU/dGoyf0LGLidjmqhSY7dQtL+mfte9m3x/BQTrDf0+AW3kGWXR8EL0EyIJ2HRtHW67YnoOcTAFK0hDCuKgvt78rqdUQ2bVjcsIhNqnvQMPf3ZeZ5bP2JqB9zKaFl8uaRJv+TdxEeFTkgnbYb85M+aBggBYr6xxeb24g7WlU0iPxJ8GmjvCizxe2I1DOJDRDozn1sinKjapNRdJy00iuo46TJC5Wgmid0vnMJ7SMZtubz+btxhoFLt4F4U2JnILaYG4/buJg4H/GkqmkE8G3hr4b4mgsFXBtBFgK6uCTFQSvvV7TyyWkZxHL6DRCxL/Dp0bSj+EM8Tw1K304EvkBEO3rMyvPs4nXL7pepyKWalmUI8U4Qp2xMXSq7fmfZY55osb03MUAtKl0wJ/ykyKOwYWeLbubSVcc6VPx5bXZmnM5bTcZdYW9+vNt86X2F2b0h/sIkGNEPpqQQBzElY+fQ=="
 
 var testAccGithubRepositoryDeployKeyConfig = fmt.Sprintf(`
-  resource "github_repository_deploy_key" "test_repo_deploy_key" {
+  resource "github_repository" "test_repo" {
+		name = "%s"
+	}
+
+	resource "github_repository_deploy_key" "test_repo_deploy_key" {
     key = "%s"
     read_only = "false"
-    repository = "%s"
+    repository = "${github_repository.test_repo.name}"
     title = "title"
   }
-`, testAccGithubRepositoryDeployKeytestDeployKey, testRepo)
+`, testRepo, testAccGithubRepositoryDeployKeytestDeployKey)

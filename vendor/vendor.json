@@ -247,10 +247,10 @@
 			"revisionTime": "2017-01-17T13:00:17Z"
 		},
 		{
-			"checksumSHA1": "Un9C9OhF/NK5DeD4hHtY+k2riF4=",
+			"checksumSHA1": "zY+zzNE0kGOJ0P70fLRfIg5iZCo=",
 			"path": "github.com/google/go-github/github",
-			"revision": "b5b6d4c9c91636b0513e1c29fcfd243162331d36",
-			"revisionTime": "2017-06-28T21:52:13Z",
+			"revision": "a021c14a5f1960591b0e1773a4a2ef8257ec93b8",
+			"revisionTime": "2017-10-14T14:39:26Z",
 			"version": "master",
 			"versionExact": "master"
 		},

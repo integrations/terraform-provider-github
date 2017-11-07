@@ -55,6 +55,7 @@ type Repository struct {
 	AllowRebaseMerge *bool            `json:"allow_rebase_merge,omitempty"`
 	AllowSquashMerge *bool            `json:"allow_squash_merge,omitempty"`
 	AllowMergeCommit *bool            `json:"allow_merge_commit,omitempty"`
+	Topics           []string         `json:"topics,omitempty"`
 
 	// Only provided when using RepositoriesService.Get while in preview
 	License *License `json:"license,omitempty"`
@@ -175,8 +176,9 @@ func (s *RepositoriesService) List(ctx context.Context, user string, opt *Reposi
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when license support fully launches
-	req.Header.Set("Accept", mediaTypeLicensesPreview)
+	// TODO: remove custom Accept headers when APIs fully launch.
+	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	var repos []*Repository
 	resp, err := s.client.Do(ctx, req, &repos)
@@ -212,8 +214,9 @@ func (s *RepositoriesService) ListByOrg(ctx context.Context, org string, opt *Re
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when license support fully launches
-	req.Header.Set("Accept", mediaTypeLicensesPreview)
+	// TODO: remove custom Accept headers when APIs fully launch.
+	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	var repos []*Repository
 	resp, err := s.client.Do(ctx, req, &repos)
@@ -229,8 +232,6 @@ func (s *RepositoriesService) ListByOrg(ctx context.Context, org string, opt *Re
 type RepositoryListAllOptions struct {
 	// ID of the last repository seen
 	Since int `url:"since,omitempty"`
-
-	ListOptions
 }
 
 // ListAll lists all GitHub repositories in the order that they were created.
@@ -295,7 +296,7 @@ func (s *RepositoriesService) Get(ctx context.Context, owner, repo string) (*Rep
 
 	// TODO: remove custom Accept header when the license support fully launches
 	// https://developer.github.com/v3/licenses/#get-a-repositorys-license
-	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeSquashPreview, mediaTypeCodesOfConductPreview}
+	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
 	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	repository := new(Repository)
@@ -361,9 +362,6 @@ func (s *RepositoriesService) Edit(ctx context.Context, owner, repo string, repo
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// TODO: Remove this preview header after API is fully vetted.
-	req.Header.Set("Accept", mediaTypeSquashPreview)
 
 	r := new(Repository)
 	resp, err := s.client.Do(ctx, req, r)
@@ -558,20 +556,24 @@ type RequiredStatusChecks struct {
 
 // PullRequestReviewsEnforcement represents the pull request reviews enforcement of a protected branch.
 type PullRequestReviewsEnforcement struct {
-	// Specifies which users and teams can dismiss pull requets reviews.
+	// Specifies which users and teams can dismiss pull request reviews.
 	DismissalRestrictions DismissalRestrictions `json:"dismissal_restrictions"`
 	// Specifies if approved reviews are dismissed automatically, when a new commit is pushed.
 	DismissStaleReviews bool `json:"dismiss_stale_reviews"`
+	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
+	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews"`
 }
 
 // PullRequestReviewsEnforcementRequest represents request to set the pull request review
 // enforcement of a protected branch. It is separate from PullRequestReviewsEnforcement above
 // because the request structure is different from the response structure.
 type PullRequestReviewsEnforcementRequest struct {
-	// Specifies which users and teams should be allowed to dismiss pull requets reviews. Can be nil to disable the restrictions.
+	// Specifies which users and teams should be allowed to dismiss pull request reviews. Can be nil to disable the restrictions.
 	DismissalRestrictionsRequest *DismissalRestrictionsRequest `json:"dismissal_restrictions"`
 	// Specifies if approved reviews can be dismissed automatically, when a new commit is pushed. (Required)
 	DismissStaleReviews bool `json:"dismiss_stale_reviews"`
+	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
+	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews"`
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -581,18 +583,22 @@ func (req PullRequestReviewsEnforcementRequest) MarshalJSON() ([]byte, error) {
 		newReq := struct {
 			R []interface{} `json:"dismissal_restrictions"`
 			D bool          `json:"dismiss_stale_reviews"`
+			O bool          `json:"require_code_owner_reviews"`
 		}{
 			R: []interface{}{},
 			D: req.DismissStaleReviews,
+			O: req.RequireCodeOwnerReviews,
 		}
 		return json.Marshal(newReq)
 	}
 	newReq := struct {
 		R *DismissalRestrictionsRequest `json:"dismissal_restrictions"`
 		D bool                          `json:"dismiss_stale_reviews"`
+		O bool                          `json:"require_code_owner_reviews"`
 	}{
 		R: req.DismissalRestrictionsRequest,
 		D: req.DismissStaleReviews,
+		O: req.RequireCodeOwnerReviews,
 	}
 	return json.Marshal(newReq)
 }
@@ -601,10 +607,12 @@ func (req PullRequestReviewsEnforcementRequest) MarshalJSON() ([]byte, error) {
 // enforcement of a protected branch. It is separate from PullRequestReviewsEnforcementRequest above
 // because the patch request does not require all fields to be initialized.
 type PullRequestReviewsEnforcementUpdate struct {
-	// Specifies which users and teams can dismiss pull requets reviews. Can be ommitted.
+	// Specifies which users and teams can dismiss pull request reviews. Can be omitted.
 	DismissalRestrictionsRequest *DismissalRestrictionsRequest `json:"dismissal_restrictions,omitempty"`
-	// Specifies if approved reviews can be dismissed automatically, when a new commit is pushed. Can be ommited.
+	// Specifies if approved reviews can be dismissed automatically, when a new commit is pushed. Can be omitted.
 	DismissStaleReviews *bool `json:"dismiss_stale_reviews,omitempty"`
+	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
+	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews,omitempty"`
 }
 
 // AdminEnforcement represents the configuration to enforce required status checks for repository administrators.
@@ -971,4 +979,53 @@ func (s *RepositoriesService) RemoveAdminEnforcement(ctx context.Context, owner,
 	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
 
 	return s.client.Do(ctx, req, nil)
+}
+
+// Topics represents a collection of repository topics.
+type Topics struct {
+	Names []string `json:"names,omitempty"`
+}
+
+// ListAllTopics lists topics for a repository.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/#list-all-topics-for-a-repository
+func (s *RepositoriesService) ListAllTopics(ctx context.Context, owner, repo string) (*Topics, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/topics", owner, repo)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeTopicsPreview)
+
+	topics := new(Topics)
+	resp, err := s.client.Do(ctx, req, topics)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return topics, resp, nil
+}
+
+// ReplaceAllTopics replaces topics for a repository.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/#replace-all-topics-for-a-repository
+func (s *RepositoriesService) ReplaceAllTopics(ctx context.Context, owner, repo string, topics *Topics) (*Topics, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/topics", owner, repo)
+	req, err := s.client.NewRequest("PUT", u, topics)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeTopicsPreview)
+
+	t := new(Topics)
+	resp, err := s.client.Do(ctx, req, t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, nil
 }
