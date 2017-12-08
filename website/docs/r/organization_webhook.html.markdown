@@ -34,7 +34,7 @@ The following arguments are supported:
 
 * `name` - (Required) The type of the webhook. See a list of [available hooks](https://api.github.com/hooks).
 
-* `events` - (Required) A list of events which should trigger the webhook. Defaults to `["push"]`. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
+* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
 
 * `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
 

@@ -50,7 +50,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the webhook.
 
-* `events` - (Required) A list of events which should trigger the webhook. Defaults to `["push"]`. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
+* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
 
 * `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
 
