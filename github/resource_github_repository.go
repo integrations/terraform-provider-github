@@ -83,6 +83,11 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"archived": {
+				Type: schema.TypeBool,
+				Optional: true,
+				Default: false,
+			},
 
 			"full_name": {
 				Type:     schema.TypeString,
@@ -122,6 +127,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	autoInit := d.Get("auto_init").(bool)
 	licenseTemplate := d.Get("license_template").(string)
 	gitIgnoreTemplate := d.Get("gitignore_template").(string)
+	archived := d.Get("archived").(bool)
 
 	repo := &github.Repository{
 		Name:              &name,
@@ -137,6 +143,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AutoInit:          &autoInit,
 		LicenseTemplate:   &licenseTemplate,
 		GitignoreTemplate: &gitIgnoreTemplate,
+		Archived: &archived,
 	}
 
 	return repo
@@ -157,7 +164,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	d.SetId(*repo.Name)
 
-	return resourceGithubRepositoryRead(d, meta)
+	return resourceGithubRepositoryUpdate(d, meta)
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
@@ -178,6 +185,8 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		return err
 	}
+
+
 	d.Set("name", repoName)
 	d.Set("description", repo.Description)
 	d.Set("homepage_url", repo.Homepage)
@@ -194,6 +203,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("svn_url", repo.SVNURL)
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
+	d.Set("archived", repo.Archived)
 	return nil
 }
 

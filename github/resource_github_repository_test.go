@@ -74,6 +74,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
+						Archived: false,
 					}),
 				),
 			},
@@ -89,6 +90,94 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
 						DefaultBranch:    "master",
+						Archived: false,
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_archive(t *testing.T) {
+	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryArchivedConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
+						Archived: true,
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_archiveUpdate(t *testing.T) {
+	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
+						Archived: false,
+					}),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryArchivedConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
+						Archived: true,
 					}),
 				),
 			},
@@ -143,6 +232,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
+						Archived: false,
 					}),
 				),
 			},
@@ -165,6 +255,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "foo",
+						Archived: false,
 					}),
 				),
 			},
@@ -201,6 +292,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						DefaultBranch:     "master",
 						LicenseTemplate:   "ms-pl",
 						GitignoreTemplate: "C++",
+						Archived: false,
 					}),
 				),
 			},
@@ -246,6 +338,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	DefaultBranch     string
 	LicenseTemplate   string
 	GitignoreTemplate string
+	Archived bool
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
@@ -435,6 +528,28 @@ resource "github_repository" "foo" {
   allow_squash_merge = true
   allow_rebase_merge = true
   has_downloads = false
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryArchivedConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = true
+  has_wiki = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads = true
+  archived = true
 }
 `, randString, randString)
 }
