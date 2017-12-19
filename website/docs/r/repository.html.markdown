@@ -64,6 +64,8 @@ The following arguments are supported:
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
+* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
+
 ## Attributes Reference
 
 The following additional attributes are exported:
