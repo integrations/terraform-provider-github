@@ -84,9 +84,9 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"archived": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Optional: true,
-				Default: false,
+				Default:  false,
 			},
 
 			"full_name": {
@@ -143,7 +143,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AutoInit:          &autoInit,
 		LicenseTemplate:   &licenseTemplate,
 		GitignoreTemplate: &gitIgnoreTemplate,
-		Archived: &archived,
+		Archived:          &archived,
 	}
 
 	return repo
@@ -185,7 +185,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		return err
 	}
-
 
 	d.Set("name", repoName)
 	d.Set("description", repo.Description)

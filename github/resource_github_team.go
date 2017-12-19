@@ -97,9 +97,9 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	description := d.Get("description").(string)
 	privacy := d.Get("privacy").(string)
 	editedTeam := github.NewTeam{
-		Name: name,
+		Name:        name,
 		Description: &description,
-		Privacy: &privacy,
+		Privacy:     &privacy,
 	}
 
 	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, &editedTeam)
