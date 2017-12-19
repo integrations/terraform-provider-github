@@ -74,7 +74,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
-						Archived: false,
+						Archived:         false,
 					}),
 				),
 			},
@@ -90,7 +90,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
 						DefaultBranch:    "master",
-						Archived: false,
+						Archived:         false,
 					}),
 				),
 			},
@@ -124,7 +124,7 @@ func TestAccGithubRepository_archive(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
-						Archived: true,
+						Archived:         true,
 					}),
 				),
 			},
@@ -158,7 +158,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
-						Archived: false,
+						Archived:         false,
 					}),
 				),
 			},
@@ -177,7 +177,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
-						Archived: true,
+						Archived:         true,
 					}),
 				),
 			},
@@ -232,7 +232,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "master",
-						Archived: false,
+						Archived:         false,
 					}),
 				),
 			},
@@ -255,7 +255,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
 						DefaultBranch:    "foo",
-						Archived: false,
+						Archived:         false,
 					}),
 				),
 			},
@@ -292,7 +292,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						DefaultBranch:     "master",
 						LicenseTemplate:   "ms-pl",
 						GitignoreTemplate: "C++",
-						Archived: false,
+						Archived:          false,
 					}),
 				),
 			},
@@ -338,7 +338,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	DefaultBranch     string
 	LicenseTemplate   string
 	GitignoreTemplate string
-	Archived bool
+	Archived          bool
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
