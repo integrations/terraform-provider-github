@@ -29,7 +29,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
 					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, []string{"github/foo"}),
 					testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
-					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, true, []string{testUser}, []string{}),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
@@ -180,7 +180,7 @@ func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protectio
 	}
 }
 
-func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Protection, expectedStale bool, expectedUsers, expectedTeams []string) resource.TestCheckFunc {
+func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Protection, expectedStale, expectedCodeOwner bool, expectedUsers, expectedTeams []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		reviews := protection.RequiredPullRequestReviews
 		if reviews == nil {
@@ -189,6 +189,10 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 
 		if reviews.DismissStaleReviews != expectedStale {
 			return fmt.Errorf("Expected `dismiss_state_reviews` to be %t, got %t", expectedStale, reviews.DismissStaleReviews)
+		}
+
+		if reviews.RequireCodeOwnerReviews != expectedCodeOwner {
+			return fmt.Errorf("Expected `require_code_owner_reviews` to be %t, got %t", expectedCodeOwner, reviews.RequireCodeOwnerReviews)
 		}
 
 		users := []string{}
@@ -276,7 +280,8 @@ resource "github_branch_protection" "master" {
   }
 
   required_pull_request_reviews {
-    dismiss_stale_reviews = true
+	dismiss_stale_reviews = true
+	require_code_owner_reviews = true
     dismissal_users = ["%s"]
   }
 

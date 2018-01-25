@@ -81,6 +81,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 							Default:  false,
 						},
+						"require_code_owner_reviews": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 						"dismissal_users": {
 							Type:     schema.TypeSet,
 							Optional: true,
@@ -268,9 +273,10 @@ func flattenRequiredPullRequestReviews(d *schema.ResourceData, protection *githu
 
 		if err := d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"dismiss_stale_reviews": rprr.DismissStaleReviews,
-				"dismissal_users":       schema.NewSet(schema.HashString, users),
-				"dismissal_teams":       schema.NewSet(schema.HashString, teams),
+				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
+				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
+				"dismissal_users":            schema.NewSet(schema.HashString, users),
+				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
 			},
 		}); err != nil {
 			return err
@@ -363,6 +369,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
+			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 		}
 
 		return rprr, nil
