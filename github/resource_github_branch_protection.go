@@ -194,6 +194,9 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 
 	if protectionRequest.RequiredPullRequestReviews == nil {
 		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Organization).name, r, b)
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId(buildTwoPartID(&r, &b))
