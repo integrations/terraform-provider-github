@@ -61,6 +61,11 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"archived": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"has_downloads": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -118,6 +123,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	allowMergeCommit := d.Get("allow_merge_commit").(bool)
 	allowSquashMerge := d.Get("allow_squash_merge").(bool)
 	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
+	archived := d.Get("archived").(bool)
 	hasDownloads := d.Get("has_downloads").(bool)
 	autoInit := d.Get("auto_init").(bool)
 	licenseTemplate := d.Get("license_template").(string)
@@ -137,6 +143,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AutoInit:          &autoInit,
 		LicenseTemplate:   &licenseTemplate,
 		GitignoreTemplate: &gitIgnoreTemplate,
+		Archived:          &archived,
 	}
 
 	return repo
@@ -187,6 +194,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("allow_merge_commit", repo.AllowMergeCommit)
 	d.Set("allow_squash_merge", repo.AllowSquashMerge)
 	d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
+	d.Set("archived", repo.Archived)
 	d.Set("has_downloads", repo.HasDownloads)
 	d.Set("full_name", repo.FullName)
 	d.Set("default_branch", repo.DefaultBranch)
