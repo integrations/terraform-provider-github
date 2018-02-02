@@ -66,7 +66,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		members = append(members, v.GetLogin())
 	}
 
-	d.SetId(strconv.Itoa(team.GetID()))
+	d.SetId(strconv.FormatInt(team.GetID(), 10))
 	d.Set("name", team.GetName())
 	d.Set("members", members)
 	d.Set("description", team.GetDescription())

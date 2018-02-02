@@ -83,7 +83,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.Itoa(*hook.ID))
+	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
