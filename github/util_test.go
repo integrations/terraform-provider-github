@@ -53,3 +53,44 @@ func TestAccGithubUtilTwoPartID(t *testing.T) {
 		t.Fatalf("Expected parsed part two bar, actual: %s", parsedPartTwo)
 	}
 }
+
+func TestAccValidateTwoPartID(t *testing.T) {
+	cases := []struct {
+		name        string
+		id          string
+		expectedErr string
+	}{
+		{
+			name: "valid",
+			id:   "foo:bar",
+		},
+		{
+			name:        "blank ID",
+			id:          "",
+			expectedErr: "no ID supplied. Please supply an ID format matching organization:username",
+		},
+		{
+			name:        "not enough parts",
+			id:          "foo",
+			expectedErr: "incorrectly formatted ID \"foo\". Please supply an ID format matching organization:username",
+		},
+		{
+			name:        "too many parts",
+			id:          "foo:bar:baz",
+			expectedErr: "incorrectly formatted ID \"foo:bar:baz\". Please supply an ID format matching organization:username",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateTwoPartID(tc.id)
+			switch {
+			case err != nil && tc.expectedErr == "":
+				t.Fatalf("expected no error, got %q", err)
+			case err != nil && tc.expectedErr != "":
+				if err.Error() != tc.expectedErr {
+					t.Fatalf("expected error to be %q, got %q", tc.expectedErr, err.Error())
+				}
+			}
+		})
+	}
+}

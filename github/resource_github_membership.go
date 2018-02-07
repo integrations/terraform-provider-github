@@ -15,7 +15,7 @@ func resourceGithubMembership() *schema.Resource {
 		Update: resourceGithubMembershipUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubMembershipImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -88,4 +88,15 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Organization).name)
 
 	return err
+}
+
+func resourceGithubMembershipImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// All we do here is validate that the import string is in a correct enough
+	// format to be parsed.  parseTwoPartID will panic if it's missing elements,
+	// and is used otherwise in places where that should never happen, so we want
+	// to keep it that way.
+	if err := validateTwoPartID(d.Id()); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
