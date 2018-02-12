@@ -1,4 +1,9 @@
 ## 0.1.2 (Unreleased)
+
+BUG FIXES:
+
+* Fix a crash when bad import input is given [GH-72]
+
 ## 0.1.1 (July 18, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
