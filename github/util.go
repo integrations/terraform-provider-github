@@ -1,6 +1,7 @@
 package github
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -44,6 +45,19 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 func parseTwoPartID(id string) (string, string) {
 	parts := strings.SplitN(id, ":", 2)
 	return parts[0], parts[1]
+}
+
+// validateTwoPartID performs a quick validation of a two-part ID, designed for
+// use when validation has not been previously possible, such as importing.
+func validateTwoPartID(id string) error {
+	if id == "" {
+		return errors.New("no ID supplied. Please supply an ID format matching organization:username")
+	}
+	parts := strings.Split(id, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("incorrectly formatted ID %q. Please supply an ID format matching organization:username", id)
+	}
+	return nil
 }
 
 // format the strings into an id `a:b`
