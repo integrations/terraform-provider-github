@@ -1,8 +1,8 @@
-## 0.1.2 (Unreleased)
+## 0.1.2 (February 12, 2018)
 
 BUG FIXES:
 
-* Fix a crash when bad import input is given [GH-72]
+* Fix a crash when bad import input is given ([#72](https://github.com/terraform-providers/terraform-provider-github/issues/72))
 
 ## 0.1.1 (July 18, 2017)
 
