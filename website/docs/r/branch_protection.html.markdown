@@ -66,6 +66,7 @@ The following arguments are supported:
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
 * `dismissal_users`: (Optional) The list of user logins with dismissal access
 * `dismissal_teams`: (Optional) The list of team slugs with dismissal access
+* `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 
 ### Restrictions
 
