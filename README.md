@@ -20,7 +20,7 @@ Clone repository to: `$GOPATH/src/github.com/terraform-providers/terraform-provi
 
 ```sh
 $ mkdir -p $GOPATH/src/github.com/terraform-providers; cd $GOPATH/src/github.com/terraform-providers
-$ git clone git@github.com:hashicorp/terraform-provider-github
+$ git clone git@github.com:terraform-providers/terraform-provider-github.git
 ```
 
 Enter the provider directory and build the provider
@@ -28,6 +28,8 @@ Enter the provider directory and build the provider
 ```sh
 $ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-github
 $ make build
+# or if you're on a mac:
+$ gnumake build
 ```
 
 Using the provider
