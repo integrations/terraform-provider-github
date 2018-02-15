@@ -1,27 +1,32 @@
 ## 1.0.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* resource/github_branch_protection: Add support for `require_code_owners_review` [GH-51]
+
 ## 0.1.2 (February 12, 2018)
 
 BUG FIXES:
 
-* Fix a crash when bad import input is given ([#72](https://github.com/terraform-providers/terraform-provider-github/issues/72))
+* resource/github_membership: Fix a crash when bad import input is given ([#72](https://github.com/terraform-providers/terraform-provider-github/issues/72))
 
 ## 0.1.1 (July 18, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-* With the `github_branch_protection` resource, the `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user. 
+* resource/github_branch_protection: The `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user. 
 
 IMPROVEMENTS:
 
-* r/github_repository: Allow updating default_branch ([#23](https://github.com/terraform-providers/terraform-provider-github/issues/23))
-* r/github_repository: Add license_template and gitignore_template ([#24](https://github.com/terraform-providers/terraform-provider-github/issues/24))
-* r/github_repository_webhook: Add import ([#29](https://github.com/terraform-providers/terraform-provider-github/issues/29))
-* r/github_branch_protection: Support enforce_admins ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
-* Supports managing a team's LDAP DN in GitHub Enterprise ([#39](https://github.com/terraform-providers/terraform-provider-github/issues/39))
+* resource/github_repository: Allow updating default_branch ([#23](https://github.com/terraform-providers/terraform-provider-github/issues/23))
+* resource/github_repository: Add license_template and gitignore_template ([#24](https://github.com/terraform-providers/terraform-provider-github/issues/24))
+* resource/github_repository_webhook: Add import ([#29](https://github.com/terraform-providers/terraform-provider-github/issues/29))
+* resource/github_branch_protection: Support enforce_admins ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
+* resource/github_team: Supports managing a team's LDAP DN in GitHub Enterprise ([#39](https://github.com/terraform-providers/terraform-provider-github/issues/39))
 
 BUG FIXES: 
 
-* r/github_branch_protection: Fix crash on nil values ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
+* resource/github_branch_protection: Fix crash on nil values ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 
 ## 0.1.0 (June 20, 2017)
 
