@@ -1,8 +1,8 @@
-## 1.0.0 (Unreleased)
+## 1.0.0 (February 20, 2018)
 
 ENHANCEMENTS:
 
-* resource/github_branch_protection: Add support for `require_code_owners_review` [GH-51]
+* resource/github_branch_protection: Add support for `require_code_owners_review` ([#51](https://github.com/terraform-providers/terraform-provider-github/issues/51))
 
 ## 0.1.2 (February 12, 2018)
 
