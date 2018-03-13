@@ -34,12 +34,11 @@ resource "github_membership" "membership_for_user_x" {
 
 The following arguments are supported in the `provider` block:
 
-* `token` - (Optional) This is the GitHub personal access token. It must be provided, but
+* `token` - (Required) This is the GitHub personal access token. It must be provided, but
   it can also be sourced from the `GITHUB_TOKEN` environment variable.
 
-* `organization` - (Optional) This is the target GitHub organization to manage. The account
-  corresponding to the token will need "owner" privileges for this organization. It must be provided, but
-  it can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
+* `organization` - (Required) This is the target GitHub organization to manage. The account
+  corresponding to the token will need "owner" privileges for this organization. It must be provided, but it can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
 
 * `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a
   requirement when working with GitHub Enterprise.  It is optional to provide this value and
