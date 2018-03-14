@@ -46,23 +46,20 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.Team{
-		Name:        &n,
+
+	var ldapDN *string
+	if v := d.Get("ldap_dn").(string); v != "" {
+		ldapDN = &v
+	}
+
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.NewTeam{
+		Name:        n,
 		Description: &desc,
 		Privacy:     &p,
+		LDAPDN:      ldapDN,
 	})
 	if err != nil {
 		return err
-	}
-
-	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
-		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *githubTeam.ID, mapping)
-		if err != nil {
-			return err
-		}
 	}
 
 	d.SetId(fromGithubID(githubTeam.ID))
@@ -87,7 +84,6 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	team, err := getGithubTeam(d, client)
-
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -96,11 +92,17 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	privacy := d.Get("privacy").(string)
-	team.Description = &description
-	team.Name = &name
-	team.Privacy = &privacy
+	var ldapDN *string
+	if v := d.Get("ldap_dn").(string); v != "" {
+		ldapDN = &v
+	}
 
-	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, team)
+	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, &github.NewTeam{
+		Name:        name,
+		Description: &description,
+		Privacy:     &privacy,
+		LDAPDN:      ldapDN,
+	})
 	if err != nil {
 		return err
 	}
