@@ -46,8 +46,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_user": dataSourceGithubUser(),
-			"github_team": dataSourceGithubTeam(),
+			"github_user":      dataSourceGithubUser(),
+			"github_team":      dataSourceGithubTeam(),
+			"github_ip_ranges": dataSourceGithubIpRanges(),
 		},
 
 		ConfigureFunc: providerConfigure,
