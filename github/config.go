@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"net/url"
 
 	"github.com/google/go-github/github"
@@ -15,8 +16,9 @@ type Config struct {
 }
 
 type Organization struct {
-	name   string
-	client *github.Client
+	name        string
+	client      *github.Client
+	StopContext context.Context
 }
 
 // Client configures and returns a fully initialized GithubClient

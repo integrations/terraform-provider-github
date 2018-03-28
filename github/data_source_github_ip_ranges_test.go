@@ -4,11 +4,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccGithubIpRangesDataSource_basic(t *testing.T) {
-	slug := "non-existing"
+func TestAccGithubIpRangesDataSource_existing(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -16,17 +14,15 @@ func TestAccGithubIpRangesDataSource_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckGithubTeamDataSourceConfig(slug),
+				Config: `
+				data "github_ip_ranges" "test" {}
+				`,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIpRangesSetsValue(),
+					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "hooks.#"),
+					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git.#"),
+					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages.#"),
 				),
 			},
 		},
 	})
-}
-
-func testAccCheckGithubIpRangesSetsValue() resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		return nil
-	}
 }

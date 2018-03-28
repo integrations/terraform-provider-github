@@ -1,8 +1,6 @@
 package github
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -31,18 +29,25 @@ func dataSourceGithubIpRanges() *schema.Resource {
 }
 
 func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-	ctx := context.Background()
+	org := meta.(*Organization)
 
-	api, _, err := client.APIMeta(ctx)
+	api, _, err := org.client.APIMeta(org.StopContext)
 	if err != nil {
 		return err
 	}
 
-	d.SetId("github-ip-ranges")
-	d.Set("hooks", api.Hooks)
-	d.Set("git", api.Git)
-	d.Set("pages", api.Pages)
+	if len(api.Hooks)+len(api.Git)+len(api.Pages) > 0 {
+		d.SetId("github-ip-ranges")
+	}
+	if len(api.Hooks) > 0 {
+		d.Set("hooks", api.Hooks)
+	}
+	if len(api.Git) > 0 {
+		d.Set("git", api.Git)
+	}
+	if len(api.Pages) > 0 {
+		d.Set("pages", api.Pages)
+	}
 
 	return nil
 }

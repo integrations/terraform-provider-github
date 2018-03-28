@@ -7,9 +7,9 @@ import (
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
-
+	var p *schema.Provider
 	// The actual provider
-	return &schema.Provider{
+	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
@@ -50,9 +50,11 @@ func Provider() terraform.ResourceProvider {
 			"github_team":      dataSourceGithubTeam(),
 			"github_ip_ranges": dataSourceGithubIpRanges(),
 		},
-
-		ConfigureFunc: providerConfigure,
 	}
+
+	p.ConfigureFunc = providerConfigure(p)
+
+	return p
 }
 
 var descriptions map[string]string
@@ -67,12 +69,21 @@ func init() {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := Config{
-		Token:        d.Get("token").(string),
-		Organization: d.Get("organization").(string),
-		BaseURL:      d.Get("base_url").(string),
-	}
+func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
+	return func(d *schema.ResourceData) (interface{}, error) {
+		config := Config{
+			Token:        d.Get("token").(string),
+			Organization: d.Get("organization").(string),
+			BaseURL:      d.Get("base_url").(string),
+		}
 
-	return config.Client()
+		meta, err := config.Client()
+		if err != nil {
+			return nil, err
+		}
+
+		meta.(*Organization).StopContext = p.StopContext()
+
+		return meta, nil
+	}
 }
