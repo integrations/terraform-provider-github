@@ -24,6 +24,8 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			// TODO: importer IPs coming once this is merged
+			// https://github.com/google/go-github/pull/881
 		},
 	}
 }
