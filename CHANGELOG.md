@@ -1,4 +1,9 @@
 ## 1.0.1 (Unreleased)
+
+FEATURES:
+
+* **New Data Source:** `github_ip_ranges` [GH-82]
+
 ## 1.0.0 (February 20, 2018)
 
 ENHANCEMENTS:
