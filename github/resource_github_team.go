@@ -46,8 +46,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.Team{
-		Name:        &n,
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.NewTeam{
+		Name:        n,
 		Description: &desc,
 		Privacy:     &p,
 	})
@@ -96,11 +96,13 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	privacy := d.Get("privacy").(string)
-	team.Description = &description
-	team.Name = &name
-	team.Privacy = &privacy
+	editedTeam := github.NewTeam{
+		Name:        name,
+		Description: &description,
+		Privacy:     &privacy,
+	}
 
-	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, team)
+	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, &editedTeam)
 	if err != nil {
 		return err
 	}
