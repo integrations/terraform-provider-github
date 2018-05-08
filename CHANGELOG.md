@@ -1,8 +1,9 @@
-## 1.0.1 (Unreleased)
+## 1.1.0 (Unreleased)
 
 FEATURES:
 
 * **New Data Source:** `github_ip_ranges` [GH-82]
+* resource/github_repository: Added support for archiving repositories [GH-64]
 
 ## 1.0.0 (February 20, 2018)
 
