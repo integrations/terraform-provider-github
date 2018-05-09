@@ -74,6 +74,8 @@ The following additional attributes are exported:
 
 * `full_name` - A string of the form "orgname/reponame".
 
+* `html_url` - URL to the repository on the web.
+
 * `ssh_clone_url` - URL that can be provided to `git clone` to clone the
   repository via SSH.
 

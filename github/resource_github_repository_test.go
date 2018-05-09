@@ -408,6 +408,9 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if !strings.HasPrefix(*repo.CloneURL, "https://") {
 			return fmt.Errorf("got Clone URL %q; want to start with 'https://'", *repo.CloneURL)
 		}
+		if !strings.HasSuffix(*repo.HTMLURL, "/"+want.Name) {
+			return fmt.Errorf("got HTML URL %q; want to end with '%s'", *repo.HTMLURL, want.Name)
+		}
 		if !strings.HasSuffix(*repo.SSHURL, "/"+want.Name+".git") {
 			return fmt.Errorf("got SSH URL %q; want to end with '/%s.git'", *repo.SSHURL, want.Name)
 		}
