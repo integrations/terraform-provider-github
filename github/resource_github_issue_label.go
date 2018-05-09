@@ -85,7 +85,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)", o, r, n, c)
 		_, resp, err := client.Issues.CreateLabel(context.TODO(), o, r, label)
 		if resp != nil {
-			log.Printf("[DEBUG] Response from creating label: %s", *resp)
+			log.Printf("[DEBUG] Response from creating label: %#v", *resp)
 		}
 		if err != nil {
 			return err

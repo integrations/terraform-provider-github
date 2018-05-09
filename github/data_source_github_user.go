@@ -126,7 +126,7 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 		sshKeys = append(sshKeys, v.GetKey())
 	}
 
-	d.SetId(strconv.Itoa(user.GetID()))
+	d.SetId(strconv.FormatInt(user.GetID(), 10))
 	d.Set("login", user.GetLogin())
 	d.Set("avatar_url", user.GetAvatarURL())
 	d.Set("gravatar_id", user.GetGravatarID())

@@ -14,13 +14,13 @@ const (
 	maxPerPage = 100
 )
 
-func toGithubID(id string) int {
-	githubID, _ := strconv.Atoi(id)
+func toGithubID(id string) int64 {
+	githubID, _ := strconv.ParseInt(id, 10, 64)
 	return githubID
 }
 
-func fromGithubID(id *int) string {
-	return strconv.Itoa(*id)
+func fromGithubID(id *int64) string {
+	return strconv.FormatInt(*id, 10)
 }
 
 func validateValueFunc(values []string) schema.SchemaValidateFunc {

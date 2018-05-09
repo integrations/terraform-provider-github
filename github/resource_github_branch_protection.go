@@ -370,9 +370,9 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			m := v.(map[string]interface{})
 
 			users := expandNestedSet(m, "dismissal_users")
-			drr.Users = users
+			drr.Users = &users
 			teams := expandNestedSet(m, "dismissal_teams")
-			drr.Teams = teams
+			drr.Teams = &teams
 
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
