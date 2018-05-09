@@ -42,6 +42,14 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"has_projects": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"has_downloads": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"has_wiki": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -60,10 +68,6 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
-			},
-			"has_downloads": {
-				Type:     schema.TypeBool,
-				Optional: true,
 			},
 			"auto_init": {
 				Type:     schema.TypeBool,
@@ -118,12 +122,13 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	description := d.Get("description").(string)
 	homepageUrl := d.Get("homepage_url").(string)
 	private := d.Get("private").(bool)
+	hasDownloads := d.Get("has_downloads").(bool)
 	hasIssues := d.Get("has_issues").(bool)
+	hasProjects := d.Get("has_projects").(bool)
 	hasWiki := d.Get("has_wiki").(bool)
 	allowMergeCommit := d.Get("allow_merge_commit").(bool)
 	allowSquashMerge := d.Get("allow_squash_merge").(bool)
 	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
-	hasDownloads := d.Get("has_downloads").(bool)
 	autoInit := d.Get("auto_init").(bool)
 	licenseTemplate := d.Get("license_template").(string)
 	gitIgnoreTemplate := d.Get("gitignore_template").(string)
@@ -134,12 +139,13 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Description:       &description,
 		Homepage:          &homepageUrl,
 		Private:           &private,
+		HasDownloads:      &hasDownloads,
 		HasIssues:         &hasIssues,
+		HasProjects:       &hasProjects,
 		HasWiki:           &hasWiki,
 		AllowMergeCommit:  &allowMergeCommit,
 		AllowSquashMerge:  &allowSquashMerge,
 		AllowRebaseMerge:  &allowRebaseMerge,
-		HasDownloads:      &hasDownloads,
 		AutoInit:          &autoInit,
 		LicenseTemplate:   &licenseTemplate,
 		GitignoreTemplate: &gitIgnoreTemplate,

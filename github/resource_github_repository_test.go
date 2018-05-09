@@ -73,6 +73,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowSquashMerge: false,
 						AllowRebaseMerge: false,
 						HasDownloads:     true,
+						HasProjects:      false,
 						DefaultBranch:    "master",
 						Archived:         false,
 					}),
@@ -90,6 +91,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
 						DefaultBranch:    "master",
+						HasProjects:      false,
 						Archived:         false,
 					}),
 				),
@@ -328,12 +330,13 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	Description       string
 	Homepage          string
 	Private           bool
+	HasDownloads      bool
 	HasIssues         bool
+	HasProjects       bool
 	HasWiki           bool
 	AllowMergeCommit  bool
 	AllowSquashMerge  bool
 	AllowRebaseMerge  bool
-	HasDownloads      bool
 	AutoInit          bool
 	DefaultBranch     string
 	LicenseTemplate   string
