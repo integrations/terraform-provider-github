@@ -65,7 +65,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	i := strconv.Itoa(*resultKey.ID)
+	i := strconv.FormatInt(*resultKey.ID, 10)
 	id := buildTwoPartID(&repo, &i)
 
 	d.SetId(id)
@@ -79,7 +79,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	owner := meta.(*Organization).name
 	repo, id := parseTwoPartID(d.Id())
 
-	i, err := strconv.Atoi(id)
+	i, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	owner := meta.(*Organization).name
 	repo, id := parseTwoPartID(d.Id())
 
-	i, err := strconv.Atoi(id)
+	i, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
 	}

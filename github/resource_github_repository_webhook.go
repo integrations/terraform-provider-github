@@ -91,14 +91,17 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.Itoa(*hook.ID))
+	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
 
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	hookID, _ := strconv.Atoi(d.Id())
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	hook, resp, err := client.Repositories.GetHook(context.TODO(), meta.(*Organization).name, d.Get("repository").(string), hookID)
 	if err != nil {
@@ -120,7 +123,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	hk := resourceGithubRepositoryWebhookObject(d)
-	hookID, err := strconv.Atoi(d.Id())
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -135,7 +138,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	hookID, err := strconv.Atoi(d.Id())
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
