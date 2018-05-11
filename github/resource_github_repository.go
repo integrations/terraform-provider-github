@@ -93,6 +93,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"html_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"ssh_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -198,6 +202,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("has_downloads", repo.HasDownloads)
 	d.Set("full_name", repo.FullName)
 	d.Set("default_branch", repo.DefaultBranch)
+	d.Set("html_url", repo.HTMLURL)
 	d.Set("ssh_clone_url", repo.SSHURL)
 	d.Set("svn_url", repo.SVNURL)
 	d.Set("git_clone_url", repo.GitURL)
