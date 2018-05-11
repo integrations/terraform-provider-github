@@ -2,7 +2,6 @@ package hclog
 
 import (
 	"bufio"
-	"encoding"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -40,33 +39,22 @@ func New(opts *LoggerOptions) Logger {
 		level = DefaultLevel
 	}
 
-	mtx := opts.Mutex
-	if mtx == nil {
-		mtx = new(sync.Mutex)
+	return &intLogger{
+		m:      new(sync.Mutex),
+		json:   opts.JSONFormat,
+		caller: opts.IncludeLocation,
+		name:   opts.Name,
+		w:      bufio.NewWriter(output),
+		level:  level,
 	}
-
-	ret := &intLogger{
-		m:          mtx,
-		json:       opts.JSONFormat,
-		caller:     opts.IncludeLocation,
-		name:       opts.Name,
-		timeFormat: TimeFormat,
-		w:          bufio.NewWriter(output),
-		level:      level,
-	}
-	if opts.TimeFormat != "" {
-		ret.timeFormat = opts.TimeFormat
-	}
-	return ret
 }
 
 // The internal logger implementation. Internal in that it is defined entirely
 // by this package.
 type intLogger struct {
-	json       bool
-	caller     bool
-	name       string
-	timeFormat string
+	json   bool
+	caller bool
+	name   string
 
 	// this is a pointer so that it's shared by any derived loggers, since
 	// those derived loggers share the bufio.Writer as well.
@@ -138,7 +126,7 @@ func trimCallerPath(path string) string {
 
 // Non-JSON logging format function
 func (z *intLogger) log(t time.Time, level Level, msg string, args ...interface{}) {
-	z.w.WriteString(t.Format(z.timeFormat))
+	z.w.WriteString(t.Format(TimeFormat))
 	z.w.WriteByte(' ')
 
 	s, ok := _levelToBracket[level]
@@ -214,8 +202,6 @@ func (z *intLogger) log(t time.Time, level Level, msg string, args ...interface{
 			case CapturedStacktrace:
 				stacktrace = st
 				continue FOR
-			case Format:
-				val = fmt.Sprintf(st[0].(string), st[1:]...)
 			default:
 				val = fmt.Sprintf("%v", st)
 			}
@@ -276,8 +262,6 @@ func (z *intLogger) logJson(t time.Time, level Level, msg string, args ...interf
 		}
 	}
 
-	args = append(z.implied, args...)
-
 	if args != nil && len(args) > 0 {
 		if len(args)%2 != 0 {
 			cs, ok := args[len(args)-1].(CapturedStacktrace)
@@ -295,22 +279,7 @@ func (z *intLogger) logJson(t time.Time, level Level, msg string, args ...interf
 				// without injecting into logs...
 				continue
 			}
-			val := args[i+1]
-			switch sv := val.(type) {
-			case error:
-				// Check if val is of type error. If error type doesn't
-				// implement json.Marshaler or encoding.TextMarshaler
-				// then set val to err.Error() so that it gets marshaled
-				switch sv.(type) {
-				case json.Marshaler, encoding.TextMarshaler:
-				default:
-					val = sv.Error()
-				}
-			case Format:
-				val = fmt.Sprintf(sv[0].(string), sv[1:]...)
-			}
-
-			vals[args[i].(string)] = val
+			vals[args[i].(string)] = args[i+1]
 		}
 	}
 
@@ -376,8 +345,6 @@ func (z *intLogger) IsError() bool {
 func (z *intLogger) With(args ...interface{}) Logger {
 	var nz intLogger = *z
 
-	nz.implied = make([]interface{}, 0, len(z.implied)+len(args))
-	nz.implied = append(nz.implied, z.implied...)
 	nz.implied = append(nz.implied, args...)
 
 	return &nz
@@ -390,8 +357,6 @@ func (z *intLogger) Named(name string) Logger {
 
 	if nz.name != "" {
 		nz.name = nz.name + "." + name
-	} else {
-		nz.name = name
 	}
 
 	return &nz

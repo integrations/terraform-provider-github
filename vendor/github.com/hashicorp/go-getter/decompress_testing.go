@@ -72,13 +72,9 @@ func TestDecompressor(t testing.T, d Decompressor, cases []TestDecompressCase) {
 
 				if tc.Mtime != nil {
 					actual := fi.ModTime()
-					if tc.Mtime.Unix() > 0 {
-						expected := *tc.Mtime
-						if actual != expected {
-							t.Fatalf("err %s: expected mtime '%s' for %s, got '%s'", tc.Input, expected.String(), dst, actual.String())
-						}
-					} else if actual.Unix() <= 0 {
-						t.Fatalf("err %s: expected mtime to be > 0, got '%s'", actual.String())
+					expected := *tc.Mtime
+					if actual != expected {
+						t.Fatalf("err %s: expected mtime '%s' for %s, got '%s'", tc.Input, expected.String(), dst, actual.String())
 					}
 				}
 
@@ -107,15 +103,10 @@ func TestDecompressor(t testing.T, d Decompressor, cases []TestDecompressCase) {
 						t.Fatalf("err: %s", err)
 					}
 					actual := fi.ModTime()
-					if tc.Mtime.Unix() > 0 {
-						expected := *tc.Mtime
-						if actual != expected {
-							t.Fatalf("err %s: expected mtime '%s' for %s, got '%s'", tc.Input, expected.String(), path, actual.String())
-						}
-					} else if actual.Unix() < 0 {
-						t.Fatalf("err %s: expected mtime to be > 0, got '%s'", actual.String())
+					expected := *tc.Mtime
+					if actual != expected {
+						t.Fatalf("err %s: expected mtime '%s' for %s, got '%s'", tc.Input, expected.String(), path, actual.String())
 					}
-
 				}
 			}
 		}()
