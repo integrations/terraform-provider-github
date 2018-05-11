@@ -4,6 +4,9 @@ FEATURES:
 
 * **New Data Source:** `github_ip_ranges` [GH-82]
 * resource/github_repository: Added support for archiving repositories [GH-64]
+* resource/github_repository: Add `html_url` [GH-93]
+* resource/github_repository: Add `has_projects` [GH-92]
+* resource/github_team: Add `parent_team_id` [GH-54]
 
 ## 1.0.0 (February 20, 2018)
 
