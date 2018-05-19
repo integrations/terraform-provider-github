@@ -121,8 +121,8 @@ func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Pr
 			return fmt.Errorf("Expected ID to be %v, got %v", id, rs.Primary.ID)
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).client
+		o := testAccProvider.Meta().(*Owner).name
 		r, b := parseTwoPartID(rs.Primary.ID)
 
 		githubProtection, _, err := conn.Repositories.GetBranchProtection(context.TODO(), o, r, b)
@@ -238,14 +238,14 @@ func testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(protection *git
 }
 
 func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_branch_protection" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
+		o := testAccProvider.Meta().(*Owner).name
 		r, b := parseTwoPartID(rs.Primary.ID)
 		protection, res, err := conn.Repositories.GetBranchProtection(context.TODO(), o, r, b)
 

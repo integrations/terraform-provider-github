@@ -40,12 +40,12 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
 
-	_, err := client.Repositories.AddCollaborator(context.TODO(), meta.(*Organization).name, r, u,
+	_, err := client.Repositories.AddCollaborator(context.TODO(), meta.(*Owner).name, r, u,
 		&github.RepositoryAddCollaboratorOptions{Permission: p})
 
 	if err != nil {
@@ -58,11 +58,11 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	r, u := parseTwoPartID(d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
+	invitation, err := findRepoInvitation(client, meta.(*Owner).name, r, u)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -81,7 +81,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}
 
 	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(), meta.(*Organization).name, r, opt)
+		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(), meta.(*Owner).name, r, opt)
 		if err != nil {
 			return err
 		}
@@ -112,20 +112,20 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
+	invitation, err := findRepoInvitation(client, meta.(*Owner).name, r, u)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(context.TODO(), meta.(*Organization).name, r, *invitation.ID)
+		_, err = client.Repositories.DeleteInvitation(context.TODO(), meta.(*Owner).name, r, *invitation.ID)
 		return err
 	}
 
-	_, err = client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Organization).name, r, u)
+	_, err = client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Owner).name, r, u)
 	return err
 }
 
