@@ -12,22 +12,28 @@ import (
 )
 
 type Config struct {
-	Token        string
-	Organization string
-	BaseURL      string
-	Insecure     bool
+	Token    string
+	Owner    string
+	BaseURL  string
+	Insecure bool
 }
 
-type Organization struct {
-	name        string
-	client      *github.Client
-	StopContext context.Context
+type Owner struct {
+	name         string
+	client       *github.Client
+	StopContext  context.Context
+	Organization bool
+}
+
+func (o *Owner) IsOrganization() bool {
+	return o.Organization
 }
 
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
-	var org Organization
-	org.name = c.Organization
+	var owner Owner
+	owner.name = c.Owner
+	owner.Organization = true
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
@@ -43,16 +49,21 @@ func (c *Config) Client() (interface{}, error) {
 
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
-	org.client = github.NewClient(tc)
+	owner.client = github.NewClient(tc)
 	if c.BaseURL != "" {
 		u, err := url.Parse(c.BaseURL)
 		if err != nil {
 			return nil, err
 		}
-		org.client.BaseURL = u
+		owner.client.BaseURL = u
 	}
 
-	return &org, nil
+	_, _, err := (*owner.client).Organizations.Get(context.TODO(), owner.name)
+	if err != nil {
+		owner.Organization = false
+	}
+
+	return &owner, nil
 }
 
 func insecureHttpClient() *http.Client {

@@ -113,7 +113,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return fmt.Errorf("No team repository ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Owner).client
 		t, r, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -121,7 +121,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 
 		repo, _, err := conn.Organizations.IsTeamRepo(context.TODO(),
 			toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			testAccProvider.Meta().(*Owner).name, r)
 
 		if err != nil {
 			return err
@@ -132,7 +132,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 }
 
 func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_repository" {
@@ -145,7 +145,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 
 		repo, resp, err := conn.Organizations.IsTeamRepo(context.TODO(),
 			toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			testAccProvider.Meta().(*Owner).name, r)
 
 		if err == nil {
 			if repo != nil &&

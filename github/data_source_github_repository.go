@@ -103,9 +103,9 @@ func dataSourceGithubRepository() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {

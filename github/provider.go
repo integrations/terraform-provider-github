@@ -17,9 +17,15 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
+			"owner": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
+				Description: descriptions["owner"],
+			},
 			"organization": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 				Description: descriptions["organization"],
 			},
@@ -70,7 +76,9 @@ func init() {
 	descriptions = map[string]string{
 		"token": "The OAuth token used to connect to GitHub.",
 
-		"organization": "The GitHub organization name to manage.",
+		"owner": "The GitHub owner name to manage.",
+
+		"organization": "The GitHub owner name to manage.",
 
 		"base_url": "The GitHub Base API URL",
 
@@ -81,11 +89,15 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
+		owner := d.Get("organization").(string)
+		if owner == "" {
+			owner = d.Get("owner").(string)
+		}
 		config := Config{
-			Token:        d.Get("token").(string),
-			Organization: d.Get("organization").(string),
-			BaseURL:      d.Get("base_url").(string),
-			Insecure:     d.Get("insecure").(bool),
+			Token:    d.Get("token").(string),
+			Owner:    owner,
+			BaseURL:  d.Get("base_url").(string),
+			Insecure: d.Get("insecure").(bool),
 		}
 
 		meta, err := config.Client()
@@ -93,7 +105,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			return nil, err
 		}
 
-		meta.(*Organization).StopContext = p.StopContext()
+		meta.(*Owner).StopContext = p.StopContext()
 
 		return meta, nil
 	}

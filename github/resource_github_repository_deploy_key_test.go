@@ -54,14 +54,14 @@ func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
+		o := testAccProvider.Meta().(*Owner).name
 		r, i, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -94,8 +94,8 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).client
+		o := testAccProvider.Meta().(*Owner).name
 		r, i, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
