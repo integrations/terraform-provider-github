@@ -150,9 +150,9 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	branch := d.Get("branch").(string)
 
@@ -193,13 +193,13 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -259,7 +259,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -270,7 +270,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
@@ -315,13 +315,13 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
@@ -376,13 +376,13 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 }
 
 func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -402,13 +402,13 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 
 func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
