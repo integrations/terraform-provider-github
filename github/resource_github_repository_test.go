@@ -302,6 +302,33 @@ func TestAccGithubRepository_templates(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_topics(t *testing.T) {
+	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigTopics(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:        name,
+						Description: description,
+						Homepage:    "http://example.com/",
+						Topics:      []string{"topic1", "topic2"},
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -342,6 +369,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	LicenseTemplate   string
 	GitignoreTemplate string
 	Archived          bool
+	Topics            []string
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
@@ -376,6 +404,9 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if *repo.HasDownloads != want.HasDownloads {
 			return fmt.Errorf("got has downloads %#v; want %#v", *repo.HasDownloads, want.HasDownloads)
+		}
+		if &repo.Topics != &want.Topics {
+			return fmt.Errorf("got has topics %#v; want %#v", &repo.Topics, &want.Topics)
 		}
 
 		if *repo.DefaultBranch != want.DefaultBranch {
@@ -625,6 +656,22 @@ resource "github_repository" "foo" {
 
   license_template = "ms-pl"
   gitignore_template = "C++"
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryConfigTopics(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  topics = ["topic1", "topic2"]
 }
 `, randString, randString)
 }
