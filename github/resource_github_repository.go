@@ -92,6 +92,11 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"topics": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
 
 			"full_name": {
 				Type:     schema.TypeString,
@@ -137,6 +142,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	licenseTemplate := d.Get("license_template").(string)
 	gitIgnoreTemplate := d.Get("gitignore_template").(string)
 	archived := d.Get("archived").(bool)
+	topics := d.Get("topics").([]string)
 
 	repo := &github.Repository{
 		Name:              &name,
@@ -154,6 +160,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		LicenseTemplate:   &licenseTemplate,
 		GitignoreTemplate: &gitIgnoreTemplate,
 		Archived:          &archived,
+		Topics:            topics,
 	}
 
 	return repo
@@ -214,6 +221,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
 	d.Set("archived", repo.Archived)
+	d.Set("topics", repo.Topics)
 	return nil
 }
 
