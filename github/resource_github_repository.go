@@ -142,7 +142,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	licenseTemplate := d.Get("license_template").(string)
 	gitIgnoreTemplate := d.Get("gitignore_template").(string)
 	archived := d.Get("archived").(bool)
-	topics := d.Get("topics").([]string)
+	topics := expandStringList(d.Get("topics").([]interface{}))
 
 	repo := &github.Repository{
 		Name:              &name,
@@ -168,6 +168,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	ctx := context.TODO()
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		return fmt.Errorf("Cannot set the default branch on a new repository.")
@@ -175,11 +176,19 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(context.TODO(), meta.(*Organization).name, repoReq)
+	repo, _, err := client.Repositories.Create(ctx, meta.(*Organization).name, repoReq)
 	if err != nil {
 		return err
 	}
 	d.SetId(*repo.Name)
+
+	topics := repoReq.Topics
+	if len(topics) > 0 {
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, meta.(*Organization).name, *repoReq.Name, topics)
+		if err != nil {
+			return err
+		}
+	}
 
 	return resourceGithubRepositoryUpdate(d, meta)
 }
@@ -221,12 +230,13 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
 	d.Set("archived", repo.Archived)
-	d.Set("topics", repo.Topics)
+	d.Set("topics", flattenStringList(repo.Topics))
 	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	ctx := context.TODO()
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
@@ -239,11 +249,19 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, _, err := client.Repositories.Edit(context.TODO(), meta.(*Organization).name, repoName, repoReq)
+	repo, _, err := client.Repositories.Edit(ctx, meta.(*Organization).name, repoName, repoReq)
 	if err != nil {
 		return err
 	}
 	d.SetId(*repo.Name)
+
+	if d.HasChange("topics") {
+		topics := repoReq.Topics
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, meta.(*Organization).name, *repo.Name, topics)
+		if err != nil {
+			return err
+		}
+	}
 
 	return resourceGithubRepositoryRead(d, meta)
 }

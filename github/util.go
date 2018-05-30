@@ -64,3 +64,22 @@ func validateTwoPartID(id string) error {
 func buildTwoPartID(a, b *string) string {
 	return fmt.Sprintf("%s:%s", *a, *b)
 }
+
+func expandStringList(configured []interface{}) []string {
+	vs := make([]string, 0, len(configured))
+	for _, v := range configured {
+		val, ok := v.(string)
+		if ok && val != "" {
+			vs = append(vs, val)
+		}
+	}
+	return vs
+}
+
+func flattenStringList(v []string) []interface{} {
+	c := make([]interface{}, 0, len(v))
+	for _, s := range v {
+		c = append(c, s)
+	}
+	return c
+}

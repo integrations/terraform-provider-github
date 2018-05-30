@@ -314,7 +314,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryConfigTopics(randString),
+				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2"`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
@@ -322,6 +322,48 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						Description: description,
 						Homepage:    "http://example.com/",
 						Topics:      []string{"topic1", "topic2"},
+
+						// non-zero defaults
+						DefaultBranch:    "master",
+						AllowMergeCommit: true,
+						AllowSquashMerge: true,
+						AllowRebaseMerge: true,
+					}),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2", "topic3"`),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:        name,
+						Description: description,
+						Homepage:    "http://example.com/",
+						Topics:      []string{"topic1", "topic2", "topic3"},
+
+						// non-zero defaults
+						DefaultBranch:    "master",
+						AllowMergeCommit: true,
+						AllowSquashMerge: true,
+						AllowRebaseMerge: true,
+					}),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryConfigTopics(randString, ``),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:        name,
+						Description: description,
+						Homepage:    "http://example.com/",
+						Topics:      []string{},
+
+						// non-zero defaults
+						DefaultBranch:    "master",
+						AllowMergeCommit: true,
+						AllowSquashMerge: true,
+						AllowRebaseMerge: true,
 					}),
 				),
 			},
@@ -405,10 +447,14 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if *repo.HasDownloads != want.HasDownloads {
 			return fmt.Errorf("got has downloads %#v; want %#v", *repo.HasDownloads, want.HasDownloads)
 		}
-		if &repo.Topics != &want.Topics {
-			return fmt.Errorf("got has topics %#v; want %#v", &repo.Topics, &want.Topics)
+		if len(want.Topics) != len(repo.Topics) {
+			return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
 		}
-
+		for i := range want.Topics {
+			if repo.Topics[i] != want.Topics[i] {
+				return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
+			}
+		}
 		if *repo.DefaultBranch != want.DefaultBranch {
 			return fmt.Errorf("got default branch %q; want %q", *repo.DefaultBranch, want.DefaultBranch)
 		}
@@ -660,7 +706,7 @@ resource "github_repository" "foo" {
 `, randString, randString)
 }
 
-func testAccGithubRepositoryConfigTopics(randString string) string {
+func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
   name = "tf-acc-test-%s"
@@ -671,7 +717,7 @@ resource "github_repository" "foo" {
   # with no billing
   private = false
 
-  topics = ["topic1", "topic2"]
+  topics = [%s]
 }
-`, randString, randString)
+`, randString, randString, topicList)
 }
