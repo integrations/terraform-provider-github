@@ -41,6 +41,8 @@ The following arguments are supported:
 * `has_issues` - (Optional) Set to `true` to enable the Github Issues features
   on the repository.
 
+* `has_projects` - (Optional) Set to `true` to enable the Github Projects features on the repository. Per the github [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
+
 * `has_wiki` - (Optional) Set to `true` to enable the Github Wiki features on
   the repository.
 
