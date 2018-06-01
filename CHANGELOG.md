@@ -1,4 +1,9 @@
-## 1.1.1 (Unreleased)
+## 1.2.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* Added support for topics to `github_repository` [GH-97]
+
 ## 1.1.0 (May 11, 2018)
 
 FEATURES:
