@@ -116,9 +116,9 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-		owner := d.Get("owner").(string)
+		owner := d.Get("organization").(string)
 		if owner == "" {
-			owner = d.Get("organization").(string)
+			owner = d.Get("owner").(string)
 		}
 		config := Config{
 			Token:        d.Get("token").(string),
