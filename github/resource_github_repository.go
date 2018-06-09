@@ -182,12 +182,11 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).client
+	owner := ""
+	if meta.(*Owner).IsOrganization() {
+		owner = meta.(*Owner).name
+	}
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
 		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
@@ -198,7 +197,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
+	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoName)
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
@@ -213,7 +212,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			templateRepoOwner := templateConfigMap["owner"].(string)
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
-				Owner:       &orgName,
+				Owner:       &owner,
 				Description: github.String(d.Get("description").(string)),
 				Private:     github.Bool(d.Get("private").(bool)),
 			}
@@ -232,7 +231,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	} else {
 		// Create without a repository template
-		repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
+		repo, _, err := client.Repositories.Create(ctx, owner, repoReq)
 		if err != nil {
 			return err
 		}
@@ -241,7 +240,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
 		if err != nil {
 			return err
 		}
