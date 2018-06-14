@@ -68,6 +68,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
 
+* `topics` - (Optional) The list of topics of the repository.
+
 ~> **NOTE** Currently, the API does not support unarchiving.
 
 ## Attributes Reference
