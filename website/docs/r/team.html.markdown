@@ -34,6 +34,8 @@ The following arguments are supported:
                Defaults to `secret`.
 * `parent_team_id` - (Optional) The ID of the parent team, if this is a nested team.
 * `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise.
+* `maintainers` - (Optional) The logins of organization members to add as maintainers of the team.
+                   Defaults to `[]` (an empty list)
 
 ## Attributes Reference
 
