@@ -3,13 +3,13 @@ layout: "github"
 page_title: "GitHub: github_repository_webhook"
 sidebar_current: "docs-github-resource-repository-webhook"
 description: |-
-  Creates and manages repository webhooks within Github organizations
+  Creates and manages repository webhooks within GitHub organizations
 ---
 
 # github_repository_webhook
 
 This resource allows you to create and manage webhooks for repositories within your
-Github organization.
+GitHub organization.
 
 This resource cannot currently be used to manage webhooks for *personal* repositories,
 outside of organizations.

@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_team"
+page_title: "GitHub: github_team"
 sidebar_current: "docs-github-datasource-team"
 description: |-
-  Get information on a Github team.
+  Get information on a GitHub team.
 ---
 
 # github\_team
 
-Use this data source to retrieve information about a Github team.
+Use this data source to retrieve information about a GitHub team.
 
 ## Example Usage
 

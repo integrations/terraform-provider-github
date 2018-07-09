@@ -11,7 +11,7 @@ description: |-
 Provides a GitHub issue label resource.
 
 This resource allows you to create and manage issue labels within your
-Github organization.
+GitHub organization.
 
 Issue labels are keyed off of their "name", so pre-existing issue labels result
 in a 422 HTTP error if they exist outside of Terraform. Normally this would not
@@ -46,7 +46,7 @@ The following arguments are supported:
 
 ## Import
 
-Github Issue Labels can be imported using an id made up of `repository:name`, e.g.
+GitHub Issue Labels can be imported using an id made up of `repository:name`, e.g.
 
 ```
 $ terraform import github_issue_label.panic_label terraform:panic

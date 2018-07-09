@@ -37,7 +37,7 @@ The following arguments are supported:
 
 * `key` - (Required) A ssh key.
 * `read_only` - (Required) A boolean qualifying the key to be either read only or read/write.
-* `repository` - (Required) Name of the Github repository.
+* `repository` - (Required) Name of the GitHub repository.
 * `title` - (Required) A title.
 
 Changing any of the fields forces re-creating the resource.
@@ -45,7 +45,7 @@ Changing any of the fields forces re-creating the resource.
 ## Import
 
 Repository deploy keys can be imported using a colon-separated pair of repository name
-and Github's key id. The latter can be obtained by Github's SDKs and API.
+and GitHub's key id. The latter can be obtained by GitHub's SDKs and API.
 
 ```
 $ terraform import github_repository_deploy_key.foo test-repo:23824728

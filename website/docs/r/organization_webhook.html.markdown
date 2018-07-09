@@ -3,12 +3,12 @@ layout: "github"
 page_title: "GitHub: github_organization_webhook"
 sidebar_current: "docs-github-resource-organization-webhook"
 description: |-
-  Creates and manages webhooks for Github organizations
+  Creates and manages webhooks for GitHub organizations
 ---
 
 # github_organization_webhook
 
-This resource allows you to create and manage webhooks for Github organization.
+This resource allows you to create and manage webhooks for GitHub organization.
 
 ## Example Usage
 
