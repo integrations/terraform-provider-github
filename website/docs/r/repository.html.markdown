@@ -60,7 +60,7 @@ The following arguments are supported:
 
 * `gitignore_template` - (Optional) Meaningful only during create, will be ignored after repository creation. Use the [name of the template](https://github.com/github/gitignore) without the extension. For example, "Haskell".
 
-* `license_template` - (Optional) Meaningful only during create, will be ignored after repository creation. Use the [name of the template](https://github.com/github/choosealicense.com/tree/gh-pages/_licenses) without the extension. For example, "mit" or "mozilla".
+* `license_template` - (Optional) Meaningful only during create, will be ignored after repository creation. Use the [name of the template](https://github.com/github/choosealicense.com/tree/gh-pages/_licenses) without the extension. For example, "mit" or "mpl-2.0".
 
 * `default_branch` - (Optional) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created,
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
