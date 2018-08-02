@@ -10,7 +10,10 @@ ENHANCEMENTS:
 FEATURES:
 
 * **New Data Source:** `github_ip_ranges` ([#82](https://github.com/terraform-providers/terraform-provider-github/issues/82))
-* resource/github_repository: Added support for archiving repositories ([#64](https://github.com/terraform-providers/terraform-provider-github/issues/64))
+
+ENHANCEMENTS:
+
+* resource/github_repository: Add support for archiving ([#64](https://github.com/terraform-providers/terraform-provider-github/issues/64))
 * resource/github_repository: Add `html_url` ([#93](https://github.com/terraform-providers/terraform-provider-github/issues/93))
 * resource/github_repository: Add `has_projects` ([#92](https://github.com/terraform-providers/terraform-provider-github/issues/92))
 * resource/github_team: Add `parent_team_id` ([#54](https://github.com/terraform-providers/terraform-provider-github/issues/54))
