@@ -2,8 +2,7 @@
 
 ENHANCEMENTS:
 
-* Added support for topics to `github_repository` [GH-97]
-* Document `has_projects` for `github_repository` [GH-98]
+* resource/github_repository: Add support for topics [GH-97]
 
 ## 1.1.0 (May 11, 2018)
 
