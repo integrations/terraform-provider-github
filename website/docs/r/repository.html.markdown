@@ -3,13 +3,13 @@ layout: "github"
 page_title: "GitHub: github_repository"
 sidebar_current: "docs-github-resource-repository"
 description: |-
-  Creates and manages repositories within Github organizations
+  Creates and manages repositories within GitHub organizations
 ---
 
 # github_repository
 
 This resource allows you to create and manage repositories within your
-Github organization.
+GitHub organization.
 
 This resource cannot currently be used to manage *personal* repositories,
 outside of organizations.
@@ -38,12 +38,12 @@ The following arguments are supported:
 * `private` - (Optional) Set to `true` to create a private repository.
   Repositories are created as public (e.g. open source) by default.
 
-* `has_issues` - (Optional) Set to `true` to enable the Github Issues features
+* `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features
   on the repository.
 
-* `has_projects` - (Optional) Set to `true` to enable the Github Projects features on the repository. Per the github [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
+* `has_projects` - (Optional) Set to `true` to enable the GitHub Projects features on the repository. Per the github [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
 
-* `has_wiki` - (Optional) Set to `true` to enable the Github Wiki features on
+* `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on
   the repository.
 
 * `allow_merge_commit` - (Optional) Set to `false` to disable merge commits on the repository.
@@ -88,7 +88,7 @@ The following additional attributes are exported:
   repository anonymously via the git protocol.
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out
-  the repository via Github's Subversion protocol emulation.
+  the repository via GitHub's Subversion protocol emulation.
 
 
 ## Import

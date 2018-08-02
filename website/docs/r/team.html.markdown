@@ -43,7 +43,7 @@ The following attributes are exported:
 
 ## Import
 
-Github Teams can be imported using the github team Id e.g.
+GitHub Teams can be imported using the github team Id e.g.
 
 ```
 $ terraform import github_team.core 1234567

@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_user"
+page_title: "GitHub: github_user"
 sidebar_current: "docs-github-datasource-user"
 description: |-
-  Get information on a Github user.
+  Get information on a GitHub user.
 ---
 
 # github\_user
 
-Use this data source to retrieve information about a Github user.
+Use this data source to retrieve information about a GitHub user.
 
 ## Example Usage
 
@@ -27,7 +27,7 @@ data "github_user" "example" {
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.
  * `gravatar_id` - the user's gravatar ID.
- * `site_admin` - whether the user is a Github admin.
+ * `site_admin` - whether the user is a GitHub admin.
  * `name` - the user's full name.
  * `company` - the user's company name.
  * `blog` - the user's blog location.

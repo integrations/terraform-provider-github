@@ -9,13 +9,13 @@ description: |-
 # github_team_repository
 
 This resource manages relationships between teams and repositories
-in your Github organization.
+in your GitHub organization.
 
 Creating this resource grants a particular team permissions on a
 particular repository.
 
 The repository and the team must both belong to the same organization
-on Github. This resource does not actually *create* any repositories;
+on GitHub. This resource does not actually *create* any repositories;
 to do that, see [`github_repository`](repository.html).
 
 ## Example Usage
@@ -50,7 +50,7 @@ The following arguments are supported:
 
 ## Import
 
-Github Team Membership can be imported using an id made up of `teamid:repository`, e.g.
+GitHub Team Membership can be imported using an id made up of `teamid:repository`, e.g.
 
 ```
 $ terraform import github_team_repository.terraform_repo 1234567:terraform
