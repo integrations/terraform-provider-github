@@ -12,7 +12,7 @@ Use this data source to retrieve information about a GitHub user.
 
 ## Example Usage
 
-```
+```hcl
 data "github_user" "example" {
   username = "example"
 }
