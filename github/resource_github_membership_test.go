@@ -54,7 +54,10 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 		if rs.Type != "github_membership" {
 			continue
 		}
-		o, u := parseTwoPartID(rs.Primary.ID)
+		o, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		membership, resp, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 
@@ -84,7 +87,10 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o, u := parseTwoPartID(rs.Primary.ID)
+		o, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 		if err != nil {
@@ -107,7 +113,10 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o, u := parseTwoPartID(rs.Primary.ID)
+		o, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 		if err != nil {

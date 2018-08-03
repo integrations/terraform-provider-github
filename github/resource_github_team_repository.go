@@ -58,7 +58,10 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t, r := parseTwoPartID(d.Id())
+	t, r, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	repo, _, repoErr := client.Organizations.IsTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r)
 

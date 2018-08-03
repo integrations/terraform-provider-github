@@ -123,7 +123,10 @@ func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Pr
 
 		conn := testAccProvider.Meta().(*Organization).client
 		o := testAccProvider.Meta().(*Organization).name
-		r, b := parseTwoPartID(rs.Primary.ID)
+		r, b, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		githubProtection, _, err := conn.Repositories.GetBranchProtection(context.TODO(), o, r, b)
 		if err != nil {
@@ -246,7 +249,11 @@ func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
 		}
 
 		o := testAccProvider.Meta().(*Organization).name
-		r, b := parseTwoPartID(rs.Primary.ID)
+		r, b, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		protection, res, err := conn.Repositories.GetBranchProtection(context.TODO(), o, r, b)
 
 		if err == nil {

@@ -59,7 +59,10 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, u := parseTwoPartID(d.Id())
+	r, u, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
