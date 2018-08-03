@@ -1,5 +1,9 @@
 ## 1.2.0 (Unreleased)
 
+FEATURES:
+
+* **New Data Source:** github_repository [GH-109]
+
 ENHANCEMENTS:
 
 * data-source/github_ip_ranges: Add importer IPs [GH-100]
