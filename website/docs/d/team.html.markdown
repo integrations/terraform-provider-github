@@ -12,7 +12,7 @@ Use this data source to retrieve information about a GitHub team.
 
 ## Example Usage
 
-```
+```hcl
 data "github_team" "example" {
   slug = "example"
 }

@@ -11,7 +11,7 @@ description: |-
 Use this data source to retrieve information about a GitHub's IP addresses.
 ## Example Usage
 
-```
+```hcl
 data "github_ip_ranges" "test" {}
 ```
 
