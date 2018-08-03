@@ -74,7 +74,11 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		if d.Id() == "" {
 			oname = n
 		} else {
-			_, oname = parseTwoPartID(d.Id())
+			var err error
+			_, oname, err = parseTwoPartID(d.Id())
+			if err != nil {
+				return err
+			}
 		}
 
 		_, _, err := client.Issues.EditLabel(context.TODO(), o, r, oname, label)
@@ -99,7 +103,10 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, n := parseTwoPartID(d.Id())
+	r, n, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] Reading label: %s/%s", r, n)
 	githubLabel, _, err := client.Issues.GetLabel(context.TODO(), meta.(*Organization).name, r, n)

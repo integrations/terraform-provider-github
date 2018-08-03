@@ -60,7 +60,11 @@ func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
 		}
 
 		o := testAccProvider.Meta().(*Organization).name
-		r, u := parseTwoPartID(rs.Primary.ID)
+		r, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		isCollaborator, _, err := conn.Repositories.IsCollaborator(context.TODO(), o, r, u)
 
 		if err != nil {
@@ -90,7 +94,10 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 
 		conn := testAccProvider.Meta().(*Organization).client
 		o := testAccProvider.Meta().(*Organization).name
-		r, u := parseTwoPartID(rs.Primary.ID)
+		r, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
 		if err != nil {
@@ -126,7 +133,10 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 
 		conn := testAccProvider.Meta().(*Organization).client
 		o := testAccProvider.Meta().(*Organization).name
-		r, u := parseTwoPartID(rs.Primary.ID)
+		r, u, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
 		if err != nil {

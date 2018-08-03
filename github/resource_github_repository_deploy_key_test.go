@@ -62,7 +62,11 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 		}
 
 		o := testAccProvider.Meta().(*Organization).name
-		r, i := parseTwoPartID(rs.Primary.ID)
+		r, i, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		id, err := strconv.ParseInt(i, 10, 64)
 		if err != nil {
 			return err
@@ -92,7 +96,11 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 
 		conn := testAccProvider.Meta().(*Organization).client
 		o := testAccProvider.Meta().(*Organization).name
-		r, i := parseTwoPartID(rs.Primary.ID)
+		r, i, err := parseTwoPartID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		id, err := strconv.ParseInt(i, 10, 64)
 		if err != nil {
 			return err

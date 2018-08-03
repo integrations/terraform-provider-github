@@ -61,7 +61,10 @@ func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t, n := parseTwoPartID(d.Id())
+	t, n, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), n)
 
