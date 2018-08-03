@@ -20,3 +20,4 @@ data "github_ip_ranges" "test" {}
  * `hooks` - An Array of IP addresses in CIDR format specifying the addresses that incoming service hooks will originate from.
  * `git` - An Array of IP addresses in CIDR format specifying the Git servers.
  * `pages` - An Array of IP addresses in CIDR format specifying the A records for GitHub Pages.
+ * `importer` - An Array of IP addresses in CIDR format specifying the A records for GitHub Importer.

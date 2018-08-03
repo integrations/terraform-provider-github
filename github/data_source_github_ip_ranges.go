@@ -24,8 +24,11 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			// TODO: importer IPs coming once this is merged
-			// https://github.com/google/go-github/pull/881
+			"importer": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -38,7 +41,7 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	if len(api.Hooks)+len(api.Git)+len(api.Pages) > 0 {
+	if len(api.Hooks)+len(api.Git)+len(api.Pages)+len(api.Importer) > 0 {
 		d.SetId("github-ip-ranges")
 	}
 	if len(api.Hooks) > 0 {
@@ -49,6 +52,9 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	if len(api.Pages) > 0 {
 		d.Set("pages", api.Pages)
+	}
+	if len(api.Importer) > 0 {
+		d.Set("importer", api.Importer)
 	}
 
 	return nil
