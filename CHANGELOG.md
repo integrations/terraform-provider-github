@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 
+* data-source/github_ip_ranges: Add importer IPs [GH-100]
 * resource/github_repository: Add support for topics [GH-97]
 
 ## 1.1.0 (May 11, 2018)
