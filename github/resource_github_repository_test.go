@@ -548,13 +548,13 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 
 	c, err := config.Client()
 	if err != nil {
-		panic(fmt.Sprintf("Error creating github client: %s", err))
+		return fmt.Errorf("Error creating github client: %s", err)
 	}
 	client := c.(*Organization).client
 
 	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
 	if err != nil {
-		panic(fmt.Sprintf("Error getting reference commit: %s", err))
+		return fmt.Errorf("Error getting reference commit: %s", err)
 	}
 	ref := refs[0]
 
@@ -567,7 +567,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 
 	_, _, err = client.Git.CreateRef(context.TODO(), org, repository, newRef)
 	if err != nil {
-		panic(fmt.Sprintf("Error creating git reference: %s", err))
+		return fmt.Errorf("Error creating git reference: %s", err)
 	}
 
 	return nil
