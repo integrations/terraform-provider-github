@@ -1,7 +1,7 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository"
-sidebar_current: "docs-github-resource-repository"
+sidebar_current: "docs-github-resource-repository-x"
 description: |-
   Creates and manages repositories within GitHub organizations
 ---
