@@ -45,4 +45,9 @@ The following arguments are supported in the `provider` block:
   requirement when working with GitHub Enterprise.  It is optional to provide this value and
   it can also be sourced from the `GITHUB_BASE_URL` environment variable.  The value must end with a slash.
 
-* `insecure` - (Optional) This allows the plugin to be used against a Github enterprise installation with a self-signed certificate.
+* `insecure` - (Optional) Whether server should be accessed without verifying the TLS certificate.
+  As the name suggests **this is insecure** and should not be used beyond experiments,
+  accessing local (non-production) GHE instance etc.
+  There is a number of ways to obtain trusted certificate for free, e.g. from [Let's Encrypt](https://letsencrypt.org/).
+  Such trusted certificate *does not require* this option to be enabled.
+  Defaults to `false`.

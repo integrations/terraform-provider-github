@@ -74,7 +74,8 @@ func init() {
 
 		"base_url": "The GitHub Base API URL",
 
-		"insecure": "Set this to allow use with self-signed SSL certs",
+		"insecure": "Whether server should be accessed " +
+			"without verifying the TLS certificate.",
 	}
 }
 
