@@ -32,24 +32,24 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_branch_protection":       resourceGithubBranchProtection(),
+			"github_issue_label":             resourceGithubIssueLabel(),
+			"github_membership":              resourceGithubMembership(),
+			"github_organization_webhook":    resourceGithubOrganizationWebhook(),
+			"github_repository":              resourceGithubRepository(),
+			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
+			"github_repository_deploy_key":   resourceGithubRepositoryDeployKey(),
+			"github_repository_webhook":      resourceGithubRepositoryWebhook(),
 			"github_team":                    resourceGithubTeam(),
 			"github_team_membership":         resourceGithubTeamMembership(),
 			"github_team_repository":         resourceGithubTeamRepository(),
-			"github_membership":              resourceGithubMembership(),
-			"github_repository":              resourceGithubRepository(),
-			"github_repository_deploy_key":   resourceGithubRepositoryDeployKey(),
-			"github_repository_webhook":      resourceGithubRepositoryWebhook(),
-			"github_organization_webhook":    resourceGithubOrganizationWebhook(),
-			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
-			"github_issue_label":             resourceGithubIssueLabel(),
-			"github_branch_protection":       resourceGithubBranchProtection(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_user":       dataSourceGithubUser(),
-			"github_team":       dataSourceGithubTeam(),
 			"github_ip_ranges":  dataSourceGithubIpRanges(),
 			"github_repository": dataSourceGithubRepository(),
+			"github_team":       dataSourceGithubTeam(),
+			"github_user":       dataSourceGithubUser(),
 		},
 	}
 
