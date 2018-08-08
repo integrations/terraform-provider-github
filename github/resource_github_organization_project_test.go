@@ -34,6 +34,24 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubOrganizationProject_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubOrganizationProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubOrganizationProjectConfig,
+			},
+			{
+				ResourceName:      "github_organization_project.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).client
 
