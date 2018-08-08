@@ -90,7 +90,10 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 
 func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	hookID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
 
 	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Organization).name, hookID)
 	if err != nil {
@@ -114,7 +117,7 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 	hk := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
 	}
 
 	_, _, err = client.Organizations.EditHook(context.TODO(), meta.(*Organization).name, hookID, hk)
@@ -129,7 +132,7 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interf
 	client := meta.(*Organization).client
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
 	}
 
 	_, err = client.Organizations.DeleteHook(context.TODO(), meta.(*Organization).name, hookID)

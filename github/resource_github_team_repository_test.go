@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -114,14 +115,20 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		t, r, err := parseTwoPartID(rs.Primary.ID)
+
+		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(teamIdString, err)
+		}
 
 		repo, _, err := conn.Organizations.IsTeamRepo(context.TODO(),
-			toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			teamId,
+			testAccProvider.Meta().(*Organization).name,
+			repoName)
 
 		if err != nil {
 			return err
@@ -138,18 +145,24 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 		if rs.Type != "github_team_repository" {
 			continue
 		}
-		t, r, err := parseTwoPartID(rs.Primary.ID)
+
+		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(teamIdString, err)
+		}
 
 		repo, resp, err := conn.Organizations.IsTeamRepo(context.TODO(),
-			toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			teamId,
+			testAccProvider.Meta().(*Organization).name,
+			repoName)
 
 		if err == nil {
 			if repo != nil &&
-				buildTwoPartID(&t, repo.Name) == rs.Primary.ID {
+				buildTwoPartID(&teamIdString, repo.Name) == rs.Primary.ID {
 				return fmt.Errorf("Team repository still exists")
 			}
 		}

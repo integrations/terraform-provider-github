@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -76,7 +77,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	d.SetId(fromGithubID(githubTeam.ID))
+	d.SetId(strconv.FormatInt(*githubTeam.ID, 10))
 	return resourceGithubTeamRead(d, meta)
 }
 
@@ -139,19 +140,28 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	d.SetId(fromGithubID(team.ID))
+	d.SetId(strconv.FormatInt(*team.ID, 10))
 	return resourceGithubTeamRead(d, meta)
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	id := toGithubID(d.Id())
-	_, err := client.Organizations.DeleteTeam(context.TODO(), id)
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+
+	_, err = client.Organizations.DeleteTeam(context.TODO(), id)
 	return err
 }
 
 func getGithubTeam(d *schema.ResourceData, github *github.Client) (*github.Team, error) {
-	id := toGithubID(d.Id())
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return nil, unconvertibleIdErr(d.Id(), err)
+	}
+
 	team, _, err := github.Organizations.GetTeam(context.TODO(), id)
 	return team, err
 }

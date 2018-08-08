@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -96,7 +97,12 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		githubTeam, _, err := conn.Organizations.GetTeam(context.TODO(), toGithubID(rs.Primary.ID))
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(rs.Primary.ID, err)
+		}
+
+		githubTeam, _, err := conn.Organizations.GetTeam(context.TODO(), id)
 		if err != nil {
 			return err
 		}
@@ -135,10 +141,15 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 			continue
 		}
 
-		team, resp, err := conn.Organizations.GetTeam(context.TODO(), toGithubID(rs.Primary.ID))
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(rs.Primary.ID, err)
+		}
+
+		team, resp, err := conn.Organizations.GetTeam(context.TODO(), id)
 		if err == nil {
-			if team != nil &&
-				fromGithubID(team.ID) == rs.Primary.ID {
+			teamId := strconv.FormatInt(*team.ID, 10)
+			if team != nil && teamId == rs.Primary.ID {
 				return fmt.Errorf("Team still exists")
 			}
 		}

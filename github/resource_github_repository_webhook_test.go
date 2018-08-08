@@ -87,7 +87,10 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 			return fmt.Errorf("Not Found: %s", n)
 		}
 
-		hookID, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		hookID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(rs.Primary.ID, err)
+		}
 		if hookID == 0 {
 			return fmt.Errorf("No repository name is set")
 		}
@@ -144,7 +147,7 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
 		gotHook, resp, err := conn.Repositories.GetHook(context.TODO(), orgName, rs.Primary.Attributes["repository"], id)
