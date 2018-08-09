@@ -23,9 +23,9 @@ resource "github_organization_project" "project" {
 
 The following arguments are supported:
 
-* `name` - The name of the project.
+* `name` - (Required) The name of the project.
 
-* `body` - The body of the project.
+* `body` - (Optional) The body of the project.
 
 ## Attributes Reference
 
