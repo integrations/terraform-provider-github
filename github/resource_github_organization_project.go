@@ -42,10 +42,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	n := d.Get("name").(string)
 	b := d.Get("body").(string)
 
-	options := github.ProjectOptions{
-		Name: n,
-		Body: b,
-	}
+	options := github.ProjectOptions{Name: n, Body: b}
 
 	project, _, err := client.Organizations.CreateProject(context.TODO(), o, &options)
 	if err != nil {
@@ -86,10 +83,7 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	n := d.Get("name").(string)
 	b := d.Get("body").(string)
 
-	options := github.ProjectOptions{
-		Name: n,
-		Body: b,
-	}
+	options := github.ProjectOptions{Name: n, Body: b}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
