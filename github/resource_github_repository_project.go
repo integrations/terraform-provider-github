@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,7 +17,15 @@ func resourceGithubRepositoryProject() *schema.Resource {
 		Update: resourceGithubRepositoryProjectUpdate,
 		Delete: resourceGithubRepositoryProjectDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				parts := strings.Split(d.Id(), "/")
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<project_id>")
+				}
+				d.Set("repository", parts[0])
+				d.SetId(parts[1])
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{

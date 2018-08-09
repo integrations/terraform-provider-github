@@ -38,6 +38,27 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryProject_importBasic(t *testing.T) {
+	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubRepositoryProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryProjectConfig(randRepoName),
+			},
+			{
+				ResourceName:        "github_repository_project.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: randRepoName + `/`,
+			},
+		},
+	})
+}
+
 func testAccGithubRepositoryProjectDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).client
 
