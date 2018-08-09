@@ -42,6 +42,8 @@ The following arguments are supported:
 
 * `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
 
+* `description` - (Optional) A short description of the label.
+
 * `url` - (Computed) The URL to the issue label
 
 ## Import

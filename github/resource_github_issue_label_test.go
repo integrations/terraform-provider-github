@@ -83,6 +83,51 @@ func TestAccGithubIssueLabel_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccGithubIssueLabel_description(t *testing.T) {
+	var label github.Label
+
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-desc-%s", rString)
+	description := "Terraform Acceptance Test"
+	updatedDescription := "Terraform Acceptance Test Updated"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubIssueLabelDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueLabelConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					resource.TestCheckResourceAttr("github_issue_label.test", "description", ""),
+				),
+			},
+			{
+				Config: testAccGithubIssueLabelConfig_description(repoName, description),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					resource.TestCheckResourceAttr("github_issue_label.test", "description", description),
+				),
+			},
+			{
+				Config: testAccGithubIssueLabelConfig_description(repoName, updatedDescription),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					resource.TestCheckResourceAttr("github_issue_label.test", "description", updatedDescription),
+				),
+			},
+			{
+				Config: testAccGithubIssueLabelConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					resource.TestCheckResourceAttr("github_issue_label.test", "description", ""),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -196,4 +241,19 @@ resource "github_issue_label" "test" {
   color      = "FF00FF"
 }
 `, repoName)
+}
+
+func testAccGithubIssueLabelConfig_description(repoName, description string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name = "%s"
+}
+
+resource "github_issue_label" "test" {
+  repository = "${github_repository.test.name}"
+  name       = "foo"
+  color      = "000000"
+  description = "%s"
+}
+`, repoName, description)
 }
