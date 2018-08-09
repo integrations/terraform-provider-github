@@ -32,6 +32,10 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -66,6 +70,9 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 	existing, _, _ := client.Issues.GetLabel(context.TODO(), o, r, n)
 
 	if existing != nil {
+		description := d.Get("description").(string)
+		label.Description = &description
+
 		log.Printf("[DEBUG] Updating label: %s/%s (%s: %s)", o, r, n, c)
 
 		// Pull out the original name. If we already have a resource, this is the
@@ -86,6 +93,11 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 			return err
 		}
 	} else {
+		if v, ok := d.GetOk("description"); ok {
+			description := v.(string)
+			label.Description = &description
+		}
+
 		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)", o, r, n, c)
 		_, resp, err := client.Issues.CreateLabel(context.TODO(), o, r, label)
 		if resp != nil {
@@ -118,6 +130,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("repository", r)
 	d.Set("name", n)
 	d.Set("color", githubLabel.Color)
+	d.Set("description", githubLabel.Description)
 	d.Set("url", githubLabel.URL)
 
 	return nil
