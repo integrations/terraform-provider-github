@@ -9,7 +9,8 @@ ENHANCEMENTS:
 
 * provider: Add `insecure` mode [GH-48]
 * data-source/github_ip_ranges: Add importer IPs [GH-100]
-* resource/github_repository: Add support for topics [GH-97]
+* resource/github_repository: Add support for `topics` [GH-97]
+* resource/github_issue_label: Add support for `description` [GH-118]
 
 BUG FIXES:
 
