@@ -61,18 +61,18 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
-		r, i, err := parseTwoPartID(rs.Primary.ID)
+		orgName := testAccProvider.Meta().(*Organization).name
+		repoName, idString, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		id, err := strconv.ParseInt(i, 10, 64)
+		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(idString, err)
 		}
 
-		_, resp, err := conn.Repositories.GetKey(context.TODO(), o, r, id)
+		_, resp, err := conn.Repositories.GetKey(context.TODO(), orgName, repoName, id)
 
 		if err != nil && resp.Response.StatusCode != 404 {
 			return err
@@ -95,18 +95,18 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
-		r, i, err := parseTwoPartID(rs.Primary.ID)
+		orgName := testAccProvider.Meta().(*Organization).name
+		repoName, idString, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		id, err := strconv.ParseInt(i, 10, 64)
+		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(idString, err)
 		}
 
-		_, _, err = conn.Repositories.GetKey(context.TODO(), o, r, id)
+		_, _, err = conn.Repositories.GetKey(context.TODO(), orgName, repoName, id)
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -84,12 +85,18 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			continue
 		}
 
-		t, u, err := parseTwoPartID(rs.Primary.ID)
+		teamIdString, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		membership, resp, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
+		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(teamIdString, err)
+		}
+
+		membership, resp, err := conn.Organizations.GetTeamMembership(context.TODO(),
+			teamId, username)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("Team membership still exists")
@@ -115,12 +122,17 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		t, u, err := parseTwoPartID(rs.Primary.ID)
+		teamIdString, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
+		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(teamIdString, err)
+		}
+
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), teamId, username)
 
 		if err != nil {
 			return err
@@ -142,12 +154,17 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		t, u, err := parseTwoPartID(rs.Primary.ID)
+		teamIdString, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(teamIdString, err)
+		}
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(),
+			teamId, username)
 		if err != nil {
 			return err
 		}

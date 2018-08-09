@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/github"
@@ -13,12 +14,12 @@ func resourceGithubTeamMembership() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubTeamMembershipCreate,
 		Read:   resourceGithubTeamMembershipRead,
-		// editing team memberships are not supported by github api so forcing new on any changes
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
+		// editing team memberships are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:     schema.TypeString,
@@ -43,49 +44,72 @@ func resourceGithubTeamMembership() *schema.Resource {
 
 func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t := d.Get("team_id").(string)
-	n := d.Get("username").(string)
-	r := d.Get("role").(string)
 
-	_, _, err := client.Organizations.AddTeamMembership(context.TODO(), toGithubID(t), n,
-		&github.OrganizationAddTeamMembershipOptions{Role: r})
+	teamIdString := d.Get("team_id").(string)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(teamIdString, err)
+	}
 
+	username := d.Get("username").(string)
+	role := d.Get("role").(string)
+
+	_, _, err = client.Organizations.AddTeamMembership(context.TODO(),
+		teamId,
+		username,
+		&github.OrganizationAddTeamMembershipOptions{
+			Role: role,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&t, &n))
+	d.SetId(buildTwoPartID(&teamIdString, &username))
 
 	return resourceGithubTeamMembershipRead(d, meta)
 }
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t, n, err := parseTwoPartID(d.Id())
+	teamIdString, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), n)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(teamIdString, err)
+	}
 
+	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(),
+		teamId, username)
 	if err != nil {
 		d.SetId("")
 		return nil
 	}
+
 	team, user := getTeamAndUserFromURL(membership.URL)
 
 	d.Set("username", user)
 	d.Set("role", membership.Role)
 	d.Set("team_id", team)
+
 	return nil
 }
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t := d.Get("team_id").(string)
-	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveTeamMembership(context.TODO(), toGithubID(t), n)
+	teamIdString := d.Get("team_id").(string)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(teamIdString, err)
+	}
+
+	_, err = client.Organizations.RemoveTeamMembership(context.TODO(),
+		teamId,
+		d.Get("username").(string))
 
 	return err
 }

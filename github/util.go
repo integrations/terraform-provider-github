@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -12,15 +11,6 @@ const (
 	// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 	maxPerPage = 100
 )
-
-func toGithubID(id string) int64 {
-	githubID, _ := strconv.ParseInt(id, 10, 64)
-	return githubID
-}
-
-func fromGithubID(id *int64) string {
-	return strconv.FormatInt(*id, 10)
-}
 
 func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (we []string, errors []error) {
@@ -72,4 +62,18 @@ func flattenStringList(v []string) []interface{} {
 		c = append(c, s)
 	}
 	return c
+}
+
+func unconvertibleIdErr(id string, err error) *unconvertibleIdError {
+	return &unconvertibleIdError{OriginalId: id, OriginalError: err}
+}
+
+type unconvertibleIdError struct {
+	OriginalId    string
+	OriginalError error
+}
+
+func (e *unconvertibleIdError) Error() string {
+	return fmt.Sprintf("Unexpected ID format (%q), expected numerical ID. %s",
+		e.OriginalId, e.OriginalError.Error())
 }
