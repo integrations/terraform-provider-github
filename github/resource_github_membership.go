@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -36,11 +37,14 @@ func resourceGithubMembership() *schema.Resource {
 
 func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("username").(string)
-	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name,
-		&github.Membership{Role: &r})
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
+		d.Get("username").(string),
+		meta.(*Organization).name,
+		&github.Membership{
+			Role: github.String(d.Get("role").(string)),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -52,13 +56,15 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	_, n, err := parseTwoPartID(d.Id())
+	_, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(),
+		username, meta.(*Organization).name)
 	if err != nil {
+		log.Printf("[WARN] GitHub Membership (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -70,12 +76,14 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("username").(string)
-	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name, &github.Membership{
-		Role: &r,
-	})
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
+		d.Get("username").(string),
+		meta.(*Organization).name,
+		&github.Membership{
+			Role: github.String(d.Get("role").(string)),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -86,9 +94,9 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	_, err := client.Organizations.RemoveOrgMembership(context.TODO(),
+		d.Get("username").(string), meta.(*Organization).name)
 
 	return err
 }

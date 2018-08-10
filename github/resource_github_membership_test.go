@@ -54,17 +54,17 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 		if rs.Type != "github_membership" {
 			continue
 		}
-		o, u, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		membership, resp, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
+		membership, resp, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
 
 		if err == nil {
 			if membership != nil &&
 				buildTwoPartID(membership.Organization.Login, membership.User.Login) == rs.Primary.ID {
-				return fmt.Errorf("Organization membership still exists")
+				return fmt.Errorf("Organization membership %q still exists", rs.Primary.ID)
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -87,12 +87,12 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o, u, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
 		if err != nil {
 			return err
 		}
@@ -113,12 +113,12 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o, u, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
 		if err != nil {
 			return err
 		}
@@ -127,7 +127,8 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		actualRole := githubMembership.Role
 
 		if *resourceRole != *actualRole {
-			return fmt.Errorf("Membership role %v in resource does match actual state of %v", *resourceRole, *actualRole)
+			return fmt.Errorf("Membership role %v in resource does match actual state of %v",
+				*resourceRole, *actualRole)
 		}
 		return nil
 	}
