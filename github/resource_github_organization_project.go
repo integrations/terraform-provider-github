@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -38,13 +39,15 @@ func resourceGithubOrganizationProject() *schema.Resource {
 
 func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	o := meta.(*Organization).name
-	n := d.Get("name").(string)
-	b := d.Get("body").(string)
+	orgName := meta.(*Organization).name
 
-	options := github.ProjectOptions{Name: n, Body: b}
-
-	project, _, err := client.Organizations.CreateProject(context.TODO(), o, &options)
+	project, _, err := client.Organizations.CreateProject(context.TODO(),
+		orgName,
+		&github.ProjectOptions{
+			Name: d.Get("name").(string),
+			Body: d.Get("body").(string),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -55,7 +58,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 
 func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	o := meta.(*Organization).name
+	orgName := meta.(*Organization).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -65,6 +68,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	project, resp, err := client.Projects.GetProject(context.TODO(), projectID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
+			log.Printf("[WARN] GitHub Organization Project (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -73,17 +77,19 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d", o, project.GetNumber()))
+	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
+		orgName, project.GetNumber()))
 
 	return nil
 }
 
 func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("name").(string)
-	b := d.Get("body").(string)
 
-	options := github.ProjectOptions{Name: n, Body: b}
+	options := github.ProjectOptions{
+		Name: d.Get("name").(string),
+		Body: d.Get("body").(string),
+	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
