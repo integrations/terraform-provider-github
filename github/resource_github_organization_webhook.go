@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -55,31 +56,27 @@ func validateGithubOrganizationWebhookName(v interface{}, k string) (ws []string
 }
 
 func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hook {
-	url := d.Get("url").(string)
-	active := d.Get("active").(bool)
 	events := []string{}
 	eventSet := d.Get("events").(*schema.Set)
 	for _, v := range eventSet.List() {
 		events = append(events, v.(string))
 	}
-	name := d.Get("name").(string)
 
-	hook := &github.Hook{
-		Name:   &name,
-		URL:    &url,
+	return &github.Hook{
+		Name:   github.String(d.Get("name").(string)),
+		URL:    github.String(d.Get("url").(string)),
 		Events: events,
-		Active: &active,
+		Active: github.Bool(d.Get("active").(bool)),
 		Config: d.Get("configuration").(map[string]interface{}),
 	}
-
-	return hook
 }
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	hk := resourceGithubOrganizationWebhookObject(d)
+	webhookObj := resourceGithubOrganizationWebhookObject(d)
 
-	hook, _, err := client.Organizations.CreateHook(context.TODO(), meta.(*Organization).name, hk)
+	hook, _, err := client.Organizations.CreateHook(context.TODO(),
+		meta.(*Organization).name, webhookObj)
 	if err != nil {
 		return err
 	}
@@ -98,6 +95,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Organization).name, hookID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
+			log.Printf("[WARN] GitHub Organization Webhook (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -114,13 +112,14 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 
 func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	hk := resourceGithubOrganizationWebhookObject(d)
+	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	_, _, err = client.Organizations.EditHook(context.TODO(), meta.(*Organization).name, hookID, hk)
+	_, _, err = client.Organizations.EditHook(context.TODO(),
+		meta.(*Organization).name, hookID, webhookObj)
 	if err != nil {
 		return err
 	}
