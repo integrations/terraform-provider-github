@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-tls/tls"
 )
 
 var testUser string = os.Getenv("GITHUB_TEST_USER")
@@ -24,6 +25,7 @@ func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"github": testAccProvider,
+		"tls":    tls.Provider(),
 	}
 }
 
