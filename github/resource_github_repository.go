@@ -127,43 +127,24 @@ func resourceGithubRepository() *schema.Resource {
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	name := d.Get("name").(string)
-	description := d.Get("description").(string)
-	homepageUrl := d.Get("homepage_url").(string)
-	private := d.Get("private").(bool)
-	hasDownloads := d.Get("has_downloads").(bool)
-	hasIssues := d.Get("has_issues").(bool)
-	hasProjects := d.Get("has_projects").(bool)
-	hasWiki := d.Get("has_wiki").(bool)
-	allowMergeCommit := d.Get("allow_merge_commit").(bool)
-	allowSquashMerge := d.Get("allow_squash_merge").(bool)
-	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
-	autoInit := d.Get("auto_init").(bool)
-	licenseTemplate := d.Get("license_template").(string)
-	gitIgnoreTemplate := d.Get("gitignore_template").(string)
-	archived := d.Get("archived").(bool)
-	topics := expandStringList(d.Get("topics").([]interface{}))
-
-	repo := &github.Repository{
-		Name:              &name,
-		Description:       &description,
-		Homepage:          &homepageUrl,
-		Private:           &private,
-		HasDownloads:      &hasDownloads,
-		HasIssues:         &hasIssues,
-		HasProjects:       &hasProjects,
-		HasWiki:           &hasWiki,
-		AllowMergeCommit:  &allowMergeCommit,
-		AllowSquashMerge:  &allowSquashMerge,
-		AllowRebaseMerge:  &allowRebaseMerge,
-		AutoInit:          &autoInit,
-		LicenseTemplate:   &licenseTemplate,
-		GitignoreTemplate: &gitIgnoreTemplate,
-		Archived:          &archived,
-		Topics:            topics,
+	return &github.Repository{
+		Name:              github.String(d.Get("name").(string)),
+		Description:       github.String(d.Get("description").(string)),
+		Homepage:          github.String(d.Get("homepage_url").(string)),
+		Private:           github.Bool(d.Get("private").(bool)),
+		HasDownloads:      github.Bool(d.Get("has_downloads").(bool)),
+		HasIssues:         github.Bool(d.Get("has_issues").(bool)),
+		HasProjects:       github.Bool(d.Get("has_projects").(bool)),
+		HasWiki:           github.Bool(d.Get("has_wiki").(bool)),
+		AllowMergeCommit:  github.Bool(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:  github.Bool(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:  github.Bool(d.Get("allow_rebase_merge").(bool)),
+		AutoInit:          github.Bool(d.Get("auto_init").(bool)),
+		LicenseTemplate:   github.String(d.Get("license_template").(string)),
+		GitignoreTemplate: github.String(d.Get("gitignore_template").(string)),
+		Archived:          github.Bool(d.Get("archived").(bool)),
+		Topics:            expandStringList(d.Get("topics").([]interface{})),
 	}
-
-	return repo
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
