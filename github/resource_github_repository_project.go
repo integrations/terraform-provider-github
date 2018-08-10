@@ -52,14 +52,17 @@ func resourceGithubRepositoryProject() *schema.Resource {
 
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	o := meta.(*Organization).name
-	n := d.Get("name").(string)
-	b := d.Get("body").(string)
-	r := d.Get("repository").(string)
 
-	options := github.ProjectOptions{Name: n, Body: b}
+	options := github.ProjectOptions{
+		Name: d.Get("name").(string),
+		Body: d.Get("body").(string),
+	}
 
-	project, _, err := client.Repositories.CreateProject(context.TODO(), o, r, &options)
+	project, _, err := client.Repositories.CreateProject(context.TODO(),
+		meta.(*Organization).name,
+		d.Get("repository").(string),
+		&options,
+	)
 	if err != nil {
 		return err
 	}
@@ -70,7 +73,7 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 
 func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	o := meta.(*Organization).name
+	orgName := meta.(*Organization).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -88,24 +91,27 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d", o, d.Get("repository"), project.GetNumber()))
+	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
+		orgName, d.Get("repository"), project.GetNumber()))
 
 	return nil
 }
 
 func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("name").(string)
-	b := d.Get("body").(string)
 
-	options := github.ProjectOptions{Name: n, Body: b}
+	options := github.ProjectOptions{
+		Name: d.Get("name").(string),
+		Body: d.Get("body").(string),
+	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 
-	if _, _, err := client.Projects.UpdateProject(context.TODO(), projectID, &options); err != nil {
+	_, _, err = client.Projects.UpdateProject(context.TODO(), projectID, &options)
+	if err != nil {
 		return err
 	}
 
