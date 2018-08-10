@@ -4,6 +4,7 @@ FEATURES:
 
 * **New Data Source:** `github_repository` [GH-109]
 * **New Resource:** `github_organization_project` [GH-111]
+* **New Resource:** `github_repository_project` [GH-115]
 
 ENHANCEMENTS:
 
