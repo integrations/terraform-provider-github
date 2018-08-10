@@ -77,7 +77,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
 	}
 
 	project, resp, err := client.Projects.GetProject(context.TODO(), projectID)
@@ -107,7 +107,7 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
 	}
 
 	_, _, err = client.Projects.UpdateProject(context.TODO(), projectID, &options)
@@ -123,7 +123,7 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
 	}
 
 	_, err = client.Projects.DeleteProject(context.TODO(), projectID)
