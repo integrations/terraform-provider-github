@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
+	"log"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -128,33 +128,43 @@ func resourceGithubBranchProtection() *schema.Resource {
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r := d.Get("repository").(string)
-	b := d.Get("branch").(string)
+	repoName := d.Get("repository").(string)
+	branch := d.Get("branch").(string)
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Organization).name, r, b, protectionRequest)
+	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(),
+		meta.(*Organization).name,
+		repoName,
+		branch,
+		protectionRequest,
+	)
 	if err != nil {
 		return err
 	}
-	d.SetId(buildTwoPartID(&r, &b))
+	d.SetId(buildTwoPartID(&repoName, &branch))
 
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, b, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(),
+		meta.(*Organization).name,
+		repoName,
+		branch,
+	)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
+		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == 404 {
+			log.Printf("[WARN] GitHub branch protection (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -162,19 +172,19 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("repository", r)
-	d.Set("branch", b)
+	d.Set("repository", repoName)
+	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
 
-	if err := flattenRequiredStatusChecks(d, githubProtection); err != nil {
+	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
 	}
 
-	if err := flattenRequiredPullRequestReviews(d, githubProtection); err != nil {
+	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
 	}
 
-	if err := flattenRestrictions(d, githubProtection); err != nil {
+	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting restrictions: %v", err)
 	}
 
@@ -183,7 +193,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, b, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -193,61 +203,74 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Organization).name, r, b, protectionRequest)
+	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(),
+		meta.(*Organization).name,
+		repoName,
+		branch,
+		protectionRequest,
+	)
 	if err != nil {
 		return err
 	}
 
 	if protectionRequest.RequiredPullRequestReviews == nil {
-		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Organization).name, r, b)
+		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(),
+			meta.(*Organization).name,
+			repoName,
+			branch,
+		)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(buildTwoPartID(&r, &b))
+	d.SetId(buildTwoPartID(&repoName, &branch))
 
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, b, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Repositories.RemoveBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	_, err = client.Repositories.RemoveBranchProtection(context.TODO(),
+		meta.(*Organization).name,
+		repoName,
+		branch,
+	)
 	return err
 }
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
-	protectionRequest := new(github.ProtectionRequest)
+	req := &github.ProtectionRequest{
+		EnforceAdmins: d.Get("enforce_admins").(bool),
+	}
 
 	rsc, err := expandRequiredStatusChecks(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.RequiredStatusChecks = rsc
+	req.RequiredStatusChecks = rsc
 
 	rprr, err := expandRequiredPullRequestReviews(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.RequiredPullRequestReviews = rprr
+	req.RequiredPullRequestReviews = rprr
 
 	res, err := expandRestrictions(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.Restrictions = res
+	req.Restrictions = res
 
-	protectionRequest.EnforceAdmins = d.Get("enforce_admins").(bool)
-
-	return protectionRequest, nil
+	return req, nil
 }
 
-func flattenRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
+func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
 	rsc := protection.RequiredStatusChecks
 	if rsc != nil {
 		contexts := make([]interface{}, 0, len(rsc.Contexts))
@@ -255,22 +278,18 @@ func flattenRequiredStatusChecks(d *schema.ResourceData, protection *github.Prot
 			contexts = append(contexts, c)
 		}
 
-		if err := d.Set("required_status_checks", []interface{}{
+		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
 				"strict":   rsc.Strict,
 				"contexts": schema.NewSet(schema.HashString, contexts),
 			},
-		}); err != nil {
-			return err
-		}
-	} else {
-		d.Set("required_status_checks", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("required_status_checks", []interface{}{})
 }
 
-func flattenRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
+func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.RequiredPullRequestReviews
 	if rprr != nil {
 		users := make([]interface{}, 0, len(rprr.DismissalRestrictions.Users))
@@ -287,24 +306,20 @@ func flattenRequiredPullRequestReviews(d *schema.ResourceData, protection *githu
 			}
 		}
 
-		if err := d.Set("required_pull_request_reviews", []interface{}{
+		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
 				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
 				"dismissal_users":            schema.NewSet(schema.HashString, users),
 				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
 				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
 			},
-		}); err != nil {
-			return err
-		}
-	} else {
-		d.Set("required_pull_request_reviews", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("required_pull_request_reviews", []interface{}{})
 }
 
-func flattenRestrictions(d *schema.ResourceData, protection *github.Protection) error {
+func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
 	restrictions := protection.Restrictions
 	if restrictions != nil {
 		users := make([]interface{}, 0, len(restrictions.Users))
@@ -321,19 +336,15 @@ func flattenRestrictions(d *schema.ResourceData, protection *github.Protection) 
 			}
 		}
 
-		if err := d.Set("restrictions", []interface{}{
+		return d.Set("restrictions", []interface{}{
 			map[string]interface{}{
 				"users": schema.NewSet(schema.HashString, users),
 				"teams": schema.NewSet(schema.HashString, teams),
 			},
-		}); err != nil {
-			return fmt.Errorf("Error setting restrictions: %v", err)
-		}
-	} else {
-		d.Set("restrictions", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("restrictions", []interface{}{})
 }
 
 func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusChecks, error) {
