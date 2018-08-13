@@ -56,50 +56,57 @@ func resourceGithubIssueLabel() *schema.Resource {
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	o := meta.(*Organization).name
-	r := d.Get("repository").(string)
-	n := d.Get("name").(string)
-	c := d.Get("color").(string)
+	orgName := meta.(*Organization).name
+	repoName := d.Get("repository").(string)
+	name := d.Get("name").(string)
+	color := d.Get("color").(string)
 
 	label := &github.Label{
-		Name:  &n,
-		Color: &c,
+		Name:  github.String(name),
+		Color: github.String(color),
 	}
 
-	log.Printf("[DEBUG] Querying label existence %s/%s (%s)", o, r, n)
-	existing, _, _ := client.Issues.GetLabel(context.TODO(), o, r, n)
+	log.Printf("[DEBUG] Querying label existence %s/%s (%s)",
+		orgName, repoName, name)
+	existing, resp, err := client.Issues.GetLabel(context.TODO(),
+		orgName, repoName, name)
+	if err != nil && resp.StatusCode != 404 {
+		return err
+	}
 
 	if existing != nil {
-		description := d.Get("description").(string)
-		label.Description = &description
+		label.Description = github.String(d.Get("description").(string))
 
-		log.Printf("[DEBUG] Updating label: %s/%s (%s: %s)", o, r, n, c)
+		log.Printf("[DEBUG] Updating label: %s/%s (%s: %s)",
+			orgName, repoName, name, color)
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
-		var oname string
+		var originalName string
 		if d.Id() == "" {
-			oname = n
+			originalName = name
 		} else {
 			var err error
-			_, oname, err = parseTwoPartID(d.Id())
+			_, originalName, err = parseTwoPartID(d.Id())
 			if err != nil {
 				return err
 			}
 		}
 
-		_, _, err := client.Issues.EditLabel(context.TODO(), o, r, oname, label)
+		_, _, err := client.Issues.EditLabel(context.TODO(),
+			orgName, repoName, originalName, label)
 		if err != nil {
 			return err
 		}
 	} else {
 		if v, ok := d.GetOk("description"); ok {
-			description := v.(string)
-			label.Description = &description
+			label.Description = github.String(v.(string))
 		}
 
-		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)", o, r, n, c)
-		_, resp, err := client.Issues.CreateLabel(context.TODO(), o, r, label)
+		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)",
+			orgName, repoName, name, color)
+		_, resp, err := client.Issues.CreateLabel(context.TODO(),
+			orgName, repoName, label)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating label: %#v", *resp)
 		}
@@ -108,27 +115,29 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	d.SetId(buildTwoPartID(&r, &n))
+	d.SetId(buildTwoPartID(&repoName, &name))
 
 	return resourceGithubIssueLabelRead(d, meta)
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, n, err := parseTwoPartID(d.Id())
+	repoName, name, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] Reading label: %s/%s", r, n)
-	githubLabel, _, err := client.Issues.GetLabel(context.TODO(), meta.(*Organization).name, r, n)
+	log.Printf("[DEBUG] Reading label: %s/%s", repoName, name)
+	githubLabel, _, err := client.Issues.GetLabel(context.TODO(),
+		meta.(*Organization).name, repoName, name)
 	if err != nil {
+		log.Printf("[WARN] GitHub Issue Label (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
 
-	d.Set("repository", r)
-	d.Set("name", n)
+	d.Set("repository", repoName)
+	d.Set("name", name)
 	d.Set("color", githubLabel.Color)
 	d.Set("description", githubLabel.Description)
 	d.Set("url", githubLabel.URL)
@@ -138,10 +147,12 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r := d.Get("repository").(string)
-	n := d.Get("name").(string)
+	repoName := d.Get("repository").(string)
+	name := d.Get("name").(string)
 
-	log.Printf("[DEBUG] Deleting label: %s/%s", r, n)
-	_, err := client.Issues.DeleteLabel(context.TODO(), meta.(*Organization).name, r, n)
+	log.Printf("[DEBUG] Deleting label: %s/%s", repoName, name)
+	_, err := client.Issues.DeleteLabel(context.TODO(),
+		meta.(*Organization).name, repoName, name)
+
 	return err
 }
