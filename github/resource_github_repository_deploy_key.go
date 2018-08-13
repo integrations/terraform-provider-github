@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -12,17 +14,18 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubRepositoryDeployKeyCreate,
 		Read:   resourceGithubRepositoryDeployKeyRead,
-		// Deploy keys are defined immutable in the API. Updating results in force new.
 		Delete: resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
+		// Deploy keys are defined immutable in the API. Updating results in force new.
 		Schema: map[string]*schema.Schema{
 			"key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: suppressDeployKeyDiff,
 			},
 			"read_only": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -117,4 +120,12 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	}
 
 	return err
+}
+
+func suppressDeployKeyDiff(k, oldV, newV string, d *schema.ResourceData) bool {
+	newV = strings.TrimSpace(newV)
+	keyRe := regexp.MustCompile(`^([a-z0-9-]+ [^\s]+)( [^\s]+)?$`)
+	newTrimmed := keyRe.ReplaceAllString(newV, "$1")
+
+	return oldV == newTrimmed
 }

@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -11,21 +13,43 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestSuppressDeployKeyDiff(t *testing.T) {
+	oldV := "ssh-rsa AAAABB...cd+=="
+	newV := "ssh-rsa AAAABB...cd+== terraform-acctest@hashicorp.com\n"
+	if !suppressDeployKeyDiff("test", oldV, newV, nil) {
+		t.Fatalf("Expected %q and %q to be suppressed", oldV, newV)
+	}
+
+	oldV = "ssh-rsa AAAABB...cd+=="
+	newV = "ssh-rsa AAAABB...cd+=="
+	if !suppressDeployKeyDiff("test", oldV, newV, nil) {
+		t.Fatalf("Expected %q and %q to be suppressed", oldV, newV)
+	}
+
+	oldV = "ssh-rsa AAAABV...cd+=="
+	newV = "ssh-rsa DIFFERENT...cd+=="
+	if suppressDeployKeyDiff("test", oldV, newV, nil) {
+		t.Fatalf("Expected %q and %q NOT to be suppressed", oldV, newV)
+	}
+}
+
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
+	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName),
+				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryDeployKeyExists("github_repository_deploy_key.test_repo_deploy_key"),
 					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "read_only", "false"),
 					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "repository", repositoryName),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "key", testAccGithubRepositoryDeployKeytestDeployKey),
+					resource.TestMatchResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
 					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "title", "title"),
 				),
 			},
@@ -36,13 +60,15 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
 	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
+	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName),
+				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
 			},
 			{
 				ResourceName:      "github_repository_deploy_key.test_repo_deploy_key",
@@ -115,19 +141,17 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 	}
 }
 
-const testAccGithubRepositoryDeployKeytestDeployKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDnDk1liOxXwE27fjOVVHl6RNVgQznGqGIfhsoa5QNfLOcoWJR3EIv44dSUx1GSvxQ7uR9qBY/i/SEdAbKdupo3Ru5sykc0GqaMRVys+Cin/Lgnl6+ntmTZOudNjIbz10Vfu/dKmexSzqlD3XWzPGXRI5WyKWzvc2XKjRdfnOOzogJpqJ5kh/CN0ZhCzBPTu/b4mJl2ionTEzEeLK2g4Re4IuU/dGoyf0LGLidjmqhSY7dQtL+mfte9m3x/BQTrDf0+AW3kGWXR8EL0EyIJ2HRtHW67YnoOcTAFK0hDCuKgvt78rqdUQ2bVjcsIhNqnvQMPf3ZeZ5bP2JqB9zKaFl8uaRJv+TdxEeFTkgnbYb85M+aBggBYr6xxeb24g7WlU0iPxJ8GmjvCizxe2I1DOJDRDozn1sinKjapNRdJy00iuo46TJC5Wgmid0vnMJ7SMZtubz+btxhoFLt4F4U2JnILaYG4/buJg4H/GkqmkE8G3hr4b4mgsFXBtBFgK6uCTFQSvvV7TyyWkZxHL6DRCxL/Dp0bSj+EM8Tw1K304EvkBEO3rMyvPs4nXL7pepyKWalmUI8U4Qp2xMXSq7fmfZY55osb03MUAtKl0wJ/ykyKOwYWeLbubSVcc6VPx5bXZmnM5bTcZdYW9+vNt86X2F2b0h/sIkGNEPpqQQBzElY+fQ=="
-
-func testAccGithubRepositoryDeployKeyConfig(name string) string {
+func testAccGithubRepositoryDeployKeyConfig(name, keyPath string) string {
 	return fmt.Sprintf(`
   resource "github_repository" "test_repo" {
 		name = "%s"
 	}
 
 	resource "github_repository_deploy_key" "test_repo_deploy_key" {
-    key = "%s"
+    key = "${file("%s")}"
     read_only = "false"
     repository = "${github_repository.test_repo.name}"
     title = "title"
   }
-`, name, testAccGithubRepositoryDeployKeytestDeployKey)
+`, name, keyPath)
 }
