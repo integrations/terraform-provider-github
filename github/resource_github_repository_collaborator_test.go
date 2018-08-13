@@ -93,20 +93,21 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		orgName := testAccProvider.Meta().(*Organization).name
+		repoName, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
+		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
+			orgName, repoName, nil)
 		if err != nil {
 			return err
 		}
 
 		hasInvitation := false
 		for _, i := range invitations {
-			if *i.Invitee.Login == u {
+			if *i.Invitee.Login == username {
 				hasInvitation = true
 				break
 			}
@@ -132,19 +133,20 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		orgName := testAccProvider.Meta().(*Organization).name
+		repoName, username, err := parseTwoPartID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
+		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
+			orgName, repoName, nil)
 		if err != nil {
 			return err
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == u {
+			if *i.Invitee.Login == username {
 				permName, err := getInvitationPermission(i)
 
 				if err != nil {

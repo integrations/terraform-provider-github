@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -11,12 +12,12 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubRepositoryCollaboratorCreate,
 		Read:   resourceGithubRepositoryCollaboratorRead,
-		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Delete: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
+		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:     schema.TypeString,
@@ -41,42 +42,46 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	u := d.Get("username").(string)
-	r := d.Get("repository").(string)
-	p := d.Get("permission").(string)
+	username := d.Get("username").(string)
+	repoName := d.Get("repository").(string)
 
-	_, err := client.Repositories.AddCollaborator(context.TODO(), meta.(*Organization).name, r, u,
-		&github.RepositoryAddCollaboratorOptions{Permission: p})
+	_, err := client.Repositories.AddCollaborator(context.TODO(),
+		meta.(*Organization).name,
+		repoName,
+		username,
+		&github.RepositoryAddCollaboratorOptions{
+			Permission: d.Get("permission").(string),
+		})
 
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&r, &u))
+	d.SetId(buildTwoPartID(&repoName, &username))
 
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r, u, err := parseTwoPartID(d.Id())
+	repoName, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
+	invitation, err := findRepoInvitation(client, meta.(*Organization).name, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		permName, err := getInvitationPermission(invitation)
+		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
 		}
 
-		d.Set("repository", r)
-		d.Set("username", u)
-		d.Set("permission", permName)
+		d.Set("repository", repoName)
+		d.Set("username", username)
+		d.Set("permission", permissionName)
 		return nil
 	}
 
@@ -84,21 +89,22 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}
 
 	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(), meta.(*Organization).name, r, opt)
+		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(),
+			meta.(*Organization).name, repoName, opt)
 		if err != nil {
 			return err
 		}
 
 		for _, c := range collaborators {
-			if *c.Login == u {
-				permName, err := getRepoPermission(c.Permissions)
+			if *c.Login == username {
+				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
 				}
 
-				d.Set("repository", r)
-				d.Set("username", u)
-				d.Set("permission", permName)
+				d.Set("repository", repoName)
+				d.Set("username", username)
+				d.Set("permission", permissionName)
 				return nil
 			}
 		}
@@ -110,7 +116,9 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 
 	// The user is neither invited nor a collaborator
+	log.Printf("[WARN] GitHub Repository Collaborator (%s) not found, removing from state", d.Id())
 	d.SetId("")
+
 	return nil
 }
 
