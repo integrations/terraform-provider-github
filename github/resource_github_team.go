@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"log"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -48,21 +49,19 @@ func resourceGithubTeam() *schema.Resource {
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	n := d.Get("name").(string)
-	desc := d.Get("description").(string)
-	p := d.Get("privacy").(string)
 
 	newTeam := &github.NewTeam{
-		Name:        n,
-		Description: &desc,
-		Privacy:     &p,
+		Name:        d.Get("name").(string),
+		Description: github.String(d.Get("description").(string)),
+		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
 
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, newTeam)
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(),
+		meta.(*Organization).name, newTeam)
 	if err != nil {
 		return err
 	}
@@ -86,6 +85,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	team, err := getGithubTeam(d, client)
 	if err != nil {
+		log.Printf("[WARN] GitHub Team (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -104,20 +104,15 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	team, err := getGithubTeam(d, client)
-
 	if err != nil {
 		d.SetId("")
 		return nil
 	}
 
-	name := d.Get("name").(string)
-	description := d.Get("description").(string)
-	privacy := d.Get("privacy").(string)
-
 	editedTeam := &github.NewTeam{
-		Name:        name,
-		Description: &description,
-		Privacy:     &privacy,
+		Name:        d.Get("name").(string),
+		Description: github.String(d.Get("description").(string)),
+		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
