@@ -14,23 +14,40 @@ import (
 )
 
 func TestSuppressDeployKeyDiff(t *testing.T) {
-	oldV := "ssh-rsa AAAABB...cd+=="
-	newV := "ssh-rsa AAAABB...cd+== terraform-acctest@hashicorp.com\n"
-	if !suppressDeployKeyDiff("test", oldV, newV, nil) {
-		t.Fatalf("Expected %q and %q to be suppressed", oldV, newV)
+	testCases := []struct {
+		OldValue, NewValue string
+		ExpectSuppression  bool
+	}{
+		{
+			"ssh-rsa AAAABB...cd+==",
+			"ssh-rsa AAAABB...cd+== terraform-acctest@hashicorp.com\n",
+			true,
+		},
+		{
+			"ssh-rsa AAAABB...cd+==",
+			"ssh-rsa AAAABB...cd+==",
+			true,
+		},
+		{
+			"ssh-rsa AAAABV...cd+==",
+			"ssh-rsa DIFFERENT...cd+==",
+			false,
+		},
 	}
 
-	oldV = "ssh-rsa AAAABB...cd+=="
-	newV = "ssh-rsa AAAABB...cd+=="
-	if !suppressDeployKeyDiff("test", oldV, newV, nil) {
-		t.Fatalf("Expected %q and %q to be suppressed", oldV, newV)
+	tcCount := len(testCases)
+	for i, tc := range testCases {
+		suppressed := suppressDeployKeyDiff("test", tc.OldValue, tc.NewValue, nil)
+		if tc.ExpectSuppression && !suppressed {
+			t.Fatalf("%d/%d: Expected %q and %q to be suppressed",
+				i+1, tcCount, tc.OldValue, tc.NewValue)
+		}
+		if !tc.ExpectSuppression && suppressed {
+			t.Fatalf("%d/%d: Expected %q and %q NOT to be suppressed",
+				i+1, tcCount, tc.OldValue, tc.NewValue)
+		}
 	}
 
-	oldV = "ssh-rsa AAAABV...cd+=="
-	newV = "ssh-rsa DIFFERENT...cd+=="
-	if suppressDeployKeyDiff("test", oldV, newV, nil) {
-		t.Fatalf("Expected %q and %q NOT to be suppressed", oldV, newV)
-	}
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
