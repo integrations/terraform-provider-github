@@ -28,6 +28,9 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubRepositoryWebhookMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -46,8 +49,38 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Set:      schema.HashString,
 			},
 			"configuration": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"url": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"content_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"secret": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+							DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
+								maskedSecret := "********"
+								if oldV == maskedSecret {
+									return true
+								}
+
+								return oldV == newV
+							},
+						},
+						"insecure_ssl": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"url": {
 				Type:     schema.TypeString,
@@ -77,7 +110,11 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		URL:    &url,
 		Events: events,
 		Active: &active,
-		Config: d.Get("configuration").(map[string]interface{}),
+	}
+
+	config := d.Get("configuration").([]interface{})
+	if len(config) > 0 {
+		hook.Config = config[0].(map[string]interface{})
 	}
 
 	return hook
@@ -115,7 +152,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
-	d.Set("configuration", hook.Config)
+	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
