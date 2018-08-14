@@ -19,6 +19,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * resource/github_*: Prevent crashing on invalid ID format [GH-108]
+* resource/github_repository_deploy_key: Avoid spurious diff of `key` [GH-132]
 
 ## 1.1.0 (May 11, 2018)
 
