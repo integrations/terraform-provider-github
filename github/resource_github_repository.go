@@ -72,6 +72,7 @@ func resourceGithubRepository() *schema.Resource {
 			"auto_init": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 			"default_branch": {
 				Type:        schema.TypeString,
@@ -82,10 +83,12 @@ func resourceGithubRepository() *schema.Resource {
 			"license_template": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"gitignore_template": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"archived": {
 				Type:     schema.TypeBool,
