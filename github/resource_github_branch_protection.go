@@ -145,6 +145,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
 	d.SetId(buildTwoPartID(&repoName, &branch))
 
 	return resourceGithubBranchProtectionRead(d, meta)
