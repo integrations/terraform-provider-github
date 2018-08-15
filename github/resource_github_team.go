@@ -43,6 +43,10 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"slug": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -98,6 +102,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("parent_team_id", "")
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
+	d.Set("slug", team.GetSlug())
 	return nil
 }
 

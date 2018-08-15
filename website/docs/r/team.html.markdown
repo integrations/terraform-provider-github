@@ -40,6 +40,8 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the created team.
+* `slug` - The slug of the created team, which may or may not differ from `name`,
+  depending on whether `name` contains "URL-unsafe" characters.
 
 ## Import
 
