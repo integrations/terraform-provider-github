@@ -18,8 +18,8 @@ This resource allows you to configure branch protection for repositories in your
 # Protect the master branch of the foo repository. Additionally, require that
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
-resource "github_branch_protection" "foo_master" {
-  repository = "foo"
+resource "github_branch_protection" "example" {
+  repository = "${github_repository.example.name}"
   branch = "master"
   enforce_admins = true
 
@@ -31,13 +31,23 @@ resource "github_branch_protection" "foo_master" {
   required_pull_request_reviews {
     dismiss_stale_reviews = true
     dismissal_users = ["foo-user"]
-    dismissal_teams = ["admins", "engineers"]
+    dismissal_teams = ["${github_team.example.slug}", "${github_team.second.slug}"]
   }
 
   restrictions {
     users = ["foo-user"]
-    teams = ["engineers"]
+    teams = ["${github_team.example.slug}"]
   }
+}
+
+resource "github_team" "example" {
+  name = "Example Name"
+}
+
+resource "github_team_repository" "example" {
+  team_id    = "${github_team.example.id}"
+  repository = "${github_repository.example.name}"
+  permission = "pull"
 }
 ```
 
@@ -65,7 +75,8 @@ The following arguments are supported:
 
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
 * `dismissal_users`: (Optional) The list of user logins with dismissal access
-* `dismissal_teams`: (Optional) The list of team slugs with dismissal access
+* `dismissal_teams`: (Optional) The list of team slugs with dismissal access.
+  Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 
 ### Restrictions
@@ -74,6 +85,7 @@ The following arguments are supported:
 
 * `users`: (Optional) The list of user logins with push access.
 * `teams`: (Optional) The list of team slugs with push access.
+  Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 
 `restrictions` is only available for organization-owned repositories.
 
