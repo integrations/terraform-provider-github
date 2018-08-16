@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestMigrateGithubRepositoryWebhookStateV0toV1(t *testing.T) {
+func TestMigrateGithubWebhookStateV0toV1(t *testing.T) {
 	oldAttributes := map[string]string{
 		"configuration.%":            "4",
 		"configuration.content_type": "form",
@@ -16,7 +16,7 @@ func TestMigrateGithubRepositoryWebhookStateV0toV1(t *testing.T) {
 		"configuration.url":          "https://google.co.uk/",
 	}
 
-	newState, err := migrateGithubRepositoryWebhookStateV0toV1(&terraform.InstanceState{
+	newState, err := migrateGithubWebhookStateV0toV1(&terraform.InstanceState{
 		ID:         "nonempty",
 		Attributes: oldAttributes,
 	})

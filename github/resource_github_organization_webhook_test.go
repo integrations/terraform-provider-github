@@ -57,6 +57,35 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
+	var hook github.Hook
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubOrganizationWebhookDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubOrganizationWebhookConfig_secret,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
+					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
+						Name:   "web",
+						Events: []string{"pull_request"},
+						Configuration: map[string]interface{}{
+							"url":          "https://www.terraform.io/webhook",
+							"content_type": "json",
+							"secret":       "********",
+							"insecure_ssl": "0",
+						},
+						Active: true,
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubOrganizationWebhookExists(n string, hook *github.Hook) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -165,5 +194,19 @@ resource "github_organization_webhook" "foo" {
   active = false
 
   events = ["issues"]
+}
+`
+
+const testAccGithubOrganizationWebhookConfig_secret = `
+resource "github_organization_webhook" "foo" {
+  name = "web"
+  configuration {
+    url          = "https://www.terraform.io/webhook"
+    content_type = "json"
+    secret       = "VerySecret"
+    insecure_ssl = false
+  }
+
+  events = ["pull_request"]
 }
 `

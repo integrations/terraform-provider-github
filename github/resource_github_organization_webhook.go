@@ -18,6 +18,9 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		Update: resourceGithubOrganizationWebhookUpdate,
 		Delete: resourceGithubOrganizationWebhookDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubWebhookMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -31,10 +34,7 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"configuration": {
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
+			"configuration": webhookConfigurationSchema(),
 			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -62,13 +62,19 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 		events = append(events, v.(string))
 	}
 
-	return &github.Hook{
+	hook := &github.Hook{
 		Name:   github.String(d.Get("name").(string)),
 		URL:    github.String(d.Get("url").(string)),
 		Events: events,
 		Active: github.Bool(d.Get("active").(bool)),
-		Config: d.Get("configuration").(map[string]interface{}),
 	}
+
+	config := d.Get("configuration").([]interface{})
+	if len(config) > 0 {
+		hook.Config = config[0].(map[string]interface{})
+	}
+
+	return hook
 }
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
@@ -105,7 +111,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
-	d.Set("configuration", hook.Config)
+	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
