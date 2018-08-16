@@ -17,6 +17,8 @@ func TestAccGithubTeam_basic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	updatedName := fmt.Sprintf("tf-acc-test-updated-%s", randString)
+	description := "Terraform acc test group"
+	updatedDescription := "Terraform acc test group - updated"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,17 +26,58 @@ func TestAccGithubTeam_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamConfig(randString),
+				Config: testAccGithubTeamConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),
-					testAccCheckGithubTeamAttributes(&team, name, "Terraform acc test group", nil),
+					testAccCheckGithubTeamAttributes(&team, name, description, nil),
+					resource.TestCheckResourceAttr("github_team.foo", "name", name),
+					resource.TestCheckResourceAttr("github_team.foo", "description", description),
+					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
+					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
+					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
+					resource.TestCheckResourceAttr("github_team.foo", "slug", name),
 				),
 			},
 			{
 				Config: testAccGithubTeamUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),
-					testAccCheckGithubTeamAttributes(&team, updatedName, "Terraform acc test group - updated", nil),
+					testAccCheckGithubTeamAttributes(&team, updatedName, updatedDescription, nil),
+					resource.TestCheckResourceAttr("github_team.foo", "name", updatedName),
+					resource.TestCheckResourceAttr("github_team.foo", "description", updatedDescription),
+					resource.TestCheckResourceAttr("github_team.foo", "privacy", "closed"),
+					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
+					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
+					resource.TestCheckResourceAttr("github_team.foo", "slug", updatedName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeam_slug(t *testing.T) {
+	var team github.Team
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("TF Acc Test %s", randString)
+	description := "Terraform acc test group"
+	expectedSlug := fmt.Sprintf("tf-acc-test-%s", randString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamAttributes(&team, name, description, nil),
+					resource.TestCheckResourceAttr("github_team.foo", "name", name),
+					resource.TestCheckResourceAttr("github_team.foo", "description", description),
+					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
+					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
+					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
+					resource.TestCheckResourceAttr("github_team.foo", "slug", expectedSlug),
 				),
 			},
 		},
@@ -67,6 +110,7 @@ func TestAccGithubTeam_hierarchical(t *testing.T) {
 
 func TestAccGithubTeam_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -74,7 +118,7 @@ func TestAccGithubTeam_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamConfig(randString),
+				Config: testAccGithubTeamConfig(name),
 			},
 			{
 				ResourceName:      "github_team.foo",
@@ -161,14 +205,14 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccGithubTeamConfig(randString string) string {
+func testAccGithubTeamConfig(teamName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
-	name = "tf-acc-test-%s"
+	name = "%s"
 	description = "Terraform acc test group"
 	privacy = "secret"
 }
-`, randString)
+`, teamName)
 }
 
 func testAccGithubTeamUpdateConfig(randString string) string {

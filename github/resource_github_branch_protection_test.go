@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -56,6 +57,78 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "0"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubBranchProtection_teams(t *testing.T) {
+	var firstP, secondP, thirdP github.Protection
+
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+	firstTeamName := fmt.Sprintf("team 1 %s", rString)
+	firstTeamSlug := fmt.Sprintf("team-1-%s", rString)
+	secondTeamName := fmt.Sprintf("team 2 %s", rString)
+	secondTeamSlug := fmt.Sprintf("team-2-%s", rString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubBranchProtectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubBranchProtectionConfigTeams(repoName, firstTeamName, secondTeamName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &firstP),
+					testAccCheckGithubBranchProtectionRequiredStatusChecks(&firstP, false, []string{}),
+					testAccCheckGithubBranchProtectionRestrictions(&firstP, []string{}, []string{firstTeamSlug, secondTeamSlug}),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&firstP, true, []string{}, []string{firstTeamSlug, secondTeamSlug}, false),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "false"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_users.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_teams.#", "2"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.require_code_owner_reviews", "false"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "2"),
+				),
+			},
+			{
+				Config: testAccGithubBranchProtectionConfigEmptyItems(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &secondP),
+					testAccCheckGithubBranchProtectionRequiredStatusChecks(&secondP, false, []string{}),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.#", "1"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "1"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "1"),
+				),
+			},
+			{
+				Config: testAccGithubBranchProtectionConfigTeams(repoName, firstTeamName, secondTeamName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &thirdP),
+					testAccCheckGithubBranchProtectionRequiredStatusChecks(&thirdP, false, []string{}),
+					testAccCheckGithubBranchProtectionRestrictions(&thirdP, []string{}, []string{firstTeamSlug, secondTeamSlug}),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&thirdP, true, []string{}, []string{firstTeamSlug, secondTeamSlug}, false),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "false"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_users.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_teams.#", "2"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.require_code_owner_reviews", "false"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "0"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "2"),
 				),
 			},
 		},
@@ -169,15 +242,17 @@ func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protectio
 			userLogins = append(userLogins, *u.Login)
 		}
 		if diff := pretty.Compare(userLogins, expectedUserLogins); diff != "" {
-			return fmt.Errorf("diff %q: (-got +want)\n%s", "restricted users", diff)
+			return fmt.Errorf("diff %q: (-got +want)\n%s", "restrictions.users", diff)
 		}
 
 		teamLogins := []string{}
 		for _, t := range restrictions.Teams {
-			teamLogins = append(teamLogins, *t.Name)
+			teamLogins = append(teamLogins, *t.Slug)
 		}
+		sort.Strings(teamLogins)
+		sort.Strings(expectedTeamNames)
 		if diff := pretty.Compare(teamLogins, expectedTeamNames); diff != "" {
-			return fmt.Errorf("diff %q: (-got +want)\n%s", "restricted teams", diff)
+			return fmt.Errorf("diff %q: (-got +want)\n%s", "restrictions.teams", diff)
 		}
 
 		return nil
@@ -200,15 +275,17 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 			users = append(users, *u.Login)
 		}
 		if diff := pretty.Compare(users, expectedUsers); diff != "" {
-			return fmt.Errorf("diff %q: (-got +want)\n%s", "dismissal_users", diff)
+			return fmt.Errorf("diff %q: (-got +want)\n%s", "required_pull_request_reviews.dismissal_users", diff)
 		}
 
 		teams := []string{}
 		for _, t := range reviews.DismissalRestrictions.Teams {
-			teams = append(users, *t.Slug)
+			teams = append(teams, *t.Slug)
 		}
+		sort.Strings(teams)
+		sort.Strings(expectedTeams)
 		if diff := pretty.Compare(teams, expectedTeams); diff != "" {
-			return fmt.Errorf("diff %q: (-got +want)\n%s", "dismissal_teams", diff)
+			return fmt.Errorf("diff %q: (-got +want)\n%s", "required_pull_request_reviews.dismissal_teams", diff)
 		}
 
 		if reviews.RequireCodeOwnerReviews != expectedCodeOwners {
@@ -282,7 +359,7 @@ resource "github_branch_protection" "master" {
   branch     = "master"
   enforce_admins = true
 
-  required_status_checks = {
+  required_status_checks {
     strict         = true
     contexts       = ["github/foo"]
   }
@@ -312,7 +389,7 @@ resource "github_branch_protection" "master" {
   repository = "${github_repository.test.name}"
   branch     = "master"
 
-  required_status_checks = {
+  required_status_checks {
     strict         = false
     contexts       = ["github/bar"]
   }
@@ -333,7 +410,7 @@ resource "github_branch_protection" "master" {
   branch     = "master"
   enforce_admins = true
 
-  required_status_checks = {
+  required_status_checks {
   }
 
   required_pull_request_reviews {
@@ -343,4 +420,53 @@ resource "github_branch_protection" "master" {
   }
 }
 `, repoName, repoName)
+}
+
+func testAccGithubBranchProtectionConfigTeams(repoName, firstTeamName, secondTeamName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
+resource "github_team" "first" {
+  name = "%s"
+}
+
+resource "github_team_repository" "first" {
+  team_id    = "${github_team.first.id}"
+  repository = "${github_repository.test.name}"
+  permission = "pull"
+}
+
+resource "github_team" "second" {
+  name = "%s"
+}
+
+resource "github_team_repository" "second" {
+  team_id    = "${github_team.second.id}"
+  repository = "${github_repository.test.name}"
+  permission = "pull"
+}
+
+resource "github_branch_protection" "master" {
+  depends_on = ["github_team_repository.first", "github_team_repository.second"]
+  repository = "${github_repository.test.name}"
+  branch     = "master"
+  enforce_admins = true
+
+  required_status_checks {
+  }
+
+  required_pull_request_reviews {
+    dismiss_stale_reviews = true
+    dismissal_teams = ["${github_team.first.slug}", "${github_team.second.slug}"]
+  }
+
+  restrictions {
+    teams = ["${github_team.first.slug}", "${github_team.second.slug}"]
+  }
+}
+`, repoName, repoName, firstTeamName, secondTeamName)
 }
