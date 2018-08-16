@@ -22,6 +22,7 @@ BUG FIXES:
 * resource/github_repository_deploy_key: Avoid spurious diff of `key` [GH-132]
 * resource/github_repository_webhook: Avoid spurious diff of `secret` [GH-133]
 * resource/github_repository: Make non-updatable fields `ForceNew` [GH-135]
+* resource/github_organization_webhook: Avoid spurious diff [GH-134]
 
 ## 1.1.0 (May 11, 2018)
 
