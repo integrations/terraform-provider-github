@@ -11,9 +11,9 @@ import (
 func resourceGithubMembership() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceGithubMembershipCreate,
+		Create: resourceGithubMembershipCreateOrUpdate,
 		Read:   resourceGithubMembershipRead,
-		Update: resourceGithubMembershipUpdate,
+		Update: resourceGithubMembershipCreateOrUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -35,7 +35,7 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
 	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
@@ -71,24 +71,6 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("username", membership.User.Login)
 	d.Set("role", membership.Role)
-	return nil
-}
-
-func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
-		d.Get("username").(string),
-		meta.(*Organization).name,
-		&github.Membership{
-			Role: github.String(d.Get("role").(string)),
-		},
-	)
-	if err != nil {
-		return err
-	}
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
-
 	return nil
 }
 
