@@ -12,14 +12,14 @@ import (
 func resourceGithubTeamMembership() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceGithubTeamMembershipCreate,
+		Create: resourceGithubTeamMembershipCreateOrUpdate,
 		Read:   resourceGithubTeamMembershipRead,
+		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		// editing team memberships are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:     schema.TypeString,
@@ -34,7 +34,6 @@ func resourceGithubTeamMembership() *schema.Resource {
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				Default:      "member",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
@@ -42,7 +41,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
 	teamIdString := d.Get("team_id").(string)
