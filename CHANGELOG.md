@@ -1,4 +1,9 @@
 ## 1.2.1 (Unreleased)
+
+BUG FIXES:
+
+* resource/github_repository: Avoid spurious diff for `topics` [GH-138]
+
 ## 1.2.0 (August 17, 2018)
 
 FEATURES:
