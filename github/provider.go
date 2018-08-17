@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":              resourceGithubMembership(),
 			"github_organization_project":    resourceGithubOrganizationProject(),
 			"github_organization_webhook":    resourceGithubOrganizationWebhook(),
+			"github_project_column":          resourceGithubProjectColumn(),
 			"github_repository":              resourceGithubRepository(),
 			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
 			"github_repository_deploy_key":   resourceGithubRepositoryDeployKey(),
