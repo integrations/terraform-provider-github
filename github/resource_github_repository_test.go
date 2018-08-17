@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 
@@ -321,7 +322,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						Name:        name,
 						Description: description,
 						Homepage:    "http://example.com/",
-						Topics:      []string{"topic1", "topic2"},
+						Topics:      []string{"topic2", "topic1"},
 
 						// non-zero defaults
 						DefaultBranch:    "master",
@@ -482,6 +483,8 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if len(want.Topics) != len(repo.Topics) {
 			return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
 		}
+		sort.Strings(repo.Topics)
+		sort.Strings(want.Topics)
 		for i := range want.Topics {
 			if repo.Topics[i] != want.Topics[i] {
 				return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
