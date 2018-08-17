@@ -1,8 +1,8 @@
-## 1.2.1 (Unreleased)
+## 1.2.1 (August 17, 2018)
 
 BUG FIXES:
 
-* resource/github_repository: Avoid spurious diff for `topics` [GH-138]
+* resource/github_repository: Avoid spurious diff for `topics` ([#138](https://github.com/terraform-providers/terraform-provider-github/issues/138))
 
 ## 1.2.0 (August 17, 2018)
 
