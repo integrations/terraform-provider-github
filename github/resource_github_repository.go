@@ -96,7 +96,7 @@ func resourceGithubRepository() *schema.Resource {
 				Default:  false,
 			},
 			"topics": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
@@ -146,7 +146,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		LicenseTemplate:   github.String(d.Get("license_template").(string)),
 		GitignoreTemplate: github.String(d.Get("gitignore_template").(string)),
 		Archived:          github.Bool(d.Get("archived").(bool)),
-		Topics:            expandStringList(d.Get("topics").([]interface{})),
+		Topics:            expandStringList(d.Get("topics").(*schema.Set).List()),
 	}
 }
 
