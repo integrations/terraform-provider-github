@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -53,6 +55,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	username := d.Get("username").(string)
 	role := d.Get("role").(string)
 
+	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
 	_, _, err = client.Organizations.AddTeamMembership(context.TODO(),
 		teamId,
 		username,
@@ -81,11 +84,19 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return unconvertibleIdErr(teamIdString, err)
 	}
 
+	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
 	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(),
 		teamId, username)
 	if err != nil {
-		d.SetId("")
-		return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
 	}
 
 	team, user := getTeamAndUserFromURL(membership.URL)
@@ -105,10 +116,10 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
+	username := d.Get("username").(string)
 
-	_, err = client.Organizations.RemoveTeamMembership(context.TODO(),
-		teamId,
-		d.Get("username").(string))
+	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
+	_, err = client.Organizations.RemoveTeamMembership(context.TODO(), teamId, username)
 
 	return err
 }

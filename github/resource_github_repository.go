@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceGithubRepository() *schema.Resource {
-
 	return &schema.Resource{
 		Create: resourceGithubRepositoryCreate,
 		Read:   resourceGithubRepositoryRead,
@@ -158,9 +158,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Cannot set the default branch on a new repository.")
 	}
 
+	orgName := meta.(*Organization).name
 	repoReq := resourceGithubRepositoryObject(d)
-	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(ctx, meta.(*Organization).name, repoReq)
+
+	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoReq.GetName())
+	repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -168,7 +170,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, meta.(*Organization).name, *repoReq.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoReq.GetName(), topics)
 		if err != nil {
 			return err
 		}
@@ -179,19 +181,19 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	orgName := meta.(*Organization).name
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Organization).name, repoName)
+	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
+	repo, _, err := client.Repositories.Get(context.TODO(), orgName, repoName)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			log.Printf(
-				"[WARN] removing %s/%s from state because it no longer exists in github",
-				meta.(*Organization).name,
-				repoName,
-			)
-			d.SetId("")
-			return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
+					orgName, repoName)
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
@@ -220,6 +222,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
 	ctx := context.TODO()
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
@@ -232,8 +235,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, _, err := client.Repositories.Edit(ctx, meta.(*Organization).name, repoName, repoReq)
+	orgName := meta.(*Organization).name
+	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
+	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -241,7 +245,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, meta.(*Organization).name, *repo.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, *repo.Name, topics)
 		if err != nil {
 			return err
 		}
@@ -253,7 +257,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	repoName := d.Id()
-	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Organization).name, repoName)
-	_, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, repoName)
+	orgName := meta.(*Organization).name
+
+	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
+	_, err := client.Repositories.Delete(context.TODO(), orgName, repoName)
 	return err
 }

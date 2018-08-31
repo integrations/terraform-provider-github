@@ -42,11 +42,15 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
+	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
+		username, orgName, repoName)
 	_, err := client.Repositories.AddCollaborator(context.TODO(),
-		meta.(*Organization).name,
+		orgName,
 		repoName,
 		username,
 		&github.RepositoryAddCollaboratorOptions{
@@ -64,13 +68,15 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	repoName, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, repoName, username)
+	invitation, err := findRepoInvitation(client, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -90,7 +96,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(),
-			meta.(*Organization).name, repoName, opt)
+			orgName, repoName, opt)
 		if err != nil {
 			return err
 		}
@@ -116,7 +122,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 
 	// The user is neither invited nor a collaborator
-	log.Printf("[WARN] GitHub Repository Collaborator (%s) not found, removing from state", d.Id())
+	log.Printf("[WARN] Removing repository collaborator %s (%s/%s) from state because it no longer exists in GitHub",
+		username, orgName, repoName)
 	d.SetId("")
 
 	return nil
@@ -124,19 +131,23 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	u := d.Get("username").(string)
-	r := d.Get("repository").(string)
+
+	orgName := meta.(*Organization).name
+	username := d.Get("username").(string)
+	repoName := d.Get("repository").(string)
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
+	invitation, err := findRepoInvitation(client, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(context.TODO(), meta.(*Organization).name, r, *invitation.ID)
+		_, err = client.Repositories.DeleteInvitation(context.TODO(), orgName, repoName, *invitation.ID)
 		return err
 	}
 
-	_, err = client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Organization).name, r, u)
+	log.Printf("[DEBUG] Deleting repository collaborator: %s (%s/%s)",
+		username, orgName, repoName)
+	_, err = client.Repositories.RemoveCollaborator(context.TODO(), orgName, repoName, username)
 	return err
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -128,6 +129,8 @@ func resourceGithubBranchProtection() *schema.Resource {
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	branch := d.Get("branch").(string)
 
@@ -136,8 +139,10 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
+		orgName, repoName, branch)
 	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(),
-		meta.(*Organization).name,
+		orgName,
 		repoName,
 		branch,
 		protectionRequest,
@@ -153,21 +158,25 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
+	orgName := meta.(*Organization).name
 
+	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
+		orgName, repoName, branch)
 	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(),
-		meta.(*Organization).name,
-		repoName,
-		branch,
-	)
+		orgName, repoName, branch)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == 404 {
-			log.Printf("[WARN] GitHub branch protection (%s) not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
+					orgName, repoName, branch)
+				d.SetId("")
+				return nil
+			}
 		}
 
 		return err
@@ -204,8 +213,12 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	orgName := meta.(*Organization).name
+
+	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
+		orgName, repoName, branch)
 	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(),
-		meta.(*Organization).name,
+		orgName,
 		repoName,
 		branch,
 		protectionRequest,
@@ -216,7 +229,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 
 	if protectionRequest.RequiredPullRequestReviews == nil {
 		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(),
-			meta.(*Organization).name,
+			orgName,
 			repoName,
 			branch,
 		)
@@ -237,11 +250,10 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	orgName := meta.(*Organization).name
+	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
 	_, err = client.Repositories.RemoveBranchProtection(context.TODO(),
-		meta.(*Organization).name,
-		repoName,
-		branch,
-	)
+		orgName, repoName, branch)
 	return err
 }
 

@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -66,19 +67,19 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		Color: github.String(color),
 	}
 
-	log.Printf("[DEBUG] Querying label existence %s/%s (%s)",
-		orgName, repoName, name)
+	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
+		name, orgName, repoName)
 	existing, resp, err := client.Issues.GetLabel(context.TODO(),
 		orgName, repoName, name)
-	if err != nil && resp.StatusCode != 404 {
+	if err != nil && resp.StatusCode != http.StatusNotFound {
 		return err
 	}
 
 	if existing != nil {
 		label.Description = github.String(d.Get("description").(string))
 
-		log.Printf("[DEBUG] Updating label: %s/%s (%s: %s)",
-			orgName, repoName, name, color)
+		log.Printf("[DEBUG] Updating label: %s:%s (%s/%s)",
+			name, color, orgName, repoName)
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
@@ -103,8 +104,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 			label.Description = github.String(v.(string))
 		}
 
-		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)",
-			orgName, repoName, name, color)
+		log.Printf("[DEBUG] Creating label: %s:%s (%s/%s)",
+			name, color, orgName, repoName)
 		_, resp, err := client.Issues.CreateLabel(context.TODO(),
 			orgName, repoName, label)
 		if resp != nil {
@@ -127,13 +128,20 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	log.Printf("[DEBUG] Reading label: %s/%s", repoName, name)
+	orgName := meta.(*Organization).name
+	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, orgName, repoName)
 	githubLabel, _, err := client.Issues.GetLabel(context.TODO(),
-		meta.(*Organization).name, repoName, name)
+		orgName, repoName, name)
 	if err != nil {
-		log.Printf("[WARN] GitHub Issue Label (%s) not found, removing from state", d.Id())
-		d.SetId("")
-		return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
+					name, orgName, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
 	}
 
 	d.Set("repository", repoName)
@@ -147,12 +155,14 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 
-	log.Printf("[DEBUG] Deleting label: %s/%s", repoName, name)
+	log.Printf("[DEBUG] Deleting label: %s (%s/%s)", name, orgName, repoName)
 	_, err := client.Issues.DeleteLabel(context.TODO(),
-		meta.(*Organization).name, repoName, name)
+		orgName, repoName, name)
 
 	return err
 }
