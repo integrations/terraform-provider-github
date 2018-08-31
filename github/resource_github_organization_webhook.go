@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -79,10 +80,14 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 
+	log.Printf("[DEBUG] Creating organization webhook: %s (%s)",
+		webhookObj.GetName(), orgName)
 	hook, _, err := client.Organizations.CreateHook(context.TODO(),
-		meta.(*Organization).name, webhookObj)
+		orgName, webhookObj)
 	if err != nil {
 		return err
 	}
@@ -93,20 +98,27 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 
 func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Organization).name, hookID)
+	log.Printf("[DEBUG] Reading organization webhook: %s (%s)", d.Id(), orgName)
+	hook, _, err := client.Organizations.GetHook(context.TODO(), orgName, hookID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			log.Printf("[WARN] GitHub Organization Webhook (%s) not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing organization webhook %s/%s from state because it no longer exists in GitHub",
+					orgName, d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
+
 	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
@@ -118,14 +130,18 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 
 func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Updating organization webhook: %s (%s)", d.Id(), orgName)
+
 	_, _, err = client.Organizations.EditHook(context.TODO(),
-		meta.(*Organization).name, hookID, webhookObj)
+		orgName, hookID, webhookObj)
 	if err != nil {
 		return err
 	}
@@ -135,11 +151,14 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 
 func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+
+	orgName := meta.(*Organization).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	_, err = client.Organizations.DeleteHook(context.TODO(), meta.(*Organization).name, hookID)
+	log.Printf("[DEBUG] Deleting organization webhook: %s (%s)", d.Id(), orgName)
+	_, err = client.Organizations.DeleteHook(context.TODO(), orgName, hookID)
 	return err
 }

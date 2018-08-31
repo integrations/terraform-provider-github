@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/github"
@@ -10,7 +11,6 @@ import (
 )
 
 func resourceGithubTeam() *schema.Resource {
-
 	return &schema.Resource{
 		Create: resourceGithubTeamCreate,
 		Read:   resourceGithubTeamRead,
@@ -54,8 +54,10 @@ func resourceGithubTeam() *schema.Resource {
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
+	orgName := meta.(*Organization).name
+	name := d.Get("name").(string)
 	newTeam := &github.NewTeam{
-		Name:        d.Get("name").(string),
+		Name:        name,
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
@@ -64,8 +66,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		newTeam.ParentTeamID = &id
 	}
 
+	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
 	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(),
-		meta.(*Organization).name, newTeam)
+		orgName, newTeam)
 	if err != nil {
 		return err
 	}
@@ -87,11 +90,23 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
-	team, err := getGithubTeam(d, client)
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		log.Printf("[WARN] GitHub Team (%s) not found, removing from state", d.Id())
-		d.SetId("")
-		return nil
+		return unconvertibleIdErr(d.Id(), err)
+	}
+
+	log.Printf("[DEBUG] Reading team: %s", d.Id())
+	team, _, err := client.Organizations.GetTeam(context.TODO(), id)
+	if err != nil {
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
 	}
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
@@ -108,11 +123,6 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	team, err := getGithubTeam(d, client)
-	if err != nil {
-		d.SetId("")
-		return nil
-	}
 
 	editedTeam := &github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -124,7 +134,13 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		editedTeam.ParentTeamID = &id
 	}
 
-	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, editedTeam)
+	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+
+	log.Printf("[DEBUG] Updating team: %s", d.Id())
+	team, _, err := client.Organizations.EditTeam(context.TODO(), teamId, editedTeam)
 	if err != nil {
 		return err
 	}
@@ -152,16 +168,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Deleting team: %s", d.Id())
 	_, err = client.Organizations.DeleteTeam(context.TODO(), id)
 	return err
-}
-
-func getGithubTeam(d *schema.ResourceData, github *github.Client) (*github.Team, error) {
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return nil, unconvertibleIdErr(d.Id(), err)
-	}
-
-	team, _, err := github.Organizations.GetTeam(context.TODO(), id)
-	return team, err
 }

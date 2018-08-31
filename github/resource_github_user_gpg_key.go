@@ -3,8 +3,10 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 	"strconv"
 
+	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -33,6 +35,7 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 
 	pubKey := d.Get("armored_public_key").(string)
 
+	log.Printf("[DEBUG] Creating user GPG key:\n%s", pubKey)
 	key, _, err := client.Users.CreateGPGKey(context.TODO(), pubKey)
 	if err != nil {
 		return err
@@ -51,11 +54,18 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Reading user GPG key: %s", d.Id())
 	key, _, err := client.Users.GetGPGKey(context.TODO(), id)
 	if err != nil {
-		log.Printf("[WARN] GitHub User GPG Key (%s) not found, removing from state", d.Id())
-		d.SetId("")
-		return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing user GPG key %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
 	}
 
 	d.Set("key_id", key.KeyID)
@@ -71,6 +81,7 @@ func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) er
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Deleting user GPG key: %s", d.Id())
 	_, err = client.Users.DeleteGPGKey(context.TODO(), id)
 
 	return err

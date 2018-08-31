@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -53,16 +55,17 @@ func resourceGithubRepositoryProject() *schema.Resource {
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
+	orgName := meta.(*Organization).name
+	repoName := d.Get("repository").(string)
+	name := d.Get("name").(string)
 	options := github.ProjectOptions{
-		Name: d.Get("name").(string),
+		Name: name,
 		Body: d.Get("body").(string),
 	}
 
+	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, orgName, repoName)
 	project, _, err := client.Repositories.CreateProject(context.TODO(),
-		meta.(*Organization).name,
-		d.Get("repository").(string),
-		&options,
-	)
+		orgName, repoName, &options)
 	if err != nil {
 		return err
 	}
@@ -80,11 +83,16 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	project, resp, err := client.Projects.GetProject(context.TODO(), projectID)
+	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
+	project, _, err := client.Projects.GetProject(context.TODO(), projectID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			d.SetId("")
-			return nil
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
@@ -110,6 +118,7 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Updating repository project: %s", d.Id())
 	_, _, err = client.Projects.UpdateProject(context.TODO(), projectID, &options)
 	if err != nil {
 		return err
@@ -126,6 +135,7 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
+	log.Printf("[DEBUG] Deleting repository project: %s", d.Id())
 	_, err = client.Projects.DeleteProject(context.TODO(), projectID)
 	return err
 }
