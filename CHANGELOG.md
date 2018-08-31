@@ -1,4 +1,15 @@
 ## 1.3.0 (Unreleased)
+
+BUG FIXES:
+
+* resource/github_issue_label: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_membership: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_repository_deploy_key: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_team: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_team_membership: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_team_repository: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_user_gpg_key:  Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+
 ## 1.2.1 (August 17, 2018)
 
 BUG FIXES:
