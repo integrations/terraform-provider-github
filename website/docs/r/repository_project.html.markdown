@@ -3,12 +3,12 @@ layout: "github"
 page_title: "GitHub: github_repository_project"
 sidebar_current: "docs-github-resource-repository-project"
 description: |-
-  Creates and manages projects for Github repositories
+  Creates and manages projects for GitHub repositories
 ---
 
 # github_repository_project
 
-This resource allows you to create and manage projects for Github repository.
+This resource allows you to create and manage projects for GitHub repository.
 
 ## Example Usage
 
