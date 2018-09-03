@@ -45,6 +45,10 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -57,9 +61,10 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
 	owner := meta.(*Organization).name
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, owner, repoName)
-	resultKey, _, err := client.Repositories.CreateKey(context.TODO(), owner, repoName, &github.Key{
+	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
 		Key:      github.String(key),
 		Title:    github.String(title),
 		ReadOnly: github.Bool(readOnly),
@@ -89,12 +94,19 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(idString, err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), owner, repoName)
-	key, _, err := client.Repositories.GetKey(context.TODO(), owner, repoName, id)
+	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository deploy key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -104,6 +116,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("key", key.Key)
 	d.Set("read_only", key.ReadOnly)
 	d.Set("repository", repoName)
@@ -125,9 +138,10 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	if err != nil {
 		return unconvertibleIdErr(idString, err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository deploy key: %s (%s/%s)", idString, owner, repoName)
-	_, err = client.Repositories.DeleteKey(context.TODO(), owner, repoName, id)
+	_, err = client.Repositories.DeleteKey(ctx, owner, repoName, id)
 	if err != nil {
 		return err
 	}

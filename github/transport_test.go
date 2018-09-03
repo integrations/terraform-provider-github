@@ -14,7 +14,7 @@ import (
 )
 
 func TestEtagTransport(t *testing.T) {
-	ts := githubApiMock([]*response{
+	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
 			ExpectedHeaders: map[string]string{
@@ -45,7 +45,7 @@ func TestEtagTransport(t *testing.T) {
 	}
 }
 
-func githubApiMock(responseSequence []*response) *httptest.Server {
+func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 	position := github.Int(0)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -108,7 +108,7 @@ func githubApiMock(responseSequence []*response) *httptest.Server {
 	}))
 }
 
-type response struct {
+type mockResponse struct {
 	ExpectedUri     string
 	ExpectedMethod  string
 	ExpectedHeaders map[string]string

@@ -48,6 +48,10 @@ func resourceGithubRepositoryProject() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -62,9 +66,10 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 		Name: name,
 		Body: d.Get("body").(string),
 	}
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, orgName, repoName)
-	project, _, err := client.Repositories.CreateProject(context.TODO(),
+	project, _, err := client.Repositories.CreateProject(ctx,
 		orgName, repoName, &options)
 	if err != nil {
 		return err
@@ -82,12 +87,19 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
-	project, _, err := client.Projects.GetProject(context.TODO(), projectID)
+	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -97,6 +109,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
 	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
@@ -117,9 +130,10 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository project: %s", d.Id())
-	_, _, err = client.Projects.UpdateProject(context.TODO(), projectID, &options)
+	_, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
 	if err != nil {
 		return err
 	}
@@ -134,8 +148,9 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository project: %s", d.Id())
-	_, err = client.Projects.DeleteProject(context.TODO(), projectID)
+	_, err = client.Projects.DeleteProject(ctx, projectID)
 	return err
 }

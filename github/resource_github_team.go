@@ -47,6 +47,10 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -65,9 +69,10 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(),
+	githubTeam, _, err := client.Organizations.CreateTeam(ctx,
 		orgName, newTeam)
 	if err != nil {
 		return err
@@ -77,7 +82,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *githubTeam.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *githubTeam.ID, mapping)
 		if err != nil {
 			return err
 		}
@@ -94,12 +99,19 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
-	team, _, err := client.Organizations.GetTeam(context.TODO(), id)
+	team, resp, err := client.Organizations.GetTeam(ctx, id)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -108,6 +120,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return err
 	}
+
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
 	d.Set("privacy", team.Privacy)
@@ -118,6 +132,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
 	d.Set("slug", team.GetSlug())
+
 	return nil
 }
 
@@ -138,9 +153,10 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
-	team, _, err := client.Organizations.EditTeam(context.TODO(), teamId, editedTeam)
+	team, _, err := client.Organizations.EditTeam(ctx, teamId, editedTeam)
 	if err != nil {
 		return err
 	}
@@ -150,7 +166,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *team.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *team.ID, mapping)
 		if err != nil {
 			return err
 		}
@@ -167,8 +183,9 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
-	_, err = client.Organizations.DeleteTeam(context.TODO(), id)
+	_, err = client.Organizations.DeleteTeam(ctx, id)
 	return err
 }

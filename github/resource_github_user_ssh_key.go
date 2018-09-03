@@ -39,6 +39,10 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -48,9 +52,10 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating user SSH key: %s", title)
-	userKey, _, err := client.Users.CreateKey(context.TODO(), &github.Key{
+	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
 		Title: github.String(title),
 		Key:   github.String(key),
 	})
@@ -70,12 +75,19 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading user SSH key: %s", d.Id())
-	key, _, err := client.Users.GetKey(context.TODO(), id)
+	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing user SSH key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -84,6 +96,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("title", key.Title)
 	d.Set("key", key.Key)
 	d.Set("url", key.URL)
@@ -98,9 +111,10 @@ func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting user SSH key: %s", d.Id())
-	_, err = client.Users.DeleteKey(context.TODO(), id)
+	_, err = client.Users.DeleteKey(ctx, id)
 
 	return err
 }

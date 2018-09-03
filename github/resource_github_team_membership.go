@@ -39,6 +39,10 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Default:      "member",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -51,12 +55,13 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
+	ctx := context.Background()
 
 	username := d.Get("username").(string)
 	role := d.Get("role").(string)
 
 	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
-	_, _, err = client.Organizations.AddTeamMembership(context.TODO(),
+	_, _, err = client.Organizations.AddTeamMembership(ctx,
 		teamId,
 		username,
 		&github.OrganizationAddTeamMembershipOptions{
@@ -83,13 +88,20 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
-	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(),
+	membership, resp, err := client.Organizations.GetTeamMembership(ctx,
 		teamId, username)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -101,6 +113,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 
 	team, user := getTeamAndUserFromURL(membership.URL)
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("username", user)
 	d.Set("role", membership.Role)
 	d.Set("team_id", team)
@@ -117,9 +130,10 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 		return unconvertibleIdErr(teamIdString, err)
 	}
 	username := d.Get("username").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
-	_, err = client.Organizations.RemoveTeamMembership(context.TODO(), teamId, username)
+	_, err = client.Organizations.RemoveTeamMembership(ctx, teamId, username)
 
 	return err
 }

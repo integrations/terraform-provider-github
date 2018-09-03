@@ -37,6 +37,10 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Default:      "pull",
 				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -52,10 +56,11 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
-	_, err = client.Organizations.AddTeamRepo(context.TODO(),
+	_, err = client.Organizations.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
@@ -86,14 +91,21 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		return unconvertibleIdErr(teamIdString, err)
 	}
 	orgName := meta.(*Organization).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	repo, _, repoErr := client.Organizations.IsTeamRepo(context.TODO(),
+	repo, resp, repoErr := client.Organizations.IsTeamRepo(ctx,
 		teamId, orgName, repoName)
 	if repoErr != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing team repository association %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -103,6 +115,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("team_id", teamIdString)
 	d.Set("repository", repo.Name)
 
@@ -127,11 +140,12 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
-	_, err = client.Organizations.AddTeamRepo(context.TODO(),
+	_, err = client.Organizations.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
@@ -159,10 +173,11 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	_, err = client.Organizations.RemoveTeamRepo(context.TODO(),
+	_, err = client.Organizations.RemoveTeamRepo(ctx,
 		teamId, orgName, repoName)
 	return err
 }
