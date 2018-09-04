@@ -1,5 +1,9 @@
 ## 1.3.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* _all resources_: Use `Etag` to save API quota (~ 33%) [GH-143]
+
 BUG FIXES:
 
 * resource/github_issue_label: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
