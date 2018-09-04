@@ -108,6 +108,170 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 	}))
 }
 
+func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri: "/repos/test/blah",
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "0.1",
+			},
+		},
+		{
+			ExpectedUri: "/repos/test/blah",
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "0.1",
+			},
+		},
+		{
+			ExpectedUri:  "/repos/test/blah",
+			ResponseBody: `{"id": 1234}`,
+			StatusCode:   200,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	r, _, err := client.Repositories.Get(ctx, "test", "blah")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.GetID() != 1234 {
+		t.Fatalf("Expected ID to be 1234, got: %d", r.GetID())
+	}
+}
+
+func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "0.1",
+			},
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{"id": 1234}`,
+			StatusCode:   200,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
+		Name:        github.String("radek-example-48"),
+		Description: github.String(""),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.GetID() != 1234 {
+		t.Fatalf("Expected ID to be 1234, got: %d", r.GetID())
+	}
+}
+
+func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "0.1",
+			},
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "Repository creation failed.",
+  "errors": [
+    {
+      "resource": "Repository",
+      "code": "custom",
+      "field": "name",
+      "message": "name already exists on this account"
+    }
+  ],
+  "documentation_url": "https://developer.github.com/v3/repos/#create"
+}
+`,
+			StatusCode: 422,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
+		Name:        github.String("radek-example-48"),
+		Description: github.String(""),
+	})
+	if err == nil {
+		t.Fatal("Expected 422 error, got nil")
+	}
+
+	ghErr, ok := err.(*github.ErrorResponse)
+	if !ok {
+		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
+	}
+
+	expectedMessage := "Repository creation failed."
+	if ghErr.Message != expectedMessage {
+		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
+	}
+}
+
 type mockResponse struct {
 	ExpectedUri     string
 	ExpectedMethod  string
