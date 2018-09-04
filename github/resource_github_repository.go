@@ -125,6 +125,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -152,7 +156,6 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	ctx := context.TODO()
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		return fmt.Errorf("Cannot set the default branch on a new repository.")
@@ -160,6 +163,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	orgName := meta.(*Organization).name
 	repoReq := resourceGithubRepositoryObject(d)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoReq.GetName())
 	repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
@@ -185,10 +189,19 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
-	repo, _, err := client.Repositories.Get(context.TODO(), orgName, repoName)
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	repo, resp, err := client.Repositories.Get(ctx, orgName, repoName)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
 					orgName, repoName)
 				d.SetId("")
@@ -198,6 +211,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", repoName)
 	d.Set("description", repo.Description)
 	d.Set("homepage_url", repo.Homepage)
@@ -223,7 +237,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
-	ctx := context.TODO()
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
@@ -236,6 +249,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
 	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 	if err != nil {
@@ -258,8 +273,10 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	_, err := client.Repositories.Delete(context.TODO(), orgName, repoName)
+	_, err := client.Repositories.Delete(ctx, orgName, repoName)
+
 	return err
 }

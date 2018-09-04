@@ -60,6 +60,10 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -95,9 +99,10 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository webhook: %s (%s/%s)", hk.GetName(), orgName, repoName)
-	hook, _, err := client.Repositories.CreateHook(context.TODO(), orgName, repoName, hk)
+	hook, _, err := client.Repositories.CreateHook(ctx, orgName, repoName, hk)
 	if err != nil {
 		return err
 	}
@@ -115,12 +120,19 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
-	hook, _, err := client.Repositories.GetHook(context.TODO(), orgName, repoName, hookID)
+	hook, _, err := client.Repositories.GetHook(ctx, orgName, repoName, hookID)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository webhook %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -148,9 +160,10 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
-	_, _, err = client.Repositories.EditHook(context.TODO(), orgName, repoName, hookID, hk)
+	_, _, err = client.Repositories.EditHook(ctx, orgName, repoName, hookID, hk)
 	if err != nil {
 		return err
 	}
@@ -167,8 +180,9 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
-	_, err = client.Repositories.DeleteHook(context.TODO(), orgName, repoName, hookID)
+	_, err = client.Repositories.DeleteHook(ctx, orgName, repoName, hookID)
 	return err
 }

@@ -26,6 +26,10 @@ func resourceGithubUserGpgKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -34,9 +38,10 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 
 	pubKey := d.Get("armored_public_key").(string)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating user GPG key:\n%s", pubKey)
-	key, _, err := client.Users.CreateGPGKey(context.TODO(), pubKey)
+	key, _, err := client.Users.CreateGPGKey(ctx, pubKey)
 	if err != nil {
 		return err
 	}
@@ -53,12 +58,19 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading user GPG key: %s", d.Id())
-	key, _, err := client.Users.GetGPGKey(context.TODO(), id)
+	key, _, err := client.Users.GetGPGKey(ctx, id)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing user GPG key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -80,9 +92,10 @@ func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting user GPG key: %s", d.Id())
-	_, err = client.Users.DeleteGPGKey(context.TODO(), id)
+	_, err = client.Users.DeleteGPGKey(ctx, id)
 
 	return err
 }

@@ -35,11 +35,13 @@ func (c *Config) Client() (interface{}, error) {
 	ctx := context.Background()
 
 	if c.Insecure {
-		httpClient := insecureHttpClient()
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+		insecureClient := insecureHttpClient()
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
 	tc := oauth2.NewClient(ctx, ts)
+
+	tc.Transport = NewEtagTransport(tc.Transport)
 
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 

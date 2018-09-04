@@ -31,6 +31,10 @@ func resourceGithubMembership() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -41,9 +45,13 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
+	ctx := context.Background()
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxId, d.Id())
+	}
 
 	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
+	membership, _, err := client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
@@ -67,13 +75,20 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading membership: %s", d.Id())
-	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(),
+	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
 		username, orgName)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing membership %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
@@ -83,6 +98,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("username", membership.User.Login)
 	d.Set("role", membership.Role)
 
@@ -92,9 +108,10 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
-	_, err := client.Organizations.RemoveOrgMembership(context.TODO(),
+	_, err := client.Organizations.RemoveOrgMembership(ctx,
 		d.Get("username").(string), orgName)
 
 	return err

@@ -46,10 +46,11 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, err := client.Repositories.AddCollaborator(context.TODO(),
+	_, err := client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
 		username,
@@ -74,9 +75,10 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, orgName, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -92,10 +94,12 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 
 	// Next, check if the user has accepted the invite and is a full collaborator
-	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}
+	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
+		PerPage: maxPerPage,
+	}}
 
 	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(),
+		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
 			orgName, repoName, opt)
 		if err != nil {
 			return err
@@ -136,25 +140,27 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, orgName, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(context.TODO(), orgName, repoName, *invitation.ID)
+		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}
 
 	log.Printf("[DEBUG] Deleting repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, err = client.Repositories.RemoveCollaborator(context.TODO(), orgName, repoName, username)
+	_, err = client.Repositories.RemoveCollaborator(ctx, orgName, repoName, username)
 	return err
 }
 
-func findRepoInvitation(client *github.Client, owner string, repo string, collaborator string) (*github.RepositoryInvitation, error) {
+func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
-		invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), owner, repo, opt)
+		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repo, opt)
 		if err != nil {
 			return nil, err
 		}

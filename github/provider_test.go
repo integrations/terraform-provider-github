@@ -62,7 +62,7 @@ func TestProvider_insecure(t *testing.T) {
 	certFile := filepath.Join("test-fixtures", "cert.pem")
 	keyFile := filepath.Join("test-fixtures", "key.pem")
 
-	url, closeFunc := githubApiMock(port, certFile, keyFile, t)
+	url, closeFunc := githubTLSApiMock(port, certFile, keyFile, t)
 	defer closeFunc()
 
 	oldBaseUrl := os.Getenv("GITHUB_BASE_URL")
@@ -99,7 +99,7 @@ func TestProvider_insecure(t *testing.T) {
 	})
 }
 
-func githubApiMock(port, certFile, keyFile string, t *testing.T) (string, func() error) {
+func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, func() error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/hashibot", testRespondJson(userResponseBody))
 	mux.HandleFunc("/users/hashibot/gpg_keys", testRespondJson(gpgKeysResponseBody))

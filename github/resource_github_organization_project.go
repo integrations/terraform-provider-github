@@ -34,6 +34,10 @@ func resourceGithubOrganizationProject() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -42,9 +46,10 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating organization project: %s (%s)", name, orgName)
-	project, _, err := client.Organizations.CreateProject(context.TODO(),
+	project, _, err := client.Organizations.CreateProject(ctx,
 		orgName,
 		&github.ProjectOptions{
 			Name: name,
@@ -67,12 +72,19 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
 	log.Printf("[DEBUG] Reading organization project: %s (%s)", d.Id(), orgName)
-	project, _, err := client.Projects.GetProject(context.TODO(), projectID)
+	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing organization project %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
@@ -82,6 +94,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
 	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
@@ -104,9 +117,10 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating organization project: %s (%s)", d.Id(), orgName)
-	if _, _, err := client.Projects.UpdateProject(context.TODO(), projectID, &options); err != nil {
+	if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
 		return err
 	}
 
@@ -121,8 +135,9 @@ func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting organization project: %s (%s)", d.Id(), orgName)
-	_, err = client.Projects.DeleteProject(context.TODO(), projectID)
+	_, err = client.Projects.DeleteProject(ctx, projectID)
 	return err
 }
