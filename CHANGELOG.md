@@ -1,5 +1,9 @@
 ## 1.3.0 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `github_project_column` [GH-139]
+
 ENHANCEMENTS:
 
 * _all resources_: Use `Etag` to save API quota (~ 33%) [GH-143]
