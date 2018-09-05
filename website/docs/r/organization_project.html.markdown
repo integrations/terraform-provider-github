@@ -3,12 +3,12 @@ layout: "github"
 page_title: "GitHub: github_organization_project"
 sidebar_current: "docs-github-resource-organization-project"
 description: |-
-  Creates and manages projects for Github organizations
+  Creates and manages projects for GitHub organizations
 ---
 
 # github_organization_project
 
-This resource allows you to create and manage projects for Github organization.
+This resource allows you to create and manage projects for GitHub organization.
 
 ## Example Usage
 
