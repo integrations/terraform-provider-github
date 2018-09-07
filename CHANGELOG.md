@@ -7,6 +7,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * _all resources_: Use `Etag` to save API quota (~ 33%) [GH-143]
+* _all resources_: Implement & use RateLimitTransport to avoid hitting API rate limits [GH-145]
 
 BUG FIXES:
 
