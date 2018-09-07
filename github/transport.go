@@ -62,11 +62,8 @@ func (rlt *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 		log.Printf("[DEBUG] Sleeping %s between write operations", writeDelay)
 		time.Sleep(writeDelay)
 	}
-	if rlt.isWriteMethod(req.Method) {
-		rlt.delayNextRequest = true
-	} else {
-		rlt.delayNextRequest = false
-	}
+
+	rlt.delayNextRequest = isWriteMethod(req.Method)
 
 	resp, err := rlt.transport.RoundTrip(req)
 	if err != nil {
@@ -77,15 +74,12 @@ func (rlt *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// Make response body accessible for retries & debugging
 	// (work around bug in GitHub SDK)
 	// See https://github.com/google/go-github/pull/986
-	r1, r2, err := rlt.drainBody(resp.Body)
+	r1, r2, err := drainBody(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	resp.Body = r1
 	ghErr := github.CheckResponse(resp)
-	if err != nil {
-		return nil, err
-	}
 	resp.Body = r2
 
 	// When you have been limited, use the Retry-After response header to slow down.
@@ -114,9 +108,25 @@ func (rlt *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return resp, nil
 }
 
+func (rlt *rateLimitTransport) lock(req *http.Request) {
+	ctx := req.Context()
+	log.Printf("[TRACE] Aquiring lock for GitHub API request (%q)", ctx.Value(ctxId))
+	rlt.m.Lock()
+}
+
+func (rlt *rateLimitTransport) unlock(req *http.Request) {
+	ctx := req.Context()
+	log.Printf("[TRACE] Releasing lock for GitHub API request (%q)", ctx.Value(ctxId))
+	rlt.m.Unlock()
+}
+
+func NewRateLimitTransport(rt http.RoundTripper) *rateLimitTransport {
+	return &rateLimitTransport{transport: rt}
+}
+
 // drainBody reads all of b to memory and then returns two equivalent
 // ReadClosers yielding the same bytes.
-func (rlt *rateLimitTransport) drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
+func drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
 	if b == http.NoBody {
 		// No copying needed. Preserve the magic sentinel meaning of NoBody.
 		return http.NoBody, http.NoBody, nil
@@ -131,26 +141,10 @@ func (rlt *rateLimitTransport) drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser,
 	return ioutil.NopCloser(&buf), ioutil.NopCloser(bytes.NewReader(buf.Bytes())), nil
 }
 
-func (rlt *rateLimitTransport) lock(req *http.Request) {
-	ctx := req.Context()
-	log.Printf("[TRACE] Aquiring lock for GitHub API request (%q)", ctx.Value(ctxId))
-	rlt.m.Lock()
-}
-
-func (rlt *rateLimitTransport) unlock(req *http.Request) {
-	ctx := req.Context()
-	log.Printf("[TRACE] Releasing lock for GitHub API request (%q)", ctx.Value(ctxId))
-	rlt.m.Unlock()
-}
-
-func (rlt *rateLimitTransport) isWriteMethod(method string) bool {
+func isWriteMethod(method string) bool {
 	switch method {
 	case "POST", "PATCH", "PUT", "DELETE":
 		return true
 	}
 	return false
-}
-
-func NewRateLimitTransport(rt http.RoundTripper) *rateLimitTransport {
-	return &rateLimitTransport{transport: rt}
 }
