@@ -1,23 +1,23 @@
-## 1.3.0 (Unreleased)
+## 1.3.0 (September 07, 2018)
 
 FEATURES:
 
-* **New Resource:** `github_project_column` [GH-139]
+* **New Resource:** `github_project_column` ([#139](https://github.com/terraform-providers/terraform-provider-github/issues/139))
 
 ENHANCEMENTS:
 
-* _all resources_: Use `Etag` to save API quota (~ 33%) [GH-143]
-* _all resources_: Implement & use RateLimitTransport to avoid hitting API rate limits [GH-145]
+* _all resources_: Use `Etag` to save API quota (~ 33%) ([#143](https://github.com/terraform-providers/terraform-provider-github/issues/143))
+* _all resources_: Implement & use RateLimitTransport to avoid hitting API rate limits ([#145](https://github.com/terraform-providers/terraform-provider-github/issues/145))
 
 BUG FIXES:
 
-* resource/github_issue_label: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_membership: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_repository_deploy_key: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_team: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_team_membership: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_team_repository: Return genuine errors instead of ignoring them when reading existing resource [GH-142]
-* resource/github_user_gpg_key:  Return genuine errors instead of ignoring them when reading existing resource [GH-142]
+* resource/github_issue_label: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_membership: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_repository_deploy_key: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_team: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_team_membership: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_team_repository: Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
+* resource/github_user_gpg_key:  Return genuine errors instead of ignoring them when reading existing resource ([#142](https://github.com/terraform-providers/terraform-provider-github/issues/142))
 
 ## 1.2.1 (August 17, 2018)
 
