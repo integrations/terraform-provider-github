@@ -43,6 +43,8 @@ func (c *Config) Client() (interface{}, error) {
 
 	tc.Transport = NewEtagTransport(tc.Transport)
 
+	tc.Transport = NewRateLimitTransport(tc.Transport)
+
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
 	org.client = github.NewClient(tc)
