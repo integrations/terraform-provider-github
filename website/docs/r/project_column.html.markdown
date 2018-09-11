@@ -6,7 +6,7 @@ description: |-
   Creates and manages project columns for GitHub projects
 ---
 
-# github_repository_project
+# github_project_column
 
 This resource allows you to create and manage columns for GitHub projects.
 
@@ -15,7 +15,7 @@ This resource allows you to create and manage columns for GitHub projects.
 ```hcl
 resource "github_organization_project" "project" {
   name = "A Organization Project"
-  body = "This is a organization project."
+  body = "This is an organization project."
 }
 
 resource "github_project_column" "column" {
