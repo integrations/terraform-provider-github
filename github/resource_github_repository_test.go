@@ -625,6 +625,7 @@ resource "github_repository" "foo" {
   allow_squash_merge = false
   allow_rebase_merge = false
   has_downloads = true
+  auto_init = false
 }
 `, randString, randString)
 }
