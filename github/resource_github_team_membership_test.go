@@ -77,7 +77,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		membership, resp, err := conn.Organizations.GetTeamMembership(context.TODO(),
+		membership, resp, err := conn.Teams.GetTeamMembership(context.TODO(),
 			teamId, username)
 		if err == nil {
 			if membership != nil {
@@ -114,7 +114,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(), teamId, username)
 
 		if err != nil {
 			return err
@@ -145,7 +145,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(),
+		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(),
 			teamId, username)
 		if err != nil {
 			return err
