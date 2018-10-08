@@ -220,7 +220,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_pull_reuest_reviews: %v", err)
+		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
