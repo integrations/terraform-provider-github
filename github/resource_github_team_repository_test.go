@@ -125,7 +125,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, _, err := conn.Organizations.IsTeamRepo(context.TODO(),
+		repo, _, err := conn.Teams.IsTeamRepo(context.TODO(),
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)
@@ -155,7 +155,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, resp, err := conn.Organizations.IsTeamRepo(context.TODO(),
+		repo, resp, err := conn.Teams.IsTeamRepo(context.TODO(),
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)

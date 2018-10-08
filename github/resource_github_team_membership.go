@@ -61,10 +61,10 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	role := d.Get("role").(string)
 
 	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
-	_, _, err = client.Organizations.AddTeamMembership(ctx,
+	_, _, err = client.Teams.AddTeamMembership(ctx,
 		teamId,
 		username,
-		&github.OrganizationAddTeamMembershipOptions{
+		&github.TeamAddTeamMembershipOptions{
 			Role: role,
 		},
 	)
@@ -94,7 +94,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
-	membership, resp, err := client.Organizations.GetTeamMembership(ctx,
+	membership, resp, err := client.Teams.GetTeamMembership(ctx,
 		teamId, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -133,7 +133,7 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
-	_, err = client.Organizations.RemoveTeamMembership(ctx, teamId, username)
+	_, err = client.Teams.RemoveTeamMembership(ctx, teamId, username)
 
 	return err
 }

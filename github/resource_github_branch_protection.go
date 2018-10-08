@@ -96,6 +96,21 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
+						"required_approving_review_count": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "Number of approvals required to merge a pull request",
+							Default:     1,
+							// Old version of terraform, could not utilize validation.IntBetween
+							ValidateFunc: func(i interface{}, k string) (s []string, es []error) {
+								v := i.(int)
+								if v < 1 || v > 6 {
+									es = append(es, errors.New("required_pull_request_reviews.required_approving_review_count must be an integer between 1 - 6"))
+								}
+
+								return
+							},
+						},
 					},
 				},
 			},
@@ -205,7 +220,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
+		return fmt.Errorf("Error setting required_pull_reuest_reviews: %v", err)
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
@@ -338,10 +353,11 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
-				"dismissal_users":            schema.NewSet(schema.HashString, users),
-				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
-				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
+				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
+				"dismissal_users":                 schema.NewSet(schema.HashString, users),
+				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
+				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
+				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 			},
 		})
 	}
@@ -427,6 +443,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
+			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
 		}
 
 		return rprr, nil
