@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/github"
@@ -35,6 +36,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				ForceNew:     true,
 				Default:      "push",
 				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
+			},
+			"invitation_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -90,6 +95,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		d.Set("repository", repoName)
 		d.Set("username", username)
 		d.Set("permission", permissionName)
+		d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID()))
 		return nil
 	}
 

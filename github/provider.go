@@ -5,10 +5,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
 	var p *schema.Provider
-	// The actual provider
 	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": &schema.Schema{
@@ -38,22 +36,23 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"github_branch_protection":       resourceGithubBranchProtection(),
-			"github_issue_label":             resourceGithubIssueLabel(),
-			"github_membership":              resourceGithubMembership(),
-			"github_organization_project":    resourceGithubOrganizationProject(),
-			"github_organization_webhook":    resourceGithubOrganizationWebhook(),
-			"github_project_column":          resourceGithubProjectColumn(),
-			"github_repository":              resourceGithubRepository(),
-			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
-			"github_repository_deploy_key":   resourceGithubRepositoryDeployKey(),
-			"github_repository_project":      resourceGithubRepositoryProject(),
-			"github_repository_webhook":      resourceGithubRepositoryWebhook(),
-			"github_team":                    resourceGithubTeam(),
-			"github_team_membership":         resourceGithubTeamMembership(),
-			"github_team_repository":         resourceGithubTeamRepository(),
-			"github_user_gpg_key":            resourceGithubUserGpgKey(),
-			"github_user_ssh_key":            resourceGithubUserSshKey(),
+			"github_branch_protection":        resourceGithubBranchProtection(),
+			"github_issue_label":              resourceGithubIssueLabel(),
+			"github_membership":               resourceGithubMembership(),
+			"github_organization_project":     resourceGithubOrganizationProject(),
+			"github_organization_webhook":     resourceGithubOrganizationWebhook(),
+			"github_project_column":           resourceGithubProjectColumn(),
+			"github_repository":               resourceGithubRepository(),
+			"github_repository_collaborator":  resourceGithubRepositoryCollaborator(),
+			"github_repository_deploy_key":    resourceGithubRepositoryDeployKey(),
+			"github_repository_project":       resourceGithubRepositoryProject(),
+			"github_repository_webhook":       resourceGithubRepositoryWebhook(),
+			"github_team":                     resourceGithubTeam(),
+			"github_team_membership":          resourceGithubTeamMembership(),
+			"github_team_repository":          resourceGithubTeamRepository(),
+			"github_user_gpg_key":             resourceGithubUserGpgKey(),
+			"github_user_invitation_accepter": resourceGithubUserInvitationAccepter(),
+			"github_user_ssh_key":             resourceGithubUserSshKey(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

@@ -44,6 +44,11 @@ The following arguments are supported:
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
             Must be one of `pull`, `push`, or `admin`. Defaults to `push`.
 
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+* `invitation_id` - ID of the invitation to be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html)
 
 ## Import
 
