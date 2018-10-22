@@ -177,7 +177,14 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	_, err = client.Organizations.RemoveTeamRepo(ctx,
+	res, err := client.Organizations.RemoveTeamRepo(ctx,
 		teamId, orgName, repoName)
+
+	// Deleting a non-existant repo should not cause an error when doing a terraform apply.
+	// It should simply be removed from state.
+	if res.StatusCode == 404 {
+		return nil
+	}
+
 	return err
 }
