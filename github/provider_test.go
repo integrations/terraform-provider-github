@@ -19,6 +19,7 @@ var testUser string = os.Getenv("GITHUB_TEST_USER")
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 
 var testAccProviders map[string]terraform.ResourceProvider
+var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
 var testAccProvider *schema.Provider
 
 func init() {
@@ -26,6 +27,15 @@ func init() {
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"github": testAccProvider,
 		"tls":    tls.Provider(),
+	}
+	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory {
+		return map[string]terraform.ResourceProviderFactory{
+			"github": func() (terraform.ResourceProvider, error) {
+				p := Provider()
+				*providers = append(*providers, p.(*schema.Provider))
+				return p, nil
+			},
+		}
 	}
 }
 
