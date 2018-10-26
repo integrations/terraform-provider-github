@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -13,6 +14,7 @@ import (
 const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
+	resourceName := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
@@ -23,8 +25,10 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),
-					testAccCheckGithubRepositoryCollaboratorPermission("github_repository_collaborator.test_repo_collaborator"),
+					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
+					testAccCheckGithubRepositoryCollaboratorPermission(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "permission", expectedPermission),
+					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
 		},

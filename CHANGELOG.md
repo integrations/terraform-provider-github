@@ -1,4 +1,8 @@
-## 1.3.1 (Unreleased)
+## 1.4.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `github_user_invitation_accepter` [GH-161]
 
 BUG FIXES:
 
