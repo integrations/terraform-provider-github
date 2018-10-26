@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceGithubBranchProtection() *schema.Resource {
@@ -97,19 +98,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 						},
 						"required_approving_review_count": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Description: "Number of approvals required to merge a pull request",
-							Default:     1,
-							// Old version of terraform, could not utilize validation.IntBetween
-							ValidateFunc: func(i interface{}, k string) (s []string, es []error) {
-								v := i.(int)
-								if v < 1 || v > 6 {
-									es = append(es, errors.New("required_pull_request_reviews.required_approving_review_count must be an integer between 1 - 6"))
-								}
-
-								return
-							},
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Description:  "Number of approvals required to merge a pull request",
+							Default:      1,
+							ValidateFunc: validation.IntBetween(1, 6),
 						},
 					},
 				},
