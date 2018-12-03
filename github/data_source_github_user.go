@@ -97,7 +97,7 @@ func dataSourceGithubUser() *schema.Resource {
 
 func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	username := d.Get("username").(string)
-	log.Printf("[INFO] Refreshing Gitub User: %s", username)
+	log.Printf("[INFO] Refreshing GitHub User: %s", username)
 
 	client := meta.(*Organization).client
 	ctx := context.Background()
