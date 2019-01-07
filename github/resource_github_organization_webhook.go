@@ -29,7 +29,7 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateGithubOrganizationWebhookName,
 			},
-			"events": &schema.Schema{
+			"events": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
