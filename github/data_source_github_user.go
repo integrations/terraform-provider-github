@@ -13,81 +13,81 @@ func dataSourceGithubUser() *schema.Resource {
 		Read: dataSourceGithubUserRead,
 
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"login": &schema.Schema{
+			"login": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"avatar_url": &schema.Schema{
+			"avatar_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"gravatar_id": &schema.Schema{
+			"gravatar_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"site_admin": &schema.Schema{
+			"site_admin": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"company": &schema.Schema{
+			"company": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"blog": &schema.Schema{
+			"blog": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"email": &schema.Schema{
+			"email": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"bio": &schema.Schema{
+			"bio": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"gpg_keys": &schema.Schema{
+			"gpg_keys": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"ssh_keys": &schema.Schema{
+			"ssh_keys": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"public_repos": &schema.Schema{
+			"public_repos": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"public_gists": &schema.Schema{
+			"public_gists": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"followers": &schema.Schema{
+			"followers": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"following": &schema.Schema{
+			"following": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"updated_at": &schema.Schema{
+			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

@@ -15,27 +15,27 @@ func dataSourceGithubTeam() *schema.Resource {
 		Read: dataSourceGithubTeamRead,
 
 		Schema: map[string]*schema.Schema{
-			"slug": &schema.Schema{
+			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"privacy": &schema.Schema{
+			"privacy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"permission": &schema.Schema{
+			"permission": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"members": &schema.Schema{
+			"members": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
