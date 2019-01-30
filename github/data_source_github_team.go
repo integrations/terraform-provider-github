@@ -51,7 +51,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	ctx := context.Background()
 
-	team, err := getGithubTeamBySlug(client, meta.(*Organization).name, slug)
+	team, err := getGithubTeamBySlug(ctx, client, meta.(*Organization).name, slug)
 	if err != nil {
 		return err
 	}
@@ -76,10 +76,10 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func getGithubTeamBySlug(client *github.Client, org string, slug string) (team *github.Team, err error) {
+func getGithubTeamBySlug(ctx context.Context, client *github.Client, org string, slug string) (team *github.Team, err error) {
 	opt := &github.ListOptions{PerPage: 10}
 	for {
-		teams, resp, err := client.Teams.ListTeams(context.TODO(), org, opt)
+		teams, resp, err := client.Teams.ListTeams(ctx, org, opt)
 		if err != nil {
 			return team, err
 		}
