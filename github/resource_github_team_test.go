@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -146,7 +146,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		githubTeam, _, err := conn.Organizations.GetTeam(context.TODO(), id)
+		githubTeam, _, err := conn.Teams.GetTeam(context.TODO(), id)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		team, resp, err := conn.Organizations.GetTeam(context.TODO(), id)
+		team, resp, err := conn.Teams.GetTeam(context.TODO(), id)
 		if err == nil {
 			teamId := strconv.FormatInt(*team.ID, 10)
 			if team != nil && teamId == rs.Primary.ID {

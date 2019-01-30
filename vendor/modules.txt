@@ -62,8 +62,8 @@ github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github v17.0.0+incompatible
-github.com/google/go-github/github
+# github.com/google/go-github/v25 v25.0.2
+github.com/google/go-github/v25/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/hashicorp/errwrap v1.0.0
@@ -118,6 +118,7 @@ github.com/hashicorp/logutils
 github.com/hashicorp/terraform/plugin
 github.com/hashicorp/terraform/helper/logging
 github.com/hashicorp/terraform/helper/schema
+github.com/hashicorp/terraform/helper/validation
 github.com/hashicorp/terraform/terraform
 github.com/hashicorp/terraform/configs/configschema
 github.com/hashicorp/terraform/helper/plugin
@@ -131,6 +132,7 @@ github.com/hashicorp/terraform/config
 github.com/hashicorp/terraform/config/hcl2shim
 github.com/hashicorp/terraform/helper/hashcode
 github.com/hashicorp/terraform/tfdiags
+github.com/hashicorp/terraform/helper/structure
 github.com/hashicorp/terraform/addrs
 github.com/hashicorp/terraform/config/module
 github.com/hashicorp/terraform/configs

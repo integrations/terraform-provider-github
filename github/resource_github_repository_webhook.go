@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -34,11 +34,6 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -76,10 +71,8 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 	for _, v := range eventSet.List() {
 		events = append(events, v.(string))
 	}
-	name := d.Get("name").(string)
 
 	hook := &github.Hook{
-		Name:   &name,
 		URL:    &url,
 		Events: events,
 		Active: &active,
@@ -101,7 +94,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository webhook: %s (%s/%s)", hk.GetName(), orgName, repoName)
+	log.Printf("[DEBUG] Creating repository webhook: %s/%s", orgName, repoName)
 	hook, _, err := client.Repositories.CreateHook(ctx, orgName, repoName, hk)
 	if err != nil {
 		return err
@@ -141,7 +134,6 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 		return err
 	}
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
