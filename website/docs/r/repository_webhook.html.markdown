@@ -46,13 +46,13 @@ resource "github_repository_webhook" "foo" {
 
 The following arguments are supported:
 
-* `name` - (Required) The type of the webhook. See a list of [available hooks](https://api.github.com/hooks).
+* `name` - (Required) The type of the webhook. `web` is the only option.
 
 * `repository` - (Required) The repository of the webhook.
 
-* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
+* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
 
-* `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
+* `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`. `secret` is [the shared secret, see API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
 
 * `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
 
