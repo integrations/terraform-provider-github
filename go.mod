@@ -5,7 +5,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/go-ini/ini v1.36.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
-	github.com/google/go-github/v20 v20.0.0
+	github.com/google/go-github/v21 v21.0.1
 	github.com/hashicorp/terraform v0.11.12-beta1.0.20190214175014-182daa619826
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
 	github.com/mattn/go-isatty v0.0.4 // indirect
