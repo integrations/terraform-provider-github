@@ -63,14 +63,8 @@ const (
 	// https://developer.github.com/changes/2016-05-12-reactions-api-preview/
 	mediaTypeReactionsPreview = "application/vnd.github.squirrel-girl-preview"
 
-	// https://developer.github.com/changes/2016-04-04-git-signing-api-preview/
-	mediaTypeGitSigningPreview = "application/vnd.github.cryptographer-preview+json"
-
 	// https://developer.github.com/changes/2016-05-23-timeline-preview-api/
 	mediaTypeTimelinePreview = "application/vnd.github.mockingbird-preview+json"
-
-	// https://developer.github.com/changes/2016-06-14-repository-invitations/
-	mediaTypeRepositoryInvitationsPreview = "application/vnd.github.swamp-thing-preview+json"
 
 	// https://developer.github.com/changes/2016-07-06-github-pages-preiew-api/
 	mediaTypePagesPreview = "application/vnd.github.mister-fantastic-preview+json"
@@ -128,6 +122,9 @@ const (
 
 	// https://developer.github.com/changes/2018-02-22-protected-branches-required-signatures/
 	mediaTypeSignaturePreview = "application/vnd.github.zzzax-preview+json"
+
+	// https://developer.github.com/changes/2018-09-05-project-card-events/
+	mediaTypeProjectCardDetailsPreview = "application/vnd.github.starfox-preview+json"
 )
 
 // A Client manages communication with the GitHub API.

@@ -492,6 +492,14 @@ func (c *CheckRun) GetConclusion() string {
 	return *c.Conclusion
 }
 
+// GetDetailsURL returns the DetailsURL field if it's non-nil, zero value otherwise.
+func (c *CheckRun) GetDetailsURL() string {
+	if c == nil || c.DetailsURL == nil {
+		return ""
+	}
+	return *c.DetailsURL
+}
+
 // GetExternalID returns the ExternalID field if it's non-nil, zero value otherwise.
 func (c *CheckRun) GetExternalID() string {
 	if c == nil || c.ExternalID == nil {
@@ -674,6 +682,14 @@ func (c *CheckRunEvent) GetRepo() *Repository {
 		return nil
 	}
 	return c.Repo
+}
+
+// GetRequestedAction returns the RequestedAction field.
+func (c *CheckRunEvent) GetRequestedAction() *RequestedAction {
+	if c == nil {
+		return nil
+	}
+	return c.RequestedAction
 }
 
 // GetSender returns the Sender field.
@@ -2932,6 +2948,22 @@ func (g *GistStats) GetTotalGists() int {
 	return *g.TotalGists
 }
 
+// GetAction returns the Action field if it's non-nil, zero value otherwise.
+func (g *GitHubAppAuthorizationEvent) GetAction() string {
+	if g == nil || g.Action == nil {
+		return ""
+	}
+	return *g.Action
+}
+
+// GetSender returns the Sender field.
+func (g *GitHubAppAuthorizationEvent) GetSender() *User {
+	if g == nil {
+		return nil
+	}
+	return g.Sender
+}
+
 // GetName returns the Name field if it's non-nil, zero value otherwise.
 func (g *Gitignore) GetName() string {
 	if g == nil || g.Name == nil {
@@ -4074,6 +4106,14 @@ func (i *IssueEvent) GetMilestone() *Milestone {
 		return nil
 	}
 	return i.Milestone
+}
+
+// GetProjectCard returns the ProjectCard field.
+func (i *IssueEvent) GetProjectCard() *ProjectCard {
+	if i == nil {
+		return nil
+	}
+	return i.ProjectCard
 }
 
 // GetRename returns the Rename field.
