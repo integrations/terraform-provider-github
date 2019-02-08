@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v18/github"
+	"github.com/google/go-github/v19/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -122,9 +122,6 @@ type testAccGithubOrganizationWebhookExpectedAttributes struct {
 func testAccCheckGithubOrganizationWebhookAttributes(hook *github.Hook, want *testAccGithubOrganizationWebhookExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *hook.Name != want.Name {
-			return fmt.Errorf("got hook %q; want %q", *hook.Name, want.Name)
-		}
 		if *hook.Active != want.Active {
 			return fmt.Errorf("got hook %t; want %t", *hook.Active, want.Active)
 		}

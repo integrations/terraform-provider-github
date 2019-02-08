@@ -54,6 +54,9 @@ const (
 	// https://developer.github.com/changes/2016-04-06-deployment-and-deployment-status-enhancements/
 	mediaTypeDeploymentStatusPreview = "application/vnd.github.ant-man-preview+json"
 
+	// https://developer.github.com/changes/2018-10-16-deployments-environments-states-and-auto-inactive-updates/
+	mediaTypeExpandDeploymentStatusPreview = "application/vnd.github.flash-preview+json"
+
 	// https://developer.github.com/changes/2016-02-19-source-import-preview-api/
 	mediaTypeImportPreview = "application/vnd.github.barred-rock-preview"
 
@@ -122,6 +125,9 @@ const (
 
 	// https://developer.github.com/enterprise/2.13/v3/repos/pre_receive_hooks/
 	mediaTypePreReceiveHooksPreview = "application/vnd.github.eye-scream-preview"
+
+	// https://developer.github.com/changes/2018-02-22-protected-branches-required-signatures/
+	mediaTypeSignaturePreview = "application/vnd.github.zzzax-preview+json"
 )
 
 // A Client manages communication with the GitHub API.
@@ -502,13 +508,23 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 
 	err = CheckResponse(resp)
 	if err != nil {
-		// Even though there was an error, we still return the response
-		// in case the caller wants to inspect it further.
-		// However, if the error is AcceptedError, decode it below before
-		// returning from this function and closing the response body.
-		if _, ok := err.(*AcceptedError); !ok {
-			return response, err
+		// Special case for AcceptedErrors. If an AcceptedError
+		// has been encountered, the response's payload will be
+		// added to the AcceptedError and returned.
+		//
+		// Issue #1022
+		aerr, ok := err.(*AcceptedError)
+		if ok {
+			b, readErr := ioutil.ReadAll(resp.Body)
+			if readErr != nil {
+				return response, readErr
+			}
+
+			aerr.Raw = b
+			return response, aerr
 		}
+
+		return response, err
 	}
 
 	if v != nil {
@@ -610,7 +626,10 @@ func (r *RateLimitError) Error() string {
 // Technically, 202 Accepted is not a real error, it's just used to
 // indicate that results are not ready yet, but should be available soon.
 // The request can be repeated after some time.
-type AcceptedError struct{}
+type AcceptedError struct {
+	// Raw contains the response body.
+	Raw []byte
+}
 
 func (*AcceptedError) Error() string {
 	return "job scheduled on GitHub side; try again later"
