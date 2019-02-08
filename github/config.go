@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v19/github"
+	"github.com/google/go-github/v20/github"
 	"github.com/hashicorp/terraform/helper/logging"
 	"golang.org/x/oauth2"
 )
