@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v18/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
