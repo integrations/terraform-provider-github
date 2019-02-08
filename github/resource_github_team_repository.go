@@ -60,11 +60,11 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
-	_, err = client.Organizations.AddTeamRepo(ctx,
+	_, err = client.Teams.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
-		&github.OrganizationAddTeamRepoOptions{
+		&github.TeamAddTeamRepoOptions{
 			Permission: permission,
 		},
 	)
@@ -98,7 +98,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Organizations.IsTeamRepo(ctx,
+	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx,
 		teamId, orgName, repoName)
 	if repoErr != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -145,11 +145,11 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
-	_, err = client.Organizations.AddTeamRepo(ctx,
+	_, err = client.Teams.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
-		&github.OrganizationAddTeamRepoOptions{
+		&github.TeamAddTeamRepoOptions{
 			Permission: permission,
 		},
 	)
@@ -177,7 +177,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	_, err = client.Organizations.RemoveTeamRepo(ctx,
+	_, err = client.Teams.RemoveTeamRepo(ctx,
 		teamId, orgName, repoName)
 	return err
 }
