@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-github/v19/github"
+	"github.com/google/go-github/v20/github"
 )
 
 const (
