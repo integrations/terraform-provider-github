@@ -3612,6 +3612,30 @@ func (i *InstallationToken) GetToken() string {
 	return *i.Token
 }
 
+// GetExpiresAt returns the ExpiresAt field if it's non-nil, zero value otherwise.
+func (i *InteractionRestriction) GetExpiresAt() Timestamp {
+	if i == nil || i.ExpiresAt == nil {
+		return Timestamp{}
+	}
+	return *i.ExpiresAt
+}
+
+// GetLimit returns the Limit field if it's non-nil, zero value otherwise.
+func (i *InteractionRestriction) GetLimit() string {
+	if i == nil || i.Limit == nil {
+		return ""
+	}
+	return *i.Limit
+}
+
+// GetOrigin returns the Origin field if it's non-nil, zero value otherwise.
+func (i *InteractionRestriction) GetOrigin() string {
+	if i == nil || i.Origin == nil {
+		return ""
+	}
+	return *i.Origin
+}
+
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
 func (i *Invitation) GetCreatedAt() time.Time {
 	if i == nil || i.CreatedAt == nil {
@@ -4690,6 +4714,14 @@ func (l *ListCheckSuiteResults) GetTotal() int {
 		return 0
 	}
 	return *l.Total
+}
+
+// GetAffiliation returns the Affiliation field if it's non-nil, zero value otherwise.
+func (l *ListCollaboratorOptions) GetAffiliation() string {
+	if l == nil || l.Affiliation == nil {
+		return ""
+	}
+	return *l.Affiliation
 }
 
 // GetEffectiveDate returns the EffectiveDate field if it's non-nil, zero value otherwise.
@@ -6532,6 +6564,14 @@ func (p *ProjectCard) GetColumnID() int64 {
 	return *p.ColumnID
 }
 
+// GetColumnName returns the ColumnName field if it's non-nil, zero value otherwise.
+func (p *ProjectCard) GetColumnName() string {
+	if p == nil || p.ColumnName == nil {
+		return ""
+	}
+	return *p.ColumnName
+}
+
 // GetColumnURL returns the ColumnURL field if it's non-nil, zero value otherwise.
 func (p *ProjectCard) GetColumnURL() string {
 	if p == nil || p.ColumnURL == nil {
@@ -6586,6 +6626,30 @@ func (p *ProjectCard) GetNote() string {
 		return ""
 	}
 	return *p.Note
+}
+
+// GetPreviousColumnName returns the PreviousColumnName field if it's non-nil, zero value otherwise.
+func (p *ProjectCard) GetPreviousColumnName() string {
+	if p == nil || p.PreviousColumnName == nil {
+		return ""
+	}
+	return *p.PreviousColumnName
+}
+
+// GetProjectID returns the ProjectID field if it's non-nil, zero value otherwise.
+func (p *ProjectCard) GetProjectID() int64 {
+	if p == nil || p.ProjectID == nil {
+		return 0
+	}
+	return *p.ProjectID
+}
+
+// GetProjectURL returns the ProjectURL field if it's non-nil, zero value otherwise.
+func (p *ProjectCard) GetProjectURL() string {
+	if p == nil || p.ProjectURL == nil {
+		return ""
+	}
+	return *p.ProjectURL
 }
 
 // GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
@@ -6682,6 +6746,14 @@ func (p *ProjectCardOptions) GetArchived() bool {
 		return false
 	}
 	return *p.Archived
+}
+
+// GetPermission returns the Permission field if it's non-nil, zero value otherwise.
+func (p *ProjectCollaboratorOptions) GetPermission() string {
+	if p == nil || p.Permission == nil {
+		return ""
+	}
+	return *p.Permission
 }
 
 // GetCardsURL returns the CardsURL field if it's non-nil, zero value otherwise.
@@ -6906,6 +6978,22 @@ func (p *ProjectOptions) GetState() string {
 		return ""
 	}
 	return *p.State
+}
+
+// GetPermission returns the Permission field if it's non-nil, zero value otherwise.
+func (p *ProjectPermissionLevel) GetPermission() string {
+	if p == nil || p.Permission == nil {
+		return ""
+	}
+	return *p.Permission
+}
+
+// GetUser returns the User field.
+func (p *ProjectPermissionLevel) GetUser() *User {
+	if p == nil {
+		return nil
+	}
+	return p.User
 }
 
 // GetEnforceAdmins returns the EnforceAdmins field.
@@ -11044,6 +11132,14 @@ func (t *TeamLDAPMapping) GetURL() string {
 	return *t.URL
 }
 
+// GetPermission returns the Permission field if it's non-nil, zero value otherwise.
+func (t *TeamProjectOptions) GetPermission() string {
+	if t == nil || t.Permission == nil {
+		return ""
+	}
+	return *t.Permission
+}
+
 // GetFragment returns the Fragment field if it's non-nil, zero value otherwise.
 func (t *TextMatch) GetFragment() string {
 	if t == nil || t.Fragment == nil {
@@ -11146,6 +11242,14 @@ func (t *Timeline) GetMilestone() *Milestone {
 		return nil
 	}
 	return t.Milestone
+}
+
+// GetProjectCard returns the ProjectCard field.
+func (t *Timeline) GetProjectCard() *ProjectCard {
+	if t == nil {
+		return nil
+	}
+	return t.ProjectCard
 }
 
 // GetRename returns the Rename field.
