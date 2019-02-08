@@ -68,7 +68,6 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 	}
 
 	hook := &github.Hook{
-		Name:   github.String(d.Get("name").(string)),
 		URL:    github.String(d.Get("url").(string)),
 		Events: events,
 		Active: github.Bool(d.Get("active").(bool)),
@@ -89,8 +88,8 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization webhook: %s (%s)",
-		webhookObj.GetName(), orgName)
+	log.Printf("[DEBUG] Creating organization webhook: %d (%s)",
+		webhookObj.GetID(), orgName)
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 
 	if err != nil {
@@ -132,7 +131,6 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)

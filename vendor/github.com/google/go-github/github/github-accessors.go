@@ -1292,6 +1292,14 @@ func (c *CommitFile) GetPatch() string {
 	return *c.Patch
 }
 
+// GetPreviousFilename returns the PreviousFilename field if it's non-nil, zero value otherwise.
+func (c *CommitFile) GetPreviousFilename() string {
+	if c == nil || c.PreviousFilename == nil {
+		return ""
+	}
+	return *c.PreviousFilename
+}
+
 // GetRawURL returns the RawURL field if it's non-nil, zero value otherwise.
 func (c *CommitFile) GetRawURL() string {
 	if c == nil || c.RawURL == nil {
@@ -2292,6 +2300,14 @@ func (d *DeploymentStatusRequest) GetDescription() string {
 	return *d.Description
 }
 
+// GetEnvironment returns the Environment field if it's non-nil, zero value otherwise.
+func (d *DeploymentStatusRequest) GetEnvironment() string {
+	if d == nil || d.Environment == nil {
+		return ""
+	}
+	return *d.Environment
+}
+
 // GetEnvironmentURL returns the EnvironmentURL field if it's non-nil, zero value otherwise.
 func (d *DeploymentStatusRequest) GetEnvironmentURL() string {
 	if d == nil || d.EnvironmentURL == nil {
@@ -3138,14 +3154,6 @@ func (h *Hook) GetID() int64 {
 		return 0
 	}
 	return *h.ID
-}
-
-// GetName returns the Name field if it's non-nil, zero value otherwise.
-func (h *Hook) GetName() string {
-	if h == nil || h.Name == nil {
-		return ""
-	}
-	return *h.Name
 }
 
 // GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
@@ -4644,6 +4652,38 @@ func (l *ListCheckSuiteResults) GetTotal() int {
 	return *l.Total
 }
 
+// GetEffectiveDate returns the EffectiveDate field if it's non-nil, zero value otherwise.
+func (m *MarketplacePendingChange) GetEffectiveDate() Timestamp {
+	if m == nil || m.EffectiveDate == nil {
+		return Timestamp{}
+	}
+	return *m.EffectiveDate
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (m *MarketplacePendingChange) GetID() int64 {
+	if m == nil || m.ID == nil {
+		return 0
+	}
+	return *m.ID
+}
+
+// GetPlan returns the Plan field.
+func (m *MarketplacePendingChange) GetPlan() *MarketplacePlan {
+	if m == nil {
+		return nil
+	}
+	return m.Plan
+}
+
+// GetUnitCount returns the UnitCount field if it's non-nil, zero value otherwise.
+func (m *MarketplacePendingChange) GetUnitCount() int {
+	if m == nil || m.UnitCount == nil {
+		return 0
+	}
+	return *m.UnitCount
+}
+
 // GetAccountsURL returns the AccountsURL field if it's non-nil, zero value otherwise.
 func (m *MarketplacePlan) GetAccountsURL() string {
 	if m == nil || m.AccountsURL == nil {
@@ -4666,6 +4706,14 @@ func (m *MarketplacePlan) GetDescription() string {
 		return ""
 	}
 	return *m.Description
+}
+
+// GetHasFreeTrial returns the HasFreeTrial field if it's non-nil, zero value otherwise.
+func (m *MarketplacePlan) GetHasFreeTrial() bool {
+	if m == nil || m.HasFreeTrial == nil {
+		return false
+	}
+	return *m.HasFreeTrial
 }
 
 // GetID returns the ID field if it's non-nil, zero value otherwise.
@@ -4698,6 +4746,14 @@ func (m *MarketplacePlan) GetPriceModel() string {
 		return ""
 	}
 	return *m.PriceModel
+}
+
+// GetState returns the State field if it's non-nil, zero value otherwise.
+func (m *MarketplacePlan) GetState() string {
+	if m == nil || m.State == nil {
+		return ""
+	}
+	return *m.State
 }
 
 // GetUnitName returns the UnitName field if it's non-nil, zero value otherwise.
@@ -4748,6 +4804,14 @@ func (m *MarketplacePlanAccount) GetLogin() string {
 	return *m.Login
 }
 
+// GetMarketplacePendingChange returns the MarketplacePendingChange field.
+func (m *MarketplacePlanAccount) GetMarketplacePendingChange() *MarketplacePendingChange {
+	if m == nil {
+		return nil
+	}
+	return m.MarketplacePendingChange
+}
+
 // GetMarketplacePurchase returns the MarketplacePurchase field.
 func (m *MarketplacePlanAccount) GetMarketplacePurchase() *MarketplacePurchase {
 	if m == nil {
@@ -4796,12 +4860,28 @@ func (m *MarketplacePurchase) GetBillingCycle() string {
 	return *m.BillingCycle
 }
 
+// GetFreeTrialEndsOn returns the FreeTrialEndsOn field if it's non-nil, zero value otherwise.
+func (m *MarketplacePurchase) GetFreeTrialEndsOn() Timestamp {
+	if m == nil || m.FreeTrialEndsOn == nil {
+		return Timestamp{}
+	}
+	return *m.FreeTrialEndsOn
+}
+
 // GetNextBillingDate returns the NextBillingDate field if it's non-nil, zero value otherwise.
-func (m *MarketplacePurchase) GetNextBillingDate() string {
+func (m *MarketplacePurchase) GetNextBillingDate() Timestamp {
 	if m == nil || m.NextBillingDate == nil {
-		return ""
+		return Timestamp{}
 	}
 	return *m.NextBillingDate
+}
+
+// GetOnFreeTrial returns the OnFreeTrial field if it's non-nil, zero value otherwise.
+func (m *MarketplacePurchase) GetOnFreeTrial() bool {
+	if m == nil || m.OnFreeTrial == nil {
+		return false
+	}
+	return *m.OnFreeTrial
 }
 
 // GetPlan returns the Plan field.
@@ -5556,6 +5636,22 @@ func (o *Organization) GetCreatedAt() time.Time {
 	return *o.CreatedAt
 }
 
+// GetDefaultRepoPermission returns the DefaultRepoPermission field if it's non-nil, zero value otherwise.
+func (o *Organization) GetDefaultRepoPermission() string {
+	if o == nil || o.DefaultRepoPermission == nil {
+		return ""
+	}
+	return *o.DefaultRepoPermission
+}
+
+// GetDefaultRepoSettings returns the DefaultRepoSettings field if it's non-nil, zero value otherwise.
+func (o *Organization) GetDefaultRepoSettings() string {
+	if o == nil || o.DefaultRepoSettings == nil {
+		return ""
+	}
+	return *o.DefaultRepoSettings
+}
+
 // GetDescription returns the Description field if it's non-nil, zero value otherwise.
 func (o *Organization) GetDescription() string {
 	if o == nil || o.Description == nil {
@@ -5650,6 +5746,14 @@ func (o *Organization) GetLogin() string {
 		return ""
 	}
 	return *o.Login
+}
+
+// GetMembersCanCreateRepos returns the MembersCanCreateRepos field if it's non-nil, zero value otherwise.
+func (o *Organization) GetMembersCanCreateRepos() bool {
+	if o == nil || o.MembersCanCreateRepos == nil {
+		return false
+	}
+	return *o.MembersCanCreateRepos
 }
 
 // GetMembersURL returns the MembersURL field if it's non-nil, zero value otherwise.
@@ -9940,6 +10044,14 @@ func (r *RepositoryTag) GetZipballURL() string {
 	return *r.ZipballURL
 }
 
+// GetAction returns the Action field if it's non-nil, zero value otherwise.
+func (r *RepositoryVulnerabilityAlertEvent) GetAction() string {
+	if r == nil || r.Action == nil {
+		return ""
+	}
+	return *r.Action
+}
+
 // GetForkRepos returns the ForkRepos field if it's non-nil, zero value otherwise.
 func (r *RepoStats) GetForkRepos() int {
 	if r == nil || r.ForkRepos == nil {
@@ -10074,6 +10186,22 @@ func (s *ServiceHook) GetName() string {
 		return ""
 	}
 	return *s.Name
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (s *SignaturesProtectedBranch) GetEnabled() bool {
+	if s == nil || s.Enabled == nil {
+		return false
+	}
+	return *s.Enabled
+}
+
+// GetURL returns the URL field if it's non-nil, zero value otherwise.
+func (s *SignaturesProtectedBranch) GetURL() string {
+	if s == nil || s.URL == nil {
+		return ""
+	}
+	return *s.URL
 }
 
 // GetPayload returns the Payload field if it's non-nil, zero value otherwise.
@@ -11538,6 +11666,14 @@ func (u *User) GetTotalPrivateRepos() int {
 		return 0
 	}
 	return *u.TotalPrivateRepos
+}
+
+// GetTwoFactorAuthentication returns the TwoFactorAuthentication field if it's non-nil, zero value otherwise.
+func (u *User) GetTwoFactorAuthentication() bool {
+	if u == nil || u.TwoFactorAuthentication == nil {
+		return false
+	}
+	return *u.TwoFactorAuthentication
 }
 
 // GetType returns the Type field if it's non-nil, zero value otherwise.

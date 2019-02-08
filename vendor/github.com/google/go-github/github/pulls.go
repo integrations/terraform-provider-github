@@ -60,6 +60,10 @@ type PullRequest struct {
 	NodeID              *string    `json:"node_id,omitempty"`
 	RequestedReviewers  []*User    `json:"requested_reviewers,omitempty"`
 
+	// RequestedTeams is populated as part of the PullRequestEvent.
+	// See, https://developer.github.com/v3/activity/events/types/#pullrequestevent for an example.
+	RequestedTeams []*Team `json:"requested_teams,omitempty"`
+
 	Links *PRLinks           `json:"_links,omitempty"`
 	Head  *PullRequestBranch `json:"head,omitempty"`
 	Base  *PullRequestBranch `json:"base,omitempty"`
@@ -103,7 +107,7 @@ type PullRequestBranch struct {
 // PullRequestsService.List method.
 type PullRequestListOptions struct {
 	// State filters pull requests based on their state. Possible values are:
-	// open, closed. Default is "open".
+	// open, closed, all. Default is "open".
 	State string `url:"state,omitempty"`
 
 	// Head filters pull requests by head user and branch name in the format of:
