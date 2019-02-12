@@ -32,6 +32,7 @@ type PullRequest struct {
 	MergedAt            *time.Time `json:"merged_at,omitempty"`
 	Labels              []*Label   `json:"labels,omitempty"`
 	User                *User      `json:"user,omitempty"`
+	Draft               *bool      `json:"draft,omitempty"`
 	Merged              *bool      `json:"merged,omitempty"`
 	Mergeable           *bool      `json:"mergeable,omitempty"`
 	MergeableState      *string    `json:"mergeable_state,omitempty"`
@@ -52,6 +53,7 @@ type PullRequest struct {
 	CommentsURL         *string    `json:"comments_url,omitempty"`
 	ReviewCommentsURL   *string    `json:"review_comments_url,omitempty"`
 	ReviewCommentURL    *string    `json:"review_comment_url,omitempty"`
+	ReviewComments      *int       `json:"review_comments,omitempty"`
 	Assignee            *User      `json:"assignee,omitempty"`
 	Assignees           []*User    `json:"assignees,omitempty"`
 	Milestone           *Milestone `json:"milestone,omitempty"`
@@ -145,7 +147,7 @@ func (s *PullRequestsService) List(ctx context.Context, owner string, repo strin
 	}
 
 	// TODO: remove custom Accept header when this API fully launches.
-	acceptHeaders := []string{mediaTypeLabelDescriptionSearchPreview, mediaTypeLockReasonPreview}
+	acceptHeaders := []string{mediaTypeLabelDescriptionSearchPreview, mediaTypeLockReasonPreview, mediaTypeDraftPreview}
 	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	var pulls []*PullRequest
@@ -168,7 +170,7 @@ func (s *PullRequestsService) Get(ctx context.Context, owner string, repo string
 	}
 
 	// TODO: remove custom Accept header when this API fully launches.
-	acceptHeaders := []string{mediaTypeLabelDescriptionSearchPreview, mediaTypeLockReasonPreview}
+	acceptHeaders := []string{mediaTypeLabelDescriptionSearchPreview, mediaTypeLockReasonPreview, mediaTypeDraftPreview}
 	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	pull := new(PullRequest)
