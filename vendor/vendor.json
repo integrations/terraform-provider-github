@@ -280,12 +280,12 @@
 			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "YrZDw/uW9uRACPYQy/NYfXSRuBM=",
+			"checksumSHA1": "UwuvgGzm+FPeIzR3X+WLszZZYM0=",
 			"path": "github.com/google/go-github/github",
-			"revision": "56cb1dd99043eba2e21c91aa8417d3ba2329259a",
-			"revisionTime": "2019-01-19T01:11:13Z",
-			"version": "v21.0.1",
-			"versionExact": "v21.0.1"
+			"revision": "1c3f0aaee1ce742b655f1ba8f33740103e904c5c",
+			"revisionTime": "2019-02-12T21:53:47Z",
+			"version": "v24.0.0",
+			"versionExact": "v24.0.0"
 		},
 		{
 			"checksumSHA1": "p3IB18uJRs4dL2K5yx24MrLYE9A=",
