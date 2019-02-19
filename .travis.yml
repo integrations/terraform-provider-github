@@ -12,11 +12,9 @@ install:
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
-- go get github.com/kardianos/govendor
 
 script:
 - make test
-- make vendor-status
 - make vet
 - make website-test
 
@@ -27,3 +25,5 @@ matrix:
   fast_finish: true
   allow_failures:
   - go: tip
+env:
+  - GOFLAGS=-mod=vendor GO111MODULE=on
