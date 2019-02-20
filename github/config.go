@@ -18,6 +18,7 @@ type Config struct {
 	BaseURL      string
 	Insecure     bool
 	Individual   bool
+	Anonymous    bool
 }
 
 type Organization struct {
@@ -29,10 +30,7 @@ type Organization struct {
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
 	var org Organization
-
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: c.Token},
-	)
+	var ts oauth2.TokenSource
 
 	ctx := context.Background()
 
@@ -49,9 +47,21 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
 	}
 
+	if !c.Anonymous && c.Token != "" {
+		ts = oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: c.Token},
+		)
+	} else {
+		return nil, fmt.Errorf("If `anonymous` is false, `token` is required.")
+	}
+
 	tc := oauth2.NewClient(ctx, ts)
 
-	tc.Transport = NewEtagTransport(tc.Transport)
+	if c.Anonymous {
+		tc.Transport = http.DefaultTransport
+	} else {
+		tc.Transport = NewEtagTransport(tc.Transport)
+	}
 
 	tc.Transport = NewRateLimitTransport(tc.Transport)
 
