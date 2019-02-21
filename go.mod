@@ -7,7 +7,6 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/google/go-github v16.0.0+incompatible
 	github.com/hashicorp/terraform v0.11.12-beta1.0.20190214175014-182daa619826
-	github.com/hashicorp/yamux v0.0.0-20180314200745-2658be15c5f0 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/cli v0.0.0-20180316190330-b068abc08c99 // indirect

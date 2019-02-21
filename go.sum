@@ -139,9 +139,8 @@ github.com/hashicorp/terraform v0.11.12-beta1.0.20190214175014-182daa619826 h1:M
 github.com/hashicorp/terraform v0.11.12-beta1.0.20190214175014-182daa619826/go.mod h1:8tUWsL56EhJHEy45QX9SROGT3+GSU06FVkh6GsP5uSY=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4 h1:SGDekHLK2IRoVS7Fb4olLyWvc2VmwKgyFC05j6X3NII=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
+github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f h1:K4RDeor/qhbs5ETM85SN8xekXkk+KkOBclNXXM8+UR0=
 github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
-github.com/hashicorp/yamux v0.0.0-20180314200745-2658be15c5f0 h1:j6e/1l8GldhdziTPm9Fjm+QvglVeybIW74ynAK7LmVs=
-github.com/hashicorp/yamux v0.0.0-20180314200745-2658be15c5f0/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a h1:FyS/ubzBR5xJlnJGRTwe7GUHpJOR4ukYK3y+LFNffuA=
 github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a/go.mod h1:uoIMjNxUfXi48Ci40IXkPRbghZ1vbti6v9LCbNqRgHY=
 github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 h1:12VvqtR6Aowv3l/EQUlocDHW2Cp4G9WJVH7uyH8QFJE=
