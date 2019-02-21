@@ -96,8 +96,10 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		// if an appropriate type was selected.
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 		d.Set("public_key_openssh", string(sshPubKeyBytes))
+		d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
 	} else {
 		d.Set("public_key_openssh", "")
+		d.Set("public_key_fingerprint_md5", "")
 	}
 	return nil
 }
