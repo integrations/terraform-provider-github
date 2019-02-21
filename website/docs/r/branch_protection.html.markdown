@@ -19,19 +19,19 @@ This resource allows you to configure branch protection for repositories in your
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
 resource "github_branch_protection" "example" {
-  repository = "${github_repository.example.name}"
-  branch = "master"
+  repository     = "${github_repository.example.name}"
+  branch         = "master"
   enforce_admins = true
 
   required_status_checks {
-    strict = false
+    strict   = false
     contexts = ["ci/travis"]
   }
 
   required_pull_request_reviews {
     dismiss_stale_reviews = true
-    dismissal_users = ["foo-user"]
-    dismissal_teams = ["${github_team.example.slug}", "${github_team.second.slug}"]
+    dismissal_users       = ["foo-user"]
+    dismissal_teams       = ["${github_team.example.slug}", "${github_team.second.slug}"]
   }
 
   restrictions {
