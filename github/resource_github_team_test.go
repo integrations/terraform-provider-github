@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 
@@ -51,6 +52,54 @@ func TestAccGithubTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
 					resource.TestCheckResourceAttr("github_team.foo", "slug", updatedName),
 					resource.TestCheckResourceAttr("github_team.foo", "create_default_maintainer", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeam_CDM(t *testing.T) {
+	var team github.Team
+	var membership github.Membership
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := "Terraform acc test group"
+	token_username := os.Getenv("GITHUB_TEST_USER")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamConfigCDM(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamAttributes(&team, name, description, nil),
+					resource.TestCheckResourceAttr("github_team.foo", "name", name),
+					resource.TestCheckResourceAttr("github_team.foo", "description", description),
+					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
+					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
+					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
+					resource.TestCheckResourceAttr("github_team.foo", "slug", name),
+					resource.TestCheckResourceAttr("github_team.foo", "create_default_maintainer", "true"),
+					testAccCheckGithubTeamMaintainer(&team, token_username),
+				),
+			},
+			{
+				Config: testAccGithubTeamConfigCDMUpdate(name, token_username, "maintainer"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamAttributes(&team, name, description, nil),
+					resource.TestCheckResourceAttr("github_team.foo", "name", name),
+					resource.TestCheckResourceAttr("github_team.foo", "description", description),
+					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
+					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
+					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
+					resource.TestCheckResourceAttr("github_team.foo", "slug", name),
+					resource.TestCheckResourceAttr("github_team.foo", "create_default_maintainer", "true"),
+					testAccCheckGithubTeamMembershipExists("github_team_membership.foo_membership", &membership),
+					testAccCheckGithubTeamMembershipRoleState("github_team_membership.foo_membership", "maintainer", &membership),
 				),
 			},
 		},
@@ -218,6 +267,33 @@ resource "github_team" "foo" {
 `, teamName)
 }
 
+func testAccGithubTeamConfigCDM(teamName string) string {
+	return fmt.Sprintf(`
+resource "github_team" "foo" {
+	name = "%s"
+	description = "Terraform acc test group"
+	privacy = "secret"
+	create_default_maintainer = true
+}
+`, teamName)
+}
+
+func testAccGithubTeamConfigCDMUpdate(teamName string, userName string, role string) string {
+	return fmt.Sprintf(`
+resource "github_team" "foo" {
+	name = "%s"
+	description = "Terraform acc test group"
+	privacy = "secret"
+	create_default_maintainer = true
+}
+resource "github_team_membership" "foo_membership" {
+	team_id = "${github_team.foo.id}"
+	username = "%s"
+	role = "%s"
+}
+`, teamName, userName, role)
+}
+
 func testAccGithubTeamUpdateConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
@@ -242,4 +318,30 @@ resource "github_team" "child" {
 	parent_team_id = "${github_team.parent.id}"
 }
 `, randString, randString)
+}
+
+func testAccCheckGithubTeamMaintainer(team *github.Team, username string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		ctx := context.Background()
+		client := testAccProvider.Meta().(*Organization).client
+
+		isTeamMember, _, err := client.Organizations.IsTeamMember(ctx, *team.ID, username)
+		if err != nil {
+			return err
+		}
+		if isTeamMember != true {
+			return fmt.Errorf("github user %s is not a member of team %s", username, *team.Name)
+		}
+
+		teamMembership, _, err := client.Organizations.GetTeamMembership(ctx, *team.ID, username)
+		if err != nil {
+			return err
+		}
+		if *teamMembership.Role != "maintainer" {
+			return fmt.Errorf("github user %s is a member of team %s but is not a maintainer, has role %s", username, *team.Name, *teamMembership.Role)
+		}
+
+		return nil
+	}
 }
