@@ -63,18 +63,32 @@ func resourceGithubTeam() *schema.Resource {
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
+	ctx := context.Background()
+	usersClient, _, usersErr := client.Users.Get(ctx, "")
+	if usersErr != nil {
+		return usersErr
+	}
+
+	token_username := *usersClient.Login
+	log.Printf("[DEBUG] GITHUB_TOKEN user is %s", token_username)
+	create_default_maintainer := d.Get("create_default_maintainer").(bool)
+	maintainers := []string{}
+	if create_default_maintainer == true {
+		maintainers = append(maintainers, token_username)
+	}
+
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
 	newTeam := &github.NewTeam{
 		Name:        name,
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
+		Maintainers: maintainers,
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
-	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
 	githubTeam, _, err := client.Organizations.CreateTeam(ctx,
