@@ -43,6 +43,11 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"create_default_maintainer": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"slug": {
 				Type:     schema.TypeString,
 				Computed: true,
