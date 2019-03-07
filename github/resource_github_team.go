@@ -137,6 +137,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
 	d.Set("slug", team.GetSlug())
+	d.Set("create_default_maintainer", d.Get("create_default_maintainer").(bool))
 
 	return nil
 }
