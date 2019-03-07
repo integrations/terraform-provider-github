@@ -36,6 +36,7 @@ func TestAccGithubTeam_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
 					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
 					resource.TestCheckResourceAttr("github_team.foo", "slug", name),
+					resource.TestCheckResourceAttr("github_team.foo", "create_default_maintainer", "false"),
 				),
 			},
 			{
@@ -49,6 +50,7 @@ func TestAccGithubTeam_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
 					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
 					resource.TestCheckResourceAttr("github_team.foo", "slug", updatedName),
+					resource.TestCheckResourceAttr("github_team.foo", "create_default_maintainer", "false"),
 				),
 			},
 		},
@@ -211,6 +213,7 @@ resource "github_team" "foo" {
 	name = "%s"
 	description = "Terraform acc test group"
 	privacy = "secret"
+	create_default_maintainer = false
 }
 `, teamName)
 }
