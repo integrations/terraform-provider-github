@@ -155,6 +155,8 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
+# github.com/paultyng/go-batcher v0.1.0
+github.com/paultyng/go-batcher
 # github.com/posener/complete v1.1.1
 github.com/posener/complete
 github.com/posener/complete/cmd/install

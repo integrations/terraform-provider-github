@@ -1,9 +1,11 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -11,6 +13,14 @@ const (
 	// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 	maxPerPage = 100
 )
+
+type repositoriesService interface {
+	ListCollaborators(ctx context.Context, owner, repo string, opt *github.ListCollaboratorsOptions) ([]*github.User, *github.Response, error)
+}
+
+type issuesService interface {
+	ListLabels(ctx context.Context, owner string, repo string, opt *github.ListOptions) ([]*github.Label, *github.Response, error)
+}
 
 func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (we []string, errors []error) {
@@ -76,4 +86,25 @@ type unconvertibleIdError struct {
 func (e *unconvertibleIdError) Error() string {
 	return fmt.Sprintf("Unexpected ID format (%q), expected numerical ID. %s",
 		e.OriginalId, e.OriginalError.Error())
+}
+
+func listAllPages(list func(opt github.ListOptions) (*github.Response, error)) error {
+	opt := github.ListOptions{
+		PerPage: maxPerPage,
+	}
+
+	for {
+		resp, err := list(opt)
+		if err != nil {
+			return err
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+
+	return nil
 }

@@ -74,6 +74,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	readCollaborator := meta.(*Organization).readCollaborator
 
 	orgName := meta.(*Organization).name
 	repoName, username, err := parseTwoPartID(d.Id())
@@ -82,11 +83,30 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// First, check if the user has been invited but has not yet accepted
+	// First, check full collaborators (since this is batched,
+	// best to have it align with other parallel resources first)
+	user, err := readCollaborator(ctx, orgName, repoName, username)
+	if err != nil {
+		return err
+	}
+	if user != nil {
+		permissionName, err := getRepoPermission(user.Permissions)
+		if err != nil {
+			return err
+		}
+
+		d.Set("repository", repoName)
+		d.Set("username", username)
+		d.Set("permission", permissionName)
+		return nil
+	}
+
+	// Next, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
-	} else if invitation != nil {
+	}
+	if invitation != nil {
 		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
@@ -97,38 +117,6 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		d.Set("permission", permissionName)
 		d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID()))
 		return nil
-	}
-
-	// Next, check if the user has accepted the invite and is a full collaborator
-	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
-		PerPage: maxPerPage,
-	}}
-
-	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
-			orgName, repoName, opt)
-		if err != nil {
-			return err
-		}
-
-		for _, c := range collaborators {
-			if *c.Login == username {
-				permissionName, err := getRepoPermission(c.Permissions)
-				if err != nil {
-					return err
-				}
-
-				d.Set("repository", repoName)
-				d.Set("username", username)
-				d.Set("permission", permissionName)
-				return nil
-			}
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
 	}
 
 	// The user is neither invited nor a collaborator

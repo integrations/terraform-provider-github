@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"log"
-	"net/http"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -42,8 +41,9 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Computed: true,
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "etag is no longer used since labels are fetched in batches",
 			},
 		},
 	}
@@ -58,9 +58,9 @@ func resourceGithubIssueLabel() *schema.Resource {
 // This function will first check if the label exists, and then issue an update,
 // otherwise it will create. This is also advantageous in that we get to use the
 // same function for two schema funcs.
-
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	readLabel := meta.(*Organization).readLabel
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
@@ -77,9 +77,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 
 	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
 		name, orgName, repoName)
-	existing, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, name)
-	if err != nil && resp.StatusCode != http.StatusNotFound {
+	existing, err := readLabel(ctx, orgName, repoName, name)
+	if err != nil {
 		return err
 	}
 
@@ -130,37 +129,27 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	readLabel := meta.(*Organization).readLabel
 	repoName, name, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
 	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, orgName, repoName)
-	githubLabel, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, name)
+	githubLabel, err := readLabel(context.Background(), orgName, repoName, name)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
-					name, orgName, repoName)
-				d.SetId("")
-				return nil
-			}
-		}
 		return err
 	}
+	if githubLabel == nil {
+		d.SetId("")
+		return nil
+	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
+	// this is no longer used
+	d.Set("etag", "")
+
 	d.Set("repository", repoName)
 	d.Set("name", name)
 	d.Set("color", githubLabel.Color)

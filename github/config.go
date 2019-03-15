@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -19,8 +20,12 @@ type Config struct {
 }
 
 type Organization struct {
-	name        string
-	client      *github.Client
+	name   string
+	client *github.Client
+
+	readLabel        func(ctx context.Context, owner, repo, name string) (*github.Label, error)
+	readCollaborator func(ctx context.Context, owner, repo, name string) (*github.User, error)
+
 	StopContext context.Context
 }
 
@@ -55,6 +60,12 @@ func (c *Config) Client() (interface{}, error) {
 		}
 		org.client.BaseURL = u
 	}
+
+	// this could probably be 1 second
+	const batchTiming = 2 * time.Second
+
+	org.readLabel = batchReadLabel(batchTiming, org.client.Issues)
+	org.readCollaborator = batchReadCollaborator(batchTiming, org.client.Repositories)
 
 	return &org, nil
 }
