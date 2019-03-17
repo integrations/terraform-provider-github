@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v19/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,7 +28,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
+						ID:     1,
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
@@ -44,7 +44,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
+						ID:     1,
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
@@ -73,7 +73,7 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
+						ID:     1,
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
 							"url":          "https://www.terraform.io/webhook",
@@ -158,7 +158,7 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 }
 
 type testAccGithubRepositoryWebhookExpectedAttributes struct {
-	Name          string
+	ID            int64
 	Events        []string
 	Configuration map[string]interface{}
 	Active        bool
@@ -167,8 +167,8 @@ type testAccGithubRepositoryWebhookExpectedAttributes struct {
 func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *testAccGithubRepositoryWebhookExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *hook.Name != want.Name {
-			return fmt.Errorf("got hook %q; want %q", *hook.Name, want.Name)
+		if *hook.ID != want.ID {
+			return fmt.Errorf("got hook %q; want %q", *hook.ID, want.ID)
 		}
 		if *hook.Active != want.Active {
 			return fmt.Errorf("got hook %t; want %t", *hook.Active, want.Active)

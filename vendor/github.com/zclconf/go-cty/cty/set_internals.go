@@ -19,24 +19,12 @@ type setRules struct {
 	Type Type
 }
 
-// Hash returns a hash value for the receiver that can be used for equality
-// checks where some inaccuracy is tolerable.
-//
-// The hash function is value-type-specific, so it is not meaningful to compare
-// hash results for values of different types.
-//
-// This function is not safe to use for security-related applications, since
-// the hash used is not strong enough.
-func (val Value) Hash() int {
-	hashBytes := makeSetHashBytes(val)
-	return int(crc32.ChecksumIEEE(hashBytes))
-}
-
 func (r setRules) Hash(v interface{}) int {
-	return Value{
+	hashBytes := makeSetHashBytes(Value{
 		ty: r.Type,
 		v:  v,
-	}.Hash()
+	})
+	return int(crc32.ChecksumIEEE(hashBytes))
 }
 
 func (r setRules) Equivalent(v1 interface{}, v2 interface{}) bool {

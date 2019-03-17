@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v19/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -52,8 +52,8 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	project, _, err := client.Organizations.CreateProject(ctx,
 		orgName,
 		&github.ProjectOptions{
-			Name: name,
-			Body: d.Get("body").(string),
+			Name: &name,
+			Body: d.Get("body").(*string),
 		},
 	)
 	if err != nil {
@@ -107,10 +107,10 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
-	name := d.Get("name").(string)
+	name := d.Get("name").(*string)
 	options := github.ProjectOptions{
 		Name: name,
-		Body: d.Get("body").(string),
+		Body: d.Get("body").(*string),
 	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)

@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
 func lineInFile(name string, lookFor string) bool {
@@ -35,24 +34,6 @@ func lineInFile(name string, lookFor string) bool {
 		}
 		prefix = prefix[:0]
 	}
-}
-
-func createFile(name string, content string) error {
-	// make sure file directory exists
-	if err := os.MkdirAll(filepath.Dir(name), 0775); err != nil {
-		return err
-	}
-
-	// create the file
-	f, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	// write file content
-	_, err = f.WriteString(fmt.Sprintf("%s\n", content))
-	return err
 }
 
 func appendToFile(name string, content string) error {

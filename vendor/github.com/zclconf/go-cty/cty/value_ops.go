@@ -800,10 +800,6 @@ func (val Value) LengthInt() int {
 		// For tuples, we can return the length even if the value is not known.
 		return val.Type().Length()
 	}
-	if val.Type().IsObjectType() {
-		// For objects, the length is the number of attributes associated with the type.
-		return len(val.Type().AttributeTypes())
-	}
 	if !val.IsKnown() {
 		panic("value is not known")
 	}

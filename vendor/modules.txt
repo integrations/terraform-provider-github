@@ -4,7 +4,7 @@ github.com/agext/levenshtein
 github.com/apparentlymart/go-cidr/cidr
 # github.com/apparentlymart/go-textseg v0.0.0-20170531203952-b836f5c4d331
 github.com/apparentlymart/go-textseg/textseg
-# github.com/armon/go-radix v0.0.0-20170727155443-1fca145dffbc
+# github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7
 github.com/armon/go-radix
 # github.com/aws/aws-sdk-go v1.14.31
 github.com/aws/aws-sdk-go/aws
@@ -40,13 +40,13 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 # github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 github.com/bgentry/go-netrc/netrc
-# github.com/bgentry/speakeasy v0.1.0
+# github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e
 github.com/bgentry/speakeasy
 # github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc
 github.com/blang/semver
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/go-ini/ini v1.36.0
+# github.com/go-ini/ini v1.25.4
 github.com/go-ini/ini
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
@@ -54,8 +54,8 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/go-github v16.0.0+incompatible
-github.com/google/go-github/github
+# github.com/google/go-github/v19 v19.1.0
+github.com/google/go-github/v19/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
@@ -101,7 +101,7 @@ github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
 # github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform v0.11.12-beta1.0.20190214175014-182daa619826
+# github.com/hashicorp/terraform v0.11.13
 github.com/hashicorp/terraform/plugin
 github.com/hashicorp/terraform/helper/logging
 github.com/hashicorp/terraform/helper/schema
@@ -135,27 +135,27 @@ github.com/jmespath/go-jmespath
 # github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
 github.com/kylelemons/godebug/pretty
 github.com/kylelemons/godebug/diff
-# github.com/mattn/go-isatty v0.0.4
+# github.com/mattn/go-isatty v0.0.0-20161123143637-30a891c33c7c
 github.com/mattn/go-isatty
-# github.com/mitchellh/cli v0.0.0-20180316190330-b068abc08c99
+# github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
 github.com/mitchellh/cli
 # github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v0.0.0-20161203194507-b8bc1bf76747
 github.com/mitchellh/go-homedir
-# github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
+# github.com/mitchellh/go-testing-interface v0.0.0-20170730050907-9a441910b168
 github.com/mitchellh/go-testing-interface
 # github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7
 github.com/mitchellh/go-wordwrap
-# github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
+# github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
 github.com/mitchellh/hashstructure
-# github.com/mitchellh/mapstructure v0.0.0-20180220230111-00c29f56e238
+# github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
-# github.com/posener/complete v1.1.1
+# github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
 github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd
@@ -167,7 +167,7 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
 github.com/ulikunitz/xz/internal/hash
-# github.com/zclconf/go-cty v0.0.0-20180328152515-d006e4534bc4
+# github.com/zclconf/go-cty v0.0.0-20180302160414-49fa5e03c418
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert
 github.com/zclconf/go-cty/cty/function
@@ -175,7 +175,7 @@ github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/set
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/json
-# golang.org/x/crypto v0.0.0-20180330210355-12892e8c234f
+# golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/ssh
@@ -191,7 +191,8 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20180509002218-f73e4c9ed3b7
+golang.org/x/crypto/internal/subtle
+# golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/context/ctxhttp
@@ -202,17 +203,17 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
-# golang.org/x/oauth2 v0.0.0-20180503012634-cdc340f7c179
+# golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
 golang.org/x/sys/unix
-# golang.org/x/text v0.0.0-20180327145029-ece95c760240
+# golang.org/x/text v0.3.0
 golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
-# google.golang.org/appengine v1.0.0
+# google.golang.org/appengine v1.4.0
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/urlfetch
@@ -220,32 +221,23 @@ google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
-# google.golang.org/genproto v0.0.0-20180427144745-86e600f69ee4
+# google.golang.org/genproto v0.0.0-20171002232614-f676e0f3ac63
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v0.0.0-20180508211726-45d7f3a23f0b
+# google.golang.org/grpc v0.0.0-20170809211603-7657092a1303
 google.golang.org/grpc
 google.golang.org/grpc/credentials
 google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
-google.golang.org/grpc/balancer
-google.golang.org/grpc/balancer/roundrobin
-google.golang.org/grpc/channelz
 google.golang.org/grpc/codes
 google.golang.org/grpc/connectivity
-google.golang.org/grpc/encoding
-google.golang.org/grpc/encoding/proto
-google.golang.org/grpc/grpclb/grpc_lb_v1/messages
+google.golang.org/grpc/grpclb/grpc_lb_v1
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/internal
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
-google.golang.org/grpc/resolver
-google.golang.org/grpc/resolver/dns
-google.golang.org/grpc/resolver/passthrough
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
 google.golang.org/grpc/transport
-google.golang.org/grpc/balancer/base

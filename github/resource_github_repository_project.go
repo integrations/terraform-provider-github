@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v19/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -63,8 +63,8 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	options := github.ProjectOptions{
-		Name: name,
-		Body: d.Get("body").(string),
+		Name: &name,
+		Body: d.Get("body").(*string),
 	}
 	ctx := context.Background()
 
@@ -122,8 +122,8 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	client := meta.(*Organization).client
 
 	options := github.ProjectOptions{
-		Name: d.Get("name").(string),
-		Body: d.Get("body").(string),
+		Name: d.Get("name").(*string),
+		Body: d.Get("body").(*string),
 	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
