@@ -130,6 +130,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"require_signed_commits": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -165,6 +170,10 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 
 	d.SetId(buildTwoPartID(&repoName, &branch))
 
+	if err = requireSignedCommitsUpdate(d, meta); err != nil {
+		return err
+	}
+
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
@@ -189,6 +198,9 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
+				if err := requireSignedCommitsRead(d, meta); err != nil {
+					return fmt.Errorf("Error setting signed commit restriction: %v", err)
+				}
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -217,6 +229,10 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting restrictions: %v", err)
+	}
+
+	if err := requireSignedCommitsRead(d, meta); err != nil {
+		return fmt.Errorf("Error setting signed commit restriction: %v", err)
 	}
 
 	return nil
@@ -261,6 +277,10 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(buildTwoPartID(&repoName, &branch))
+
+	if err = requireSignedCommitsUpdate(d, meta); err != nil {
+		return err
+	}
 
 	return resourceGithubBranchProtectionRead(d, meta)
 }
@@ -324,6 +344,56 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 	}
 
 	return d.Set("required_status_checks", []interface{}{})
+}
+
+func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*Organization).client
+
+	repoName, branch, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
+	orgName := meta.(*Organization).name
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading branch protection signed commit status: %s/%s (%s)", orgName, repoName, branch)
+	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
+		orgName, repoName, branch)
+	if err != nil {
+		log.Printf("[WARN] Not able to read signature protection: %s/%s (%s)", orgName, repoName, branch)
+		return nil
+	}
+
+	return d.Set("require_signed_commits", signedCommitStatus.Enabled)
+}
+
+func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+	requiredSignedCommit := d.Get("require_signed_commits").(bool)
+	client := meta.(*Organization).client
+
+	repoName, branch, err := parseTwoPartID(d.Id())
+	if err != nil {
+		return err
+	}
+	orgName := meta.(*Organization).name
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	if requiredSignedCommit {
+		log.Printf("[DEBUG] Enabling branch protection signed commit: %s/%s (%s) - $s", orgName, repoName, branch)
+		_, _, err = client.Repositories.RequireSignaturesOnProtectedBranch(ctx, orgName, repoName, branch)
+	} else {
+		log.Printf("[DEBUG] Removing branch protection signed commit: %s/%s (%s) - $s", orgName, repoName, branch)
+		_, err = client.Repositories.OptionalSignaturesOnProtectedBranch(ctx, orgName, repoName, branch)
+	}
+	return err
 }
 
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
