@@ -62,7 +62,7 @@ github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github v16.0.0+incompatible
+# github.com/google/go-github v17.0.0+incompatible
 github.com/google/go-github/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
@@ -106,6 +106,7 @@ github.com/hashicorp/hcl2/ext/typeexpr
 github.com/hashicorp/hcl2/ext/dynblock
 github.com/hashicorp/hcl2/hclwrite
 github.com/hashicorp/hcl2/hcl/json
+github.com/hashicorp/hcl2/hcled
 # github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
@@ -113,7 +114,7 @@ github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
 # github.com/hashicorp/logutils v1.0.0
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform v0.12.0-alpha4
+# github.com/hashicorp/terraform v0.12.0-beta2
 github.com/hashicorp/terraform/plugin
 github.com/hashicorp/terraform/helper/logging
 github.com/hashicorp/terraform/helper/schema
@@ -150,11 +151,18 @@ github.com/hashicorp/terraform/registry/regsrc
 github.com/hashicorp/terraform/registry/response
 github.com/hashicorp/terraform/svchost/disco
 github.com/hashicorp/terraform/helper/hilmapstructure
+github.com/hashicorp/terraform/lang/blocktoattr
 github.com/hashicorp/terraform/lang/funcs
+github.com/hashicorp/terraform/command/format
 github.com/hashicorp/terraform/configs/configload
 github.com/hashicorp/terraform/helper/config
+github.com/hashicorp/terraform/internal/initwd
 github.com/hashicorp/terraform/svchost
 github.com/hashicorp/terraform/svchost/auth
+github.com/hashicorp/terraform/internal/modsdir
+github.com/hashicorp/terraform/internal/earlyconfig
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70
+github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
@@ -168,6 +176,8 @@ github.com/mattn/go-colorable
 github.com/mattn/go-isatty
 # github.com/mitchellh/cli v1.0.0
 github.com/mitchellh/cli
+# github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
+github.com/mitchellh/colorstring
 # github.com/mitchellh/copystructure v1.0.0
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.0.0
@@ -205,8 +215,8 @@ github.com/vmihailenco/msgpack/codes
 # github.com/zclconf/go-cty v0.0.0-20190320224746-fd76348b9329
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/msgpack
-github.com/zclconf/go-cty/cty/json
 github.com/zclconf/go-cty/cty/convert
+github.com/zclconf/go-cty/cty/json
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/set
 github.com/zclconf/go-cty/cty/function

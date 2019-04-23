@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -91,6 +92,10 @@ type evaluationStateData struct {
 	// since the user specifies in that case which variable name to locally
 	// shadow.)
 	InstanceKeyData InstanceKeyEvalData
+
+	// Operation records the type of walk the evaluationStateData is being used
+	// for.
+	Operation walkOperation
 }
 
 // InstanceKeyEvalData is used during evaluation to specify which values,
@@ -209,6 +214,23 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 
 	d.Evaluator.VariableValuesLock.Lock()
 	defer d.Evaluator.VariableValuesLock.Unlock()
+
+	// During the validate walk, input variables are always unknown so
+	// that we are validating the configuration for all possible input values
+	// rather than for a specific set. Checking against a specific set of
+	// input values then happens during the plan walk.
+	//
+	// This is important because otherwise the validation walk will tend to be
+	// overly strict, requiring expressions throughout the configuration to
+	// be complicated to accommodate all possible inputs, whereas returning
+	// known here allows for simpler patterns like using input values as
+	// guards to broadly enable/disable resources, avoid processing things
+	// that are disabled, etc. Terraform's static validation leans towards
+	// being liberal in what it accepts because the subsequent plan walk has
+	// more information available and so can be more conservative.
+	if d.Operation == walkValidate {
+		return cty.UnknownVal(wantType), diags
+	}
 
 	moduleAddrStr := d.ModulePath.String()
 	vals := d.Evaluator.VariableValues[moduleAddrStr]
@@ -419,7 +441,7 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			})
 			return cty.DynamicVal, diags
 		}
-		return cty.StringVal(wd), diags
+		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
 		moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
@@ -429,11 +451,11 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			panic(fmt.Sprintf("module.path read from module %s, which has no configuration", d.ModulePath))
 		}
 		sourceDir := moduleConfig.Module.SourceDir
-		return cty.StringVal(sourceDir), diags
+		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
 
 	case "root":
 		sourceDir := d.Evaluator.Config.Module.SourceDir
-		return cty.StringVal(sourceDir), diags
+		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
 
 	default:
 		suggestion := nameSuggestion(addr.Name, []string{"cwd", "module", "root"})
@@ -503,6 +525,12 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		// (In practice we should only end up here during the validate walk,
 		// since later walks should have at least partial states populated
 		// for all resources in the configuration.)
+		return cty.DynamicVal, diags
+	}
+
+	// Break out early during validation, because resource may not be expanded
+	// yet and indexed references may show up as invalid.
+	if d.Operation == walkValidate {
 		return cty.DynamicVal, diags
 	}
 

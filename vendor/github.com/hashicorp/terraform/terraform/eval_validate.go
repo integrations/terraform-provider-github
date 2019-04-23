@@ -109,13 +109,13 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 // EvalValidateProvisioner is an EvalNode implementation that validates
-// the configuration of a provisioner belonging to a resource.
+// the configuration of a provisioner belonging to a resource. The provisioner
+// config is expected to contain the merged connection configurations.
 type EvalValidateProvisioner struct {
 	ResourceAddr     addrs.Resource
 	Provisioner      *provisioners.Interface
 	Schema           **configschema.Block
 	Config           *configs.Provisioner
-	ConnConfig       *configs.Connection
 	ResourceHasCount bool
 }
 
@@ -149,10 +149,9 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	{
-		// Now validate the connection config, which might either be from
-		// the provisioner block itself or inherited from the resource's
-		// shared connection info.
-		connDiags := n.validateConnConfig(ctx, n.ConnConfig, n.ResourceAddr)
+		// Now validate the connection config, which contains the merged bodies
+		// of the resource and provisioner connection blocks.
+		connDiags := n.validateConnConfig(ctx, config.Connection, n.ResourceAddr)
 		diags = diags.Append(connDiags)
 	}
 
@@ -218,6 +217,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 		// by the config loader and stored away in a separate field.
 
 		// Common attributes for both connection types
+		"host": {
+			Type:     cty.String,
+			Required: true,
+		},
 		"type": {
 			Type:     cty.String,
 			Optional: true,
@@ -227,10 +230,6 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"password": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"host": {
 			Type:     cty.String,
 			Optional: true,
 		},
@@ -249,6 +248,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 
 		// For type=ssh only (enforced in ssh communicator)
 		"private_key": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"certificate": {
 			Type:     cty.String,
 			Optional: true,
 		},
@@ -309,6 +312,18 @@ var connectionBlockSupersetSchema = &configschema.Block{
 	},
 }
 
+// connectionBlockSupersetSchema is a schema representing the superset of all
+// possible arguments for "connection" blocks across all supported connection
+// types.
+//
+// This currently lives here because we've not yet updated our communicator
+// subsystem to be aware of schema itself. It's exported only for use in the
+// configs/configupgrade package and should not be used from anywhere else.
+// The caller may not modify any part of the returned schema data structure.
+func ConnectionBlockSupersetSchema() *configschema.Block {
+	return connectionBlockSupersetSchema
+}
+
 // EvalValidateResource is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateResource struct {
@@ -366,6 +381,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
 		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
 	}
 
 	// Provider entry point varies depending on resource mode, because
@@ -388,6 +414,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
+		}
+
+		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
+			for _, traversal := range cfg.Managed.IgnoreChanges {
+				moreDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(moreDiags)
+			}
 		}
 
 		req := providers.ValidateResourceTypeConfigRequest{

@@ -119,6 +119,50 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
+// CoalesceFunc contructs a function that takes any number of arguments and
+// returns the first one that isn't empty. This function was copied from go-cty
+// stdlib and modified so that it returns the first *non-empty* non-null element
+// from a sequence, instead of merely the first non-null.
+var CoalesceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		argTypes := make([]cty.Type, len(args))
+		for i, val := range args {
+			argTypes[i] = val.Type()
+		}
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+		return retType, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		for _, argVal := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			argVal, _ = convert.Convert(argVal, retType)
+			if !argVal.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+			if argVal.IsNull() {
+				continue
+			}
+			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
+				continue
+			}
+
+			return argVal, nil
+		}
+		return cty.NilVal, fmt.Errorf("no non-null, non-empty-string arguments")
+	},
+})
+
 // CoalesceListFunc contructs a function that takes any number of list arguments
 // and returns the first one that isn't empty.
 var CoalesceListFunc = function.New(&function.Spec{
@@ -807,6 +851,172 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// ReverseFunc takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+var ReverseFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		argTy := args[0].Type()
+		switch {
+		case argTy.IsTupleType():
+			argTys := argTy.TupleElementTypes()
+			retTys := make([]cty.Type, len(argTys))
+			for i, ty := range argTys {
+				retTys[len(retTys)-i-1] = ty
+			}
+			return cty.Tuple(retTys), nil
+		case argTy.IsListType(), argTy.IsSetType(): // We accept sets here to mimic the usual behavior of auto-converting to list
+			return cty.List(argTy.ElementType()), nil
+		default:
+			return cty.NilType, function.NewArgErrorf(0, "can only reverse list or tuple values, not %s", argTy.FriendlyName())
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		in := args[0].AsValueSlice()
+		outVals := make([]cty.Value, len(in))
+		for i, v := range in {
+			outVals[len(outVals)-i-1] = v
+		}
+		switch {
+		case retType.IsTupleType():
+			return cty.TupleVal(outVals), nil
+		default:
+			if len(outVals) == 0 {
+				return cty.ListValEmpty(retType.ElementType()), nil
+			}
+			return cty.ListVal(outVals), nil
+		}
+	},
+})
+
+// SetProductFunc calculates the cartesian product of two or more sets or
+// sequences. If the arguments are all lists then the result is a list of tuples,
+// preserving the ordering of all of the input lists. Otherwise the result is a
+// set of tuples.
+var SetProductFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name: "sets",
+		Type: cty.DynamicPseudoType,
+	},
+	Type: func(args []cty.Value) (retType cty.Type, err error) {
+		if len(args) < 2 {
+			return cty.NilType, fmt.Errorf("at least two arguments are required")
+		}
+
+		listCount := 0
+		elemTys := make([]cty.Type, len(args))
+		for i, arg := range args {
+			aty := arg.Type()
+			switch {
+			case aty.IsSetType():
+				elemTys[i] = aty.ElementType()
+			case aty.IsListType():
+				elemTys[i] = aty.ElementType()
+				listCount++
+			case aty.IsTupleType():
+				// We can accept a tuple type only if there's some common type
+				// that all of its elements can be converted to.
+				allEtys := aty.TupleElementTypes()
+				if len(allEtys) == 0 {
+					elemTys[i] = cty.DynamicPseudoType
+					listCount++
+					break
+				}
+				ety, _ := convert.UnifyUnsafe(allEtys)
+				if ety == cty.NilType {
+					return cty.NilType, function.NewArgErrorf(i, "all elements must be of the same type")
+				}
+				elemTys[i] = ety
+				listCount++
+			default:
+				return cty.NilType, function.NewArgErrorf(i, "a set or a list is required")
+			}
+		}
+
+		if listCount == len(args) {
+			return cty.List(cty.Tuple(elemTys)), nil
+		}
+		return cty.Set(cty.Tuple(elemTys)), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		ety := retType.ElementType()
+
+		total := 1
+		for _, arg := range args {
+			// Because of our type checking function, we are guaranteed that
+			// all of the arguments are known, non-null values of types that
+			// support LengthInt.
+			total *= arg.LengthInt()
+		}
+
+		if total == 0 {
+			// If any of the arguments was an empty collection then our result
+			// is also an empty collection, which we'll short-circuit here.
+			if retType.IsListType() {
+				return cty.ListValEmpty(ety), nil
+			}
+			return cty.SetValEmpty(ety), nil
+		}
+
+		subEtys := ety.TupleElementTypes()
+		product := make([][]cty.Value, total)
+
+		b := make([]cty.Value, total*len(args))
+		n := make([]int, len(args))
+		s := 0
+		argVals := make([][]cty.Value, len(args))
+		for i, arg := range args {
+			argVals[i] = arg.AsValueSlice()
+		}
+
+		for i := range product {
+			e := s + len(args)
+			pi := b[s:e]
+			product[i] = pi
+			s = e
+
+			for j, n := range n {
+				val := argVals[j][n]
+				ty := subEtys[j]
+				if !val.Type().Equals(ty) {
+					var err error
+					val, err = convert.Convert(val, ty)
+					if err != nil {
+						// Should never happen since we checked this in our
+						// type-checking function.
+						return cty.NilVal, fmt.Errorf("failed to convert argVals[%d][%d] to %s; this is a bug in Terraform", j, n, ty.FriendlyName())
+					}
+				}
+				pi[j] = val
+			}
+
+			for j := len(n) - 1; j >= 0; j-- {
+				n[j]++
+				if n[j] < len(argVals[j]) {
+					break
+				}
+				n[j] = 0
+			}
+		}
+
+		productVals := make([]cty.Value, total)
+		for i, vals := range product {
+			productVals[i] = cty.TupleVal(vals)
+		}
+
+		if retType.IsListType() {
+			return cty.ListVal(productVals), nil
+		}
+		return cty.SetVal(productVals), nil
+	},
+})
+
 // SliceFunc contructs a function that extracts some consecutive elements
 // from within a list.
 var SliceFunc = function.New(&function.Spec{
@@ -1092,6 +1302,11 @@ func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
 }
 
+// Coalesce takes any number of arguments and returns the first one that isn't empty.
+func Coalesce(args ...cty.Value) (cty.Value, error) {
+	return CoalesceFunc.Call(args)
+}
+
 // CoalesceList takes any number of list arguments and returns the first one that isn't empty.
 func CoalesceList(args ...cty.Value) (cty.Value, error) {
 	return CoalesceListFunc.Call(args)
@@ -1167,6 +1382,17 @@ func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 // the argument sequence takes precedence.
 func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
+}
+
+// Reverse takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+func Reverse(list cty.Value) (cty.Value, error) {
+	return ReverseFunc.Call([]cty.Value{list})
+}
+
+// SetProduct computes the cartesian product of sets or sequences.
+func SetProduct(sets ...cty.Value) (cty.Value, error) {
+	return SetProductFunc.Call(sets)
 }
 
 // Slice extracts some consecutive elements from within a list.

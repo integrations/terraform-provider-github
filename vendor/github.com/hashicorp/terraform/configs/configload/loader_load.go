@@ -39,7 +39,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	// do verify that the manifest and the configuration are in agreement
 	// so that we can prompt the user to run "terraform init" if not.
 
-	key := manifestKey(req.Path)
+	key := l.modules.manifest.ModuleKey(req.Path)
 	record, exists := l.modules.manifest[key]
 
 	if !exists {

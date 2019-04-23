@@ -119,7 +119,13 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 
-	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request))
+	// Some providers may generate quite large schemas, and the internal default
+	// grpc response size limit is 4MB. 64MB should cover most any use case, and
+	// if we get providers nearing that we may want to consider a finer-grained
+	// API to fetch individual resource schemas.
+	// Note: this option is marked as EXPERIMENTAL in the grpc API.
+	const maxRecvSize = 64 << 20
+	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -185,7 +191,6 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	log.Printf("[TRACE] GRPCProvider: ValidateResourceTypeConfig")
-
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -402,6 +407,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
 	return resp
 }
 
@@ -420,11 +427,17 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	protoReq := &proto.ApplyResourceChange_Request{
 		TypeName:       r.TypeName,
 		PriorState:     &proto.DynamicValue{Msgpack: priorMP},
 		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
+		Config:         &proto.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
@@ -447,13 +460,13 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	}
 	resp.NewState = state
 
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
 	return resp
 }
 
 func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 	log.Printf("[TRACE] GRPCProvider: ImportResourceState")
-
-	resSchema := p.getResourceSchema(r.TypeName)
 
 	protoReq := &proto.ImportResourceState_Request{
 		TypeName: r.TypeName,
@@ -473,6 +486,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			Private:  imported.Private,
 		}
 
+		resSchema := p.getResourceSchema(resource.TypeName)
 		state := cty.NullVal(resSchema.Block.ImpliedType())
 		if imported.State != nil {
 			state, err = msgpack.Unmarshal(imported.State.Msgpack, resSchema.Block.ImpliedType())
@@ -528,7 +542,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
-	log.Printf("[TRACE] GRPCProvider: PlanResourceChange")
+	log.Printf("[TRACE] GRPCProvider: Close")
 
 	// close the remote listener if we're running within a test
 	if p.TestListener != nil {

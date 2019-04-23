@@ -4,25 +4,17 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func mustShimNewState(newState *states.State, schemas *terraform.Schemas) *terraform.State {
-	s, err := shimNewState(newState, schemas)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
 // shimState takes a new *states.State and reverts it to a legacy state for the provider ACC tests
-func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terraform.State, error) {
+func shimNewState(newState *states.State, providers map[string]terraform.ResourceProvider) (*terraform.State, error) {
 	state := terraform.NewState()
 
 	// in the odd case of a nil state, let the helper packages handle it
@@ -57,25 +49,10 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 			resType := res.Addr.Type
 			providerType := res.ProviderConfig.ProviderConfig.Type
 
-			providerSchema := schemas.Providers[providerType]
-			if providerSchema == nil {
-				return nil, fmt.Errorf("missing schema for %q", providerType)
-			}
-
-			var resSchema *configschema.Block
-			switch res.Addr.Mode {
-			case addrs.ManagedResourceMode:
-				resSchema = providerSchema.ResourceTypes[resType]
-			case addrs.DataResourceMode:
-				resSchema = providerSchema.DataSources[resType]
-			}
-
-			if resSchema == nil {
-				return nil, fmt.Errorf("missing resource schema for %q in %q", resType, providerType)
-			}
+			resource := getResource(providers, providerType, res.Addr)
 
 			for key, i := range res.Instances {
-				flatmap, err := shimmedAttributes(i.Current, resSchema.ImpliedType())
+				flatmap, err := shimmedAttributes(i.Current, resource)
 				if err != nil {
 					return nil, fmt.Errorf("error decoding state for %q: %s", resType, err)
 				}
@@ -87,6 +64,12 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 						Attributes: flatmap,
 						Tainted:    i.Current.Status == states.ObjectTainted,
 					},
+					Provider: res.ProviderConfig.String(),
+				}
+				if i.Current.SchemaVersion != 0 {
+					resState.Primary.Meta = map[string]interface{}{
+						"schema_version": i.Current.SchemaVersion,
+					}
 				}
 
 				for _, dep := range i.Current.Dependencies {
@@ -109,7 +92,7 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 
 				// add any deposed instances
 				for _, dep := range i.Deposed {
-					flatmap, err := shimmedAttributes(dep, resSchema.ImpliedType())
+					flatmap, err := shimmedAttributes(dep, resource)
 					if err != nil {
 						return nil, fmt.Errorf("error decoding deposed state for %q: %s", resType, err)
 					}
@@ -118,6 +101,11 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    dep.Status == states.ObjectTainted,
+					}
+					if dep.SchemaVersion != 0 {
+						deposed.Meta = map[string]interface{}{
+							"schema_version": dep.SchemaVersion,
+						}
 					}
 
 					resState.Deposed = append(resState.Deposed, deposed)
@@ -129,17 +117,47 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 	return state, nil
 }
 
-func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, ty cty.Type) (map[string]string, error) {
+func getResource(providers map[string]terraform.ResourceProvider, providerName string, addr addrs.Resource) *schema.Resource {
+	p := providers[providerName]
+	if p == nil {
+		panic(fmt.Sprintf("provider %q not found in test step", providerName))
+	}
+
+	// this is only for tests, so should only see schema.Providers
+	provider := p.(*schema.Provider)
+
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		resource := provider.ResourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
+	case addrs.DataResourceMode:
+		resource := provider.DataSourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
+	}
+
+	panic(fmt.Sprintf("resource %s not found in test step", addr.Type))
+}
+
+func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.Resource) (map[string]string, error) {
 	flatmap := instance.AttrsFlat
+	if flatmap != nil {
+		return flatmap, nil
+	}
 
 	// if we have json attrs, they need to be decoded
-	if flatmap == nil {
-		rio, err := instance.Decode(ty)
-		if err != nil {
-			return nil, err
-		}
-
-		flatmap = hcl2shim.FlatmapValueFromHCL2(rio.Value)
+	rio, err := instance.Decode(res.CoreConfigSchema().ImpliedType())
+	if err != nil {
+		return nil, err
 	}
-	return flatmap, nil
+
+	instanceState, err := res.ShimInstanceStateFromValue(rio.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return instanceState.Attributes, nil
 }

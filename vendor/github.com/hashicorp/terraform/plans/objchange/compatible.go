@@ -41,13 +41,21 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		return errs
 	}
 
-	for name := range schema.Attributes {
+	for name, attrS := range schema.Attributes {
 		plannedV := planned.GetAttr(name)
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		moreErrs := assertValueCompatible(plannedV, actualV, path)
-		errs = append(errs, moreErrs...)
+		if attrS.Sensitive {
+			if len(moreErrs) > 0 {
+				// Use a vague placeholder message instead, to avoid disclosing
+				// sensitive information.
+				errs = append(errs, path.NewErrorf("inconsistent values for sensitive attribute"))
+			}
+		} else {
+			errs = append(errs, moreErrs...)
+		}
 	}
 	for name, blockS := range schema.BlockTypes {
 		plannedV := planned.GetAttr(name)
@@ -59,7 +67,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		// expression is itself unknown and thus it cannot predict how many
 		// child blocks will get created.
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			if allLeafValuesUnknown(plannedV) && !plannedV.IsNull() {
 				return errs
 			}
@@ -76,7 +84,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
@@ -149,13 +157,19 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 			}
 		case configschema.NestingSet:
-			// We can't do any reasonable matching of set elements since their
-			// content is also their key, and so we have no way to correlate
-			// them. Because of this, we simply verify that we still have the
-			// same number of elements.
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
+
+			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
+				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
+
+			// There can be fewer elements in a set after its elements are all
+			// known (values that turn out to be equal will coalesce) but the
+			// number of elements must never get larger.
 			plannedL := plannedV.LengthInt()
 			actualL := actualV.LengthInt()
 			if plannedL < actualL {
@@ -254,6 +268,17 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		// to ensure that the number of elements is consistent, along with
 		// the general type-match checks we ran earlier in this function.
 		if planned.IsKnown() && !planned.IsNull() && !actual.IsNull() {
+
+			setErrs := assertSetValuesCompatible(planned, actual, path, func(plannedV, actualV cty.Value) bool {
+				errs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: actualV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
+
+			// There can be fewer elements in a set after its elements are all
+			// known (values that turn out to be equal will coalesce) but the
+			// number of elements must never get larger.
+
 			plannedL := planned.LengthInt()
 			actualL := actual.LengthInt()
 			if plannedL < actualL {
@@ -289,4 +314,63 @@ func allLeafValuesUnknown(v cty.Value) bool {
 		return true, nil
 	})
 	return !seenKnownValue
+}
+
+// assertSetValuesCompatible checks that each of the elements in a can
+// be correlated with at least one equivalent element in b and vice-versa,
+// using the given correlation function.
+//
+// This allows the number of elements in the sets to change as long as all
+// elements in both sets can be correlated, making this function safe to use
+// with sets that may contain unknown values as long as the unknown case is
+// addressed in some reasonable way in the callback function.
+//
+// The callback always recieves values from set a as its first argument and
+// values from set b in its second argument, so it is safe to use with
+// non-commutative functions.
+//
+// As with assertValueCompatible, we assume that the target audience of error
+// messages here is a provider developer (via a bug report from a user) and so
+// we intentionally violate our usual rule of keeping cty implementation
+// details out of error messages.
+func assertSetValuesCompatible(planned, actual cty.Value, path cty.Path, f func(aVal, bVal cty.Value) bool) []error {
+	a := planned
+	b := actual
+
+	// Our methodology here is a little tricky, to deal with the fact that
+	// it's impossible to directly correlate two non-equal set elements because
+	// they don't have identities separate from their values.
+	// The approach is to count the number of equivalent elements each element
+	// of a has in b and vice-versa, and then return true only if each element
+	// in both sets has at least one equivalent.
+	as := a.AsValueSlice()
+	bs := b.AsValueSlice()
+	aeqs := make([]bool, len(as))
+	beqs := make([]bool, len(bs))
+	for ai, av := range as {
+		for bi, bv := range bs {
+			if f(av, bv) {
+				aeqs[ai] = true
+				beqs[bi] = true
+			}
+		}
+	}
+
+	var errs []error
+	for i, eq := range aeqs {
+		if !eq {
+			errs = append(errs, path.NewErrorf("planned set element %#v does not correlate with any element in actual", as[i]))
+		}
+	}
+	if len(errs) > 0 {
+		// Exit early since otherwise we're likely to generate duplicate
+		// error messages from the other perspective in the subsequent loop.
+		return errs
+	}
+	for i, eq := range beqs {
+		if !eq {
+			errs = append(errs, path.NewErrorf("actual set element %#v does not correlate with any element in plan", bs[i]))
+		}
+	}
+	return errs
 }
