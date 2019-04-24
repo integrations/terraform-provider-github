@@ -62,9 +62,10 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
+	body := d.Get("body").(string)
 	options := github.ProjectOptions{
-		Name: name,
-		Body: d.Get("body").(string),
+		Name: &name,
+		Body: &body,
 	}
 	ctx := context.Background()
 
@@ -120,10 +121,11 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 
 func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-
+	name := d.Get("name").(string)
+	body := d.Get("body").(string)
 	options := github.ProjectOptions{
-		Name: d.Get("name").(string),
-		Body: d.Get("body").(string),
+		Name: &name,
+		Body: &body,
 	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)

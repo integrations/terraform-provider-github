@@ -28,7 +28,6 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
@@ -44,7 +43,6 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
@@ -73,7 +71,6 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
 							"url":          "https://www.terraform.io/webhook",
@@ -167,9 +164,6 @@ type testAccGithubRepositoryWebhookExpectedAttributes struct {
 func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *testAccGithubRepositoryWebhookExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *hook.Name != want.Name {
-			return fmt.Errorf("got hook %q; want %q", *hook.Name, want.Name)
-		}
 		if *hook.Active != want.Active {
 			return fmt.Errorf("got hook %t; want %t", *hook.Active, want.Active)
 		}
@@ -235,7 +229,6 @@ func testAccGithubRepositoryWebhookConfig(randString string) string {
       depends_on = ["github_repository.foo"]
       repository = "foo-%s"
 
-      name = "web"
       configuration {
         url = "https://google.de/webhook"
         content_type = "json"
@@ -266,7 +259,6 @@ resource "github_repository" "foo" {
 resource "github_repository_webhook" "foo" {
   repository = "${github_repository.foo.name}"
 
-  name = "web"
   configuration {
     url = "https://www.terraform.io/webhook"
     content_type = "json"
@@ -299,7 +291,6 @@ resource "github_repository_webhook" "foo" {
   depends_on = ["github_repository.foo"]
   repository = "foo-%s"
 
-  name = "web"
   configuration {
     url = "https://google.de/webhooks"
     content_type = "form"
