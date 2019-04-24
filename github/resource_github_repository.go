@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v24/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 

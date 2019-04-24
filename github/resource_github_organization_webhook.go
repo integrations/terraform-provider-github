@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v24/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
