@@ -94,7 +94,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository webhook: %s/%s", orgName, repoName)
+	log.Printf("[DEBUG] Creating repository webhook: %d (%s/%s)", hk.GetID(), orgName, repoName)
 	hook, _, err := client.Repositories.CreateHook(ctx, orgName, repoName, hk)
 	if err != nil {
 		return err

@@ -74,7 +74,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization webhook: %s", orgName)
+	log.Printf("[DEBUG] Creating organization webhook: %d (%s)", webhookObj.GetID(), orgName)
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 
 	if err != nil {
