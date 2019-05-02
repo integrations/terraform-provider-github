@@ -30,7 +30,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
 							"content_type": "json",
-							"insecure_ssl": "1",
+							"insecure_ssl": "true",
 						},
 						Active: true,
 					}),
@@ -45,7 +45,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
 							"content_type": "form",
-							"insecure_ssl": "0",
+							"insecure_ssl": "false",
 						},
 						Active: false,
 					}),
@@ -73,7 +73,7 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 							"url":          "https://www.terraform.io/webhook",
 							"content_type": "json",
 							"secret":       "********",
-							"insecure_ssl": "0",
+							"insecure_ssl": "false",
 						},
 						Active: true,
 					}),
