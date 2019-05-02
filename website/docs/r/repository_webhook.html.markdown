@@ -28,8 +28,6 @@ resource "github_repository" "repo" {
 resource "github_repository_webhook" "foo" {
   repository = "${github_repository.repo.name}"
 
-  name = "web"
-
   configuration {
     url          = "https://google.de/"
     content_type = "form"
@@ -45,8 +43,6 @@ resource "github_repository_webhook" "foo" {
 ## Argument Reference
 
 The following arguments are supported:
-
-* `name` - (Required) The type of the webhook. `web` is the only option.
 
 * `repository` - (Required) The repository of the webhook.
 

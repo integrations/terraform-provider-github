@@ -2,12 +2,11 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,12 +22,6 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGithubOrganizationWebhookName,
-			},
 			"events": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -53,13 +46,6 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 	}
 }
 
-func validateGithubOrganizationWebhookName(v interface{}, k string) (ws []string, errors []error) {
-	if v.(string) != "web" {
-		errors = append(errors, fmt.Errorf("Github: name can only be web"))
-	}
-	return
-}
-
 func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hook {
 	events := []string{}
 	eventSet := d.Get("events").(*schema.Set)
@@ -68,7 +54,6 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 	}
 
 	hook := &github.Hook{
-		Name:   github.String(d.Get("name").(string)),
 		URL:    github.String(d.Get("url").(string)),
 		Events: events,
 		Active: github.Bool(d.Get("active").(bool)),
@@ -89,8 +74,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization webhook: %s (%s)",
-		webhookObj.GetName(), orgName)
+	log.Printf("[DEBUG] Creating organization webhook: %d (%s)", webhookObj.GetID(), orgName)
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 
 	if err != nil {
@@ -132,7 +116,6 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)

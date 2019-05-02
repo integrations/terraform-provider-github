@@ -7,8 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceGithubBranchProtection() *schema.Resource {
@@ -95,6 +96,12 @@ func resourceGithubBranchProtection() *schema.Resource {
 						"require_code_owner_reviews": {
 							Type:     schema.TypeBool,
 							Optional: true,
+						},
+						"required_approving_review_count": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1,
+							ValidateFunc: validation.IntBetween(1, 6),
 						},
 					},
 				},
@@ -338,10 +345,11 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
-				"dismissal_users":            schema.NewSet(schema.HashString, users),
-				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
-				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
+				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
+				"dismissal_users":                 schema.NewSet(schema.HashString, users),
+				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
+				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
+				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 			},
 		})
 	}
@@ -427,6 +435,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
+			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
 		}
 
 		return rprr, nil
