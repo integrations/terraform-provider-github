@@ -2,5 +2,15 @@
   "extends": [
     "config:base"
   ],
-  "gomodTidy": true
+  "gomodTidy": true,
+  "ignoreDeps": [
+    "golang.org/x/crypto",
+    "golang.org/x/net",
+    "golang.org/x/sys",
+    "google.golang.org/genproto"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 4
 }
