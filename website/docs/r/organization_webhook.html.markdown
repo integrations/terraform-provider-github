@@ -14,8 +14,6 @@ This resource allows you to create and manage webhooks for GitHub organization.
 
 ```hcl
 resource "github_organization_webhook" "foo" {
-  name = "web"
-
   configuration {
     url          = "https://google.de/"
     content_type = "form"
@@ -31,8 +29,6 @@ resource "github_organization_webhook" "foo" {
 ## Argument Reference
 
 The following arguments are supported:
-
-* `name` - (Required) The type of the webhook. See a list of [available hooks](https://api.github.com/hooks).
 
 * `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
 
