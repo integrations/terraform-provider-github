@@ -1,8 +1,16 @@
-## 1.4.0 (Unreleased)
+## 2.0.0 (Unreleased)
+
+* This release adds support for Terraform 0.12 [GH-181]
+
+BREAKING CHANGES:
+
+* Removed `name` attribute from `github_repository_webhook` and `github_organization_webhook` [GH-181]
 
 FEATURES:
 
+* **New Resource:** `github_organization_block` [GH-181]
 * **New Resource:** `github_user_invitation_accepter` [GH-161]
+* Add `required_approving_review_count` to `github_branch_protection` [GH-181]
 
 BUG FIXES:
 
