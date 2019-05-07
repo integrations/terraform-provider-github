@@ -34,7 +34,8 @@ $ gnumake build
 
 Using the provider
 ----------------------
-## Fill in for each provider
+
+Detailed documentation for the GitHub provider can be found [here](https://www.terraform.io/docs/providers/github/index.html).
 
 Developing the Provider
 ---------------------------
@@ -63,3 +64,38 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```sh
 $ make testacc
 ```
+
+Acceptance test prerequisites
+-----------------------------
+In order to successfully run the full suite of acceptance tests, you will need to have the following:
+
+### GitHub personal access token
+You will need to create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) for
+testing. It will need to have the following scopes selected:
+* repo
+* admin:org
+* admin:public_key
+* admin:repo_hook
+* admin:org_hook
+* user
+* delete_repo
+* admin:gpg_key
+
+Once the token has been created, it must be exported in your environment as `GITHUB_TOKEN`.
+
+### GitHub organization
+If you do not have an organization already that you are comfortable running tests again, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the
+organization must then be exported in your environment as `GITHUB_ORGANIZATION`.
+
+### Test repository
+In the organization you are using above, create a test repository named `test-repo`. Make sure the repository is configured as follows:
+* The description should be `Test description, used in GitHub Terraform provider acceptance test.`
+* The website url should be `http://www.example.com`
+* Create two topics within the repo named `test-topic` and `second-test-topic`
+* In the repo settings, make sure all features and merge button options are enabled.
+
+### GitHub users
+Export your github username (the one you used to create the personal access token above) as `GITHUB_TEST_USER`. You will need to export a
+different github username as `GITHUB_TEST_COLLABORATOR`. Please note that these usernames cannot be the same as each other, and both of them
+must be real github usernames. The collaborator user does not need to be added as a collaborator to your test repo or organization, but as
+the acceptance tests do real things (and will trigger some notifications for this user), you should probably make sure the person you specify knows that you're doing this just to be nice.

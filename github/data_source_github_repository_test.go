@@ -41,7 +41,7 @@ func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
-	fullName := "terraformtesting/test-repo"
+	fullName := testOrganization + "/test-repo"
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -85,13 +85,13 @@ func testRepoCheck() resource.TestCheckFunc {
 		resource.TestCheckResourceAttr("data.github_repository.test", "allow_squash_merge", "true"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "allow_rebase_merge", "true"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "has_downloads", "true"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "full_name", "terraformtesting/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "full_name", testOrganization+"/test-repo"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "default_branch", "master"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "html_url", "https://github.com/terraformtesting/test-repo"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "ssh_clone_url", "git@github.com:terraformtesting/test-repo.git"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "svn_url", "https://github.com/terraformtesting/test-repo"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "git_clone_url", "git://github.com/terraformtesting/test-repo.git"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "http_clone_url", "https://github.com/terraformtesting/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "html_url", "https://github.com/"+testOrganization+"/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "ssh_clone_url", "git@github.com:"+testOrganization+"/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "svn_url", "https://github.com/"+testOrganization+"/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "git_clone_url", "git://github.com/"+testOrganization+"/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "http_clone_url", "https://github.com/"+testOrganization+"/test-repo.git"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "archived", "false"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "topics.#", "2"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "topics.0", "second-test-topic"),
