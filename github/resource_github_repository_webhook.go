@@ -34,6 +34,11 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
+			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
