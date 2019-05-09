@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -277,6 +278,18 @@ func TestAccGithubRepository_templates(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
+			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"TOPIC"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
+			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"-topic"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
+			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"töpic"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
 			{
 				Config: testAccGithubRepositoryConfigTemplates(randString),
 				Check: resource.ComposeTestCheckFunc(
