@@ -1,4 +1,9 @@
 ## 2.1.0 (Unreleased)
+
+ENHANCEMENTS:
+* resource/github_repository: Added validation for lowercase topics ([#165](https://github.com/terraform-providers/terraform-provider-github/issues/165))
+* Added documentation around setting up and running the acceptance tests
+
 ## 2.0.0 (May 02, 2019)
 
 * This release adds support for Terraform 0.12 ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
