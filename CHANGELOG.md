@@ -1,9 +1,9 @@
-## 2.1.0 (Unreleased)
+## 2.1.0 (May 15, 2019)
 
 ENHANCEMENTS:
-* resource/github_repository: Added validation for lowercase topics [GH-223]
-* Added documentation around setting up and running the acceptance tests [GH-221]
-* Added removed `name` attributes back, flagged as `Removed` for better UX [GH-226]
+* resource/github_repository: Added validation for lowercase topics ([#223](https://github.com/terraform-providers/terraform-provider-github/issues/223))
+* Added documentation around setting up and running the acceptance tests ([#221](https://github.com/terraform-providers/terraform-provider-github/issues/221))
+* Added removed `name` attributes back, flagged as `Removed` for better UX ([#226](https://github.com/terraform-providers/terraform-provider-github/issues/226))
 
 ## 2.0.0 (May 02, 2019)
 
