@@ -27,7 +27,7 @@ The following arguments are supported:
 
 * `query` - (Required) Search query. See [documentation for the search syntax](https://help.github.com/articles/understanding-the-search-syntax/).
 
-* `sort` - (Optional) Sorts query. Valid values include `stars`, `fork`, and `updated`. Defaults to `updated`.
+* `sort` - (Optional) Sorts the repositories returned by the specified attribute. Valid values include `stars`, `fork`, and `updated`. Defaults to `updated`.
 
 ## Attributes Reference
 
