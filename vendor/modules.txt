@@ -249,7 +249,7 @@ golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/http/httpguts
-# golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9
+# golang.org/x/oauth2 v0.0.0-20190604054615-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20190502175342-a43fa875dd82
