@@ -85,7 +85,7 @@ func testAccCheckGithubRepositoriesDataSourceConfigWithSort(query, sort string) 
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
 	query = %q
-	sort = %q
+	sort  = %q
 }
 `, query, sort)
 }
