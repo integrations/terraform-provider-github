@@ -672,7 +672,7 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryConfigHasProjects(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
+  name         = "tf-acc-test-%s"
   has_projects = true
 }
 `, randString)
