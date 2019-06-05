@@ -9,11 +9,12 @@ description: |-
 # github_collaborators
 
 Use this data source to retrieve the collaborators for a given repository.
+
 ## Example Usage
 
 ```hcl
 data "github_collaborators" "test" {
-  	owner       = "example_owner"
+    owner       = "example_owner"
     repository  = "example_repository"
 }
 ```
