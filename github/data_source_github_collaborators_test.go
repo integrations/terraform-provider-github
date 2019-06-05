@@ -33,7 +33,7 @@ func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 func testAccCheckGithubCollaboratorsDataSourceConfig(repo string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
-	name = "%s"
+    name = "%s"
 }
 
 data "github_collaborators" "test" {
