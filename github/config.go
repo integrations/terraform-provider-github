@@ -16,6 +16,7 @@ type Config struct {
 	Organization string
 	BaseURL      string
 	Insecure     bool
+	Serial       bool
 }
 
 type Organization struct {
@@ -43,7 +44,9 @@ func (c *Config) Client() (interface{}, error) {
 
 	tc.Transport = NewEtagTransport(tc.Transport)
 
-	tc.Transport = NewRateLimitTransport(tc.Transport)
+	if c.Serial {
+		tc.Transport = NewRateLimitTransport(tc.Transport)
+	}
 
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 

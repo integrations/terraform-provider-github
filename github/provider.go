@@ -33,6 +33,12 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
+			"serial": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["serial"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -82,6 +88,12 @@ func init() {
 
 		"insecure": "Whether server should be accessed " +
 			"without verifying the TLS certificate.",
+
+		"serial": "Whether server should be accessed " +
+			"serially or concurrently. " +
+			"Concurrent is faster but requests may reach Github API " +
+			"rate limit when more than 5000 requests are made " +
+			"within an hour and can't be retried.",
 	}
 }
 
@@ -92,6 +104,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
+			Serial:       d.Get("serial").(bool),
 		}
 
 		meta, err := config.Client()
