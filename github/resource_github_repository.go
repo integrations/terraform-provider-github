@@ -225,6 +225,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("homepage_url", repo.Homepage)
 	d.Set("private", repo.Private)
 	d.Set("has_issues", repo.HasIssues)
+	d.Set("has_projects", repo.HasProjects)
 	d.Set("has_wiki", repo.HasWiki)
 	d.Set("allow_merge_commit", repo.AllowMergeCommit)
 	d.Set("allow_squash_merge", repo.AllowSquashMerge)
