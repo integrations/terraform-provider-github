@@ -139,8 +139,7 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 
 		result, err := flattenGitHubCollaborators(collaborators)
 		if err != nil {
-			//todo make error message better
-			return fmt.Errorf("unable to flatten GitHub Collaborators: %+v", err)
+			return fmt.Errorf("unable to flatten GitHub Collaborators (Owner: %q/Repository: %q) : %+v", owner, repo, err)
 		}
 
 		totalCollaborators = append(totalCollaborators, result...)
