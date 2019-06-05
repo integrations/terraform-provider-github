@@ -21,8 +21,6 @@ func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 				Config: testAccCheckGithubCollaboratorsDataSourceConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_collaborators.test", "collaborator.#"),
-					resource.TestCheckResourceAttr("data.github_collaborators.test", "collaborator.#", "1"),
-					resource.TestCheckResourceAttr("data.github_collaborators.test", "collaborator.0.login", testUser),
 					resource.TestCheckResourceAttr("data.github_collaborators.test", "affiliation", "all"),
 				),
 			},
