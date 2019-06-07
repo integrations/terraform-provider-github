@@ -12,11 +12,11 @@ import (
 )
 
 type Config struct {
-	Token        string
-	Organization string
-	BaseURL      string
-	Insecure     bool
-	Serial       bool
+	Token          string
+	Organization   string
+	BaseURL        string
+	Insecure       bool
+	SerialRequests bool
 }
 
 type Organization struct {
@@ -44,7 +44,7 @@ func (c *Config) Client() (interface{}, error) {
 
 	tc.Transport = NewEtagTransport(tc.Transport)
 
-	if c.Serial {
+	if c.SerialRequests {
 		tc.Transport = NewRateLimitTransport(tc.Transport)
 	}
 
