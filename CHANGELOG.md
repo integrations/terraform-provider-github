@@ -1,7 +1,13 @@
 ## 2.2.0 (Unreleased)
+
+DOCUMENTATION:
+
+* Add `required_approving_review_count` parameter for branch protections ([#220](https://github.com/terraform-providers/terraform-provider-github/pull/220))
+
 ## 2.1.0 (May 15, 2019)
 
 ENHANCEMENTS:
+
 * resource/github_repository: Added validation for lowercase topics ([#223](https://github.com/terraform-providers/terraform-provider-github/issues/223))
 * Added documentation around setting up and running the acceptance tests ([#221](https://github.com/terraform-providers/terraform-provider-github/issues/221))
 * Added removed `name` attributes back, flagged as `Removed` for better UX ([#226](https://github.com/terraform-providers/terraform-provider-github/issues/226))
