@@ -2,11 +2,11 @@ package github
 
 import (
 	"context"
-	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceGithubRepositories() *schema.Resource {
@@ -67,9 +67,9 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
-	fullNames := make([]string, 0, 0)
+	fullNames := make([]string, 0)
 
-	names := make([]string, 0, 0)
+	names := make([]string, 0)
 
 	for {
 		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
