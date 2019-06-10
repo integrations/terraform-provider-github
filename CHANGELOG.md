@@ -1,5 +1,9 @@
 ## 2.2.0 (Unreleased)
 
+BUG FIXES:
+
+* `has_projects` is now importable for the `github_repository` [GH-237]
+
 DOCUMENTATION:
 
 * Add `required_approving_review_count` parameter for branch protections ([#220](https://github.com/terraform-providers/terraform-provider-github/pull/220))
