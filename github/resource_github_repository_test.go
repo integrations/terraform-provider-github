@@ -209,6 +209,29 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_importHasProjects(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigHasProjects(randString),
+			},
+			{
+				ResourceName:      "github_repository.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
 	var repo github.Repository
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
@@ -478,6 +501,9 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if *repo.HasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", *repo.HasIssues, want.HasIssues)
 		}
+		if *repo.HasProjects != want.HasProjects {
+			return fmt.Errorf("got has projects %#v; want %#v", *repo.HasProjects, want.HasProjects)
+		}
 		if *repo.HasWiki != want.HasWiki {
 			return fmt.Errorf("got has wiki %#v; want %#v", *repo.HasWiki, want.HasWiki)
 		}
@@ -641,6 +667,15 @@ resource "github_repository" "foo" {
   auto_init = false
 }
 `, randString, randString)
+}
+
+func testAccGithubRepositoryConfigHasProjects(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  has_projects = true
+}
+`, randString)
 }
 
 func testAccGithubRepositoryUpdateConfig(randString string) string {
