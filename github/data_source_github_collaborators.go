@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceGithubCollaborators() *schema.Resource {
@@ -131,8 +131,7 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 
 	totalCollaborators := make([]interface{}, 0)
 	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
-			owner, repo, options)
+		collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repo, options)
 		if err != nil {
 			return err
 		}
