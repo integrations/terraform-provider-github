@@ -1,5 +1,9 @@
 ## 2.2.0 (Unreleased)
 
+FEATURES:
+
+* **New Datasource** `github_collaborators` [GH-239]
+
 BUG FIXES:
 
 * `has_projects` is now importable for the `github_repository` [GH-237]
