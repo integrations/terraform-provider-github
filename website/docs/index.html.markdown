@@ -51,3 +51,9 @@ The following arguments are supported in the `provider` block:
   There is a number of ways to obtain trusted certificate for free, e.g. from [Let's Encrypt](https://letsencrypt.org/).
   Such trusted certificate *does not require* this option to be enabled.
   Defaults to `false`.
+
+* `serial_requests` - (Optional) Whether the server should be accessed serially or concurrently.
+  Concurrent is faster but requests may reach Github API rate limit when more than 5000 requests are made 
+  within an hour. Concurrent requests can't be retried. This option is better suited for smaller teams or 
+  unfrequent changes. If this is turned off and the request limit is reached errors will not be handled 
+  automatically.

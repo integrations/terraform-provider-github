@@ -93,7 +93,7 @@ func init() {
 			"serially or concurrently. " +
 			"Concurrent is faster but requests may reach Github API " +
 			"rate limit when more than 5000 requests are made " +
-			"within an hour and can't be retried.",
+			"within an hour. Concurrent requests can't be retried.",
 	}
 }
 
