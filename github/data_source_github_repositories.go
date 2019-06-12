@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceGithubRepositories() *schema.Resource {
@@ -17,15 +18,21 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"sort": {
+				Type:         schema.TypeString,
+				Default:      "updated",
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"stars", "fork", "updated"}, false),
+			},
 			"full_names": {
-				Type: schema.TypeSet,
+				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"names": {
-				Type: schema.TypeSet,
+				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -39,9 +46,15 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*Organization).client
 
 	query := d.Get("query").(string)
+	opt := &github.SearchOptions{
+		Sort: d.Get("sort").(string),
+		ListOptions: github.ListOptions{
+			PerPage: 100,
+		},
+	}
 
 	log.Printf("[DEBUG] Searching for GitHub repositories: %q", query)
-	fullNames, names, err := searchGithubRepositories(client, query)
+	fullNames, names, err := searchGithubRepositories(client, query, opt)
 	if err != nil {
 		return err
 	}
@@ -53,15 +66,10 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string) ([]string, []string, error) {
-	fullNames := make([]string, 0, 0)
-	names := make([]string, 0, 0)
+func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
+	fullNames := make([]string, 0)
 
-	opt := &github.SearchOptions{
-		ListOptions: github.ListOptions{
-			PerPage: 100,
-		},
-	}
+	names := make([]string, 0)
 
 	for {
 		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)

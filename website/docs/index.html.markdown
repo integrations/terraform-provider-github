@@ -43,7 +43,8 @@ The following arguments are supported in the `provider` block:
 
 * `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a
   requirement when working with GitHub Enterprise.  It is optional to provide this value and
-  it can also be sourced from the `GITHUB_BASE_URL` environment variable.  The value must end with a slash.
+  it can also be sourced from the `GITHUB_BASE_URL` environment variable.  The value must end with a slash,
+  and generally includes the API version, for instance `https://github.someorg.example/api/v3/`.
 
 * `insecure` - (Optional) Whether server should be accessed without verifying the TLS certificate.
   As the name suggests **this is insecure** and should not be used beyond experiments,
