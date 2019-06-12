@@ -2,11 +2,11 @@
 
 FEATURES:
 
-* **New Datasource** `github_collaborators` [GH-239]
+* **New Datasource** `github_collaborators` ([#239](https://github.com/terraform-providers/terraform-provider-github/pull/239))
 
 BUG FIXES:
 
-* `has_projects` is now importable for the `github_repository` [GH-237]
+* `has_projects` is now importable for the `github_repository` ([#237](https://github.com/terraform-providers/terraform-provider-github/pull/237))
 
 DOCUMENTATION:
 
