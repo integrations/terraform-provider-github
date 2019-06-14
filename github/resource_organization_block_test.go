@@ -21,12 +21,6 @@ func TestAccOrganizationBlock_basic(t *testing.T) {
 					testAccCheckOrganizationBlockExists("github_organization_block.test"),
 				),
 			},
-			{
-				Config: testAccOrganizationBlockConfig_caseInsensitive(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOrganizationBlockExists("github_organization_block.test"),
-				),
-			},
 		},
 	})
 }
@@ -89,14 +83,6 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 		return nil
 	}
-}
-
-func testAccOrganizationBlockConfig_caseInsensitive() string {
-	return `
-resource "github_organization_block" "test" {
-  username = "cGriggs01"
-}
-`
 }
 
 const testAccOrganizationBlockConfig = `

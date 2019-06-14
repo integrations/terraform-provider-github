@@ -20,10 +20,9 @@ func resourceOrganizationBlock() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: caseInsensitive(),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"etag": {
