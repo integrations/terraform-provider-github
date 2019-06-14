@@ -26,6 +26,18 @@ func TestAccGithubMembership_basic(t *testing.T) {
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
 				),
 			},
+		},
+	})
+}
+
+func TestAccGithubMembership_caseInsensitive(t *testing.T) {
+	var membership github.Membership
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubMembershipConfig_caseInsensitive(),
 				Check: resource.ComposeTestCheckFunc(

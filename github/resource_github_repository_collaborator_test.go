@@ -42,6 +42,25 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
+	resourceName := "github_repository_collaborator.test_repo_collaborator"
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 

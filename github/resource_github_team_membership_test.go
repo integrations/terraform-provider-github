@@ -30,16 +30,29 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccGithubTeamMembershipConfig_caseInsensitive(randString, testCollaborator, "member"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
-				),
-			},
-			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "maintainer"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
+	var membership github.Membership
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamMembershipConfig_caseInsensitive(randString, testCollaborator, "member"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 				),
 			},
 		},
