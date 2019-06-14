@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"testing"
+	"unicode"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -24,24 +25,34 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
 		Steps: []resource.TestStep{
+			//{
+			//	Config: testAccGithubBranchProtectionConfig(repoName),
+			//	Check: resource.ComposeTestCheckFunc(
+			//		testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
+			//		testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, []string{"github/foo"}),
+			//		testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
+			//		testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}, true),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "true"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_users.#", "1"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_teams.#", "0"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.require_code_owner_reviews", "true"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "1"),
+			//		resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "0"),
+			//	),
+			//},
 			{
-				Config: testAccGithubBranchProtectionConfig(repoName),
+				Config: testAccGithubBranchProtectionConfig_usersCaseInsensitive(repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
-					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, []string{"github/foo"}),
 					testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
 					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{testUser}, []string{}, true),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "true"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_users.#", "1"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismissal_teams.#", "0"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.require_code_owner_reviews", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "1"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "0"),
 				),
 			},
 			{
@@ -375,6 +386,43 @@ resource "github_branch_protection" "master" {
   }
 }
 `, repoName, repoName, testUser, testUser)
+}
+
+func testAccGithubBranchProtectionConfig_usersCaseInsensitive(repoName string) string {
+	otherCase := []rune(testUser)
+	if unicode.IsUpper(otherCase[0]) {
+		otherCase[0] = unicode.ToLower(otherCase[0])
+	} else {
+		otherCase[0] = unicode.ToUpper(otherCase[0])
+	}
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+  repository = "${github_repository.test.name}"
+  branch     = "master"
+  enforce_admins = true
+
+  required_status_checks {
+    strict         = true
+    contexts       = ["github/foo"]
+  }
+
+  required_pull_request_reviews {
+    dismiss_stale_reviews = true
+    dismissal_users = ["%s"]
+    require_code_owner_reviews = true
+  }
+
+  restrictions {
+    users = ["%s"]
+  }
+}
+`, repoName, repoName, string(otherCase), string(otherCase))
 }
 
 func testAccGithubBranchProtectionUpdateConfig(repoName string) string {

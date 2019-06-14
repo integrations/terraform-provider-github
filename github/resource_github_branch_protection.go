@@ -87,6 +87,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							//DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+							//	return true
+							//},
 						},
 						"dismissal_teams": {
 							Type:     schema.TypeSet,
@@ -159,6 +162,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		branch,
 		protectionRequest,
 	)
+
 	if err != nil {
 		return err
 	}

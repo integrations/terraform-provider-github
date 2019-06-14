@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"unicode"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -23,6 +24,12 @@ func TestAccGithubMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
+				),
+			},
+			{
+				Config: testAccGithubMembershipConfig_caseInsensitive(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 				),
 			},
 		},
@@ -140,3 +147,18 @@ var testAccGithubMembershipConfig string = fmt.Sprintf(`
     role = "member"
   }
 `, testCollaborator)
+
+func testAccGithubMembershipConfig_caseInsensitive() string {
+	otherCase := []rune(testCollaborator)
+	if unicode.IsUpper(otherCase[0]) {
+		otherCase[0] = unicode.ToLower(otherCase[0])
+	} else {
+		otherCase[0] = unicode.ToUpper(otherCase[0])
+	}
+	return fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    username = "%s"
+    role = "member"
+  }
+`, string(otherCase))
+}

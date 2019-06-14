@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"testing"
-
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"strconv"
+	"testing"
+	"unicode"
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
@@ -26,6 +26,12 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
+				),
+			},
+			{
+				Config: testAccGithubTeamMembershipConfig_caseInsensitive(randString, testCollaborator, "member"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 				),
 			},
 			{
@@ -183,4 +189,30 @@ resource "github_team_membership" "test_team_membership" {
   role = "%s"
 }
 `, username, randString, username, role)
+}
+
+func testAccGithubTeamMembershipConfig_caseInsensitive(randString, username, role string) string {
+	otherCase := []rune(testCollaborator)
+	if unicode.IsUpper(otherCase[0]) {
+		otherCase[0] = unicode.ToLower(otherCase[0])
+	} else {
+		otherCase[0] = unicode.ToUpper(otherCase[0])
+	}
+	return fmt.Sprintf(`
+resource "github_membership" "test_org_membership" {
+  username = "%s"
+  role = "member"
+}
+
+resource "github_team" "test_team" {
+  name = "tf-acc-test-team-membership-%s"
+  description = "Terraform acc test group"
+}
+
+resource "github_team_membership" "test_team_membership" {
+  team_id = "${github_team.test_team.id}"
+  username = "%s"
+  role = "%s"
+}
+`, string(otherCase), randString, string(otherCase), role)
 }

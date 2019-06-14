@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"unicode"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -29,6 +30,12 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 					testAccCheckGithubRepositoryCollaboratorPermission(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "permission", expectedPermission),
 					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
 				),
 			},
 		},
@@ -181,4 +188,24 @@ resource "github_repository" "test" {
     permission = "%s"
   }
 `, repoName, testCollaborator, expectedPermission)
+}
+
+func testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName string) string {
+	otherCase := []rune(testCollaborator)
+	if unicode.IsUpper(otherCase[0]) {
+		otherCase[0] = unicode.ToLower(otherCase[0])
+	} else {
+		otherCase[0] = unicode.ToUpper(otherCase[0])
+	}
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+}
+
+  resource "github_repository_collaborator" "test_repo_collaborator" {
+    repository = "${github_repository.test.name}"
+    username = "%s"
+    permission = "%s"
+  }
+`, repoName, string(otherCase), expectedPermission)
 }

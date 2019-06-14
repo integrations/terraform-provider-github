@@ -2,11 +2,10 @@ package github
 
 import (
 	"context"
-	"log"
-	"net/http"
-
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+	"net/http"
 )
 
 func resourceGithubMembership() *schema.Resource {
@@ -21,9 +20,10 @@ func resourceGithubMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: caseInsensitive(),
 			},
 			"role": {
 				Type:         schema.TypeString,

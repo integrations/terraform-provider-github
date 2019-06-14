@@ -21,9 +21,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: caseInsensitive(),
 			},
 			"repository": {
 				Type:     schema.TypeString,
