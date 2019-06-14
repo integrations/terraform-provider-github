@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 	"fmt"
+	"sort"
+	"testing"
+
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/kylelemons/godebug/pretty"
-	"sort"
-	"testing"
 )
 
 func TestAccGithubBranchProtection_basic(t *testing.T) {

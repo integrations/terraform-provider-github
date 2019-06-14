@@ -159,7 +159,6 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		branch,
 		protectionRequest,
 	)
-
 	if err != nil {
 		return err
 	}

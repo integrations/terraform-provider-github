@@ -2,10 +2,11 @@ package github
 
 import (
 	"context"
-	"github.com/google/go-github/v25/github"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
+
+	"github.com/google/go-github/v25/github"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceGithubMembership() *schema.Resource {
