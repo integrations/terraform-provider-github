@@ -211,17 +211,26 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
 
-	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_status_checks: %v", err)
+	if githubProtection != nil {
+		if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
+			return fmt.Errorf("Error setting required_status_checks: %v", err)
+		}
+
+		if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
+			return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
+		}
+
+		if restrictions := githubProtection.Restrictions; restrictions != nil {
+			if err := d.Set("restrictions", flattenRestrictions(restrictions)); err != nil {
+				return fmt.Errorf("Error setting restrictions: %v", err)
+			}
+			return fmt.Errorf("%+v \n\n\n %+v", flattenRestrictions(restrictions)[0].(map[string]interface{})["teams"], flattenRestrictions(restrictions)[0].(map[string]interface{})["users"])
+		}
 	}
 
-	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
-	}
-
-	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting restrictions: %v", err)
-	}
+	//if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
+	//	return fmt.Errorf("Error setting restrictions: %v", err)
+	//}
 
 	return nil
 }
@@ -359,6 +368,40 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 	}
 
 	return d.Set("required_pull_request_reviews", []interface{}{})
+}
+
+func flattenRestrictions(restrictions *github.BranchRestrictions) []interface{} {
+	restrictionDetails := make(map[string]interface{}, 0)
+
+	if users := restrictions.Users; users != nil {
+		restrictionDetails["users"] = flattenRestrictionUsers(users)
+	}
+
+	if teams := restrictions.Teams; teams != nil {
+		restrictionDetails["teams"] = flattenRestrictionTeams(teams)
+	}
+
+	return []interface{}{restrictionDetails}
+}
+
+func flattenRestrictionUsers(users []*github.User) *schema.Set {
+	s := &schema.Set{F: schema.HashString}
+	for _, v := range users {
+		if v != nil && v.Login != nil {
+			s.Add(*v.Login)
+		}
+	}
+	return s
+}
+
+func flattenRestrictionTeams(teams []*github.Team) *schema.Set {
+	s := &schema.Set{F: schema.HashString}
+	for _, v := range teams {
+		if v != nil && v.Slug != nil {
+			s.Add(*v.Slug)
+		}
+	}
+	return s
 }
 
 func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
