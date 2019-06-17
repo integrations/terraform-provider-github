@@ -43,6 +43,9 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 }
 
 func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
+	if len(testCollaborator) == 0 {
+		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
+	}
 	resourceName := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 

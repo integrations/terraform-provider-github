@@ -41,6 +41,9 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 }
 
 func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
+	if len(testCollaborator) == 0 {
+		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
+	}
 	var membership github.Membership
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
