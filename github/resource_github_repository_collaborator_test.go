@@ -32,12 +32,6 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
-			{
-				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
-				),
-			},
 		},
 	})
 }
