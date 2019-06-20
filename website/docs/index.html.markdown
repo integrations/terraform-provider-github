@@ -35,7 +35,9 @@ resource "github_membership" "membership_for_user_x" {
 The following arguments are supported in the `provider` block:
 
 * `token` - (Optional) This is the GitHub personal access token. It must be provided, but
-  it can also be sourced from the `GITHUB_TOKEN` environment variable.
+  it can also be sourced from the `GITHUB_TOKEN` environment variable. Setting the `token`
+  to an empty string will lead the GitHub provider to work in an anonymous mode with the
+  corresponding API [rate limits](https://developer.github.com/v3/#rate-limiting).
 
 * `organization` - (Optional) This is the target GitHub organization to manage. The account
   corresponding to the token will need "owner" privileges for this organization. It must be provided, but

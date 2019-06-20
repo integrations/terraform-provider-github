@@ -28,9 +28,13 @@ type Organization struct {
 func (c *Config) Client() (interface{}, error) {
 	var org Organization
 	org.name = c.Organization
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: c.Token},
-	)
+
+	var ts oauth2.TokenSource
+	if c.Token != "" {
+		ts = oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: c.Token},
+		)
+	}
 
 	ctx := context.Background()
 
@@ -41,7 +45,11 @@ func (c *Config) Client() (interface{}, error) {
 
 	tc := oauth2.NewClient(ctx, ts)
 
-	tc.Transport = NewEtagTransport(tc.Transport)
+	if c.Token != "" {
+		tc.Transport = NewEtagTransport(tc.Transport)
+	} else {
+		tc.Transport = http.DefaultTransport
+	}
 
 	tc.Transport = NewRateLimitTransport(tc.Transport)
 
