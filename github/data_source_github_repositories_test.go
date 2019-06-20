@@ -76,7 +76,7 @@ func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
 func testAccCheckGithubRepositoriesDataSourceConfig(query string) string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "%s"
+  query = "%s"
 }
 `, query)
 }
@@ -84,8 +84,8 @@ data "github_repositories" "test" {
 func testAccCheckGithubRepositoriesDataSourceConfigWithSort(query, sort string) string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "%s"
-	sort  = "%s"
+  query = "%s"
+  sort  = "%s"
 }
 `, query, sort)
 }

@@ -273,16 +273,16 @@ resource "github_repository_webhook" "foo" {
 func testAccGithubRepositoryWebhookUpdateConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "foo-%s"
-  description = "Terraform acceptance tests"
+  name         = "foo-%s"
+  description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues    = true
+  has_wiki      = true
   has_downloads = true
 }
 
@@ -291,7 +291,7 @@ resource "github_repository_webhook" "foo" {
   repository = "foo-%s"
 
   configuration {
-    url = "https://google.de/webhooks"
+    url          = "https://google.de/webhooks"
     content_type = "form"
     insecure_ssl = false
   }

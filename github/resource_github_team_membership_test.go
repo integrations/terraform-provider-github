@@ -169,18 +169,18 @@ func testAccGithubTeamMembershipConfig(randString, username, role string) string
 	return fmt.Sprintf(`
 resource "github_membership" "test_org_membership" {
   username = "%s"
-  role = "member"
+  role     = "member"
 }
 
 resource "github_team" "test_team" {
-  name = "tf-acc-test-team-membership-%s"
+  name        = "tf-acc-test-team-membership-%s"
   description = "Terraform acc test group"
 }
 
 resource "github_team_membership" "test_team_membership" {
-  team_id = "${github_team.test_team.id}"
+  team_id  = "${github_team.test_team.id}"
   username = "%s"
-  role = "%s"
+  role     = "%s"
 }
 `, username, randString, username, role)
 }

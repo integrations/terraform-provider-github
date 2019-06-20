@@ -110,7 +110,7 @@ func testAccGithubUserSshKeyConfig(title string) string {
 	return fmt.Sprintf(`
 resource "github_user_ssh_key" "test" {
   title = "%s"
-  key = "${tls_private_key.test.public_key_openssh}"
+  key   = "${tls_private_key.test.public_key_openssh}"
 }
 
 resource "tls_private_key" "test" {
