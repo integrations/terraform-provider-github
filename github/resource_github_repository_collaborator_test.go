@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/schema"
+	"os"
 	"regexp"
 	"testing"
 	"unicode"
@@ -40,18 +42,26 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	if len(testCollaborator) == 0 {
 		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
 	}
-	resourceName := "github_repository_collaborator.test_repo_collaborator"
+
+	inviteeToken := os.Getenv("GITHUB_TEST_COLLABORATOR_TOKEN")
+	if inviteeToken == "" {
+		t.Skip("GITHUB_TEST_COLLABORATOR_TOKEN was not provided, skipping test")
+	}
+
+	resourceName := "github_repository_collaborator.test"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
+	var providers []*schema.Provider
+
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories(&providers),
+		CheckDestroy:      func(s *terraform.State) error { return nil },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName),
+				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(inviteeToken, repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "username", testCollaborator),
 				),
 			},
 		},
@@ -206,7 +216,7 @@ resource "github_repository" "test" {
 `, repoName, testCollaborator, expectedPermission)
 }
 
-func testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName string) string {
+func testAccGithubRepositoryCollaboratorConfig_caseInsensitive(inviteeToken, repoName string) string {
 	otherCase := []rune(testCollaborator)
 	if unicode.IsUpper(otherCase[0]) {
 		otherCase[0] = unicode.ToLower(otherCase[0])
@@ -214,14 +224,24 @@ func testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName string) 
 		otherCase[0] = unicode.ToUpper(otherCase[0])
 	}
 	return fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
+provider "github" {
+  alias = "invitee"
+  token = "%s"
 }
 
-  resource "github_repository_collaborator" "test_repo_collaborator" {
-    repository = "${github_repository.test.name}"
-    username = "%s"
-    permission = "%s"
-  }
-`, repoName, string(otherCase), expectedPermission)
+resource "github_repository" "test" {
+  name = "%s"
+}
+
+resource "github_repository_collaborator" "test" {
+  repository = "${github_repository.test.name}"
+  username = "%s"
+  permission = "push"
+}
+
+resource "github_user_invitation_accepter" "test" {
+  provider = "github.invitee"
+  invitation_id = "${github_repository_collaborator.test.invitation_id}"
+}
+`, inviteeToken, repoName, string(otherCase))
 }

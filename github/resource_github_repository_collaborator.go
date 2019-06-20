@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -84,7 +85,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
+	invitation, username, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -113,14 +114,14 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		}
 
 		for _, c := range collaborators {
-			if *c.Login == username {
+			if strings.ToLower(*c.Login) == strings.ToLower(username) {
 				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
 				}
 
 				d.Set("repository", repoName)
-				d.Set("username", username)
+				d.Set("username", *c.Login)
 				d.Set("permission", permissionName)
 				return nil
 			}
@@ -150,7 +151,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
+	invitation, username, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -164,17 +165,17 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	return err
 }
 
-func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
+func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, string, error) {
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repo, opt)
 		if err != nil {
-			return nil, err
+			return nil, collaborator, err
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == collaborator {
-				return i, nil
+			if strings.ToLower(*i.Invitee.Login) == strings.ToLower(collaborator) {
+				return i, *i.Invitee.Login, nil
 			}
 		}
 
@@ -183,5 +184,5 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 		opt.Page = resp.NextPage
 	}
-	return nil, nil
+	return nil, collaborator, nil
 }
