@@ -12,6 +12,14 @@ const (
 	maxPerPage = 100
 )
 
+func checkOrganization(meta interface{}) error {
+	if meta.(*Organization).name == "" {
+		return fmt.Errorf("This resource requires GitHub organization to be set on the provider.")
+	}
+
+	return nil
+}
+
 func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (we []string, errors []error) {
 		value := v.(string)

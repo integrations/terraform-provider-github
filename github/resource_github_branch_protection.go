@@ -139,6 +139,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 }
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -169,6 +174,11 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	repoName, branch, err := parseTwoPartID(d.Id())
@@ -223,6 +233,11 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
@@ -266,6 +281,11 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	repoName, branch, err := parseTwoPartID(d.Id())
 	if err != nil {
