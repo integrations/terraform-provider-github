@@ -210,33 +210,33 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 func testAccGithubRepositoryWebhookConfig(randString string) string {
 	return fmt.Sprintf(`
-    resource "github_repository" "foo" {
-      name = "foo-%s"
-      description = "Terraform acceptance tests"
-      homepage_url = "http://example.com/"
+resource "github_repository" "foo" {
+  name         = "foo-%s"
+  description  = "Terraform acceptance tests"
+  homepage_url = "http://example.com/"
 
-      # So that acceptance tests can be run in a github organization
-      # with no billing
-      private = false
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
 
-      has_issues = true
-      has_wiki = true
-      has_downloads = true
-    }
+  has_issues    = true
+  has_wiki      = true
+  has_downloads = true
+}
 
-    resource "github_repository_webhook" "foo" {
-      depends_on = ["github_repository.foo"]
-      repository = "foo-%s"
+resource "github_repository_webhook" "foo" {
+  depends_on = ["github_repository.foo"]
+  repository = "foo-%s"
 
-      configuration {
-        url = "https://google.de/webhook"
-        content_type = "json"
-        insecure_ssl = true
-      }
+  configuration {
+    url          = "https://google.de/webhook"
+    content_type = "json"
+    insecure_ssl = true
+  }
 
-      events = ["pull_request"]
-    }
-    `, randString, randString)
+  events = ["pull_request"]
+}
+`, randString, randString)
 }
 
 func testAccGithubRepositoryWebhookConfig_secret(randString string) string {

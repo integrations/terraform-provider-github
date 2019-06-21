@@ -158,5 +158,6 @@ resource "github_repository_project" "test" {
   name       = "test-project"
   repository = "%[1]s"
   body       = "this is a test project"
-}`, repoName)
+}
+`, repoName)
 }
