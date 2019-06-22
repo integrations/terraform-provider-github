@@ -19,7 +19,7 @@ resource "github_repository" "example" {
 
 resource "github_repository_collaborator" "example" {
   repository = "${github_repository.example.name}"
-  username = "example-username"
+  username   = "example-username"
   permission = "push"
 }
 
@@ -29,7 +29,7 @@ provider "github" {
 }
 
 resource "github_user_invitation_accepter" "example" {
-  provider = "github.invitee"
+  provider      = "github.invitee"
   invitation_id = "${github_repository_collaborator.example.invitation_id}"
 }
 ```
