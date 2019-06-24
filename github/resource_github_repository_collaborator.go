@@ -85,10 +85,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, username, err := findRepoInvitation(client, ctx, orgName, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
+		username = *invitation.Invitee.Login
 		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
@@ -121,7 +122,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 				}
 
 				d.Set("repository", repoName)
-				d.Set("username", *c.Login)
+				d.Set("username", c.Login)
 				d.Set("permission", permissionName)
 				return nil
 			}
@@ -151,10 +152,11 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// Delete any pending invitations
-	invitation, username, err := findRepoInvitation(client, ctx, orgName, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
+		username = *invitation.Invitee.Login
 		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}
@@ -165,17 +167,17 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	return err
 }
 
-func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, string, error) {
+func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repo, opt)
 		if err != nil {
-			return nil, collaborator, err
+			return nil, err
 		}
 
 		for _, i := range invitations {
 			if strings.ToLower(*i.Invitee.Login) == strings.ToLower(collaborator) {
-				return i, *i.Invitee.Login, nil
+				return i, nil
 			}
 		}
 
@@ -184,5 +186,5 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 		opt.Page = resp.NextPage
 	}
-	return nil, collaborator, nil
+	return nil, nil
 }

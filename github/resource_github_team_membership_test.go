@@ -41,7 +41,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 }
 
 func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
-	if len(testCollaborator) == 0 {
+	if testCollaborator == "" {
 		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
 	}
 	var membership github.Membership
