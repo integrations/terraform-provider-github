@@ -203,11 +203,11 @@ resource "github_repository" "test" {
 	name = "%s"
 }
 
-  resource "github_repository_collaborator" "test_repo_collaborator" {
+resource "github_repository_collaborator" "test_repo_collaborator" {
     repository = "${github_repository.test.name}"
     username = "%s"
     permission = "%s"
-  }
+}
 `, repoName, username, expectedPermission)
 }
 
