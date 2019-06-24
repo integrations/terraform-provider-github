@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
-	"unicode"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -20,18 +19,8 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	}
 
 	var membership github.Membership
-	var otherMembership github.Membership
 
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	oc := []rune(testCollaborator)
-	if unicode.IsUpper(oc[0]) {
-		oc[0] = unicode.ToLower(oc[0])
-	} else {
-		oc[0] = unicode.ToUpper(oc[0])
-	}
-
-	otherCase := string(oc)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -52,8 +41,39 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
 				),
 			},
+		},
+	})
+}
+
+func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	var membership github.Membership
+	var otherMembership github.Membership
+
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig(randString, otherCase, "maintainer"),
+				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
+				),
+			},
+			{
+				Config: testAccGithubTeamMembershipConfig(randString, otherCase, "member"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &otherMembership),
 					testAccGithubTeamMembershipTheSame(&membership, &otherMembership),

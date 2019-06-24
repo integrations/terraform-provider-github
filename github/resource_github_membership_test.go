@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"unicode"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -18,16 +17,6 @@ func TestAccGithubMembership_basic(t *testing.T) {
 	}
 
 	var membership github.Membership
-	var otherMembership github.Membership
-
-	oc := []rune(testCollaborator)
-	if unicode.IsUpper(oc[0]) {
-		oc[0] = unicode.ToLower(oc[0])
-	} else {
-		oc[0] = unicode.ToUpper(oc[0])
-	}
-
-	otherCase := string(oc)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,6 +28,35 @@ func TestAccGithubMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubMembership_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	var membership github.Membership
+	var otherMembership github.Membership
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubMembershipConfig(testCollaborator),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 				),
 			},
 			{

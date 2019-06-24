@@ -2,6 +2,7 @@ package github
 
 import (
 	"testing"
+	"unicode"
 )
 
 func TestAccGithubUtilRole_validation(t *testing.T) {
@@ -55,4 +56,22 @@ func TestAccGithubUtilTwoPartID(t *testing.T) {
 	if parsedPartTwo != "bar" {
 		t.Fatalf("Expected parsed part two bar, actual: %s", parsedPartTwo)
 	}
+}
+
+func flipUsernameCase(username string) string {
+	oc := []rune(username)
+
+	for i, ch := range oc {
+		if unicode.IsLetter(ch) {
+
+			if unicode.IsUpper(ch) {
+				oc[i] = unicode.ToLower(ch)
+			} else {
+				oc[i] = unicode.ToUpper(ch)
+			}
+			break
+		}
+
+	}
+	return string(oc)
 }

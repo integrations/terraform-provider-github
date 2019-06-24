@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"unicode"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -25,17 +24,6 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	resourceName := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
-	var origInvitation github.RepositoryInvitation
-	var otherInvitation github.RepositoryInvitation
-
-	oc := []rune(testCollaborator)
-	if unicode.IsUpper(oc[0]) {
-		oc[0] = unicode.ToLower(oc[0])
-	} else {
-		oc[0] = unicode.ToUpper(oc[0])
-	}
-	otherCase := string(oc)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -45,10 +33,41 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
-					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
 					testAccCheckGithubRepositoryCollaboratorPermission(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "permission", expectedPermission),
 					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	resourceName := "github_repository_collaborator.test_repo_collaborator"
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+	var origInvitation github.RepositoryInvitation
+	var otherInvitation github.RepositoryInvitation
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
 				),
 			},
 			{
