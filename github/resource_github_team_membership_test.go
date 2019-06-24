@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -15,7 +16,18 @@ import (
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
+	var otherMembership github.Membership
+
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	oc := []rune(testCollaborator)
+	if unicode.IsUpper(oc[0]) {
+		oc[0] = unicode.ToLower(oc[0])
+	} else {
+		oc[0] = unicode.ToUpper(oc[0])
+	}
+
+	otherCase := string(oc)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -36,26 +48,11 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
-	}
-	var membership github.Membership
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig_caseInsensitive(randString, testCollaborator, "member"),
+				Config: testAccGithubTeamMembershipConfig(randString, otherCase, "maintainer"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &otherMembership),
+					testAccGithubTeamMembershipTheSame(&membership, &otherMembership),
 				),
 			},
 		},
@@ -208,28 +205,12 @@ resource "github_team_membership" "test_team_membership" {
 `, username, randString, username, role)
 }
 
-func testAccGithubTeamMembershipConfig_caseInsensitive(randString, username, role string) string {
-	otherCase := []rune(testCollaborator)
-	if unicode.IsUpper(otherCase[0]) {
-		otherCase[0] = unicode.ToLower(otherCase[0])
-	} else {
-		otherCase[0] = unicode.ToUpper(otherCase[0])
+func testAccGithubTeamMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *orig.URL != *other.URL {
+			return errors.New("users are different")
+		}
+
+		return nil
 	}
-	return fmt.Sprintf(`
-resource "github_membership" "test_org_membership" {
-  username = "%s"
-  role = "member"
-}
-
-resource "github_team" "test_team" {
-  name = "tf-acc-test-team-membership-%s"
-  description = "Terraform acc test group"
-}
-
-resource "github_team_membership" "test_team_membership" {
-  team_id = "${github_team.test_team.id}"
-  username = "%s"
-  role = "%s"
-}
-`, string(otherCase), randString, string(otherCase), role)
 }

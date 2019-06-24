@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"unicode"
@@ -12,7 +13,21 @@ import (
 )
 
 func TestAccGithubMembership_basic(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
 	var membership github.Membership
+	var otherMembership github.Membership
+
+	oc := []rune(testCollaborator)
+	if unicode.IsUpper(oc[0]) {
+		oc[0] = unicode.ToLower(oc[0])
+	} else {
+		oc[0] = unicode.ToUpper(oc[0])
+	}
+
+	otherCase := string(oc)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,31 +35,17 @@ func TestAccGithubMembership_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig,
+				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubMembership_caseInsensitive(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
-	}
-	var membership github.Membership
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig_caseInsensitive(),
+				Config: testAccGithubMembershipConfig(otherCase),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
+					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &otherMembership),
+					testAccGithubMembershipTheSame(&membership, &otherMembership),
 				),
 			},
 		},
@@ -58,7 +59,7 @@ func TestAccGithubMembership_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig,
+				Config: testAccGithubMembershipConfig(testCollaborator),
 			},
 			{
 				ResourceName:      "github_membership.test_org_membership",
@@ -156,24 +157,21 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 	}
 }
 
-var testAccGithubMembershipConfig string = fmt.Sprintf(`
-  resource "github_membership" "test_org_membership" {
-    username = "%s"
-    role = "member"
-  }
-`, testCollaborator)
-
-func testAccGithubMembershipConfig_caseInsensitive() string {
-	otherCase := []rune(testCollaborator)
-	if unicode.IsUpper(otherCase[0]) {
-		otherCase[0] = unicode.ToLower(otherCase[0])
-	} else {
-		otherCase[0] = unicode.ToUpper(otherCase[0])
-	}
+func testAccGithubMembershipConfig(username string) string {
 	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
     username = "%s"
     role = "member"
   }
-`, string(otherCase))
+`, username)
+}
+
+func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *orig.URL != *other.URL {
+			return errors.New("users are different")
+		}
+
+		return nil
+	}
 }

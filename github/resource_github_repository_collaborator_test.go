@@ -18,33 +18,11 @@ import (
 const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
-	resourceName := "github_repository_collaborator.test_repo_collaborator"
-	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
-					testAccCheckGithubRepositoryCollaboratorPermission(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "permission", expectedPermission),
-					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
-				),
-			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
-		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is 0")
+		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is not set")
 	}
 
-	resourceName := "github_repository_collaborator.test"
+	resourceName := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
 	var origInvitation github.RepositoryInvitation
@@ -61,19 +39,22 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: func(s *terraform.State) error { return nil },
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName, otherCase),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorInvited(repoName, otherCase, &otherInvitation),
-					resource.TestCheckResourceAttr(resourceName, "username", testCollaborator),
+					testAccCheckGithubRepositoryCollaboratorExists(resourceName),
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
+					testAccCheckGithubRepositoryCollaboratorPermission(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "permission", expectedPermission),
+					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName, testCollaborator),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, otherCase),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, otherCase, &otherInvitation),
 					resource.TestCheckResourceAttr(resourceName, "username", testCollaborator),
 					testAccGithubRepositoryCollaboratorTheSame(&origInvitation, &otherInvitation),
 				),
@@ -91,7 +72,7 @@ func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
 			},
 			{
 				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
@@ -216,7 +197,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 	}
 }
 
-func testAccGithubRepositoryCollaboratorConfig(repoName string) string {
+func testAccGithubRepositoryCollaboratorConfig(repoName, username string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
 	name = "%s"
@@ -227,21 +208,7 @@ resource "github_repository" "test" {
     username = "%s"
     permission = "%s"
   }
-`, repoName, testCollaborator, expectedPermission)
-}
-
-func testAccGithubRepositoryCollaboratorConfig_caseInsensitive(repoName, collaborator string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "test" {
-  name = "%s"
-}
-
-resource "github_repository_collaborator" "test" {
-  repository = "${github_repository.test.name}"
-  username = "%s"
-  permission = "push"
-}
-`, repoName, collaborator)
+`, repoName, username, expectedPermission)
 }
 
 func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, invitation *github.RepositoryInvitation) resource.TestCheckFunc {
