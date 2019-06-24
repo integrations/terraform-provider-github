@@ -177,18 +177,18 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 func testAccGithubTeamRepositoryConfig(randString, repoName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "tf-acc-test-team-repo-%s"
-	description = "Terraform acc test group"
+  name        = "tf-acc-test-team-repo-%s"
+  description = "Terraform acc test group"
 }
 
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-	team_id = "${github_team.test_team.id}"
-	repository = "${github_repository.test.name}"
-	permission = "pull"
+  team_id    = "${github_team.test_team.id}"
+  repository = "${github_repository.test.name}"
+  permission = "pull"
 }
 `, randString, repoName)
 }
@@ -196,18 +196,18 @@ resource "github_team_repository" "test_team_test_repo" {
 func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "tf-acc-test-team-repo-%s"
-	description = "Terraform acc test group"
+  name        = "tf-acc-test-team-repo-%s"
+  description = "Terraform acc test group"
 }
 
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-	team_id = "${github_team.test_team.id}"
-	repository = "${github_repository.test.name}"
-	permission = "push"
+  team_id    = "${github_team.test_team.id}"
+  repository = "${github_repository.test.name}"
+  permission = "push"
 }
 `, randString, repoName)
 }

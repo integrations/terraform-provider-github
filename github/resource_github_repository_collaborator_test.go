@@ -200,13 +200,13 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 func testAccGithubRepositoryCollaboratorConfig(repoName, username string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
 resource "github_repository_collaborator" "test_repo_collaborator" {
-    repository = "${github_repository.test.name}"
-    username = "%s"
-    permission = "%s"
+  repository = "${github_repository.test.name}"
+  username   = "%s"
+  permission = "%s"
 }
 `, repoName, username, expectedPermission)
 }
