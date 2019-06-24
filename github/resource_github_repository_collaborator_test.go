@@ -19,7 +19,7 @@ const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	if testCollaborator == "" {
-		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is not set")
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
 
 	resourceName := "github_repository_collaborator.test_repo_collaborator"

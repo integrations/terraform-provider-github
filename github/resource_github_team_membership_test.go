@@ -16,7 +16,7 @@ import (
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	if testCollaborator == "" {
-		t.Skip("Skipping because length of `GITHUB_TEST_COLLABORATOR` is not set")
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
 
 	var membership github.Membership
