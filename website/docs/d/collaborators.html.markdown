@@ -14,8 +14,8 @@ Use this data source to retrieve the collaborators for a given repository.
 
 ```hcl
 data "github_collaborators" "test" {
-    owner       = "example_owner"
-    repository  = "example_repository"
+  owner      = "example_owner"
+  repository = "example_repository"
 }
 ```
 

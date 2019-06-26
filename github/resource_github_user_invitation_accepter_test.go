@@ -56,18 +56,18 @@ provider "github" {
 
 resource "github_repository" "test" {
   provider = "github.main"
-  name = "%s"
+  name     = "%s"
 }
 
 resource "github_repository_collaborator" "test" {
-  provider = "github.main"
+  provider   = "github.main"
   repository = "${github_repository.test.name}"
-  username = "%s"
+  username   = "%s"
   permission = "push"
 }
 
 resource "github_user_invitation_accepter" "test" {
-  provider = "github.invitee"
+  provider      = "github.invitee"
   invitation_id = "${github_repository_collaborator.test.invitation_id}"
 }
 `, inviteeToken, repoName, testCollaborator)

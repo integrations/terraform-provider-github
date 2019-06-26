@@ -102,7 +102,7 @@ func testRepoCheck() resource.TestCheckFunc {
 func testAccCheckGithubRepositoryDataSourceConfig_fullName(fullName string) string {
 	return fmt.Sprintf(`
 data "github_repository" "test" {
-	full_name = "%s"
+  full_name = "%s"
 }
 `, fullName)
 }
@@ -110,7 +110,7 @@ data "github_repository" "test" {
 func testAccCheckGithubRepositoryDataSourceConfig_name(name string) string {
 	return fmt.Sprintf(`
 data "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 `, name)
 }

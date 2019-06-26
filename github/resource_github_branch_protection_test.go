@@ -355,18 +355,18 @@ resource "github_repository" "test" {
 }
 
 resource "github_branch_protection" "master" {
-  repository = "${github_repository.test.name}"
-  branch     = "master"
+  repository     = "${github_repository.test.name}"
+  branch         = "master"
   enforce_admins = true
 
   required_status_checks {
-    strict         = true
-    contexts       = ["github/foo"]
+    strict   = true
+    contexts = ["github/foo"]
   }
 
   required_pull_request_reviews {
-    dismiss_stale_reviews = true
-    dismissal_users = ["%s"]
+    dismiss_stale_reviews      = true
+    dismissal_users            = ["%s"]
     require_code_owner_reviews = true
   }
 
@@ -390,8 +390,8 @@ resource "github_branch_protection" "master" {
   branch     = "master"
 
   required_status_checks {
-    strict         = false
-    contexts       = ["github/bar"]
+    strict   = false
+    contexts = ["github/bar"]
   }
 }
 `, repoName, repoName)
@@ -406,8 +406,8 @@ resource "github_repository" "test" {
 }
 
 resource "github_branch_protection" "master" {
-  repository = "${github_repository.test.name}"
-  branch     = "master"
+  repository     = "${github_repository.test.name}"
+  branch         = "master"
   enforce_admins = true
 
   required_status_checks {
@@ -451,9 +451,9 @@ resource "github_team_repository" "second" {
 }
 
 resource "github_branch_protection" "master" {
-  depends_on = ["github_team_repository.first", "github_team_repository.second"]
-  repository = "${github_repository.test.name}"
-  branch     = "master"
+  depends_on     = ["github_team_repository.first", "github_team_repository.second"]
+  repository     = "${github_repository.test.name}"
+  branch         = "master"
   enforce_admins = true
 
   required_status_checks {
@@ -461,7 +461,7 @@ resource "github_branch_protection" "master" {
 
   required_pull_request_reviews {
     dismiss_stale_reviews = true
-    dismissal_teams = ["${github_team.first.slug}", "${github_team.second.slug}"]
+    dismissal_teams       = ["${github_team.first.slug}", "${github_team.second.slug}"]
   }
 
   restrictions {

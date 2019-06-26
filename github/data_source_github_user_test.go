@@ -47,7 +47,7 @@ func TestAccGithubUserDataSource_existing(t *testing.T) {
 func testAccCheckGithubUserDataSourceConfig(username string) string {
 	return fmt.Sprintf(`
 data "github_user" "test" {
-	username = "%s"
+  username = "%s"
 }
 `, username)
 }

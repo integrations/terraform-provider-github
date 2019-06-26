@@ -7,7 +7,8 @@ FEATURES:
 BUG FIXES:
 
 * `has_projects` is now importable for the `github_repository` [GH-237]
-
+* GitHub usernames are now case insensitive [GH-241]
+ 
 DOCUMENTATION:
 
 * Add `required_approving_review_count` parameter for branch protections ([#220](https://github.com/terraform-providers/terraform-provider-github/pull/220))

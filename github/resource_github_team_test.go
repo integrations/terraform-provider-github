@@ -208,9 +208,9 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 func testAccGithubTeamConfig(teamName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
-	name = "%s"
-	description = "Terraform acc test group"
-	privacy = "secret"
+  name        = "%s"
+  description = "Terraform acc test group"
+  privacy     = "secret"
 }
 `, teamName)
 }
@@ -218,9 +218,9 @@ resource "github_team" "foo" {
 func testAccGithubTeamUpdateConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
-	name = "tf-acc-test-updated-%s"
-	description = "Terraform acc test group - updated"
-	privacy = "closed"
+  name        = "tf-acc-test-updated-%s"
+  description = "Terraform acc test group - updated"
+  privacy     = "closed"
 }
 `, randString)
 }
@@ -228,15 +228,15 @@ resource "github_team" "foo" {
 func testAccGithubTeamHierarchicalConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_team" "parent" {
-	name = "tf-acc-parent-%s"
-	description = "Terraform acc test parent team"
-	privacy = "closed"
+  name        = "tf-acc-parent-%s"
+  description = "Terraform acc test parent team"
+  privacy     = "closed"
 }
 resource "github_team" "child" {
-	name = "tf-acc-child-%s"
-	description = "Terraform acc test child team"
-	privacy = "closed"
-	parent_team_id = "${github_team.parent.id}"
+  name           = "tf-acc-child-%s"
+  description    = "Terraform acc test child team"
+  privacy        = "closed"
+  parent_team_id = "${github_team.parent.id}"
 }
 `, randString, randString)
 }
