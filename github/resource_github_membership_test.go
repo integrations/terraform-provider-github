@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -11,6 +12,10 @@ import (
 )
 
 func TestAccGithubMembership_basic(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
 	var membership github.Membership
 
 	resource.Test(t, resource.TestCase{
@@ -19,10 +24,46 @@ func TestAccGithubMembership_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig,
+				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubMembership_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	var membership github.Membership
+	var otherMembership github.Membership
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubMembershipConfig(testCollaborator),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
+				),
+			},
+			{
+				Config: testAccGithubMembershipConfig(otherCase),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &otherMembership),
+					testAccGithubMembershipTheSame(&membership, &otherMembership),
 				),
 			},
 		},
@@ -36,7 +77,7 @@ func TestAccGithubMembership_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig,
+				Config: testAccGithubMembershipConfig(testCollaborator),
 			},
 			{
 				ResourceName:      "github_membership.test_org_membership",
@@ -134,9 +175,21 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 	}
 }
 
-var testAccGithubMembershipConfig string = fmt.Sprintf(`
+func testAccGithubMembershipConfig(username string) string {
+	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
     username = "%s"
     role = "member"
   }
-`, testCollaborator)
+`, username)
+}
+
+func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *orig.URL != *other.URL {
+			return errors.New("users are different")
+		}
+
+		return nil
+	}
+}
