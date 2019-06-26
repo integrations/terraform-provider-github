@@ -87,7 +87,7 @@ func TestProvider_individual(t *testing.T) {
 				),
 			},
 			{
-				Config:      individualProviderConfig + testAccGithubMembershipConfig,
+				Config:      individualProviderConfig + testAccGithubMembershipConfig(username),
 				ExpectError: regexp.MustCompile("This resource requires GitHub organization to be set on the provider."),
 			},
 		},
