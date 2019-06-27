@@ -88,7 +88,7 @@ func TestProvider_insecure(t *testing.T) {
 `
 
 	username := "hashibot"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
