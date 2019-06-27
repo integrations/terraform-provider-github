@@ -12,6 +12,14 @@ const (
 	maxPerPage = 100
 )
 
+func checkOrganization(meta interface{}) error {
+	if meta.(*Organization).name == "" {
+		return fmt.Errorf("This resource requires GitHub organization to be set on the provider.")
+	}
+
+	return nil
+}
+
 func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	return func(k, old, new string, d *schema.ResourceData) bool {
 		return strings.ToLower(old) == strings.ToLower(new)

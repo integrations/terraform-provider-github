@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -16,6 +17,7 @@ type Config struct {
 	Organization string
 	BaseURL      string
 	Insecure     bool
+	Individual   bool
 }
 
 type Organization struct {
@@ -27,7 +29,7 @@ type Organization struct {
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
 	var org Organization
-	org.name = c.Organization
+
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
@@ -37,6 +39,14 @@ func (c *Config) Client() (interface{}, error) {
 	if c.Insecure {
 		insecureClient := insecureHttpClient()
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
+	}
+
+	if c.Individual {
+		org.name = ""
+	} else if c.Organization != "" {
+		org.name = c.Organization
+	} else {
+		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
 	}
 
 	tc := oauth2.NewClient(ctx, ts)

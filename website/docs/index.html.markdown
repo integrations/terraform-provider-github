@@ -52,3 +52,5 @@ The following arguments are supported in the `provider` block:
   There is a number of ways to obtain trusted certificate for free, e.g. from [Let's Encrypt](https://letsencrypt.org/).
   Such trusted certificate *does not require* this option to be enabled.
   Defaults to `false`.
+
+* `individual`: (Optional) Whether to run outside an organization.

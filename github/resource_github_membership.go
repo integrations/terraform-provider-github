@@ -41,6 +41,11 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -69,6 +74,11 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -107,12 +117,17 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
-	_, err := client.Organizations.RemoveOrgMembership(ctx,
+	_, err = client.Organizations.RemoveOrgMembership(ctx,
 		d.Get("username").(string), orgName)
 
 	return err

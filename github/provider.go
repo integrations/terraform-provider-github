@@ -17,7 +17,7 @@ func Provider() terraform.ResourceProvider {
 			},
 			"organization": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 				Description: descriptions["organization"],
 			},
@@ -32,6 +32,12 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
+			},
+			"individual": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["individual"],
 			},
 		},
 
@@ -77,12 +83,15 @@ func init() {
 	descriptions = map[string]string{
 		"token": "The OAuth token used to connect to GitHub.",
 
-		"organization": "The GitHub organization name to manage.",
+		"organization": "The GitHub organization name to manage. " +
+			"If `individual` is false, organization is required.",
 
 		"base_url": "The GitHub Base API URL",
 
 		"insecure": "Whether server should be accessed " +
 			"without verifying the TLS certificate.",
+
+		"individual": "Whether to run outside an organization.",
 	}
 }
 
@@ -93,6 +102,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
+			Individual:   d.Get("individual").(bool),
 		}
 
 		meta, err := config.Client()

@@ -34,13 +34,18 @@ func resourceOrganizationBlock() *schema.Resource {
 }
 
 func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	ctx := context.Background()
 	username := d.Get("username").(string)
 
 	log.Printf("[DEBUG] Creating organization block: %s (%s)", username, orgName)
-	_, err := client.Organizations.BlockUser(ctx, orgName, username)
+	_, err = client.Organizations.BlockUser(ctx, orgName, username)
 	if err != nil {
 		return err
 	}
