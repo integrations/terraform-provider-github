@@ -7,6 +7,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `github_branch_protection`: Added `require_signed_commits` property [GH-214] 
+* `github_provider`: Added optional `individual` attribute, and made `organization` optional [GH-242]
 
 BUG FIXES:
 
