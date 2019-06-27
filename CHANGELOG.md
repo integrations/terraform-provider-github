@@ -37,7 +37,7 @@ FEATURES:
 
 * **New Resource:** `github_organization_block` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 * **New Resource:** `github_user_invitation_accepter` ([#161](https://github.com/terraform-providers/terraform-provider-github/issues/161))
-* `resource/github_branch_protection`: Added `required_approving_review_count` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `resource/github_branch_protection`: Added `required_approving_review_count` property ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 
 BUG FIXES:
 
