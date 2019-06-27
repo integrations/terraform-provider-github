@@ -30,7 +30,8 @@ ENHANCEMENTS:
 
 BREAKING CHANGES:
 
-* `github_repository_webhook` and `github_organization_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `github_repository_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `github_organization_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 
 FEATURES:
 
