@@ -2,7 +2,7 @@
 
 FEATURES:
 
-* **New Datasource** `github_collaborators` [GH-239]
+* **New Data Source** `github_collaborators` [GH-239]
 
 ENHANCEMENTS:
 
@@ -30,17 +30,17 @@ ENHANCEMENTS:
 
 BREAKING CHANGES:
 
-* Removed `name` attribute from `github_repository_webhook` and `github_organization_webhook` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `github_repository_webhook` and `github_organization_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 
 FEATURES:
 
 * **New Resource:** `github_organization_block` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 * **New Resource:** `github_user_invitation_accepter` ([#161](https://github.com/terraform-providers/terraform-provider-github/issues/161))
-* Add `required_approving_review_count` to `github_branch_protection` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `resource/github_branch_protection`: Added `required_approving_review_count` ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 
 BUG FIXES:
 
-* resource/github_repository: Prefill `auto_init` during import ([#154](https://github.com/terraform-providers/terraform-provider-github/issues/154))
+* `resource/github_repository`: Prefill `auto_init` during import ([#154](https://github.com/terraform-providers/terraform-provider-github/issues/154))
 
 ## 1.3.0 (September 07, 2018)
 
