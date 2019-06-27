@@ -14,7 +14,7 @@ import (
 func TestAccGithubProjectColumn_basic(t *testing.T) {
 	var column github.ProjectColumn
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubProjectColumnDestroy,
@@ -42,7 +42,7 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 }
 
 func TestAccGithubProjectColumn_importBasic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubProjectColumnDestroy,

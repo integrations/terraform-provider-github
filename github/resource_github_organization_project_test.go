@@ -15,7 +15,7 @@ import (
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
 	var project github.Project
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubOrganizationProjectDestroy,
@@ -35,7 +35,7 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 }
 
 func TestAccGithubOrganizationProject_importBasic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubOrganizationProjectDestroy,

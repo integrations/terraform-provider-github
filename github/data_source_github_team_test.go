@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubTeamDataSource_noMatchReturnsError(t *testing.T) {
 	slug := "non-existing"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
