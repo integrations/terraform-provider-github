@@ -6,19 +6,16 @@ FEATURES:
 
 ENHANCEMENTS:
 
-* `github_branch_protection`: Added `require_signed_commits` property [GH-214] 
+* `resource/github_branch_protection`: Added `require_signed_commits` property [GH-214] 
 * `github_provider`: Added optional `individual` attribute, and made `organization` optional [GH-242]
 
 BUG FIXES:
 
-* `github_repository`: `has_projects` can now be imported [GH-237]
-* `github_membership`: `username` property is now case insensitive [GH-241]
-* `github_repository_collaborator`: `username` property is now case insensitive [GH-241] 
-* `github_team_membership`: `username` property is now case insensitive [GH-241]
+* `resource/github_repository`: `has_projects` can now be imported [GH-237]
+* `resource/github_membership`: `username` property is now case insensitive [GH-241]
+* `resource/github_repository_collaborator`: `username` property is now case insensitive [GH-241] 
+* `resource/github_team_membership`: `username` property is now case insensitive [GH-241]
  
-DOCUMENTATION:
-
-* Add `required_approving_review_count` parameter for branch protections ([#220](https://github.com/terraform-providers/terraform-provider-github/pull/220))
 
 ## 2.1.0 (May 15, 2019)
 
