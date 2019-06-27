@@ -16,7 +16,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
@@ -42,7 +42,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 func TestAccGithubTeamMembership_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,

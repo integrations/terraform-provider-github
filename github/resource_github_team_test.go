@@ -20,7 +20,7 @@ func TestAccGithubTeam_basic(t *testing.T) {
 	description := "Terraform acc test group"
 	updatedDescription := "Terraform acc test group - updated"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -62,7 +62,7 @@ func TestAccGithubTeam_slug(t *testing.T) {
 	description := "Terraform acc test group"
 	expectedSlug := fmt.Sprintf("tf-acc-test-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -90,7 +90,7 @@ func TestAccGithubTeam_hierarchical(t *testing.T) {
 	parentName := fmt.Sprintf("tf-acc-parent-%s", randString)
 	childName := fmt.Sprintf("tf-acc-child-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -112,7 +112,7 @@ func TestAccGithubTeam_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,

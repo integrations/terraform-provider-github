@@ -23,7 +23,7 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 
 	var providers []*schema.Provider
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories(&providers),
 		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,

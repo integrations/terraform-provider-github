@@ -55,7 +55,7 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
@@ -79,7 +79,7 @@ func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,

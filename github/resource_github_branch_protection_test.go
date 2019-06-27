@@ -19,7 +19,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
@@ -73,7 +73,7 @@ func TestAccGithubBranchProtection_teams(t *testing.T) {
 	secondTeamName := fmt.Sprintf("team 2 %s", rString)
 	secondTeamSlug := fmt.Sprintf("team-2-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
@@ -142,7 +142,7 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
@@ -166,7 +166,7 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 func TestAccGithubBranchProtection_importBasic(t *testing.T) {
 	rString := acctest.RandString(5)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,

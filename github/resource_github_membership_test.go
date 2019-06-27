@@ -13,7 +13,7 @@ import (
 func TestAccGithubMembership_basic(t *testing.T) {
 	var membership github.Membership
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
@@ -30,7 +30,7 @@ func TestAccGithubMembership_basic(t *testing.T) {
 }
 
 func TestAccGithubMembership_importBasic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubMembershipDestroy,

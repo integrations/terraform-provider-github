@@ -20,7 +20,7 @@ func TestAccGithubUserSshKey_basic(t *testing.T) {
 	keyRe := regexp.MustCompile("^ecdsa-sha2-nistp384 ")
 	urlRe := regexp.MustCompile("^https://api.github.com/[a-z0-9]+/keys/")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubUserSshKeyDestroy,
@@ -42,7 +42,7 @@ func TestAccGithubUserSshKey_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	title := fmt.Sprintf("tf-acc-test-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubUserSshKeyDestroy,

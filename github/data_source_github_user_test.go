@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubUserDataSource_noMatchReturnsError(t *testing.T) {
 	username := "admin"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -26,7 +26,7 @@ func TestAccGithubUserDataSource_noMatchReturnsError(t *testing.T) {
 
 func TestAccGithubUserDataSource_existing(t *testing.T) {
 	username := "raphink"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
