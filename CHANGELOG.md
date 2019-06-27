@@ -4,6 +4,10 @@ FEATURES:
 
 * **New Datasource** `github_collaborators` [GH-239]
 
+ENHANCEMENTS:
+
+* Switched Acceptance Testing from `resource.Test()` to `resource.ParallelTest()` ([#246](https://github.com/terraform-providers/terraform-provider-github/pull/246))
+
 BUG FIXES:
 
 * `has_projects` is now importable for the `github_repository` [GH-237]
