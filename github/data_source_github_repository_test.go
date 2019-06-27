@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T) {
 	fullName := "klsafj_23434_doesnt_exist/not-exists"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -26,7 +26,7 @@ func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T
 
 func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
 	name := "not-exists"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -42,7 +42,7 @@ func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
 
 func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
 	fullName := testOrganization + "/test-repo"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -58,7 +58,7 @@ func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
 
 func TestAccGithubRepositoryDataSource_name_existing(t *testing.T) {
 	name := "test-repo"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
