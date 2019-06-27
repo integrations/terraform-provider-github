@@ -6,13 +6,13 @@ FEATURES:
 
 ENHANCEMENTS:
 
+* `provider`: Added optional `individual` attribute, and made `organization` optional [GH-242]
 * `resource/github_branch_protection`: Added `require_signed_commits` property [GH-214] 
-* `github_provider`: Added optional `individual` attribute, and made `organization` optional [GH-242]
 
 BUG FIXES:
 
-* `resource/github_repository`: `has_projects` can now be imported [GH-237]
 * `resource/github_membership`: `username` property is now case insensitive [GH-241]
+* `resource/github_repository`: `has_projects` can now be imported [GH-237]
 * `resource/github_repository_collaborator`: `username` property is now case insensitive [GH-241] 
 * `resource/github_team_membership`: `username` property is now case insensitive [GH-241]
  
@@ -84,18 +84,19 @@ ENHANCEMENTS:
 
 * `provider`: Add `insecure` mode ([#48](https://github.com/terraform-providers/terraform-provider-github/issues/48))
 * `data-source/github_ip_ranges`: Add importer IPs ([#100](https://github.com/terraform-providers/terraform-provider-github/issues/100))
-* `resource/github_repository`: Add support for `topics` ([#97](https://github.com/terraform-providers/terraform-provider-github/issues/97))
 * `resource/github_issue_label`: Add support for `description` ([#118](https://github.com/terraform-providers/terraform-provider-github/issues/118))
+* `resource/github_repository`: Add support for `topics` ([#97](https://github.com/terraform-providers/terraform-provider-github/issues/97))
 * `resource/github_team`: Expose `slug` ([#136](https://github.com/terraform-providers/terraform-provider-github/issues/136))
 * `resource/github_team_membership`: Make role updatable ([#137](https://github.com/terraform-providers/terraform-provider-github/issues/137))
 
 BUG FIXES:
 
 * `resource/github_*`: Prevent crashing on invalid ID format ([#108](https://github.com/terraform-providers/terraform-provider-github/issues/108))
+* `resource/github_organization_webhook`: Avoid spurious diff of `secret` ([#134](https://github.com/terraform-providers/terraform-provider-github/issues/134))
+* `resource/github_repository`: Make non-updatable fields `ForceNew` ([#135](https://github.com/terraform-providers/terraform-provider-github/issues/135))
 * `resource/github_repository_deploy_key`: Avoid spurious diff of `key` ([#132](https://github.com/terraform-providers/terraform-provider-github/issues/132))
 * `resource/github_repository_webhook`: Avoid spurious diff of `secret` ([#133](https://github.com/terraform-providers/terraform-provider-github/issues/133))
-* `resource/github_repository`: Make non-updatable fields `ForceNew` ([#135](https://github.com/terraform-providers/terraform-provider-github/issues/135))
-* `resource/github_organization_webhook`: Avoid spurious diff of `secret` ([#134](https://github.com/terraform-providers/terraform-provider-github/issues/134))
+
 
 ## 1.1.0 (May 11, 2018)
 
