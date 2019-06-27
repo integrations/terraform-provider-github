@@ -22,7 +22,8 @@ BUG FIXES:
 ENHANCEMENTS:
 
 * `resource/github_repository`: Added validation for lowercase topics ([#223](https://github.com/terraform-providers/terraform-provider-github/issues/223))
-* `resource/github_organization_webhook`: Added back removed `name` attributes, attributes are now flagged as `Removed` ([#226](https://github.com/terraform-providers/terraform-provider-github/issues/226))
+* `resource/github_organization_webhook`: Added back removed `name` attribute, `name` is now flagged as `Removed` ([#226](https://github.com/terraform-providers/terraform-provider-github/issues/226))
+* `resource/github_repository_webhook`: Added back removed `name` attribute, `name` is now flagged as `Removed` ([#226](https://github.com/terraform-providers/terraform-provider-github/issues/226))
 
 ## 2.0.0 (May 02, 2019)
 
@@ -30,8 +31,8 @@ ENHANCEMENTS:
 
 BREAKING CHANGES:
 
-* `github_repository_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
-* `github_organization_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `resource/github_repository_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
+* `resource/github_organization_webhook`: Removed `name` attribute ([#181](https://github.com/terraform-providers/terraform-provider-github/issues/181))
 
 FEATURES:
 
