@@ -34,6 +34,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "require_signed_commits", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
@@ -53,6 +54,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(&protection),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "require_signed_commits", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "0"),
@@ -106,6 +108,7 @@ func TestAccGithubBranchProtection_teams(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "require_signed_commits", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "1"),
@@ -154,6 +157,7 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "require_signed_commits", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "1"),
@@ -358,6 +362,7 @@ resource "github_branch_protection" "master" {
   repository     = "${github_repository.test.name}"
   branch         = "master"
   enforce_admins = true
+  require_signed_commits = true
 
   required_status_checks {
     strict   = true
