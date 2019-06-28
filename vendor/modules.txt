@@ -169,7 +169,7 @@ github.com/hashicorp/terraform-config-inspect/tfconfig
 github.com/hashicorp/yamux
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
+# github.com/kylelemons/godebug v1.1.0
 github.com/kylelemons/godebug/pretty
 github.com/kylelemons/godebug/diff
 # github.com/mattn/go-colorable v0.1.1
