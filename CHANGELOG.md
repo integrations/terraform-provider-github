@@ -1,20 +1,20 @@
-## 2.2.0 (Unreleased)
+## 2.2.0 (June 28, 2019)
 
 FEATURES:
 
-* **New Data Source** `github_collaborators` [GH-239]
+* **New Data Source** `github_collaborators` ([#239](https://github.com/terraform-providers/terraform-provider-github/issues/239))
 
 ENHANCEMENTS:
 
-* `provider`: Added optional `individual` attribute, and made `organization` optional [GH-242]
-* `resource/github_branch_protection`: Added `require_signed_commits` property [GH-214] 
+* `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
+* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)] 
 
 BUG FIXES:
 
-* `resource/github_membership`: `username` property is now case insensitive [GH-241]
-* `resource/github_repository`: `has_projects` can now be imported [GH-237]
-* `resource/github_repository_collaborator`: `username` property is now case insensitive [GH-241] 
-* `resource/github_team_membership`: `username` property is now case insensitive [GH-241]
+* `resource/github_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
+* `resource/github_repository`: `has_projects` can now be imported ([#237](https://github.com/terraform-providers/terraform-provider-github/issues/237))
+* `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241)] 
+* `resource/github_team_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
  
 
 ## 2.1.0 (May 15, 2019)
