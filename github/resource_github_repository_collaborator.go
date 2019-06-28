@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -21,9 +22,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: caseInsensitive(),
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -46,6 +48,11 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -55,7 +62,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, err := client.Repositories.AddCollaborator(ctx,
+	_, err = client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
 		username,
@@ -73,6 +80,11 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -87,6 +99,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	} else if invitation != nil {
+		username = *invitation.Invitee.Login
 		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
@@ -112,14 +125,14 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		}
 
 		for _, c := range collaborators {
-			if *c.Login == username {
+			if strings.ToLower(*c.Login) == strings.ToLower(username) {
 				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
 				}
 
 				d.Set("repository", repoName)
-				d.Set("username", username)
+				d.Set("username", c.Login)
 				d.Set("permission", permissionName)
 				return nil
 			}
@@ -140,6 +153,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -153,6 +171,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	} else if invitation != nil {
+		username = *invitation.Invitee.Login
 		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}
@@ -172,7 +191,7 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == collaborator {
+			if strings.ToLower(*i.Invitee.Login) == strings.ToLower(collaborator) {
 				return i, nil
 			}
 		}

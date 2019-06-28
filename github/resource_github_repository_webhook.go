@@ -34,6 +34,11 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
+			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -87,6 +92,11 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 }
 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -105,6 +115,11 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -143,6 +158,11 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 }
 
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name

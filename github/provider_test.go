@@ -17,6 +17,7 @@ import (
 
 var testUser string = os.Getenv("GITHUB_TEST_USER")
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var testOrganization string = os.Getenv("GITHUB_ORGANIZATION")
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
@@ -64,6 +65,35 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
+func TestProvider_individual(t *testing.T) {
+	individualProviderConfig := `provider "github" {
+	organization = ""
+	individual = true
+}
+`
+	username := "hashibot"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: individualProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
+				),
+			},
+			{
+				Config:      individualProviderConfig + testAccGithubMembershipConfig(username),
+				ExpectError: regexp.MustCompile("This resource requires GitHub organization to be set on the provider."),
+			},
+		},
+	})
+}
+
 func TestProvider_insecure(t *testing.T) {
 	// Use ephemeral port range (49152–65535)
 	port := fmt.Sprintf("%d", 49152+rand.Intn(16382))
@@ -87,7 +117,7 @@ func TestProvider_insecure(t *testing.T) {
 `
 
 	username := "hashibot"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},

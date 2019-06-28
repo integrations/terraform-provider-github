@@ -54,6 +54,11 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 }
 
 func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	repoName := d.Get("repository").(string)
@@ -82,6 +87,11 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	owner := meta.(*Organization).name
@@ -126,6 +136,11 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	owner := meta.(*Organization).name

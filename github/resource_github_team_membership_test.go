@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -13,10 +14,15 @@ import (
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
 	var membership github.Membership
+
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
@@ -39,10 +45,48 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	var membership github.Membership
+	var otherMembership github.Membership
+
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
+				),
+			},
+			{
+				Config: testAccGithubTeamMembershipConfig(randString, otherCase, "member"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &otherMembership),
+					testAccGithubTeamMembershipTheSame(&membership, &otherMembership),
+				),
+			},
+		},
+	})
+}
+
 func TestAccGithubTeamMembership_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
@@ -169,18 +213,28 @@ func testAccGithubTeamMembershipConfig(randString, username, role string) string
 	return fmt.Sprintf(`
 resource "github_membership" "test_org_membership" {
   username = "%s"
-  role = "member"
+  role     = "member"
 }
 
 resource "github_team" "test_team" {
-  name = "tf-acc-test-team-membership-%s"
+  name        = "tf-acc-test-team-membership-%s"
   description = "Terraform acc test group"
 }
 
 resource "github_team_membership" "test_team_membership" {
-  team_id = "${github_team.test_team.id}"
+  team_id  = "${github_team.test_team.id}"
   username = "%s"
-  role = "%s"
+  role     = "%s"
 }
 `, username, randString, username, role)
+}
+
+func testAccGithubTeamMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *orig.URL != *other.URL {
+			return errors.New("users are different")
+		}
+
+		return nil
+	}
 }
