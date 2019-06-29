@@ -14,6 +14,8 @@ This resource allows you to create and manage webhooks for GitHub organization.
 
 ```hcl
 resource "github_organization_webhook" "foo" {
+  name = "web"
+
   configuration {
     url          = "https://google.de/"
     content_type = "form"
@@ -35,6 +37,8 @@ The following arguments are supported:
 * `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
 
 * `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
+
+* `name` - (Optional) The type of the webhook. `web` is the default and the only option.
 
 ## Attributes Reference
 

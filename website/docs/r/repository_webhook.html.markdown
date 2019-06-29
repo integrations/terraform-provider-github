@@ -28,6 +28,8 @@ resource "github_repository" "repo" {
 resource "github_repository_webhook" "foo" {
   repository = "${github_repository.repo.name}"
 
+  name = "web"
+
   configuration {
     url          = "https://google.de/"
     content_type = "form"
@@ -51,6 +53,8 @@ The following arguments are supported:
 * `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`. `secret` is [the shared secret, see API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
 
 * `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
+
+* `name` - (Optional) The type of the webhook. `web` is the default and the only option.
 
 ## Attributes Reference
 
