@@ -17,7 +17,7 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -46,7 +46,7 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -66,7 +66,7 @@ func TestAccGithubIssueLabel_importBasic(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -91,7 +91,7 @@ func TestAccGithubIssueLabel_description(t *testing.T) {
 	description := "Terraform Acceptance Test"
 	updatedDescription := "Terraform Acceptance Test Updated"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -251,9 +251,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_issue_label" "test" {
-  repository = "${github_repository.test.name}"
-  name       = "foo"
-  color      = "000000"
+  repository  = "${github_repository.test.name}"
+  name        = "foo"
+  color       = "000000"
   description = "%s"
 }
 `, repoName, description)

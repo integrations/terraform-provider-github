@@ -16,7 +16,7 @@ import (
 func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 	var hook github.Hook
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubOrganizationWebhookDestroy,
@@ -58,7 +58,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 	var hook github.Hook
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubOrganizationWebhookDestroy,

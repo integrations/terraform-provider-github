@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
 	query := "org:hashicorp repository:terraform"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -28,7 +28,7 @@ func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
 	})
 }
 func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -56,7 +56,7 @@ func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
 
 func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
 	query := "klsafj_23434_doesnt_exist"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -76,7 +76,7 @@ func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
 func testAccCheckGithubRepositoriesDataSourceConfig(query string) string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "%s"
+  query = "%s"
 }
 `, query)
 }
@@ -84,8 +84,8 @@ data "github_repositories" "test" {
 func testAccCheckGithubRepositoriesDataSourceConfigWithSort(query, sort string) string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "%s"
-	sort  = "%s"
+  query = "%s"
+  sort  = "%s"
 }
 `, query, sort)
 }

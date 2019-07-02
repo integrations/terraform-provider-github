@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -16,6 +17,8 @@ type Config struct {
 	Organization string
 	BaseURL      string
 	Insecure     bool
+	Individual   bool
+	Anonymous    bool
 }
 
 type Organization struct {
@@ -27,14 +30,7 @@ type Organization struct {
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
 	var org Organization
-	org.name = c.Organization
-
 	var ts oauth2.TokenSource
-	if c.Token != "" {
-		ts = oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: c.Token},
-		)
-	}
 
 	ctx := context.Background()
 
@@ -43,12 +39,28 @@ func (c *Config) Client() (interface{}, error) {
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
+	if c.Individual {
+		org.name = ""
+	} else if c.Organization != "" {
+		org.name = c.Organization
+	} else {
+		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
+	}
+
+	if !c.Anonymous && c.Token != "" {
+		ts = oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: c.Token},
+		)
+	} else {
+		return nil, fmt.Errorf("If `anonymous` is false, `token` is required.")
+	}
+
 	tc := oauth2.NewClient(ctx, ts)
 
-	if c.Token != "" {
-		tc.Transport = NewEtagTransport(tc.Transport)
-	} else {
+	if c.Anonymous {
 		tc.Transport = http.DefaultTransport
+	} else {
+		tc.Transport = NewEtagTransport(tc.Transport)
 	}
 
 	tc.Transport = NewRateLimitTransport(tc.Transport)

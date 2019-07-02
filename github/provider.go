@@ -11,13 +11,13 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
 			"organization": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 				Description: descriptions["organization"],
 			},
@@ -32,6 +32,18 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
+			},
+			"individual": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["individual"],
+			},
+			"anonymous": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["anonymous"],
 			},
 		},
 
@@ -75,14 +87,20 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"token": "The OAuth token used to connect to GitHub.",
+		"token": "The OAuth token used to connect to GitHub. " +
+			"If `anonymous` is false, token is required.",
 
-		"organization": "The GitHub organization name to manage.",
+		"organization": "The GitHub organization name to manage. " +
+			"If `individual` is false, organization is required.",
 
 		"base_url": "The GitHub Base API URL",
 
 		"insecure": "Whether server should be accessed " +
 			"without verifying the TLS certificate.",
+
+		"individual": "Whether to run outside an organization.",
+
+		"anonymous": "Whether to authenticate without a token.",
 	}
 }
 
@@ -93,6 +111,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
+			Individual:   d.Get("individual").(bool),
+			Anonymous:    d.Get("anonymous").(bool),
 		}
 
 		meta, err := config.Client()

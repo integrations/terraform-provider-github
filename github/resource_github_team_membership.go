@@ -29,9 +29,10 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ForceNew: true,
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: caseInsensitive(),
 			},
 			"role": {
 				Type:         schema.TypeString,

@@ -56,6 +56,11 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name

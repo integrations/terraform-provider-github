@@ -11,7 +11,7 @@ import (
 func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
@@ -31,12 +31,12 @@ func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 func testAccCheckGithubCollaboratorsDataSourceConfig(repo string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
-    name = "%s"
+  name = "%s"
 }
 
 data "github_collaborators" "test" {
-    owner       = "%s"
-    repository  = "${github_repository.test.name}"
+  owner      = "%s"
+  repository = "${github_repository.test.name}"
 }
 `, repo, testOrganization)
 }
