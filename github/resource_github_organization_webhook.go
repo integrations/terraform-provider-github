@@ -92,6 +92,11 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = webhookObj.Config["secret"]
+	}
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
@@ -134,6 +139,15 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
+
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil

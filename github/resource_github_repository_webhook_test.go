@@ -119,10 +119,11 @@ func TestAccGithubRepositoryWebhook_importSecret(t *testing.T) {
 				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
 			},
 			{
-				ResourceName:        "github_repository_webhook.foo",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+				ResourceName:            "github_repository_webhook.foo",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
+				ImportStateVerifyIgnore: []string{"configuration.0.secret"}, // github does not allow a read of the actual secret
 			},
 		},
 	})
