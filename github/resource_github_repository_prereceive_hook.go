@@ -95,8 +95,10 @@ func resourceGithubRepositoryPreReceiveHookCreate(d *schema.ResourceData, meta i
 	enforcement := d.Get("enforcement").(string)
 	hook.Enforcement = &enforcement
 
-	configURL := d.Get("config_url").(string)
-	hook.ConfigURL = &configURL
+	if v, ok := d.GetOk("config_url"); ok {
+		configURL := v.(string)
+		hook.ConfigURL = &configURL
+	}
 
 	ctx := context.Background()
 	client := meta.(*Organization).client
@@ -106,7 +108,7 @@ func resourceGithubRepositoryPreReceiveHookCreate(d *schema.ResourceData, meta i
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s-%s-%s", orgName, repoName, strconv.FormatInt(*hook.ID, 10)))
+	d.SetId(fmt.Sprintf("%s/%s/%s", orgName, repoName, strconv.FormatInt(*hook.ID, 10)))
 
 	return resourceGithubRepositoryPreReceiveHookRead(d, meta)
 }
@@ -126,7 +128,10 @@ func resourceGithubRepositoryPreReceiveHookRead(d *schema.ResourceData, meta int
 	}
 
 	d.Set("enforcement", hook.Enforcement)
-	d.Set("config_url", hook.ConfigURL)
+
+	if _, ok := d.GetOk("config_url"); ok {
+		d.Set("config_url", hook.ConfigURL)
+	}
 
 	return nil
 }
