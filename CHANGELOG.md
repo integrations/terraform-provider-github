@@ -1,4 +1,9 @@
 ## 2.3.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `github_repository_prereceive_hook` ([#252](https://github.com/terraform-providers/terraform-provider-github/issues/252))
+
 ## 2.2.0 (June 28, 2019)
 
 FEATURES:
