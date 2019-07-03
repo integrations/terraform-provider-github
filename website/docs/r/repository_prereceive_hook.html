@@ -1,0 +1,41 @@
+---
+layout: "github"
+page_title: "GitHub: github_repository_prereceive_hook"
+sidebar_current: "docs-github-resource-repository-prereceive-hook"
+description: |-
+  Creates and manages repository pre-recieve hooks within a GitHub Enterprise organization
+---
+
+# github_repository_prereceive_hook
+
+This resource allows you to create and manage [pre-receive hooks](https://developer.github.com/enterprise/2.17/v3/enterprise-admin/repo_pre_receive_hooks/) for 
+repositories within your GitHub Enterprise organizations.
+
+~> **NOTE** Pre-recieve hooks are only available on GitHub Enterprise.
+
+## Example Usage
+
+```hcl
+resource "github_repository" "repo" {
+  name         = "foo"
+  description  = "Terraform acceptance tests"
+}
+
+resource "github_repository_prereceive_hook" "reviews" { 
+  name        = "require-code-review"  
+  repository  = "${github_repository.repo.name}"
+  enforcement = "enabled"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `name` - (Required) The name of the pre-receive hook. 
+
+* `repository` - (Required) The repository of the pre-receive hook.
+
+* `enforcement` - (Required) The state of enforcement for the hook on this repository. Available keys are `enabled`, `disabled`, and `testing`.
+
+* `config_url` - (Optional) URL for the endpoint where enforcement is set.
