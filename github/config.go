@@ -31,6 +31,7 @@ type Organization struct {
 func (c *Config) Client() (interface{}, error) {
 	var org Organization
 	var ts oauth2.TokenSource
+	var tc *http.Client
 
 	ctx := context.Background()
 
@@ -39,23 +40,35 @@ func (c *Config) Client() (interface{}, error) {
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
-	if c.Individual {
-		org.name = ""
-	} else if c.Organization != "" {
-		org.name = c.Organization
-	} else {
+	// Either Organization needs to be set, or Individual needs to be true
+	if c.Organization != "" && c.Individual {
+		return nil, fmt.Errorf("If `individual` is true, `organization` cannot be set.")
+	}
+	if c.Organization == "" && !c.Individual {
 		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
 	}
 
-	if !c.Anonymous && c.Token != "" {
-		ts = oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: c.Token},
-		)
+	if c.Individual {
+		org.name = ""
 	} else {
+		org.name = c.Organization
+	}
+
+	// Either run as anonymous, or run with a Token
+	if c.Token != "" && c.Anonymous {
+		return nil, fmt.Errorf("If `anonymous` is true, `token` cannot be set.")
+	}
+	if c.Token == "" && !c.Anonymous {
 		return nil, fmt.Errorf("If `anonymous` is false, `token` is required.")
 	}
 
-	tc := oauth2.NewClient(ctx, ts)
+	if !c.Anonymous {
+		ts = oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: c.Token},
+		)
+	}
+
+	tc = oauth2.NewClient(ctx, ts)
 
 	if c.Anonymous {
 		tc.Transport = http.DefaultTransport
@@ -64,10 +77,10 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	tc.Transport = NewRateLimitTransport(tc.Transport)
-
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
 	org.client = github.NewClient(tc)
+
 	if c.BaseURL != "" {
 		u, err := url.Parse(c.BaseURL)
 		if err != nil {

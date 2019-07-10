@@ -71,6 +71,18 @@ func TestProvider_individual(t *testing.T) {
 	individual = true
 }
 `
+
+	conflictingProviderConfig := `provider "github" {
+	individual = true
+}
+`
+
+	neitherProviderConfig := `provider "github" {
+	organization = ""
+	individual = false
+}
+`
+
 	username := "hashibot"
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -89,6 +101,59 @@ func TestProvider_individual(t *testing.T) {
 			{
 				Config:      individualProviderConfig + testAccGithubMembershipConfig(username),
 				ExpectError: regexp.MustCompile("This resource requires GitHub organization to be set on the provider."),
+			},
+			{
+				Config:      conflictingProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `individual` is true, `organization` cannot be set."),
+			},
+			{
+				Config:      neitherProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `individual` is false, `organization` is required."),
+			},
+		},
+	})
+}
+
+func TestProvider_anonymous(t *testing.T) {
+	anonymousProviderConfig := `provider "github" {
+	token = ""
+	anonymous = true
+}
+`
+
+	conflictingProviderConfig := `provider "github" {
+	anonymous = true
+}
+`
+
+	neitherProviderConfig := `provider "github" {
+	token = ""
+	anonymous = false
+}
+`
+
+	username := "hashibot"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: anonymousProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
+				),
+			},
+			{
+				Config:      conflictingProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `anonymous` is true, `token` cannot be set."),
+			},
+			{
+				Config:      neitherProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `anonymous` is false, `token` is required."),
 			},
 		},
 	})
