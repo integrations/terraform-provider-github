@@ -1,4 +1,10 @@
-## 2.3.0 (Unreleased)
+## 2.2.1 (Unreleased)
+
+BUG FIXES:
+
+* `resource/github_organization_webhook`: properly set webhook secret in state ([GH-251])
+* `resource/github_repository_webhook`: properly set webhook secret in state ([GH-251])
+
 ## 2.2.0 (June 28, 2019)
 
 FEATURES:
