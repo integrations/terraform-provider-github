@@ -117,12 +117,16 @@ func TestAccGithubRepositoryWebhook_importSecret(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryWebhookSecret("github_repository_webhook.foo", "RandomSecretString"),
+				),
 			},
 			{
-				ResourceName:        "github_repository_webhook.foo",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+				ResourceName:            "github_repository_webhook.foo",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
+				ImportStateVerifyIgnore: []string{"configuration.0.secret"}, // github does not allow a read of the actual secret
 			},
 		},
 	})
@@ -174,6 +178,21 @@ func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *test
 		}
 		if !reflect.DeepEqual(hook.Config, want.Configuration) {
 			return fmt.Errorf("got hook configuration %q; want %q", hook.Config, want.Configuration)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckGithubRepositoryWebhookSecret(r, secret string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[r]
+		if !ok {
+			return fmt.Errorf("Not Found: %s", r)
+		}
+
+		if rs.Primary.Attributes["configuration.0.secret"] != secret {
+			return fmt.Errorf("Configured secret in %s does not match secret in state.  (Expected: %s, Actual: %s)", r, secret, rs.Primary.Attributes["configuration.0.secret"])
 		}
 
 		return nil

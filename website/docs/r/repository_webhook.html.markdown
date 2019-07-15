@@ -72,3 +72,5 @@ Importing uses the name of the repository, as well as the ID of the webhook, e.g
 ```
 $ terraform import github_repository_webhook.terraform terraform/11235813
 ```
+
+If secret is populated in the webhook's configuration, the value will be imported as "********".
