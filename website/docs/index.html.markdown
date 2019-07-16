@@ -55,10 +55,9 @@ The following arguments are supported in the `provider` block:
   Such trusted certificate *does not require* this option to be enabled.
   Defaults to `false`.
 
-* `individual`: (Optional) Whether to run outside an organization. Defaults to
-  `false`.
+* `individual`: (Optional) Run outside an organization.  When `individual` is true, the provider will run outside
+  the scope of an organization. Defaults to `false`.
 
-* `anonymous`: (Optional) Whether to authenticate without a token. Setting to
-  true will lead the GitHub provider to work in an anonymous mode with the
-  corresponding API [rate limits](https://developer.github.com/v3/#rate-limiting).
-  Defaults to `false`.
+* `anonymous`: (Optional) Authenticate without a token.  When `anonymous` is true, the provider will not be able to
+  access resources that require authentication. Setting to true will lead the GitHub provider to work in an anonymous
+  mode with the corresponding API [rate limits](https://developer.github.com/v3/#rate-limiting).  Defaults to `false`.
