@@ -23,15 +23,6 @@ func webhookConfigurationSchema() *schema.Schema {
 					Type:      schema.TypeString,
 					Optional:  true,
 					Sensitive: true,
-					DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
-						// Undocumented GitHub feature where API returns 8 asterisks in place of the secret
-						maskedSecret := "********"
-						if oldV == maskedSecret {
-							return true
-						}
-
-						return oldV == newV
-					},
 				},
 				"insecure_ssl": {
 					Type:     schema.TypeString,

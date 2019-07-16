@@ -92,6 +92,14 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from our request to GitHub
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = webhookObj.Config["secret"]
+	}
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
@@ -134,6 +142,19 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
+
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from what we get from
+	// ResourceData
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil

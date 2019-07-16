@@ -56,7 +56,6 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 }
 
 func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
-	var hook github.Hook
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -66,17 +65,7 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookConfig_secret,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
-					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
-						Events: []string{"pull_request"},
-						Configuration: map[string]interface{}{
-							"url":          "https://www.terraform.io/webhook",
-							"content_type": "json",
-							"secret":       "********",
-							"insecure_ssl": "false",
-						},
-						Active: true,
-					}),
+					testAccCheckGithubOrganizationWebhookSecret("github_organization_webhook.foo", "VerySecret"),
 				),
 			},
 		},
@@ -129,6 +118,21 @@ func testAccCheckGithubOrganizationWebhookAttributes(hook *github.Hook, want *te
 		}
 		if !reflect.DeepEqual(hook.Config, want.Configuration) {
 			return fmt.Errorf("got hook configuration %q; want %q", hook.Config, want.Configuration)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckGithubOrganizationWebhookSecret(r, secret string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[r]
+		if !ok {
+			return fmt.Errorf("Not Found: %s", r)
+		}
+
+		if rs.Primary.Attributes["configuration.0.secret"] != secret {
+			return fmt.Errorf("Configured secret in %s does not match secret in state.  (Expected: %s, Actual: %s)", r, secret, rs.Primary.Attributes["configuration.0.secret"])
 		}
 
 		return nil
