@@ -117,6 +117,8 @@ func TestProvider_anonymous(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
+				// Test anonymous is true.  Because GITHUB_TOKEN should be set for these tests, we'll pass an
+				// empty string for `token` to unset the token
 				Config: configProviderToken("", true) + testAccCheckGithubUserDataSourceConfig(username),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
@@ -124,10 +126,13 @@ func TestProvider_anonymous(t *testing.T) {
 				),
 			},
 			{
+				// Test conflicting `anonymous` and `token`
 				Config:      configProviderToken(os.Getenv("GITHUB_TOKEN"), true) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `anonymous` is true, `token` cannot be set."),
 			},
 			{
+				// Test neither `anonymous` or `token` is set.  Because GITHUB_TOKEN should be
+				// set for these tests, we'll pass an empty string for `token` to unset the token
 				Config:      configProviderToken("", false) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `anonymous` is false, `token` is required."),
 			},
