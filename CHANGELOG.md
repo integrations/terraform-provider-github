@@ -2,12 +2,13 @@
 
 ENHANCEMENTS:
 
-* `resource/github_branch_protection`: will now return an error when users are not correctly added [GH-158]
+* dependencies: Updates module `hashicorp/terraform` to `v0.12.4` [GH-243]
+* `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
 
 BUG FIXES:
 
-* `resource/github_organization_webhook`: properly set webhook secret in state [GH-251]
-* `resource/github_repository_webhook`: properly set webhook secret in state [GH-251]
+* `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
+* `resource/github_repository_webhook`: Properly set webhook secret in state [GH-251]
 
 ## 2.2.0 (June 28, 2019)
 
