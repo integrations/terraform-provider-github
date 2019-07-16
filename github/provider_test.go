@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -66,22 +67,6 @@ func testAccPreCheck(t *testing.T) {
 }
 
 func TestProvider_individual(t *testing.T) {
-	individualProviderConfig := `provider "github" {
-	organization = ""
-	individual = true
-}
-`
-
-	conflictingProviderConfig := `provider "github" {
-	individual = true
-}
-`
-
-	neitherProviderConfig := `provider "github" {
-	organization = ""
-	individual = false
-}
-`
 
 	username := "hashibot"
 	resource.Test(t, resource.TestCase{
@@ -92,22 +77,29 @@ func TestProvider_individual(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: individualProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				// Test individual is true.  Because GITHUB_ORGANIZATION should be set for these tests, we'll pass an
+				// empty string for `org` to unset the organization
+				Config: configProviderOrganization("", true) + testAccCheckGithubUserDataSourceConfig(username),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
 					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
 				),
 			},
 			{
-				Config:      individualProviderConfig + testAccGithubMembershipConfig(username),
+				// Test individual is true, but resource requires organization.  Because GITHUB_ORGANIZATION should be
+				// set for these tests, we'll pass an empty string for `org` to unset the organization
+				Config:      configProviderOrganization("", true) + testAccGithubMembershipConfig(username),
 				ExpectError: regexp.MustCompile("This resource requires GitHub organization to be set on the provider."),
 			},
 			{
-				Config:      conflictingProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				// Test conflicting `individual` and `organization`
+				Config:      configProviderOrganization(testOrganization, true) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `individual` is true, `organization` cannot be set."),
 			},
 			{
-				Config:      neitherProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				// Test neither `individual` or `organization` is set.  Because GITHUB_ORGANIZATION should be
+				// set for these tests, we'll pass an empty string for `org` to unset the organization
+				Config:      configProviderOrganization("", false) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `individual` is false, `organization` is required."),
 			},
 		},
@@ -115,22 +107,6 @@ func TestProvider_individual(t *testing.T) {
 }
 
 func TestProvider_anonymous(t *testing.T) {
-	anonymousProviderConfig := `provider "github" {
-	token = ""
-	anonymous = true
-}
-`
-
-	conflictingProviderConfig := `provider "github" {
-	anonymous = true
-}
-`
-
-	neitherProviderConfig := `provider "github" {
-	token = ""
-	anonymous = false
-}
-`
 
 	username := "hashibot"
 	resource.Test(t, resource.TestCase{
@@ -141,18 +117,18 @@ func TestProvider_anonymous(t *testing.T) {
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: anonymousProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				Config: configProviderToken("", true) + testAccCheckGithubUserDataSourceConfig(username),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
 					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
 				),
 			},
 			{
-				Config:      conflictingProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				Config:      configProviderToken(os.Getenv("GITHUB_TOKEN"), true) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `anonymous` is true, `token` cannot be set."),
 			},
 			{
-				Config:      neitherProviderConfig + testAccCheckGithubUserDataSourceConfig(username),
+				Config:      configProviderToken("", false) + testAccCheckGithubUserDataSourceConfig(username),
 				ExpectError: regexp.MustCompile("If `anonymous` is false, `token` is required."),
 			},
 		},
@@ -225,6 +201,24 @@ func testRespondJson(responseBody string) func(http.ResponseWriter, *http.Reques
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(responseBody))
 	}
+}
+
+func configProviderOrganization(org string, individual bool) string {
+	return fmt.Sprintf(`
+provider "github" {
+    organization = "%s"
+	individual = %s
+}
+`, org, strconv.FormatBool(individual))
+}
+
+func configProviderToken(token string, anonymous bool) string {
+	return fmt.Sprintf(`
+provider "github" {
+    token = "%s"
+	anonymous = %s
+}
+`, token, strconv.FormatBool(anonymous))
 }
 
 const userResponseBody = `{
