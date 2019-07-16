@@ -7,6 +7,8 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* `resource/github_team_repository`: Validation of `team_id` [GH-253]
+* `resource/github_team_membership`: Validation of `team_id` [GH-253]
 * `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
 * `resource/github_repository_webhook`: Properly set webhook secret in state [GH-251]
 
