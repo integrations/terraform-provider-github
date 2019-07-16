@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -163,13 +164,17 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
-	_, _, err = client.Repositories.UpdateBranchProtection(ctx,
+	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
 		branch,
 		protectionRequest,
 	)
 	if err != nil {
+		return err
+	}
+
+	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
 		return err
 	}
 
@@ -270,13 +275,17 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
-	_, _, err = client.Repositories.UpdateBranchProtection(ctx,
+	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
 		branch,
 		protectionRequest,
 	)
 	if err != nil {
+		return err
+	}
+
+	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
 		return err
 	}
 
@@ -572,4 +581,35 @@ func expandNestedSet(m map[string]interface{}, target string) []string {
 		}
 	}
 	return res
+}
+
+func checkBranchRestrictionsUsers(actual *github.BranchRestrictions, expected *github.BranchRestrictionsRequest) error {
+	if expected == nil {
+		return nil
+	}
+
+	expectedUsers := expected.Users
+
+	if actual == nil {
+		return fmt.Errorf("unable to add users in restrictions: %s", strings.Join(expectedUsers, ", "))
+	}
+
+	actualLoopUp := make(map[string]struct{}, len(actual.Users))
+	for _, a := range actual.Users {
+		actualLoopUp[a.GetLogin()] = struct{}{}
+	}
+
+	notFounds := make([]string, 0, len(actual.Users))
+
+	for _, e := range expectedUsers {
+		if _, ok := actualLoopUp[e]; !ok {
+			notFounds = append(notFounds, e)
+		}
+	}
+
+	if len(notFounds) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("unable to add users in restrictions: %s", strings.Join(notFounds, ", "))
 }
