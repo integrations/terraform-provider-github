@@ -1,9 +1,13 @@
 ## 2.2.1 (Unreleased)
 
+ENHANCEMENTS:
+
+* `resource/github_branch_protection`: will now return an error when users are not correctly added [GH-158]
+
 BUG FIXES:
 
-* `resource/github_organization_webhook`: properly set webhook secret in state ([GH-251])
-* `resource/github_repository_webhook`: properly set webhook secret in state ([GH-251])
+* `resource/github_organization_webhook`: properly set webhook secret in state [GH-251]
+* `resource/github_repository_webhook`: properly set webhook secret in state [GH-251]
 
 ## 2.2.0 (June 28, 2019)
 
@@ -20,7 +24,7 @@ BUG FIXES:
 
 * `resource/github_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_repository`: `has_projects` can now be imported ([#237](https://github.com/terraform-providers/terraform-provider-github/issues/237))
-* `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241)] 
+* `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_team_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
  
 
