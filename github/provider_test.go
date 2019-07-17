@@ -212,7 +212,7 @@ func configProviderOrganization(org string, individual bool) string {
 	return fmt.Sprintf(`
 provider "github" {
     organization = "%s"
-	individual = %s
+    individual = %s
 }
 `, org, strconv.FormatBool(individual))
 }
@@ -221,7 +221,7 @@ func configProviderToken(token string, anonymous bool) string {
 	return fmt.Sprintf(`
 provider "github" {
     token = "%s"
-	anonymous = %s
+    anonymous = %s
 }
 `, token, strconv.FormatBool(anonymous))
 }
