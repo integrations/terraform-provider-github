@@ -1,4 +1,16 @@
-## 2.3.0 (Unreleased)
+## 2.2.1 (Unreleased)
+
+ENHANCEMENTS:
+
+* dependencies: Updates module `hashicorp/terraform` to `v0.12.4` [GH-243]
+* `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
+
+BUG FIXES:
+
+* `resource/github_team_repository`: Validation of `team_id` [GH-253]
+* `resource/github_team_membership`: Validation of `team_id` [GH-253]
+* `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
+* `resource/github_repository_webhook`: Properly set webhook secret in state [GH-251]
 
 ## 2.2.0 (June 28, 2019)
 
@@ -15,7 +27,7 @@ BUG FIXES:
 
 * `resource/github_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_repository`: `has_projects` can now be imported ([#237](https://github.com/terraform-providers/terraform-provider-github/issues/237))
-* `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241)] 
+* `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_team_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
  
 

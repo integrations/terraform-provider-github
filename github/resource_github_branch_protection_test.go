@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"testing"
 
@@ -60,6 +61,36 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.#", "0"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "0"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccGithubBranchProtection_users(t *testing.T) {
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubBranchProtectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccGithubBranchProtectionConfigUser(repoName, "user_with_underscore"),
+				ExpectError: regexp.MustCompile("unable to add users in restrictions: user_with_underscore"),
+			},
+			{
+				Config: testAccGithubBranchProtectionConfigUser(repoName, testUser),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "1"),
+				),
+			},
+			{
+				Config:      testAccGithubBranchProtectionConfigUser(repoName, "user_with_underscore"),
+				ExpectError: regexp.MustCompile("unable to add users in restrictions: user_with_underscore"),
 			},
 		},
 	})
@@ -474,4 +505,24 @@ resource "github_branch_protection" "master" {
   }
 }
 `, repoName, repoName, firstTeamName, secondTeamName)
+}
+
+func testAccGithubBranchProtectionConfigUser(repoName, user string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+  repository = "${github_repository.test.name}"
+  branch     = "master"
+  enforce_admins = true
+
+  restrictions {
+    users = ["%s"]
+  }
+}
+`, repoName, repoName, user)
 }

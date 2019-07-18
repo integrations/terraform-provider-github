@@ -5,6 +5,37 @@ import (
 	"unicode"
 )
 
+func TestAccValidateTeamIDFunc(t *testing.T) {
+	// warnings, errors := validateTeamIDFunc(interface{"1234567"})
+
+	cases := []struct {
+		TeamID   interface{}
+		ErrCount int
+	}{
+		{
+
+			TeamID:   "1234567",
+			ErrCount: 0,
+		},
+		{
+			// an int cannot be cast to a string
+			TeamID:   1234567,
+			ErrCount: 1,
+		},
+		{
+			TeamID:   "notAnInt",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateTeamIDFunc(tc.TeamID, "keyName")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation error but got %d", tc.ErrCount, len(errors))
+		}
+	}
+}
+
 func TestAccGithubUtilRole_validation(t *testing.T) {
 	cases := []struct {
 		Value    string

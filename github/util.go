@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -90,4 +91,17 @@ type unconvertibleIdError struct {
 func (e *unconvertibleIdError) Error() string {
 	return fmt.Sprintf("Unexpected ID format (%q), expected numerical ID. %s",
 		e.OriginalId, e.OriginalError.Error())
+}
+
+func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []error) {
+	teamIDString, ok := v.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
+	}
+	// Check that the team ID can be converted to an int
+	if _, err := strconv.ParseInt(teamIDString, 10, 64); err != nil {
+		return nil, []error{unconvertibleIdErr(teamIDString, err)}
+	}
+
+	return
 }
