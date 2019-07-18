@@ -170,8 +170,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	client := meta.(*Organization).client
 
-	if _, ok := d.GetOk("default_branch"); ok {
-		return fmt.Errorf("Cannot set the default branch on a new repository.")
+	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
+		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
 	}
 
 	orgName := meta.(*Organization).name

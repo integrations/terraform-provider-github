@@ -739,6 +739,7 @@ resource "github_repository" "foo" {
   allow_rebase_merge = false
   has_downloads      = true
   auto_init          = true
+  default_branch     = "master"
 }
 `, randString, randString)
 }
