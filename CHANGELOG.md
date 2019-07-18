@@ -6,7 +6,7 @@ ENHANCEMENTS:
 * `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
 
 BUG FIXES:
-
+* `resource/github_repository`: Allow setting `default_branch` to `master` on creation [GH-150]
 * `resource/github_team_repository`: Validation of `team_id` [GH-253]
 * `resource/github_team_membership`: Validation of `team_id` [GH-253]
 * `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
