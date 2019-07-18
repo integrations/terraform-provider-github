@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -20,7 +20,7 @@ func TestAccGithubTeam_basic(t *testing.T) {
 	description := "Terraform acc test group"
 	updatedDescription := "Terraform acc test group - updated"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -62,7 +62,7 @@ func TestAccGithubTeam_slug(t *testing.T) {
 	description := "Terraform acc test group"
 	expectedSlug := fmt.Sprintf("tf-acc-test-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -90,7 +90,7 @@ func TestAccGithubTeam_hierarchical(t *testing.T) {
 	parentName := fmt.Sprintf("tf-acc-parent-%s", randString)
 	childName := fmt.Sprintf("tf-acc-child-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -112,7 +112,7 @@ func TestAccGithubTeam_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
@@ -146,7 +146,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		githubTeam, _, err := conn.Organizations.GetTeam(context.TODO(), id)
+		githubTeam, _, err := conn.Teams.GetTeam(context.TODO(), id)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		team, resp, err := conn.Organizations.GetTeam(context.TODO(), id)
+		team, resp, err := conn.Teams.GetTeam(context.TODO(), id)
 		if err == nil {
 			teamId := strconv.FormatInt(*team.ID, 10)
 			if team != nil && teamId == rs.Primary.ID {
@@ -208,9 +208,9 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 func testAccGithubTeamConfig(teamName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
-	name = "%s"
-	description = "Terraform acc test group"
-	privacy = "secret"
+  name        = "%s"
+  description = "Terraform acc test group"
+  privacy     = "secret"
 }
 `, teamName)
 }
@@ -218,9 +218,9 @@ resource "github_team" "foo" {
 func testAccGithubTeamUpdateConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_team" "foo" {
-	name = "tf-acc-test-updated-%s"
-	description = "Terraform acc test group - updated"
-	privacy = "closed"
+  name        = "tf-acc-test-updated-%s"
+  description = "Terraform acc test group - updated"
+  privacy     = "closed"
 }
 `, randString)
 }
@@ -228,15 +228,15 @@ resource "github_team" "foo" {
 func testAccGithubTeamHierarchicalConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_team" "parent" {
-	name = "tf-acc-parent-%s"
-	description = "Terraform acc test parent team"
-	privacy = "closed"
+  name        = "tf-acc-parent-%s"
+  description = "Terraform acc test parent team"
+  privacy     = "closed"
 }
 resource "github_team" "child" {
-	name = "tf-acc-child-%s"
-	description = "Terraform acc test child team"
-	privacy = "closed"
-	parent_team_id = "${github_team.parent.id}"
+  name           = "tf-acc-child-%s"
+  description    = "Terraform acc test child team"
+  privacy        = "closed"
+  parent_team_id = "${github_team.parent.id}"
 }
 `, randString, randString)
 }

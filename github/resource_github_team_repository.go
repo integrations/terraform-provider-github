@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -46,6 +46,11 @@ func resourceGithubTeamRepository() *schema.Resource {
 }
 
 func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	teamIdString := d.Get("team_id").(string)
@@ -60,11 +65,11 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
-	_, err = client.Organizations.AddTeamRepo(ctx,
+	_, err = client.Teams.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
-		&github.OrganizationAddTeamRepoOptions{
+		&github.TeamAddTeamRepoOptions{
 			Permission: permission,
 		},
 	)
@@ -79,6 +84,11 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id())
@@ -98,7 +108,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Organizations.IsTeamRepo(ctx,
+	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx,
 		teamId, orgName, repoName)
 	if repoErr != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -130,6 +140,11 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	teamIdString := d.Get("team_id").(string)
@@ -145,11 +160,11 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
-	_, err = client.Organizations.AddTeamRepo(ctx,
+	_, err = client.Teams.AddTeamRepo(ctx,
 		teamId,
 		orgName,
 		repoName,
-		&github.OrganizationAddTeamRepoOptions{
+		&github.TeamAddTeamRepoOptions{
 			Permission: permission,
 		},
 	)
@@ -163,6 +178,11 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	teamIdString := d.Get("team_id").(string)
@@ -177,7 +197,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	_, err = client.Organizations.RemoveTeamRepo(ctx,
+	_, err = client.Teams.RemoveTeamRepo(ctx,
 		teamId, orgName, repoName)
 	return err
 }

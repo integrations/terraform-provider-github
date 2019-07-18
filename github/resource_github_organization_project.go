@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -43,17 +43,23 @@ func resourceGithubOrganizationProject() *schema.Resource {
 }
 
 func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
+	body := d.Get("body").(string)
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating organization project: %s (%s)", name, orgName)
 	project, _, err := client.Organizations.CreateProject(ctx,
 		orgName,
 		&github.ProjectOptions{
-			Name: name,
-			Body: d.Get("body").(string),
+			Name: &name,
+			Body: &body,
 		},
 	)
 	if err != nil {
@@ -65,6 +71,11 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 
@@ -104,13 +115,20 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
+	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
+
 	name := d.Get("name").(string)
+	body := d.Get("body").(string)
+
 	options := github.ProjectOptions{
-		Name: name,
-		Body: d.Get("body").(string),
+		Name: &name,
+		Body: &body,
 	}
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -128,8 +146,12 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
+	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

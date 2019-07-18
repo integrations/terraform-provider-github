@@ -55,7 +55,7 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
@@ -79,7 +79,7 @@ func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
@@ -160,15 +160,15 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 
 func testAccGithubRepositoryDeployKeyConfig(name, keyPath string) string {
 	return fmt.Sprintf(`
-  resource "github_repository" "test_repo" {
-		name = "%s"
-	}
+resource "github_repository" "test_repo" {
+  name = "%s"
+}
 
-	resource "github_repository_deploy_key" "test_repo_deploy_key" {
-    key = "${file("%s")}"
-    read_only = "false"
-    repository = "${github_repository.test_repo.name}"
-    title = "title"
-  }
+resource "github_repository_deploy_key" "test_repo_deploy_key" {
+  key        = "${file("%s")}"
+  read_only  = "false"
+  repository = "${github_repository.test_repo.name}"
+  title      = "title"
+}
 `, name, keyPath)
 }

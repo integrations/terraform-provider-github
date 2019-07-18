@@ -24,10 +24,10 @@ Further documentation on GitHub repository deploy keys:
 ```hcl
 # Add a deploy key
 resource "github_repository_deploy_key" "example_repository_deploy_key" {
- 	title = "Repository test key"
-	repository = "test-repo"
-	key = "ssh-rsa AAA..."
-	read_only = "false"
+  title      = "Repository test key"
+  repository = "test-repo"
+  key        = "ssh-rsa AAA..."
+  read_only  = "false"
 }
 ```
 

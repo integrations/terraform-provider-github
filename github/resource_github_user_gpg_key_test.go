@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,7 +18,7 @@ func TestAccGithubUserGpgKey_basic(t *testing.T) {
 	keyRe := regexp.MustCompile("^-----BEGIN PGP PUBLIC KEY BLOCK-----")
 	pubKeyPath := filepath.Join("test-fixtures", "gpg-pubkey.asc")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubUserGpgKeyDestroy,

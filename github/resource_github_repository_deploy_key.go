@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,24 +23,24 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 
 		// Deploy keys are defined immutable in the API. Updating results in force new.
 		Schema: map[string]*schema.Schema{
-			"key": &schema.Schema{
+			"key": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: suppressDeployKeyDiff,
 			},
-			"read_only": &schema.Schema{
+			"read_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  true,
 			},
-			"repository": &schema.Schema{
+			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"title": &schema.Schema{
+			"title": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -54,6 +54,11 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 }
 
 func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	repoName := d.Get("repository").(string)
@@ -82,6 +87,11 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	owner := meta.(*Organization).name
@@ -126,6 +136,11 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	owner := meta.(*Organization).name

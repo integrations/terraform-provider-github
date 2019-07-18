@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,27 +15,27 @@ func dataSourceGithubTeam() *schema.Resource {
 		Read: dataSourceGithubTeamRead,
 
 		Schema: map[string]*schema.Schema{
-			"slug": &schema.Schema{
+			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"privacy": &schema.Schema{
+			"privacy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"permission": &schema.Schema{
+			"permission": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"members": &schema.Schema{
+			"members": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -46,17 +46,17 @@ func dataSourceGithubTeam() *schema.Resource {
 
 func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	slug := d.Get("slug").(string)
-	log.Printf("[INFO] Refreshing Gitub Team: %s", slug)
+	log.Printf("[INFO] Refreshing GitHub Team: %s", slug)
 
 	client := meta.(*Organization).client
 	ctx := context.Background()
 
-	team, err := getGithubTeamBySlug(client, meta.(*Organization).name, slug)
+	team, err := getGithubTeamBySlug(ctx, client, meta.(*Organization).name, slug)
 	if err != nil {
 		return err
 	}
 
-	member, _, err := client.Organizations.ListTeamMembers(ctx, team.GetID(), nil)
+	member, _, err := client.Teams.ListTeamMembers(ctx, team.GetID(), nil)
 	if err != nil {
 		return err
 	}
@@ -76,10 +76,10 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func getGithubTeamBySlug(client *github.Client, org string, slug string) (team *github.Team, err error) {
+func getGithubTeamBySlug(ctx context.Context, client *github.Client, org string, slug string) (team *github.Team, err error) {
 	opt := &github.ListOptions{PerPage: 10}
 	for {
-		teams, resp, err := client.Organizations.ListTeams(context.TODO(), org, opt)
+		teams, resp, err := client.Teams.ListTeams(ctx, org, opt)
 		if err != nil {
 			return team, err
 		}

@@ -2,12 +2,11 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,12 +23,11 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGithubOrganizationWebhookName,
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
 			},
-			"events": &schema.Schema{
+			"events": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -53,13 +51,6 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 	}
 }
 
-func validateGithubOrganizationWebhookName(v interface{}, k string) (ws []string, errors []error) {
-	if v.(string) != "web" {
-		errors = append(errors, fmt.Errorf("Github: name can only be web"))
-	}
-	return
-}
-
 func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hook {
 	events := []string{}
 	eventSet := d.Get("events").(*schema.Set)
@@ -68,7 +59,6 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 	}
 
 	hook := &github.Hook{
-		Name:   github.String(d.Get("name").(string)),
 		URL:    github.String(d.Get("url").(string)),
 		Events: events,
 		Active: github.Bool(d.Get("active").(bool)),
@@ -83,14 +73,18 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 }
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization webhook: %s (%s)",
-		webhookObj.GetName(), orgName)
+	log.Printf("[DEBUG] Creating organization webhook: %d (%s)", webhookObj.GetID(), orgName)
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 
 	if err != nil {
@@ -98,10 +92,23 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from our request to GitHub
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = webhookObj.Config["secret"]
+	}
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
 func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -132,16 +139,33 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
+
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from what we get from
+	// ResourceData
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
 
 func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -164,6 +188,11 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name

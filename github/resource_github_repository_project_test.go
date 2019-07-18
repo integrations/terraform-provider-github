@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -18,7 +18,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var project github.Project
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubRepositoryProjectDestroy,
@@ -41,7 +41,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 func TestAccGithubRepositoryProject_importBasic(t *testing.T) {
 	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubRepositoryProjectDestroy,
@@ -158,5 +158,6 @@ resource "github_repository_project" "test" {
   name       = "test-project"
   repository = "%[1]s"
   body       = "this is a test project"
-}`, repoName)
+}
+`, repoName)
 }

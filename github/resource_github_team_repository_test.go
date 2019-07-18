@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -18,7 +18,7 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
@@ -45,7 +45,7 @@ func TestAccGithubTeamRepository_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
@@ -125,7 +125,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, _, err := conn.Organizations.IsTeamRepo(context.TODO(),
+		repo, _, err := conn.Teams.IsTeamRepo(context.TODO(),
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)
@@ -155,7 +155,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, resp, err := conn.Organizations.IsTeamRepo(context.TODO(),
+		repo, resp, err := conn.Teams.IsTeamRepo(context.TODO(),
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)
@@ -177,18 +177,18 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 func testAccGithubTeamRepositoryConfig(randString, repoName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "tf-acc-test-team-repo-%s"
-	description = "Terraform acc test group"
+  name        = "tf-acc-test-team-repo-%s"
+  description = "Terraform acc test group"
 }
 
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-	team_id = "${github_team.test_team.id}"
-	repository = "${github_repository.test.name}"
-	permission = "pull"
+  team_id    = "${github_team.test_team.id}"
+  repository = "${github_repository.test.name}"
+  permission = "pull"
 }
 `, randString, repoName)
 }
@@ -196,18 +196,18 @@ resource "github_team_repository" "test_team_test_repo" {
 func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "tf-acc-test-team-repo-%s"
-	description = "Terraform acc test group"
+  name        = "tf-acc-test-team-repo-%s"
+  description = "Terraform acc test group"
 }
 
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-	team_id = "${github_team.test_team.id}"
-	repository = "${github_repository.test.name}"
-	permission = "push"
+  team_id    = "${github_team.test_team.id}"
+  repository = "${github_repository.test.name}"
+  permission = "push"
 }
 `, randString, repoName)
 }

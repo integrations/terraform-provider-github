@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -40,6 +40,11 @@ func resourceGithubProjectColumn() *schema.Resource {
 }
 
 func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	options := github.ProjectColumnOptions{

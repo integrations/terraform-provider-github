@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -17,7 +19,10 @@ func resourceGithubRepository() *schema.Resource {
 		Update: resourceGithubRepositoryUpdate,
 		Delete: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("auto_init", false)
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -97,8 +102,11 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"topics": {
 				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
+				},
 			},
 
 			"full_name": {
@@ -155,6 +163,11 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
@@ -184,6 +197,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	repoName := d.Id()
@@ -217,6 +235,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("homepage_url", repo.Homepage)
 	d.Set("private", repo.Private)
 	d.Set("has_issues", repo.HasIssues)
+	d.Set("has_projects", repo.HasProjects)
 	d.Set("has_wiki", repo.HasWiki)
 	d.Set("allow_merge_commit", repo.AllowMergeCommit)
 	d.Set("allow_squash_merge", repo.AllowSquashMerge)
@@ -235,6 +254,11 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -270,13 +294,18 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	_, err := client.Repositories.Delete(ctx, orgName, repoName)
+	_, err = client.Repositories.Delete(ctx, orgName, repoName)
 
 	return err
 }

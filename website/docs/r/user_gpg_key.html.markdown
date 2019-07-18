@@ -24,7 +24,7 @@ resource "github_user_gpg_key" "example" {
 
 The following arguments are supported:
 
-* `armored_public_key` - (Required) Your pulic GPG key, generated in ASCII-armored format.
+* `armored_public_key` - (Required) Your public GPG key, generated in ASCII-armored format.
   See [Generating a new GPG key](https://help.github.com/articles/generating-a-new-gpg-key/) for help on creating a GPG key.
 
 ## Attributes Reference

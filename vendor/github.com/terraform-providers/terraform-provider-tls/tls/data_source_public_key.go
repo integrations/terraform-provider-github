@@ -29,6 +29,10 @@ func dataSourcePublicKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"public_key_fingerprint_md5": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

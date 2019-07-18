@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -36,8 +36,8 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -76,10 +76,8 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 	for _, v := range eventSet.List() {
 		events = append(events, v.(string))
 	}
-	name := d.Get("name").(string)
 
 	hook := &github.Hook{
-		Name:   &name,
 		URL:    &url,
 		Events: events,
 		Active: &active,
@@ -94,6 +92,11 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 }
 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -101,17 +104,30 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository webhook: %s (%s/%s)", hk.GetName(), orgName, repoName)
+	log.Printf("[DEBUG] Creating repository webhook: %d (%s/%s)", hk.GetID(), orgName, repoName)
 	hook, _, err := client.Repositories.CreateHook(ctx, orgName, repoName, hk)
 	if err != nil {
 		return err
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from our request to GitHub
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = hk.Config["secret"]
+	}
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
 
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
@@ -141,16 +157,33 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 		return err
 	}
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
+
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from what we get from
+	// ResourceData
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
 
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name

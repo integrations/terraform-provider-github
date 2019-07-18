@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v25/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -56,11 +56,16 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
-	newTeam := &github.NewTeam{
+	newTeam := github.NewTeam{
 		Name:        name,
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
@@ -72,7 +77,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
-	githubTeam, _, err := client.Organizations.CreateTeam(ctx,
+	githubTeam, _, err := client.Teams.CreateTeam(ctx,
 		orgName, newTeam)
 	if err != nil {
 		return err
@@ -105,7 +110,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
-	team, resp, err := client.Organizations.GetTeam(ctx, id)
+	team, resp, err := client.Teams.GetTeam(ctx, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -139,7 +144,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
-	editedTeam := &github.NewTeam{
+	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
@@ -156,7 +161,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
-	team, _, err := client.Organizations.EditTeam(ctx, teamId, editedTeam)
+	team, _, err := client.Teams.EditTeam(ctx, teamId, editedTeam)
 	if err != nil {
 		return err
 	}
@@ -186,6 +191,6 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
-	_, err = client.Organizations.DeleteTeam(ctx, id)
+	_, err = client.Teams.DeleteTeam(ctx, id)
 	return err
 }
