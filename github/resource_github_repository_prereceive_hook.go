@@ -12,9 +12,9 @@ import (
 
 func resourceGithubRepositoryPreReceiveHook() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryPreReceiveHookCreate,
+		Create: resourceGithubRepositoryPreReceiveHookCreateUpdate,
 		Read:   resourceGithubRepositoryPreReceiveHookRead,
-		Update: resourceGithubRepositoryPreReceiveHookCreate,
+		Update: resourceGithubRepositoryPreReceiveHookCreateUpdate,
 		Delete: resourceGithubRepositoryPreReceiveHookDelete,
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -78,7 +78,7 @@ func fetchGitHubRepositoryPreReceiveHookByName(meta interface{}, repoName, hookN
 	return hook, nil
 }
 
-func resourceGithubRepositoryPreReceiveHookCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryPreReceiveHookCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
