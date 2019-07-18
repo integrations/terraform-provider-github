@@ -157,7 +157,7 @@ func resourceGithubRepositoryPreReceiveHookDelete(d *schema.ResourceData, meta i
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
 	_, _, err = client.Repositories.UpdatePreReceiveHook(ctx, orgName, repoName, *hook.ID, hook)
-	if err != nil {
+	if _, _, err = client.Repositories.UpdatePreReceiveHook(ctx, orgName, repoName, *hook.ID, hook); err != nil {
 		return err
 	}
 
