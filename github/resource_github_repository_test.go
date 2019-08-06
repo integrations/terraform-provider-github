@@ -52,6 +52,8 @@ func testSweepRepositories(region string) error {
 
 func TestAccGithubRepository_basic(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -98,12 +100,19 @@ func TestAccGithubRepository_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_archive(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -132,12 +141,19 @@ func TestAccGithubRepository_archive(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -185,23 +201,8 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepository_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryConfig(randString),
-			},
-			{
-				ResourceName:      "github_repository.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -209,7 +210,8 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccGithubRepository_importHasProjects(t *testing.T) {
+func TestAccGithubRepository_hasProjects(t *testing.T) {
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -221,7 +223,7 @@ func TestAccGithubRepository_importHasProjects(t *testing.T) {
 				Config: testAccGithubRepositoryConfigHasProjects(randString),
 			},
 			{
-				ResourceName:      "github_repository.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -234,6 +236,8 @@ func TestAccGithubRepository_importHasProjects(t *testing.T) {
 
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -286,12 +290,19 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_templates(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -323,12 +334,19 @@ func TestAccGithubRepository_templates(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_topics(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -404,12 +422,19 @@ func TestAccGithubRepository_topics(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 	var repo github.Repository
+
+	resourceName := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 
@@ -435,6 +460,11 @@ func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 					resource.TestCheckResourceAttr("github_repository.foo", "license_template", "mpl-2.0"),
 					resource.TestCheckResourceAttr("github_repository.foo", "gitignore_template", "Go"),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

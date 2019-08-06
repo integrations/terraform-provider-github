@@ -15,6 +15,8 @@ import (
 
 func TestAccGithubUserSshKey_basic(t *testing.T) {
 	var key github.Key
+
+	resourceName := "github_user_ssh_key.test"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	title := fmt.Sprintf("tf-acc-test-%s", randString)
 	keyRe := regexp.MustCompile("^ecdsa-sha2-nistp384 ")
@@ -34,24 +36,8 @@ func TestAccGithubUserSshKey_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("github_user_ssh_key.test", "url", urlRe),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubUserSshKey_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	title := fmt.Sprintf("tf-acc-test-%s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubUserSshKeyDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubUserSshKeyConfig(title),
-			},
-			{
-				ResourceName:      "github_user_ssh_key.test",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

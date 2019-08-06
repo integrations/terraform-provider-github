@@ -14,6 +14,7 @@ import (
 func TestAccGithubIssueLabel_basic(t *testing.T) {
 	var label github.Label
 
+	resourceName := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
@@ -36,6 +37,11 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -43,6 +49,7 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 	var label github.Label
 
+	resourceName := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
@@ -58,24 +65,8 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubIssueLabel_importBasic(t *testing.T) {
-	rString := acctest.RandString(5)
-	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubIssueLabelDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubIssueLabelConfig(repoName),
-			},
-			{
-				ResourceName:      "github_issue_label.test",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -86,6 +77,7 @@ func TestAccGithubIssueLabel_importBasic(t *testing.T) {
 func TestAccGithubIssueLabel_description(t *testing.T) {
 	var label github.Label
 
+	resourceName := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-desc-%s", rString)
 	description := "Terraform Acceptance Test"
@@ -123,6 +115,11 @@ func TestAccGithubIssueLabel_description(t *testing.T) {
 					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
 					resource.TestCheckResourceAttr("github_issue_label.test", "description", ""),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

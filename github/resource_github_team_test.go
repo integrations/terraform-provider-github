@@ -14,6 +14,8 @@ import (
 
 func TestAccGithubTeam_basic(t *testing.T) {
 	var team github.Team
+
+	resourceName := "github_team.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	updatedName := fmt.Sprintf("tf-acc-test-updated-%s", randString)
@@ -51,12 +53,19 @@ func TestAccGithubTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_team.foo", "slug", updatedName),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubTeam_slug(t *testing.T) {
 	var team github.Team
+
+	resourceName := "github_team.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("TF Acc Test %s", randString)
 	description := "Terraform acc test group"
@@ -80,12 +89,19 @@ func TestAccGithubTeam_slug(t *testing.T) {
 					resource.TestCheckResourceAttr("github_team.foo", "slug", expectedSlug),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubTeam_hierarchical(t *testing.T) {
 	var parent, child github.Team
+
+	resourceName := "github_team.child"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	parentName := fmt.Sprintf("tf-acc-parent-%s", randString)
 	childName := fmt.Sprintf("tf-acc-child-%s", randString)
@@ -104,24 +120,8 @@ func TestAccGithubTeam_hierarchical(t *testing.T) {
 					testAccCheckGithubTeamAttributes(&child, childName, "Terraform acc test child team", &parent),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubTeam_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamConfig(name),
-			},
-			{
-				ResourceName:      "github_team.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

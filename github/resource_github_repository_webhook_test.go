@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
+	resourceName := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -53,11 +54,18 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:        resourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+			},
 		},
 	})
 }
 
 func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
+	resourceName := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -82,51 +90,12 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryWebhook_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryWebhookConfig(randString),
-			},
-			{
-				ResourceName:        "github_repository_webhook.foo",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
-			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryWebhook_importSecret(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookSecret("github_repository_webhook.foo", "RandomSecretString"),
-				),
-			},
-			{
-				ResourceName:            "github_repository_webhook.foo",
+				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
-				ImportStateVerifyIgnore: []string{"configuration.0.secret"}, // github does not allow a read of the actual secret
+				ImportStateVerifyIgnore: []string{"configuration.0.secret"},
 			},
 		},
 	})

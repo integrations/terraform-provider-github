@@ -18,6 +18,8 @@ func TestAccGithubMembership_basic(t *testing.T) {
 
 	var membership github.Membership
 
+	resourceName := "github_membership.test_org_membership"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -29,6 +31,11 @@ func TestAccGithubMembership_basic(t *testing.T) {
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -42,6 +49,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 	var membership github.Membership
 	var otherMembership github.Membership
 
+	resourceName := "github_membership.test_org_membership"
 	otherCase := flipUsernameCase(testCollaborator)
 
 	if testCollaborator == otherCase {
@@ -66,21 +74,8 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 					testAccGithubMembershipTheSame(&membership, &otherMembership),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubMembership_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig(testCollaborator),
-			},
-			{
-				ResourceName:      "github_membership.test_org_membership",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

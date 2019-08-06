@@ -17,6 +17,7 @@ import (
 func TestAccGithubBranchProtection_basic(t *testing.T) {
 	var protection github.Protection
 
+	resourceName := "github_branch_protection.master"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
@@ -62,11 +63,17 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "0"),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubBranchProtection_users(t *testing.T) {
+	resourceName := "github_branch_protection.master"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
@@ -92,6 +99,11 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 				Config:      testAccGithubBranchProtectionConfigUser(repoName, "user_with_underscore"),
 				ExpectError: regexp.MustCompile("unable to add users in restrictions: user_with_underscore"),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -99,6 +111,7 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 func TestAccGithubBranchProtection_teams(t *testing.T) {
 	var firstP, secondP, thirdP github.Protection
 
+	resourceName := "github_branch_protection.master"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 	firstTeamName := fmt.Sprintf("team 1 %s", rString)
@@ -165,6 +178,11 @@ func TestAccGithubBranchProtection_teams(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "2"),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -173,6 +191,7 @@ func TestAccGithubBranchProtection_teams(t *testing.T) {
 func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 	var protection github.Protection
 
+	resourceName := "github_branch_protection.master"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
@@ -194,23 +213,8 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.#", "1"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubBranchProtection_importBasic(t *testing.T) {
-	rString := acctest.RandString(5)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubBranchProtectionDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubBranchProtectionConfig(rString),
-			},
-			{
-				ResourceName:      "github_branch_protection.master",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

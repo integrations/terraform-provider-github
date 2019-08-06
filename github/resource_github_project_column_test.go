@@ -14,6 +14,8 @@ import (
 func TestAccGithubProjectColumn_basic(t *testing.T) {
 	var column github.ProjectColumn
 
+	resourceName := "github_project_column.column"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -37,21 +39,8 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubProjectColumn_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubProjectColumnDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubProjectColumnConfig("a column"),
-			},
-			{
-				ResourceName:      "github_project_column.column",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

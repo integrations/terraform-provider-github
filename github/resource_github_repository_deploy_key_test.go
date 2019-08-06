@@ -51,6 +51,7 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
+	resourceName := "github_repository_deploy_key.test_repo_deploy_key"
 	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
@@ -70,25 +71,8 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "title", "title"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
-	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
-			},
-			{
-				ResourceName:      "github_repository_deploy_key.test_repo_deploy_key",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

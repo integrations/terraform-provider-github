@@ -15,6 +15,8 @@ import (
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
 	var project github.Project
 
+	resourceName := "github_organization_project.test"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -30,21 +32,8 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubOrganizationProject_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubOrganizationProjectDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubOrganizationProjectConfig,
-			},
-			{
-				ResourceName:      "github_organization_project.test",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

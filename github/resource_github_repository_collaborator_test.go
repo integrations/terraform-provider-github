@@ -38,6 +38,11 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -59,7 +64,7 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
@@ -78,23 +83,8 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 					testAccGithubRepositoryCollaboratorTheSame(&origInvitation, &otherInvitation),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
-	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
-			},
-			{
-				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
