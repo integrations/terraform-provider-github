@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-
 func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 	dsn := "data.github_collaborators.test"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
