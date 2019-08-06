@@ -108,7 +108,6 @@ func resourceGithubRepository() *schema.Resource {
 					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
 				},
 			},
-
 			"full_name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -137,6 +136,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"auto_delete_head_branch": {
+				Type: schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -159,6 +162,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		GitignoreTemplate: github.String(d.Get("gitignore_template").(string)),
 		Archived:          github.Bool(d.Get("archived").(bool)),
 		Topics:            expandStringList(d.Get("topics").(*schema.Set).List()),
+
 	}
 }
 
