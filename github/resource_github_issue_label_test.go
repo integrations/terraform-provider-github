@@ -14,7 +14,7 @@ import (
 func TestAccGithubIssueLabel_basic(t *testing.T) {
 	var label github.Label
 
-	resourceName := "github_issue_label.test"
+	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
@@ -26,19 +26,19 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 			{
 				Config: testAccGithubIssueLabelConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelExists(rn, &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "foo", "000000"),
 				),
 			},
 			{
 				Config: testAccGithubIssueLabelUpdateConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelExists(rn, &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -49,7 +49,7 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 	var label github.Label
 
-	resourceName := "github_issue_label.test"
+	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
@@ -61,12 +61,12 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 			{
 				Config: testAccGitHubIssueLabelExistsConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelExists(rn, &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -77,7 +77,7 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 func TestAccGithubIssueLabel_description(t *testing.T) {
 	var label github.Label
 
-	resourceName := "github_issue_label.test"
+	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-desc-%s", rString)
 	description := "Terraform Acceptance Test"
@@ -91,33 +91,33 @@ func TestAccGithubIssueLabel_description(t *testing.T) {
 			{
 				Config: testAccGithubIssueLabelConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
-					resource.TestCheckResourceAttr("github_issue_label.test", "description", ""),
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", ""),
 				),
 			},
 			{
 				Config: testAccGithubIssueLabelConfig_description(repoName, description),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
-					resource.TestCheckResourceAttr("github_issue_label.test", "description", description),
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", description),
 				),
 			},
 			{
 				Config: testAccGithubIssueLabelConfig_description(repoName, updatedDescription),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
-					resource.TestCheckResourceAttr("github_issue_label.test", "description", updatedDescription),
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", updatedDescription),
 				),
 			},
 			{
 				Config: testAccGithubIssueLabelConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
-					resource.TestCheckResourceAttr("github_issue_label.test", "description", ""),
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", ""),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

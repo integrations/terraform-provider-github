@@ -16,6 +16,8 @@ import (
 func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 	var hook github.Hook
 
+	rn := "github_organization_webhook.foo"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -24,7 +26,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
+					testAccCheckGithubOrganizationWebhookExists(rn, &hook),
 					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -39,7 +41,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
+					testAccCheckGithubOrganizationWebhookExists(rn, &hook),
 					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
@@ -51,11 +53,18 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
 
 func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
+
+	rn := "github_organization_webhook.foo"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -65,8 +74,13 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookConfig_secret,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookSecret("github_organization_webhook.foo", "VerySecret"),
+					testAccCheckGithubOrganizationWebhookSecret(rn, "VerySecret"),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

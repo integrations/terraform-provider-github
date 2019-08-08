@@ -14,7 +14,7 @@ import (
 func TestAccGithubProjectColumn_basic(t *testing.T) {
 	var column github.ProjectColumn
 
-	resourceName := "github_project_column.column"
+	rn := "github_project_column.column"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,7 +24,7 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 			{
 				Config: testAccGithubProjectColumnConfig("new column name"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists("github_project_column.column", &column),
+					testAccCheckGithubProjectColumnExists(rn, &column),
 					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
 						Name: "new column name",
 					}),
@@ -33,14 +33,14 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 			{
 				Config: testAccGithubProjectColumnConfig("updated column name"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists("github_project_column.column", &column),
+					testAccCheckGithubProjectColumnExists(rn, &column),
 					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
 						Name: "updated column name",
 					}),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

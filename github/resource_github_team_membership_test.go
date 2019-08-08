@@ -20,6 +20,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 
 	var membership github.Membership
 
+	rn := "github_team_membership.test_team_membership"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -30,16 +31,21 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
-					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
+					testAccCheckGithubTeamMembershipExists(rn, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rn, "member", &membership),
 				),
 			},
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "maintainer"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
-					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
+					testAccCheckGithubTeamMembershipExists(rn, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rn, "maintainer", &membership),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -53,6 +59,7 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 	var membership github.Membership
 	var otherMembership github.Membership
 
+	rn := "github_team_membership.test_team_membership"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	otherCase := flipUsernameCase(testCollaborator)
@@ -69,33 +76,18 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
+					testAccCheckGithubTeamMembershipExists(rn, &membership),
 				),
 			},
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, otherCase, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &otherMembership),
+					testAccCheckGithubTeamMembershipExists(rn, &otherMembership),
 					testAccGithubTeamMembershipTheSame(&membership, &otherMembership),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubTeamMembership_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
-			},
-			{
-				ResourceName:      "github_team_membership.test_team_membership",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

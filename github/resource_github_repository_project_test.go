@@ -18,7 +18,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var project github.Project
 
-	resourceName := "github_repository_project.test"
+	rn := "github_repository_project.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -28,7 +28,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryProjectConfig(randRepoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryProjectExists("github_repository_project.test", &project),
+					testAccCheckGithubRepositoryProjectExists(rn, &project),
 					testAccCheckGithubRepositoryProjectAttributes(&project, &testAccGithubRepositoryProjectExpectedAttributes{
 						Name:       "test-project",
 						Repository: randRepoName,
@@ -37,7 +37,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:        resourceName,
+				ResourceName:        rn,
 				ImportState:         true,
 				ImportStateVerify:   true,
 				ImportStateIdPrefix: randRepoName + `/`,

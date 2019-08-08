@@ -15,7 +15,7 @@ import (
 func TestAccGithubTeam_basic(t *testing.T) {
 	var team github.Team
 
-	resourceName := "github_team.foo"
+	rn := "github_team.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	updatedName := fmt.Sprintf("tf-acc-test-updated-%s", randString)
@@ -30,31 +30,31 @@ func TestAccGithubTeam_basic(t *testing.T) {
 			{
 				Config: testAccGithubTeamConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamExists(rn, &team),
 					testAccCheckGithubTeamAttributes(&team, name, description, nil),
-					resource.TestCheckResourceAttr("github_team.foo", "name", name),
-					resource.TestCheckResourceAttr("github_team.foo", "description", description),
-					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
-					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
-					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
-					resource.TestCheckResourceAttr("github_team.foo", "slug", name),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "description", description),
+					resource.TestCheckResourceAttr(rn, "privacy", "secret"),
+					resource.TestCheckNoResourceAttr(rn, "parent_team_id"),
+					resource.TestCheckResourceAttr(rn, "ldap_dn", ""),
+					resource.TestCheckResourceAttr(rn, "slug", name),
 				),
 			},
 			{
 				Config: testAccGithubTeamUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamExists(rn, &team),
 					testAccCheckGithubTeamAttributes(&team, updatedName, updatedDescription, nil),
-					resource.TestCheckResourceAttr("github_team.foo", "name", updatedName),
-					resource.TestCheckResourceAttr("github_team.foo", "description", updatedDescription),
-					resource.TestCheckResourceAttr("github_team.foo", "privacy", "closed"),
-					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
-					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
-					resource.TestCheckResourceAttr("github_team.foo", "slug", updatedName),
+					resource.TestCheckResourceAttr(rn, "name", updatedName),
+					resource.TestCheckResourceAttr(rn, "description", updatedDescription),
+					resource.TestCheckResourceAttr(rn, "privacy", "closed"),
+					resource.TestCheckNoResourceAttr(rn, "parent_team_id"),
+					resource.TestCheckResourceAttr(rn, "ldap_dn", ""),
+					resource.TestCheckResourceAttr(rn, "slug", updatedName),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -65,7 +65,7 @@ func TestAccGithubTeam_basic(t *testing.T) {
 func TestAccGithubTeam_slug(t *testing.T) {
 	var team github.Team
 
-	resourceName := "github_team.foo"
+	rn := "github_team.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("TF Acc Test %s", randString)
 	description := "Terraform acc test group"
@@ -79,18 +79,18 @@ func TestAccGithubTeam_slug(t *testing.T) {
 			{
 				Config: testAccGithubTeamConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamExists("github_team.foo", &team),
+					testAccCheckGithubTeamExists(rn, &team),
 					testAccCheckGithubTeamAttributes(&team, name, description, nil),
-					resource.TestCheckResourceAttr("github_team.foo", "name", name),
-					resource.TestCheckResourceAttr("github_team.foo", "description", description),
-					resource.TestCheckResourceAttr("github_team.foo", "privacy", "secret"),
-					resource.TestCheckNoResourceAttr("github_team.foo", "parent_team_id"),
-					resource.TestCheckResourceAttr("github_team.foo", "ldap_dn", ""),
-					resource.TestCheckResourceAttr("github_team.foo", "slug", expectedSlug),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "description", description),
+					resource.TestCheckResourceAttr(rn, "privacy", "secret"),
+					resource.TestCheckNoResourceAttr(rn, "parent_team_id"),
+					resource.TestCheckResourceAttr(rn, "ldap_dn", ""),
+					resource.TestCheckResourceAttr(rn, "slug", expectedSlug),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -101,7 +101,7 @@ func TestAccGithubTeam_slug(t *testing.T) {
 func TestAccGithubTeam_hierarchical(t *testing.T) {
 	var parent, child github.Team
 
-	resourceName := "github_team.child"
+	rn := "github_team.parent"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	parentName := fmt.Sprintf("tf-acc-parent-%s", randString)
 	childName := fmt.Sprintf("tf-acc-child-%s", randString)
@@ -114,14 +114,14 @@ func TestAccGithubTeam_hierarchical(t *testing.T) {
 			{
 				Config: testAccGithubTeamHierarchicalConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamExists("github_team.parent", &parent),
+					testAccCheckGithubTeamExists(rn, &parent),
 					testAccCheckGithubTeamAttributes(&parent, parentName, "Terraform acc test parent team", nil),
 					testAccCheckGithubTeamExists("github_team.child", &child),
 					testAccCheckGithubTeamAttributes(&child, childName, "Terraform acc test child team", &parent),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

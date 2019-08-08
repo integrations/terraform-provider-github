@@ -15,7 +15,7 @@ import (
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
 	var project github.Project
 
-	resourceName := "github_organization_project.test"
+	rn := "github_organization_project.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -25,7 +25,7 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationProjectConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationProjectExists("github_organization_project.test", &project),
+					testAccCheckGithubOrganizationProjectExists(rn, &project),
 					testAccCheckGithubOrganizationProjectAttributes(&project, &testAccGithubOrganizationProjectExpectedAttributes{
 						Name: "test-project",
 						Body: "this is a test project",
@@ -33,7 +33,7 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

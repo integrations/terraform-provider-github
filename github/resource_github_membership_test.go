@@ -18,7 +18,7 @@ func TestAccGithubMembership_basic(t *testing.T) {
 
 	var membership github.Membership
 
-	resourceName := "github_membership.test_org_membership"
+	rn := "github_membership.test_org_membership"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -28,12 +28,12 @@ func TestAccGithubMembership_basic(t *testing.T) {
 			{
 				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
-					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
+					testAccCheckGithubMembershipExists(rn, &membership),
+					testAccCheckGithubMembershipRoleState(rn, &membership),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -49,7 +49,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 	var membership github.Membership
 	var otherMembership github.Membership
 
-	resourceName := "github_membership.test_org_membership"
+	rn := "github_membership.test_org_membership"
 	otherCase := flipUsernameCase(testCollaborator)
 
 	if testCollaborator == otherCase {
@@ -64,18 +64,18 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 			{
 				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
+					testAccCheckGithubMembershipExists(rn, &membership),
 				),
 			},
 			{
 				Config: testAccGithubMembershipConfig(otherCase),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &otherMembership),
+					testAccCheckGithubMembershipExists(rn, &otherMembership),
 					testAccGithubMembershipTheSame(&membership, &otherMembership),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

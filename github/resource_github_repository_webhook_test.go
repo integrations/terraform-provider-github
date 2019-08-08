@@ -15,7 +15,7 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
-	resourceName := "github_repository_webhook.foo"
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -27,7 +27,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -42,7 +42,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
@@ -55,7 +55,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:        resourceName,
+				ResourceName:        rn,
 				ImportState:         true,
 				ImportStateVerify:   true,
 				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
@@ -65,7 +65,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 }
 
 func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
-	resourceName := "github_repository_webhook.foo"
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -77,7 +77,7 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -91,7 +91,7 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:            resourceName,
+				ResourceName:            rn,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
