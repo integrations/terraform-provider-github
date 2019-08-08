@@ -33,11 +33,6 @@ func TestAccGithubUserGpgKey_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(rn, "key_id", "AC541D2D1709CD33"),
 				),
 			},
-			{
-				ResourceName: rn,
-				ImportState: true,
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
