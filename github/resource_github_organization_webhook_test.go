@@ -53,11 +53,6 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
@@ -76,11 +71,6 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubOrganizationWebhookSecret(rn, "VerySecret"),
 				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
