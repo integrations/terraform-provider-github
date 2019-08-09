@@ -148,6 +148,9 @@ func TestAccGithubRepository_archive(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -345,7 +348,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"auto_init",
+					"auto_init", "gitignore_template", "license_template",
 				},
 			},
 		},
