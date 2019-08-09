@@ -104,6 +104,9 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -294,6 +297,9 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -338,6 +344,9 @@ func TestAccGithubRepository_templates(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -426,6 +435,9 @@ func TestAccGithubRepository_topics(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -465,6 +477,9 @@ func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "license_template", "gitignore_template",
+				},
 			},
 		},
 	})
