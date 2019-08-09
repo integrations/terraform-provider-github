@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
-	resourceName := "github_repository_collaborator.test"
+	rn := "github_repository_collaborator.test"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
 	inviteeToken := os.Getenv("GITHUB_TEST_COLLABORATOR_TOKEN")
@@ -31,9 +31,14 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 			{
 				Config: testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "permission", "push"),
-					resource.TestMatchResourceAttr(resourceName, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+					resource.TestCheckResourceAttr(rn, "permission", "push"),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

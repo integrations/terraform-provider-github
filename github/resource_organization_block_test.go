@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccOrganizationBlock_basic(t *testing.T) {
+	rn := "github_organization_block.test"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -18,24 +20,11 @@ func TestAccOrganizationBlock_basic(t *testing.T) {
 			{
 				Config: testAccOrganizationBlockConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOrganizationBlockExists("github_organization_block.test"),
+					testAccCheckOrganizationBlockExists(rn),
 				),
 			},
-		},
-	})
-}
-
-func TestAccOrganizationBlock_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationBlockDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccOrganizationBlockConfig,
-			},
-			{
-				ResourceName:      "github_organization_block.test",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

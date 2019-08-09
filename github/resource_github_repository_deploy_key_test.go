@@ -51,6 +51,7 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
+	rn := "github_repository_deploy_key.test_repo_deploy_key"
 	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
 	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
@@ -63,32 +64,15 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryDeployKeyExists("github_repository_deploy_key.test_repo_deploy_key"),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "read_only", "false"),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "repository", repositoryName),
-					resource.TestMatchResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "title", "title"),
+					testAccCheckGithubRepositoryDeployKeyExists(rn),
+					resource.TestCheckResourceAttr(rn, "read_only", "false"),
+					resource.TestCheckResourceAttr(rn, "repository", repositoryName),
+					resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
+					resource.TestCheckResourceAttr(rn, "title", "title"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
-	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
-			},
-			{
-				ResourceName:      "github_repository_deploy_key.test_repo_deploy_key",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
