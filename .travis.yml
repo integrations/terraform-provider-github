@@ -15,7 +15,7 @@ install:
 
 script:
 - make test
-- make vet
+- make lint
 - make website-test
 
 branches:
