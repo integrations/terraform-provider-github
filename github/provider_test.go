@@ -201,6 +201,7 @@ func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, fun
 		Handler: mux,
 	}
 
+	// nolint: errcheck
 	go server.ListenAndServeTLS(certFile, keyFile)
 
 	return "https://localhost:" + port + "/", server.Close

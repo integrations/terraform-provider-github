@@ -171,7 +171,6 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		username = *invitation.Invitee.Login
 		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}

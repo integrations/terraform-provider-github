@@ -6,8 +6,7 @@ import (
 )
 
 func Provider() terraform.ResourceProvider {
-	var p *schema.Provider
-	p = &schema.Provider{
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,

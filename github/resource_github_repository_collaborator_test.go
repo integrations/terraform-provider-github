@@ -244,7 +244,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 			}
 
 			if len(invitations) > 1 {
-				return errors.New(fmt.Sprintf("multiple invitations have been sent for repository %s", repoName))
+				return fmt.Errorf("multiple invitations have been sent for repository %s", repoName)
 			}
 
 			for _, i := range invitations {
@@ -260,7 +260,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 			opt.Page = resp.NextPage
 		}
 
-		return errors.New(fmt.Sprintf("no invitation found for %s", username))
+		return fmt.Errorf("no invitation found for %s", username)
 	}
 }
 
