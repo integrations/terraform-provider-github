@@ -32,4 +32,4 @@ matrix:
   - name: "make website-test"
     script: make website-test
 env:
-  - GOFLAGS=-mod=vendor GO111MODULE=on
+  - GOFLAGS=-mod=vendor GO111MODULE=off
