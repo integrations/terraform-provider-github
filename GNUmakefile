@@ -7,7 +7,7 @@ default: build
 
 tools:
 	GO111MODULE=on go get -u github.com/client9/misspell/cmd/misspell
-	GO111MODULE=on go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	GO111MODULE=off go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 build: fmtcheck
 	go install
