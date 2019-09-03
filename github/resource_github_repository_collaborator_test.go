@@ -248,7 +248,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 			}
 
 			for _, i := range invitations {
-				if strings.ToLower(*i.Invitee.Login) == strings.ToLower(username) {
+				if strings.EqualFold(*i.Invitee.Login, username) {
 					invitation = i
 					return nil
 				}
