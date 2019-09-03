@@ -107,12 +107,10 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)",
-		teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx,
-		teamId, orgName, repoName)
+	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx, teamId, orgName, repoName)
 	if repoErr != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

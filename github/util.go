@@ -23,7 +23,7 @@ func checkOrganization(meta interface{}) error {
 
 func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	return func(k, old, new string, d *schema.ResourceData) bool {
-		return strings.ToLower(old) == strings.ToLower(new)
+		return strings.EqualFold(old, new)
 	}
 }
 
