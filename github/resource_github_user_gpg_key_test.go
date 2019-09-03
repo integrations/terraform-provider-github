@@ -15,6 +15,8 @@ import (
 
 func TestAccGithubUserGpgKey_basic(t *testing.T) {
 	var key github.GPGKey
+
+	rn := "github_user_gpg_key.test"
 	keyRe := regexp.MustCompile("^-----BEGIN PGP PUBLIC KEY BLOCK-----")
 	pubKeyPath := filepath.Join("test-fixtures", "gpg-pubkey.asc")
 
@@ -26,9 +28,9 @@ func TestAccGithubUserGpgKey_basic(t *testing.T) {
 			{
 				Config: testAccGithubUserGpgKeyConfig(pubKeyPath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubUserGpgKeyExists("github_user_gpg_key.test", &key),
-					resource.TestMatchResourceAttr("github_user_gpg_key.test", "armored_public_key", keyRe),
-					resource.TestCheckResourceAttr("github_user_gpg_key.test", "key_id", "AC541D2D1709CD33"),
+					testAccCheckGithubUserGpgKeyExists(rn, &key),
+					resource.TestMatchResourceAttr(rn, "armored_public_key", keyRe),
+					resource.TestCheckResourceAttr(rn, "key_id", "AC541D2D1709CD33"),
 				),
 			},
 		},

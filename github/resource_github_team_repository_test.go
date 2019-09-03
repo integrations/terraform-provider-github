@@ -15,6 +15,7 @@ import (
 func TestAccGithubTeamRepository_basic(t *testing.T) {
 	var repository github.Repository
 
+	rn := "github_team_repository.test_team_test_repo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
@@ -26,35 +27,19 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 			{
 				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
+					testAccCheckGithubTeamRepositoryExists(rn, &repository),
 					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
 				),
 			},
 			{
 				Config: testAccGithubTeamRepositoryUpdateConfig(randString, repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
+					testAccCheckGithubTeamRepositoryExists(rn, &repository),
 					testAccCheckGithubTeamRepositoryRoleState("push", &repository),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubTeamRepository_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
-			},
-			{
-				ResourceName:      "github_team_repository.test_team_test_repo",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

@@ -52,6 +52,8 @@ func testSweepRepositories(region string) error {
 
 func TestAccGithubRepository_basic(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -64,7 +66,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -84,7 +86,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      "Updated " + description,
@@ -98,12 +100,22 @@ func TestAccGithubRepository_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_archive(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -116,7 +128,7 @@ func TestAccGithubRepository_archive(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryArchivedConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -132,12 +144,22 @@ func TestAccGithubRepository_archive(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -150,7 +172,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -169,7 +191,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryArchivedConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -185,23 +207,8 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepository_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryConfig(randString),
-			},
-			{
-				ResourceName:      "github_repository.foo",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -209,7 +216,8 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccGithubRepository_importHasProjects(t *testing.T) {
+func TestAccGithubRepository_hasProjects(t *testing.T) {
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -221,7 +229,7 @@ func TestAccGithubRepository_importHasProjects(t *testing.T) {
 				Config: testAccGithubRepositoryConfigHasProjects(randString),
 			},
 			{
-				ResourceName:      "github_repository.foo",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -234,6 +242,8 @@ func TestAccGithubRepository_importHasProjects(t *testing.T) {
 
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -246,7 +256,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigDefaultBranch(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -271,7 +281,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 				},
 				Config: testAccGithubRepositoryUpdateConfigDefaultBranch(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      "Updated " + description,
@@ -288,12 +298,22 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_templates(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -306,7 +326,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTemplates(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:              name,
 						Description:       description,
@@ -325,12 +345,22 @@ func TestAccGithubRepository_templates(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "gitignore_template", "license_template",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_topics(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
@@ -355,7 +385,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2"`),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
@@ -373,7 +403,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2", "topic3"`),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
@@ -391,7 +421,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTopics(randString, ``),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
@@ -406,12 +436,22 @@ func TestAccGithubRepository_topics(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 
@@ -423,20 +463,28 @@ func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigAutoInitForceNew(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
-					resource.TestCheckResourceAttr("github_repository.foo", "name", name),
-					resource.TestCheckResourceAttr("github_repository.foo", "auto_init", "false"),
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "auto_init", "false"),
 				),
 			},
 			{
 				Config: testAccGithubRepositoryConfigAutoInitForceNewUpdate(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
-					resource.TestCheckResourceAttr("github_repository.foo", "name", name),
-					resource.TestCheckResourceAttr("github_repository.foo", "auto_init", "true"),
-					resource.TestCheckResourceAttr("github_repository.foo", "license_template", "mpl-2.0"),
-					resource.TestCheckResourceAttr("github_repository.foo", "gitignore_template", "Go"),
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "auto_init", "true"),
+					resource.TestCheckResourceAttr(rn, "license_template", "mpl-2.0"),
+					resource.TestCheckResourceAttr(rn, "gitignore_template", "Go"),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "license_template", "gitignore_template",
+				},
 			},
 		},
 	})
