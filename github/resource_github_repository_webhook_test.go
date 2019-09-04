@@ -153,21 +153,6 @@ func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *test
 	}
 }
 
-func testAccCheckGithubRepositoryWebhookSecret(r, secret string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[r]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", r)
-		}
-
-		if rs.Primary.Attributes["configuration.0.secret"] != secret {
-			return fmt.Errorf("Configured secret in %s does not match secret in state.  (Expected: %s, Actual: %s)", r, secret, rs.Primary.Attributes["configuration.0.secret"])
-		}
-
-		return nil
-	}
-}
-
 func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).client
 	orgName := testAccProvider.Meta().(*Organization).name

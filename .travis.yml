@@ -6,24 +6,30 @@ language: go
 go:
   - "1.11.x"
 
+branches:
+  only:
+  - master
+
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
-
-script:
-- make test
-- make vet
-- make website-test
-
-branches:
-  only:
-  - master
+- make tools 
+  
 matrix:
   fast_finish: true
   allow_failures:
   - go: tip
+  include:
+  - name: "make lint"
+    script: make lint
+  - name: "make test"
+    script: make test
+  - name: "make website-lint"
+    script: make website-lint
+  - name: "make website-test"
+    script: make website-test
 env:
   - GOFLAGS=-mod=vendor GO111MODULE=on

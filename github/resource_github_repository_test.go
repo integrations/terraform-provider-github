@@ -275,7 +275,9 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 			},
 			{
 				PreConfig: func() {
-					testAccCreateRepositoryBranch("foo", *repo.Name)
+					if err := testAccCreateRepositoryBranch("foo", *repo.Name); err != nil {
+						panic(err.Error())
+					}
 				},
 				Config: testAccGithubRepositoryUpdateConfigDefaultBranch(randString),
 				Check: resource.ComposeTestCheckFunc(

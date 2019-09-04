@@ -149,7 +149,12 @@ func TestProvider_insecure(t *testing.T) {
 	keyFile := filepath.Join("test-fixtures", "key.pem")
 
 	url, closeFunc := githubTLSApiMock(port, certFile, keyFile, t)
-	defer closeFunc()
+	defer func() {
+		err := closeFunc()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	oldBaseUrl := os.Getenv("GITHUB_BASE_URL")
 	defer os.Setenv("GITHUB_BASE_URL", oldBaseUrl)
@@ -196,6 +201,7 @@ func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, fun
 		Handler: mux,
 	}
 
+	// nolint: errcheck
 	go server.ListenAndServeTLS(certFile, keyFile)
 
 	return "https://localhost:" + port + "/", server.Close
@@ -204,7 +210,9 @@ func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, fun
 func testRespondJson(responseBody string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(responseBody))
+		if _, err := w.Write([]byte(responseBody)); err != nil {
+			return
+		}
 	}
 }
 

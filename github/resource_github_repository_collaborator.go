@@ -125,7 +125,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		}
 
 		for _, c := range collaborators {
-			if strings.ToLower(*c.Login) == strings.ToLower(username) {
+			if strings.EqualFold(*c.Login, username) {
 				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
@@ -171,7 +171,6 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		username = *invitation.Invitee.Login
 		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}
@@ -191,7 +190,7 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 
 		for _, i := range invitations {
-			if strings.ToLower(*i.Invitee.Login) == strings.ToLower(collaborator) {
+			if strings.EqualFold(*i.Invitee.Login, collaborator) {
 				return i, nil
 			}
 		}
