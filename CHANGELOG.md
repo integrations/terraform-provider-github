@@ -1,3 +1,4 @@
+## 2.2.2 (Unreleased)
 ## 2.2.1 (September 04, 2019)
 
 ENHANCEMENTS:
