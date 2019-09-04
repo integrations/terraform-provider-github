@@ -1,17 +1,17 @@
-## 2.2.1 (Unreleased)
+## 2.2.1 (September 04, 2019)
 
 ENHANCEMENTS:
 
-* dependencies: Updates module `hashicorp/terraform` to `v0.12.7` [GH-273]
-* `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
-* `provider`: Added optional `anonymous` attribute, and made `token` optional [GH-255]
+* dependencies: Updates module `hashicorp/terraform` to `v0.12.7` ([#273](https://github.com/terraform-providers/terraform-provider-github/issues/273))
+* `resource/github_branch_protection`: Will now return an error when users are not correctly added ([#158](https://github.com/terraform-providers/terraform-provider-github/issues/158))
+* `provider`: Added optional `anonymous` attribute, and made `token` optional ([#255](https://github.com/terraform-providers/terraform-provider-github/issues/255))
 
 BUG FIXES:
-* `resource/github_repository`: Allow setting `default_branch` to `master` on creation [GH-150]
-* `resource/github_team_repository`: Validation of `team_id` [GH-253]
-* `resource/github_team_membership`: Validation of `team_id` [GH-253]
-* `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
-* `resource/github_repository_webhook`: Properly set webhook secret in state [GH-251]
+* `resource/github_repository`: Allow setting `default_branch` to `master` on creation ([#150](https://github.com/terraform-providers/terraform-provider-github/issues/150))
+* `resource/github_team_repository`: Validation of `team_id` ([#253](https://github.com/terraform-providers/terraform-provider-github/issues/253))
+* `resource/github_team_membership`: Validation of `team_id` ([#253](https://github.com/terraform-providers/terraform-provider-github/issues/253))
+* `resource/github_organization_webhook`: Properly set webhook secret in state ([#251](https://github.com/terraform-providers/terraform-provider-github/issues/251))
+* `resource/github_repository_webhook`: Properly set webhook secret in state ([#251](https://github.com/terraform-providers/terraform-provider-github/issues/251))
 
 ## 2.2.0 (June 28, 2019)
 
