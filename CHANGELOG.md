@@ -2,7 +2,7 @@
 
 ENHANCEMENTS:
 
-* dependencies: Updates module `hashicorp/terraform` to `v0.12.4` [GH-243]
+* dependencies: Updates module `hashicorp/terraform` to `v0.12.7` [GH-273]
 * `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
 * `provider`: Added optional `anonymous` attribute, and made `token` optional [GH-255]
 
