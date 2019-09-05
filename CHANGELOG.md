@@ -3,7 +3,7 @@
 
 ENHANCEMENTS:
 
-* dependencies: Updates module `hashicorp/terraform` to `v0.12.7` ([#273](https://github.com/terraform-providers/terraform-provider-github/issues/273))
+* dependencies: Updated module `hashicorp/terraform` to `v0.12.7` ([#273](https://github.com/terraform-providers/terraform-provider-github/issues/273))
 * `resource/github_branch_protection`: Will now return an error when users are not correctly added ([#158](https://github.com/terraform-providers/terraform-provider-github/issues/158))
 * `provider`: Added optional `anonymous` attribute, and made `token` optional ([#255](https://github.com/terraform-providers/terraform-provider-github/issues/255))
 
