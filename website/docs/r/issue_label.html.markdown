@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_issue_label"
-sidebar_current: "docs-github-resource-issue-label"
 description: |-
   Provides a GitHub issue label resource.
 ---

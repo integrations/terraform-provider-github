@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_user_ssh_key"
-sidebar_current: "docs-github-resource-user-ssh-key"
 description: |-
   Provides a GitHub user's SSH key resource.
 ---

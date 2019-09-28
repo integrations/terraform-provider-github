@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_branch_protection"
-sidebar_current: "docs-github-resource-branch-protection"
 description: |-
   Protects a GitHub branch.
 ---

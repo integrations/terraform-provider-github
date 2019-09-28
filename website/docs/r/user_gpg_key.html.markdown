@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_user_gpg_key"
-sidebar_current: "docs-github-resource-user-gpg-key"
 description: |-
   Provides a GitHub user's GPG key resource.
 ---

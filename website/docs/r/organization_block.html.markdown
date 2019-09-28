@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_organization_block"
-sidebar_current: "docs-github-resource-organization-block"
 description: |-
   Creates and manages blocks for GitHub organizations
 ---

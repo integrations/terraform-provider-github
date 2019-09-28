@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team"
-sidebar_current: "docs-github-resource-team-x"
 description: |-
   Provides a GitHub team resource.
 ---

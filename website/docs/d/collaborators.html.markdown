@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_collaborators"
-sidebar_current: "docs-github-datasource-collaborators"
 description: |-
   Get the collaborators for a given repository.
 ---

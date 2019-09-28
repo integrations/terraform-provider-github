@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team_membership"
-sidebar_current: "docs-github-resource-team-membership"
 description: |-
   Provides a GitHub team membership resource.
 ---

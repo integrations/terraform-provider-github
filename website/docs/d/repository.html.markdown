@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository"
-sidebar_current: "docs-github-datasource-repository"
 description: |-
   Get details about GitHub repository
 ---
