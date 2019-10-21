@@ -80,10 +80,23 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
+	// Pull out the original name. If we already have a resource, this is the
+	// parsed ID. If not, it's the value given to the resource.
+	var originalName string
+	if d.Id() == "" {
+		originalName = name
+	} else {
+		var err error
+		_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+		if err != nil {
+			return err
+		}
+	}
+
 	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
 		name, orgName, repoName)
 	existing, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, name)
+		orgName, repoName, originalName)
 	if err != nil && resp.StatusCode != http.StatusNotFound {
 		return err
 	}
