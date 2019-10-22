@@ -4,8 +4,10 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v25/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -57,13 +59,27 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
-	membership, _, err := client.Organizations.EditOrgMembership(ctx,
-		username,
-		orgName,
-		&github.Membership{
-			Role: github.String(roleName),
-		},
-	)
+
+	var membership *github.Membership
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		membership, _, err = client.Organizations.EditOrgMembership(ctx,
+			username,
+			orgName,
+			&github.Membership{
+				Role: github.String(roleName),
+			},
+		)
+		if err != nil {
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
+				if ghErr.Message == "You must purchase at least one more seat to add this user as a member." {
+					return resource.RetryableError(err)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
