@@ -100,6 +100,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		return err
 	} else if invitation != nil {
 		username = *invitation.Invitee.Login
+		log.Printf("[DEBUG] Found invitation for %q", username)
+
 		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
@@ -123,9 +125,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		if err != nil {
 			return err
 		}
+		log.Printf("[DEBUG] Found %d collaborators, checking if any matches %q", len(collaborators), username)
 
 		for _, c := range collaborators {
 			if strings.EqualFold(*c.Login, username) {
+				log.Printf("[DEBUG] Matching collaborator found for %q", username)
 				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
