@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_membership"
-sidebar_current: "docs-github-resource-membership"
 description: |-
   Provides a GitHub membership resource.
 ---

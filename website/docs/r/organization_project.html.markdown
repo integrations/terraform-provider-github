@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_organization_project"
-sidebar_current: "docs-github-resource-organization-project"
 description: |-
   Creates and manages projects for GitHub organizations
 ---

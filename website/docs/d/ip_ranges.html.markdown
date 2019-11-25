@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_ip_ranges"
-sidebar_current: "docs-github-datasource-ip-ranges"
 description: |-
   Get information on a GitHub's IP addresses.
 ---

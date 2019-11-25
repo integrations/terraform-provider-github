@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team"
-sidebar_current: "docs-github-datasource-team"
 description: |-
   Get information on a GitHub team.
 ---

@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_project_column"
-sidebar_current: "docs-github-resource-project-column"
 description: |-
   Creates and manages project columns for GitHub projects
 ---

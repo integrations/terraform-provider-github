@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_project"
-sidebar_current: "docs-github-resource-repository-project"
 description: |-
   Creates and manages projects for GitHub repositories
 ---
