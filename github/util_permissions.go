@@ -8,12 +8,13 @@ import (
 )
 
 const (
-	pullPermission  string = "pull"
-	pushPermission  string = "push"
-	adminPermission string = "admin"
-
-	writePermission string = "write"
-	readPermission  string = "read"
+	pullPermission     string = "pull"
+	triagePermission   string = "triage"
+	pushPermission     string = "push"
+	maintainPermission string = "maintain"
+	adminPermission    string = "admin"
+	writePermission    string = "write"
+	readPermission     string = "read"
 )
 
 func getRepoPermission(p *map[string]bool) (string, error) {
@@ -23,8 +24,12 @@ func getRepoPermission(p *map[string]bool) (string, error) {
 	// permission, the map will be: {"pull": true, "push": true, "admin": false}
 	if (*p)[adminPermission] {
 		return adminPermission, nil
+	} else if (*p)[maintainPermission] {
+		return maintainPermission, nil
 	} else if (*p)[pushPermission] {
 		return pushPermission, nil
+	} else if (*p)[triagePermission] {
+		return triagePermission, nil
 	} else {
 		if (*p)[pullPermission] {
 			return pullPermission, nil

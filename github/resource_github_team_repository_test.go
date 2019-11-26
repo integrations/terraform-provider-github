@@ -48,19 +48,31 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 }
 
 func TestAccCheckGetPermissions(t *testing.T) {
-	pullMap := map[string]bool{"pull": true, "push": false, "admin": false}
-	pushMap := map[string]bool{"pull": true, "push": true, "admin": false}
-	adminMap := map[string]bool{"pull": true, "push": true, "admin": true}
-	errorMap := map[string]bool{"pull": false, "push": false, "admin": false}
+	pullMap := map[string]bool{"pull": true, "triage": false, "push": false, "maintain": false, "admin": false}
+	triageMap := map[string]bool{"pull": false, "triage": true, "push": false, "maintain": false, "admin": false}
+	pushMap := map[string]bool{"pull": true, "triage": false, "push": true, "maintain": false, "admin": false}
+	maintainMap := map[string]bool{"pull": false, "triage": false, "push": false, "maintain": true, "admin": false}
+	adminMap := map[string]bool{"pull": true, "triage": false, "push": true, "maintain": false, "admin": true}
+	errorMap := map[string]bool{"pull": false, "triage": false, "push": false, "maintain": false, "admin": false}
 
 	pull, _ := getRepoPermission(&pullMap)
 	if pull != "pull" {
 		t.Fatalf("Expected pull permission, actual: %s", pull)
 	}
 
+	triage, _ := getRepoPermission(&triageMap)
+	if triage != "triage" {
+		t.Fatalf("Expected triage permission, actual: %s", triage)
+	}
+
 	push, _ := getRepoPermission(&pushMap)
 	if push != "push" {
 		t.Fatalf("Expected push permission, actual: %s", push)
+	}
+
+	maintain, _ := getRepoPermission(&maintainMap)
+	if maintain != "maintain" {
+		t.Fatalf("Expected maintain permission, actual: %s", maintain)
 	}
 
 	admin, _ := getRepoPermission(&adminMap)
