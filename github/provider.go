@@ -55,6 +55,7 @@ func Provider() terraform.ResourceProvider {
 			"github_project_column":           resourceGithubProjectColumn(),
 			"github_repository_collaborator":  resourceGithubRepositoryCollaborator(),
 			"github_repository_deploy_key":    resourceGithubRepositoryDeployKey(),
+			"github_repository_file":          resourceGithubRepositoryFile(),
 			"github_repository_project":       resourceGithubRepositoryProject(),
 			"github_repository_webhook":       resourceGithubRepositoryWebhook(),
 			"github_repository":               resourceGithubRepository(),
