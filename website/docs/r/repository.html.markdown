@@ -21,6 +21,11 @@ resource "github_repository" "example" {
   description = "My awesome codebase"
 
   private = true
+
+  template {
+    owner = "github"
+    repo = "terraform-module-template"
+  }
 }
 ```
 
@@ -65,10 +70,18 @@ and after a correct reference has been created for the target branch inside the 
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
 * `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
+~> **NOTE** Currently, the API does not support unarchiving.
 
 * `topics` - (Optional) The list of topics of the repository.
 
-~> **NOTE** Currently, the API does not support unarchiving.
+* `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
+
+### Template Repositories
+
+`template` supports the following arguments:
+
+* `owner`: The GitHub organization or user the template repository is owned by.
+* `repository`: The name of the template repository.
 
 ## Attributes Reference
 
