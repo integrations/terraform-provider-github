@@ -771,6 +771,7 @@ type BranchRestrictions struct {
 	Users []*User `json:"users"`
 	// The list of team slugs with push access.
 	Teams []*Team `json:"teams"`
+	Apps  []*App  `json:"apps"`
 }
 
 // BranchRestrictionsRequest represents the request to create/edit the
@@ -782,6 +783,7 @@ type BranchRestrictionsRequest struct {
 	Users []string `json:"users"`
 	// The list of team slugs with push access. (Required; use []string{} instead of nil for empty list.)
 	Teams []string `json:"teams"`
+	Apps  []string `json:"apps"`
 }
 
 // DismissalRestrictions specifies which users and teams can dismiss pull request reviews.
