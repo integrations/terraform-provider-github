@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -52,7 +51,8 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating organization project: %s (%s)", name, orgName)
 	project, _, err := client.Organizations.CreateProject(ctx,
@@ -83,10 +83,8 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading organization project: %s (%s)", d.Id(), orgName)
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
@@ -135,7 +133,8 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating organization project: %s (%s)", d.Id(), orgName)
 	if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
@@ -157,7 +156,8 @@ func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting organization project: %s (%s)", d.Id(), orgName)
 	_, err = client.Projects.DeleteProject(ctx, projectID)

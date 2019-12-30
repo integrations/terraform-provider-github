@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -102,7 +101,8 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating repository webhook: %d (%s/%s)", hk.GetID(), orgName, repoName)
 	hook, _, err := client.Repositories.CreateHook(ctx, orgName, repoName, hk)
@@ -136,10 +136,8 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
 	hook, _, err := client.Repositories.GetHook(ctx, orgName, repoName, hookID)
@@ -193,7 +191,8 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
 	_, _, err = client.Repositories.EditHook(ctx, orgName, repoName, hookID, hk)
@@ -213,7 +212,8 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
 	_, err = client.Repositories.DeleteHook(ctx, orgName, repoName, hookID)

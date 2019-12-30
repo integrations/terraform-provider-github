@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 
@@ -51,10 +50,8 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
 	membership, _, err := client.Organizations.EditOrgMembership(ctx,
@@ -86,10 +83,8 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading membership: %s", d.Id())
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
@@ -124,7 +119,8 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
 	_, err = client.Organizations.RemoveOrgMembership(ctx,

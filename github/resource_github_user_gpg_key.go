@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -38,7 +37,8 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 
 	pubKey := d.Get("armored_public_key").(string)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating user GPG key:\n%s", pubKey)
 	key, _, err := client.Users.CreateGPGKey(ctx, pubKey)
@@ -58,10 +58,8 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading user GPG key: %s", d.Id())
 	key, _, err := client.Users.GetGPGKey(ctx, id)
@@ -92,7 +90,8 @@ func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting user GPG key: %s", d.Id())
 	_, err = client.Users.DeleteGPGKey(ctx, id)

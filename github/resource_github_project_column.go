@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -56,7 +55,8 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return unconvertibleIdErr(projectIDStr, err)
 	}
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	orgName := meta.(*Organization).name
 	log.Printf("[DEBUG] Creating project column (%s) in project %d (%s)", options.Name, projectID, orgName)
@@ -79,10 +79,8 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading project column: %s", d.Id())
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
@@ -116,7 +114,8 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating project column: %s", d.Id())
 	_, _, err = client.Projects.UpdateProjectColumn(ctx, columnID, &options)
@@ -134,7 +133,8 @@ func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting project column: %s", d.Id())
 	_, err = client.Projects.DeleteProjectColumn(ctx, columnID)

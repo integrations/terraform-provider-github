@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -196,7 +195,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	repoReq := resourceGithubRepositoryObject(d)
 	orgName := meta.(*Organization).name
 	repoName := repoReq.GetName()
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
 
@@ -262,10 +262,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	ctx := prepareResourceContext(d)
 
 	repo, resp, err := client.Repositories.Get(ctx, orgName, repoName)
 	if err != nil {
@@ -339,7 +336,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
 	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
@@ -368,7 +366,8 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
 	_, err = client.Repositories.Delete(ctx, orgName, repoName)

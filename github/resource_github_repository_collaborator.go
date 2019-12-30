@@ -58,7 +58,8 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
@@ -92,7 +93,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
@@ -168,7 +170,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx := prepareResourceContext(d)
 
 	// Delete any pending invitations
 	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)

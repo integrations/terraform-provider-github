@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 
@@ -75,10 +74,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		Name:  github.String(name),
 		Color: github.String(color),
 	}
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
 		name, orgName, repoName)
@@ -147,10 +144,8 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, orgName, repoName)
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
@@ -191,7 +186,8 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting label: %s (%s/%s)", name, orgName, repoName)
 	_, err = client.Issues.DeleteLabel(ctx,

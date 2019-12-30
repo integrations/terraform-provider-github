@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -52,7 +51,8 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating user SSH key: %s", title)
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
@@ -75,10 +75,8 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading user SSH key: %s", d.Id())
 	key, resp, err := client.Users.GetKey(ctx, id)
@@ -111,7 +109,8 @@ func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting user SSH key: %s", d.Id())
 	_, err = client.Users.DeleteKey(ctx, id)

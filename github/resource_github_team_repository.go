@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -62,7 +61,8 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
@@ -102,10 +102,8 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		return unconvertibleIdErr(teamIdString, err)
 	}
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
 	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx, teamId, orgName, repoName)
@@ -154,7 +152,8 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
@@ -192,7 +191,8 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	}
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)

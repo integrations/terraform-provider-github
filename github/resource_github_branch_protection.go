@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -160,7 +159,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
@@ -201,10 +201,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	}
 	orgName := meta.(*Organization).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
@@ -271,7 +268,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	}
 
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
@@ -322,7 +320,8 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 	}
 
 	orgName := meta.(*Organization).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
 	_, err = client.Repositories.RemoveBranchProtection(ctx,
@@ -384,10 +383,7 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	orgName := meta.(*Organization).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading branch protection signed commit status: %s/%s (%s)", orgName, repoName, branch)
 	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
@@ -410,10 +406,7 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	}
 	orgName := meta.(*Organization).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	ctx := prepareResourceContext(d)
 
 	if requiredSignedCommit {
 		log.Printf("[DEBUG] Enabling branch protection signed commit: %s/%s (%s) - $s", orgName, repoName, branch)

@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -73,7 +72,8 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 		Name: &name,
 		Body: &body,
 	}
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, orgName, repoName)
 	project, _, err := client.Repositories.CreateProject(ctx,
@@ -99,10 +99,8 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
@@ -145,7 +143,8 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating repository project: %s", d.Id())
 	_, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
@@ -163,7 +162,8 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting repository project: %s", d.Id())
 	_, err = client.Projects.DeleteProject(ctx, projectID)

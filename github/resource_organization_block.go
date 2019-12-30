@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 
@@ -41,7 +40,9 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 
 	client := meta.(*Organization).client
 	orgName := meta.(*Organization).name
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
+
 	username := d.Get("username").(string)
 
 	log.Printf("[DEBUG] Creating organization block: %s (%s)", username, orgName)
@@ -60,10 +61,7 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 
 	username := d.Id()
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading organization block: %s (%s)", d.Id(), orgName)
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
@@ -99,7 +97,8 @@ func resourceOrganizationBlockDelete(d *schema.ResourceData, meta interface{}) e
 
 	orgName := meta.(*Organization).name
 	username := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting organization block: %s (%s)", d.Id(), orgName)
 	_, err := client.Organizations.UnblockUser(ctx, orgName, username)

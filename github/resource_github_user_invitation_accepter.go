@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -33,7 +32,8 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 	if err != nil {
 		return fmt.Errorf("Failed to parse invitation ID: %s", err)
 	}
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Accepting invitation: %d", invitationId)
 	_, err = client.Users.AcceptInvitation(ctx, int64(invitationId))
