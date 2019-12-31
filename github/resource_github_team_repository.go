@@ -92,7 +92,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	client := meta.(*Organization).client
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id())
+	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}

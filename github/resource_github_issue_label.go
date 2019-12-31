@@ -101,7 +101,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 			originalName = name
 		} else {
 			var err error
-			_, originalName, err = parseTwoPartID(d.Id())
+			_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
 			if err != nil {
 				return err
 			}
@@ -141,7 +141,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	client := meta.(*Organization).client
-	repoName, name, err := parseTwoPartID(d.Id())
+	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
 		return err
 	}

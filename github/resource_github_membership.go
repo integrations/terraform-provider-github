@@ -82,7 +82,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
-	_, username, err := parseTwoPartID(d.Id())
+	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
 	if err != nil {
 		return err
 	}

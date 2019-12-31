@@ -195,7 +195,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	client := meta.(*Organization).client
 
-	repoName, branch, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	}
 
 	client := meta.(*Organization).client
-	repoName, branch, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 	}
 
 	client := meta.(*Organization).client
-	repoName, branch, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
-	repoName, branch, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
@@ -404,7 +404,7 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
 	client := meta.(*Organization).client
 
-	repoName, branch, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
