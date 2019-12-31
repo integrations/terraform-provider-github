@@ -40,11 +40,6 @@ func resourceGithubProjectColumn() *schema.Resource {
 }
 
 func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Organization).client
 
 	options := github.ProjectColumnOptions{
@@ -58,8 +53,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	}
 	ctx := context.Background()
 
-	orgName := meta.(*Organization).name
-	log.Printf("[DEBUG] Creating project column (%s) in project %d (%s)", options.Name, projectID, orgName)
+	log.Printf("[DEBUG] Creating project column (%s) in project %d", options.Name, projectID)
 	column, _, err := client.Projects.CreateProjectColumn(ctx,
 		projectID,
 		&options,

@@ -47,7 +47,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 }
 
 func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,6 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
@@ -85,7 +84,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -101,7 +100,6 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -139,7 +137,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -151,7 +149,6 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -177,7 +174,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -190,7 +187,6 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

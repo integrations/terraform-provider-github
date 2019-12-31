@@ -182,7 +182,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	orgName := meta.(*Organization).name
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -251,13 +250,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
@@ -320,7 +318,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -338,7 +336,6 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
@@ -360,14 +357,13 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)

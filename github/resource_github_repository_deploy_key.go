@@ -54,7 +54,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 }
 
 func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -65,11 +65,10 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	key := d.Get("key").(string)
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
-	owner := meta.(*Organization).name
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, owner, repoName)
-	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
+	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, orgName, repoName)
+	resultKey, _, err := client.Repositories.CreateKey(ctx, orgName, repoName, &github.Key{
 		Key:      github.String(key),
 		Title:    github.String(title),
 		ReadOnly: github.Bool(readOnly),
@@ -87,14 +86,13 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	owner := meta.(*Organization).name
 	repoName, idString, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -109,8 +107,8 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), owner, repoName)
-	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
+	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), orgName, repoName)
+	key, resp, err := client.Repositories.GetKey(ctx, orgName, repoName, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -136,14 +134,13 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	owner := meta.(*Organization).name
 	repoName, idString, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -155,8 +152,8 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository deploy key: %s (%s/%s)", idString, owner, repoName)
-	_, err = client.Repositories.DeleteKey(ctx, owner, repoName, id)
+	log.Printf("[DEBUG] Deleting repository deploy key: %s (%s/%s)", idString, orgName, repoName)
+	_, err = client.Repositories.DeleteKey(ctx, orgName, repoName, id)
 	if err != nil {
 		return err
 	}

@@ -41,14 +41,13 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
 	ctx := context.Background()
@@ -74,14 +73,13 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	orgName := meta.(*Organization).name
 	_, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -117,13 +115,12 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())

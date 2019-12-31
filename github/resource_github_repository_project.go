@@ -57,14 +57,13 @@ func resourceGithubRepositoryProject() *schema.Resource {
 }
 
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -87,13 +86,12 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
