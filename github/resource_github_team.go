@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v28/github"
@@ -111,34 +110,30 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
 	team, resp, err := client.Teams.GetTeam(ctx, id)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("description", team.Description)
+		d.Set("name", team.Name)
+		d.Set("privacy", team.Privacy)
+		if parent := team.Parent; parent != nil {
+			d.Set("parent_team_id", parent.GetID())
+		} else {
+			d.Set("parent_team_id", "")
 		}
-		return err
-	}
+		d.Set("ldap_dn", team.GetLDAPDN())
+		d.Set("slug", team.GetSlug())
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("description", team.Description)
-	d.Set("name", team.Name)
-	d.Set("privacy", team.Privacy)
-	if parent := team.Parent; parent != nil {
-		d.Set("parent_team_id", parent.GetID())
-	} else {
-		d.Set("parent_team_id", "")
+		return nil
 	}
-	d.Set("ldap_dn", team.GetLDAPDN())
-	d.Set("slug", team.GetSlug())
-
-	return nil
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {

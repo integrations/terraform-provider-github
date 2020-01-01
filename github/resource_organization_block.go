@@ -3,9 +3,7 @@ package github
 import (
 	"context"
 	"log"
-	"net/http"
 
-	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -67,31 +65,27 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[DEBUG] Reading organization block: %s (%s)", d.Id(), orgName)
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			// not sure if this will ever be hit, I imagine just returns false?
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization block %s/%s from state because it no longer exists in GitHub",
-					orgName, d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
-
-	if !blocked {
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		// not sure if this will ever be hit, I imagine just returns false?
+		log.Printf("[WARN] Removing organization block %s/%s from state because it no longer exists in GitHub", orgName, d.Id())
 		d.SetId("")
 		return nil
+	case APIError:
+		return apierr
+	default:
+		if !blocked {
+			d.SetId("")
+			return nil
+		}
+
+		d.Set("username", username)
+		d.Set("etag", resp.Header.Get("ETag"))
+
+		return nil
 	}
-
-	d.Set("username", username)
-	d.Set("etag", resp.Header.Get("ETag"))
-
-	return nil
 }
 
 func resourceOrganizationBlockDelete(d *schema.ResourceData, meta interface{}) error {

@@ -153,31 +153,26 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, orgName, repoName)
-	githubLabel, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, name)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
-					name, orgName, repoName)
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	githubLabel, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub", name, orgName, repoName)
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("repository", repoName)
+		d.Set("name", name)
+		d.Set("color", githubLabel.Color)
+		d.Set("description", githubLabel.Description)
+		d.Set("url", githubLabel.URL)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("name", name)
-	d.Set("color", githubLabel.Color)
-	d.Set("description", githubLabel.Description)
-	d.Set("url", githubLabel.URL)
-
-	return nil
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
