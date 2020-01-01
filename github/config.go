@@ -25,6 +25,7 @@ type Organization struct {
 	name        string
 	client      *github.Client
 	StopContext context.Context
+	UserMap     *UserMap
 }
 
 // Client configures and returns a fully initialized GithubClient
@@ -88,6 +89,8 @@ func (c *Config) Client() (interface{}, error) {
 		}
 		org.client.BaseURL = u
 	}
+
+	org.UserMap = newUserMap()
 
 	return &org, nil
 }
