@@ -61,6 +61,7 @@ func Provider() terraform.ResourceProvider {
 			"github_team_membership":          resourceGithubTeamMembership(),
 			"github_team_repository":          resourceGithubTeamRepository(),
 			"github_team":                     resourceGithubTeam(),
+			"github_user":                     resourceGithubUser(),
 			"github_user_gpg_key":             resourceGithubUserGpgKey(),
 			"github_user_invitation_accepter": resourceGithubUserInvitationAccepter(),
 			"github_user_ssh_key":             resourceGithubUserSshKey(),
