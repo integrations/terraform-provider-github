@@ -178,7 +178,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branch))
+	d.SetId(buildTwoPartID(repoName, branch))
 
 	if err = requireSignedCommitsUpdate(d, meta); err != nil {
 		return err
@@ -300,7 +300,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		}
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branch))
+	d.SetId(buildTwoPartID(repoName, branch))
 
 	if err = requireSignedCommitsUpdate(d, meta); err != nil {
 		return err

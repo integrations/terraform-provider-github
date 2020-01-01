@@ -186,7 +186,7 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 			orgName, repoName, name)
 		if err == nil {
 			if label != nil &&
-				buildTwoPartID(label.Name, label.Color) == rs.Primary.ID {
+				buildTwoPartID(*label.Name, *label.Color) == rs.Primary.ID {
 				return fmt.Errorf("Issue label still exists")
 			}
 		}

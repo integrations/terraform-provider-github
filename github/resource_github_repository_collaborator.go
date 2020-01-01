@@ -74,7 +74,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &username))
+	d.SetId(buildTwoPartID(repoName, username))
 
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }

@@ -99,7 +99,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if membership != nil &&
-				buildTwoPartID(membership.Organization.Login, membership.User.Login) == rs.Primary.ID {
+				buildTwoPartID(*membership.Organization.Login, *membership.User.Login) == rs.Primary.ID {
 				return fmt.Errorf("Organization membership %q still exists", rs.Primary.ID)
 			}
 		}

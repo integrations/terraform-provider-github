@@ -129,7 +129,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &name))
+	d.SetId(buildTwoPartID(repoName, name))
 
 	return resourceGithubIssueLabelRead(d, meta)
 }

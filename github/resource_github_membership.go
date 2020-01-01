@@ -68,7 +68,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+	d.SetId(buildTwoPartID(*membership.Organization.Login, *membership.User.Login))
 
 	return resourceGithubMembershipRead(d, meta)
 }
