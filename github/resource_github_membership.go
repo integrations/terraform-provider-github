@@ -40,10 +40,6 @@ func resourceGithubMembership() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
 			},
-			"username": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -127,7 +123,6 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		return apierr
 	default:
 		d.Set("etag", resp.Header.Get("ETag"))
-		d.Set("username", membership.User.Login)
 		d.Set("role", membership.Role)
 
 		return nil

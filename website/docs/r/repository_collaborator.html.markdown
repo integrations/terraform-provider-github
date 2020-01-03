@@ -50,8 +50,9 @@ The following arguments are supported:
 
 ## Attribute Reference
 
+The following attributes are exported:
+
 * `invitation_id` - ID of the invitation to be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html)
-* `username` - The username (login) of the user specified by user_id
 
 ## Import
 

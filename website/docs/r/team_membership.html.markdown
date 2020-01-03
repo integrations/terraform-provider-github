@@ -49,12 +49,6 @@ The following arguments are supported:
 * `role` - (Optional) The role of the user within the team.
 Must be one of `member` or `maintainer`. Defaults to `member`.
 
-## Attribute Reference
-
-The following attributes are exported:
-
-* `username` - The username (login) of the user specified by user_id
-
 ## Import
 
 GitHub Team Membership can be imported using an ID made up of two parts; a

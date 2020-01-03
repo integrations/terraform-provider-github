@@ -52,10 +52,6 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"username": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -139,7 +135,6 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		}
 
 		d.Set("repository", repoName)
-		d.Set("username", username)
 		d.Set("permission", permissionName)
 		d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID()))
 		return nil
@@ -167,7 +162,6 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 				}
 
 				d.Set("repository", repoName)
-				d.Set("username", c.Login)
 				d.Set("permission", permissionName)
 				return nil
 			}

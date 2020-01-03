@@ -30,7 +30,7 @@ func resourceGithubTeamMembershipV0() *schema.Resource {
 func resourceGithubTeamMembershipStateUpgradeV0(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	// Schema V1 changes from V0:
 	//
-	// 'username' was changed from user-provided to computed (no changes needed in rawState)
+	// 'username' was removed (delete from rawState)
 	// 'user_id' was added as user-provided and required (must be populated in rawState)
 	// 'id' was changed from 'team_id:username' format to 'team_id:user_id' format (change format in rawState)
 
@@ -39,6 +39,7 @@ func resourceGithubTeamMembershipStateUpgradeV0(rawState map[string]interface{},
 		return nil, err
 	}
 
+	delete(rawState, "username")
 	teamIDString := rawState["team_id"].(string)
 	userIDString := strconv.FormatInt(*user.ID, 10)
 	rawState["user_id"] = userIDString

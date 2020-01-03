@@ -46,10 +46,6 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Default:      "member",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
-			"username": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -122,6 +118,8 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return apierr
 	default:
 		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("team_id", teamID)
+		d.Set("user_id", userID)
 		d.Set("role", membership.Role)
 
 		return nil
