@@ -96,7 +96,7 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
-func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []error) {
+func validateNumericIDFunc(v interface{}, keyName string) (we []string, errors []error) {
 	teamIDString, ok := v.(string)
 	if !ok {
 		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
