@@ -26,10 +26,15 @@ Further documentation on GitHub collaborators:
 ## Example Usage
 
 ```hcl
+# Add a data source to obtain user details for the user
+data "github_user" "some_user" {
+  username = "SomeUser"
+}
+
 # Add a collaborator to a repository
 resource "github_repository_collaborator" "a_repo_collaborator" {
   repository = "our-cool-repo"
-  username   = "SomeUser"
+  user_id    = data.github_user.some_user.id
   permission = "admin"
 }
 ```
@@ -39,20 +44,23 @@ resource "github_repository_collaborator" "a_repo_collaborator" {
 The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository
-* `username` - (Required) The user to add to the repository as a collaborator.
+* `user_id` - (Required) The GitHub user ID to add to as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
             Must be one of `pull`, `push`, or `admin`. Defaults to `push`.
 
 ## Attribute Reference
 
-In addition to the above arguments, the following attributes are exported:
-
 * `invitation_id` - ID of the invitation to be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html)
+* `username` - The username (login) of the user specified by user_id
 
 ## Import
 
-GitHub Repository Collaborators can be imported using an id made up of `repository:username`, e.g.
+GitHub Repository Collaborators can be imported using an ID made up of two parts; a
+repository name and a user identifier. The user can be specified using its
+name (login) or numeric ID.
 
 ```
-$ terraform import github_repository_collaborator.collaborator terraform:someuser
+$ terraform import github_repository_collaborator.collaborator repo:1
+
+$ terraform import github_repository_collaborator.collaborator org:octocat
 ```

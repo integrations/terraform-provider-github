@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v28/github"
@@ -16,16 +17,24 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		Read:   resourceGithubRepositoryCollaboratorRead,
 		Delete: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubRepositoryCollaboratorImport,
+		},
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryCollaboratorV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryCollaboratorStateUpgradeV0,
+				Version: 0,
+			},
 		},
 
+		SchemaVersion: 1,
 		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
-			"username": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: caseInsensitive(),
+			"user_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateNumericIDFunc,
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -43,6 +52,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"username": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -55,13 +68,22 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	client := meta.(*Organization).client
 
-	username := d.Get("username").(string)
+	userIDString := d.Get("user_id").(string)
 	repoName := d.Get("repository").(string)
 
 	ctx := prepareResourceContext(d)
 
-	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
-		username, orgName, repoName)
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
+	}
+
+	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)", userIDString, orgName, repoName)
 	_, err = client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
@@ -74,7 +96,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repoName, username))
+	d.SetId(buildTwoPartID(repoName, userIDString))
 
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
@@ -87,9 +109,19 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	client := meta.(*Organization).client
 
-	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
+	repoName, userIDString, err := parseTwoPartID(d.Id(), "repository", "user_id")
 	if err != nil {
 		return err
+	}
+
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
 	}
 
 	ctx := prepareResourceContext(d)
@@ -99,7 +131,6 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		username = *invitation.Invitee.Login
 		log.Printf("[DEBUG] Found invitation for %q", username)
 
 		permissionName, err := getInvitationPermission(invitation)
@@ -164,8 +195,20 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 
 	client := meta.(*Organization).client
 
-	username := d.Get("username").(string)
-	repoName := d.Get("repository").(string)
+	repoName, userIDString, err := parseTwoPartID(d.Id(), "repository", "user_id")
+	if err != nil {
+		return err
+	}
+
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
+	}
 
 	ctx := prepareResourceContext(d)
 
@@ -204,4 +247,30 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		opt.Page = resp.NextPage
 	}
 	return nil, nil
+}
+
+func resourceGithubRepositoryCollaboratorImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Organization).client
+	ctx := prepareResourceContext(d)
+
+	repository, userString, err := parseTwoPartID(d.Id(), "repository", "user_id_or_name")
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Reading user: %s", userString)
+	// Attempt to parse the string as a numeric ID
+	userID, err := strconv.ParseInt(userString, 10, 64)
+	if err != nil {
+		// It wasn't a numeric ID, try to use it as a username
+		user, _, err := client.Users.Get(ctx, userString)
+		if err != nil {
+			return nil, err
+		}
+		userID = *user.ID
+	}
+
+	d.SetId(buildTwoPartID(repository, strconv.FormatInt(userID, 10)))
+
+	return []*schema.ResourceData{d}, nil
 }

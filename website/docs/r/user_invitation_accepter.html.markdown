@@ -16,9 +16,13 @@ resource "github_repository" "example" {
   name = "example-repo"
 }
 
+data "github_user" "some_user" {
+  username = "SomeUser"
+}
+
 resource "github_repository_collaborator" "example" {
-  repository = "${github_repository.example.name}"
-  username   = "example-username"
+  repository = github_repository.example.name
+  user_id    = data.github_user.some_user.id
   permission = "push"
 }
 
