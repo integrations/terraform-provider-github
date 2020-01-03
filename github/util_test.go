@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-func TestAccValidateTeamIDFunc(t *testing.T) {
-	// warnings, errors := validateTeamIDFunc(interface{"1234567"})
+func TestAccValidateNumericIDFunc(t *testing.T) {
+	// warnings, errors := validateNumericIDFunc(interface{"1234567"})
 
 	cases := []struct {
 		TeamID   interface{}
@@ -29,7 +29,7 @@ func TestAccValidateTeamIDFunc(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateTeamIDFunc(tc.TeamID, "keyName")
+		_, errors := validateNumericIDFunc(tc.TeamID, "keyName")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %d validation error but got %d", tc.ErrCount, len(errors))
 		}
