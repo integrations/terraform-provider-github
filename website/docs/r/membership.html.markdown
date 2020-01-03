@@ -16,9 +16,14 @@ destroyed, either the invitation will be cancelled or the user will be removed.
 ## Example Usage
 
 ```hcl
+# Add a data source to obtain user details for the user
+data "github_user" "some_user" {
+  username = "SomeUser"
+}
+
 # Add a user to the organization
 resource "github_membership" "membership_for_some_user" {
-  username = "SomeUser"
+  user_id  = data.github_user.some_user.id
   role     = "member"
 }
 ```
@@ -27,15 +32,24 @@ resource "github_membership" "membership_for_some_user" {
 
 The following arguments are supported:
 
-* `username` - (Required) The user to add to the organization.
+* `user_id` - (Required) The GitHub user ID to add to the organization.
 * `role` - (Optional) The role of the user within the organization.
             Must be one of `member` or `admin`. Defaults to `member`.
 
+## Attribute Reference
+
+The following attributes are exported:
+
+* `username` - The username (login) of the user specified by user_id
 
 ## Import
 
-GitHub Membership can be imported using an id made up of `organization:username`, e.g.
+GitHub Membership can be imported using an ID made up of two parts; an
+organization name and a user identifier. The user can be specified using its
+name (login) or numeric ID.
 
 ```
-$ terraform import github_membership.member hashicorp:someuser
+$ terraform import github_membership.member org:1
+
+$ terraform import github_membership.member org:octocat
 ```

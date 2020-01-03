@@ -24,7 +24,7 @@ data "github_user" "some_user" {
 
 # Add a user to the organization
 resource "github_membership" "membership_for_some_user" {
-  username = "SomeUser"
+  user_id  = data.github_user.some_user.id
   role     = "member"
 }
 

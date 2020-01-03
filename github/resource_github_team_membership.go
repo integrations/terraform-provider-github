@@ -164,12 +164,9 @@ func resourceGithubTeamMembershipImport(d *schema.ResourceData, meta interface{}
 		return nil, err
 	}
 
-	var teamID int64
-	var userID int64
-
 	log.Printf("[DEBUG] Reading team: %s", teamString)
 	// Attempt to parse the string as a numeric ID
-	teamID, err = strconv.ParseInt(teamString, 10, 64)
+	teamID, err := strconv.ParseInt(teamString, 10, 64)
 	if err != nil {
 		// It wasn't a numeric ID, try to use it as a slug
 		team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamString)
@@ -181,7 +178,7 @@ func resourceGithubTeamMembershipImport(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Reading user: %s", userString)
 	// Attempt to parse the string as a numeric ID
-	userID, err = strconv.ParseInt(userString, 10, 64)
+	userID, err := strconv.ParseInt(userString, 10, 64)
 	if err != nil {
 		// It wasn't a numeric ID, try to use it as a username
 		user, _, err := client.Users.Get(ctx, userString)

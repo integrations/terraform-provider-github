@@ -1,7 +1,9 @@
 package github
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,21 +16,33 @@ func resourceGithubMembership() *schema.Resource {
 		Update: resourceGithubMembershipCreateOrUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubMembershipImport,
+		},
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubMembershipV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubMembershipStateUpgradeV0,
+				Version: 0,
+			},
 		},
 
+		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
-			"username": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: caseInsensitive(),
+			"user_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateNumericIDFunc,
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
+			},
+			"username": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -46,44 +60,61 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 
 	client := meta.(*Organization).client
 
-	username := d.Get("username").(string)
-	roleName := d.Get("role").(string)
+	userIDString := d.Get("user_id").(string)
+	role := d.Get("role").(string)
 
 	ctx := prepareResourceContext(d)
 
-	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
+	log.Printf("[DEBUG] Creating membership: %s/%s (%s)", orgName, userIDString, role)
+
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
+	}
+
 	membership, _, err := client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
-			Role: github.String(roleName),
+			Role: &role,
 		},
 	)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildTwoPartID(*membership.Organization.Login, *membership.User.Login))
+	d.SetId(buildTwoPartID(*membership.Organization.Login, userIDString))
 
 	return resourceGithubMembershipRead(d, meta)
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	orgName, err := getOrganization(meta)
+	client := meta.(*Organization).client
+
+	orgName, userIDString, err := parseTwoPartID(d.Id(), "organization", "user_id")
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Organization).client
-
-	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
 	}
 
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading membership: %s", d.Id())
+
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx, username, orgName)
 	switch apires, apierr := apiResult(resp, err); apires {
 	case APINotModified:
@@ -104,17 +135,53 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	orgName, err := getOrganization(meta)
+	client := meta.(*Organization).client
+
+	orgName, userIDString, err := parseTwoPartID(d.Id(), "organization", "user_id")
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	userID, err := strconv.ParseInt(userIDString, 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(userIDString, err)
+	}
+
+	username, ok := meta.(*Organization).UserMap.GetUsername(userID, client)
+	if !ok {
+		return fmt.Errorf("Unable to get GitHub user %d", userID)
+	}
+
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
-	_, err = client.Organizations.RemoveOrgMembership(ctx,
-		d.Get("username").(string), orgName)
+	_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
 
 	return err
+}
+
+func resourceGithubMembershipImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Organization).client
+	ctx := prepareResourceContext(d)
+
+	orgName, userString, err := parseTwoPartID(d.Id(), "organization", "user_id_or_name")
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Reading user: %s", userString)
+	// Attempt to parse the string as a numeric ID
+	userID, err := strconv.ParseInt(userString, 10, 64)
+	if err != nil {
+		// It wasn't a numeric ID, try to use it as a username
+		user, _, err := client.Users.Get(ctx, userString)
+		if err != nil {
+			return nil, err
+		}
+		userID = *user.ID
+	}
+
+	d.SetId(buildTwoPartID(orgName, strconv.FormatInt(userID, 10)))
+
+	return []*schema.ResourceData{d}, nil
 }
