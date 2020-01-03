@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -13,10 +14,23 @@ func dataSourceGithubUser() *schema.Resource {
 		Read: dataSourceGithubUserRead,
 
 		Schema: map[string]*schema.Schema{
-			"username": {
-				Type:     schema.TypeString,
-				Required: true,
+			"user_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"username"},
+				ValidateFunc:  validateNumericIDFunc,
 			},
+			"username": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"user_id"},
+			},
+			"minimal": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"login": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -96,34 +110,54 @@ func dataSourceGithubUser() *schema.Resource {
 }
 
 func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
-	username := d.Get("username").(string)
-	log.Printf("[INFO] Refreshing GitHub User: %s", username)
-
 	client := meta.(*Organization).client
 	ctx := context.Background()
 
-	user, _, err := client.Users.Get(ctx, username)
-	if err != nil {
-		return err
+	var user *github.User
+	var err error
+
+	if res, ok := d.GetOk("username"); ok {
+		username := res.(string)
+		log.Printf("[INFO] Refreshing GitHub User: %s", username)
+		user, _, err = client.Users.Get(ctx, username)
+		if err != nil {
+			return err
+		}
+	}
+	if res, ok := d.GetOk("user_id"); ok {
+		userID, err := strconv.ParseInt(res.(string), 10, 64)
+		if err != nil {
+			return err
+		}
+		log.Printf("[INFO] Refreshing GitHub User: %d", userID)
+		user, _, err = client.Users.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
 	}
 
-	gpg, _, err := client.Users.ListGPGKeys(ctx, username, nil)
-	if err != nil {
-		return err
-	}
-	ssh, _, err := client.Users.ListKeys(ctx, username, nil)
-	if err != nil {
-		return err
-	}
+	minimal := d.Get("minimal").(bool)
 
 	gpgKeys := []string{}
-	for _, v := range gpg {
-		gpgKeys = append(gpgKeys, v.GetPublicKey())
-	}
-
 	sshKeys := []string{}
-	for _, v := range ssh {
-		sshKeys = append(sshKeys, v.GetKey())
+
+	if !minimal {
+		gpg, _, err := client.Users.ListGPGKeys(ctx, user.GetLogin(), nil)
+		if err != nil {
+			return err
+		}
+		ssh, _, err := client.Users.ListKeys(ctx, user.GetLogin(), nil)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range gpg {
+			gpgKeys = append(gpgKeys, v.GetPublicKey())
+		}
+
+		for _, v := range ssh {
+			sshKeys = append(sshKeys, v.GetKey())
+		}
 	}
 
 	d.SetId(strconv.FormatInt(user.GetID(), 10))
@@ -137,14 +171,14 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", user.GetName())
 	d.Set("email", user.GetEmail())
 	d.Set("bio", user.GetBio())
-	d.Set("gpg_keys", gpgKeys)
-	d.Set("ssh_keys", sshKeys)
 	d.Set("public_repos", user.GetPublicRepos())
 	d.Set("public_gists", user.GetPublicGists())
 	d.Set("followers", user.GetFollowers())
 	d.Set("following", user.GetFollowing())
 	d.Set("created_at", user.GetCreatedAt())
 	d.Set("updated_at", user.GetUpdatedAt())
+	d.Set("gpg_keys", gpgKeys)
+	d.Set("ssh_keys", sshKeys)
 
 	return nil
 }
