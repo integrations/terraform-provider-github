@@ -24,12 +24,6 @@ func getOrganization(meta interface{}) (string, error) {
 	return meta.(*Organization).name, nil
 }
 
-func caseInsensitive() schema.SchemaDiffSuppressFunc {
-	return func(k, old, new string, d *schema.ResourceData) bool {
-		return strings.EqualFold(old, new)
-	}
-}
-
 func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (we []string, errors []error) {
 		value := v.(string)
