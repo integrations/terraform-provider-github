@@ -64,6 +64,9 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TEST_COLLABORATOR"); v == "" {
 		t.Fatal("GITHUB_TEST_COLLABORATOR must be set for acceptance tests")
 	}
+	if v := os.Getenv("GITHUB_TEMPLATE_REPOSITORY"); v == "" {
+		t.Fatal("GITHUB_TEMPLATE_REPOSITORY must be set for acceptance tests")
+	}
 }
 
 func TestProvider_individual(t *testing.T) {

@@ -883,6 +883,10 @@ resource "github_repository" "foo" {
 }
 
 func testAccGithubRepositoryCreateFromTemplate(randString string) string {
+
+	owner := os.Getenv("GITHUB_ORGANIZATION")
+	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
   name         = "tf-acc-test-%s"
@@ -890,9 +894,8 @@ resource "github_repository" "foo" {
   homepage_url = "http://example.com/"
 
 	template {
-		# FIXME: Change this to something more suitable for CI runs
-		owner = "jcudit"
-		repository = "terraform-template-module"
+		owner = "%s"
+		repository = "%s"
 	}
 
 	# So that acceptance tests can be run in a github organization
@@ -907,7 +910,7 @@ resource "github_repository" "foo" {
   has_downloads      = true
 
 }
-`, randString, randString)
+`, randString, randString, owner, repository)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
