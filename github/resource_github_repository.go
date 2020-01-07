@@ -141,18 +141,17 @@ func resourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Optional: true,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Default:  false,
+							Required: true,
 						},
 						"repository": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Default:  false,
+							Required: true,
 						},
 					},
 				},
@@ -203,9 +202,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
-		if len(templateConfigBlocks) > 1 {
-			return errors.New("cannot specify template more than once")
-		}
 
 		for _, templateConfigBlock := range templateConfigBlocks {
 			templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
