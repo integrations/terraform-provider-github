@@ -45,7 +45,7 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	}
 }
 
-// return the pieces of id `a:b` as a, b
+// return the pieces of id `left:right` as left, right
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
