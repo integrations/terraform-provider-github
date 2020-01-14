@@ -1,4 +1,9 @@
-## 2.2.2 (Unreleased)
+## 2.3.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* `resource/repository`:  Added functionality to generate a new repository from a Template Repository ([#309](https://github.com/terraform-providers/terraform-provider-github/issues/309))
+
 ## 2.2.1 (September 04, 2019)
 
 ENHANCEMENTS:
