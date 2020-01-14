@@ -490,6 +490,36 @@ func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_createFromTemplate(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCreateFromTemplate(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryTemplateRepoAttribute(rn, &repo),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -509,6 +539,17 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 			return err
 		}
 		*repo = *gotRepo
+		return nil
+	}
+}
+
+func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Repository) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if *repo.TemplateRepository.IsTemplate != true {
+			return fmt.Errorf("got repo %q; want %q", *repo.TemplateRepository, repo)
+		}
+
 		return nil
 	}
 }
@@ -839,6 +880,37 @@ resource "github_repository" "foo" {
   gitignore_template = "C++"
 }
 `, randString, randString)
+}
+
+func testAccGithubRepositoryCreateFromTemplate(randString string) string {
+
+	owner := os.Getenv("GITHUB_ORGANIZATION")
+	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+	template {
+		owner = "%s"
+		repository = "%s"
+	}
+
+	# So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues         = true
+  has_wiki           = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+
+}
+`, randString, randString, owner, repository)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
