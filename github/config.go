@@ -22,14 +22,10 @@ type Config struct {
 }
 
 type Owner struct {
-	name         string
-	client       *github.Client
-	StopContext  context.Context
-	Organization bool
-}
-
-func (o *Owner) IsOrganization() bool {
-	return o.Organization
+	name           string
+	client         *github.Client
+	StopContext    context.Context
+	IsOrganization bool
 }
 
 // Client configures and returns a fully initialized GithubClient
@@ -46,7 +42,7 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	if !c.Individual {
-		owner.Organization = true
+		owner.IsOrganization = true
 	}
 
 	// Either Owner needs to be set, or Individual needs to be true
@@ -93,7 +89,7 @@ func (c *Config) Client() (interface{}, error) {
 
 	_, _, err := (*owner.client).Organizations.Get(context.TODO(), owner.name)
 	if err != nil {
-		owner.Organization = false
+		owner.IsOrganization = false
 	}
 
 	return &owner, nil

@@ -184,7 +184,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).client
 	owner := ""
-	if meta.(*Owner).IsOrganization() {
+	if meta.(*Owner).IsOrganization {
 		owner = meta.(*Owner).name
 	}
 
