@@ -42,7 +42,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 }
 
 func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -74,7 +74,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id())
 	if err != nil {
@@ -117,7 +117,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -149,7 +149,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 

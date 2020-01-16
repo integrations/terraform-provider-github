@@ -180,8 +180,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).client
+	orgName := meta.(*Owner).name
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
@@ -255,9 +255,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
 	_, err := client.Repositories.Delete(context.TODO(), orgName, repoName)

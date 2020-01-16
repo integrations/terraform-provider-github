@@ -50,13 +50,13 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 }
 
 func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	repoName := d.Get("repository").(string)
 	key := d.Get("key").(string)
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 
 	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, owner, repoName)
 	resultKey, _, err := client.Repositories.CreateKey(context.TODO(), owner, repoName, &github.Key{
@@ -77,9 +77,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repoName, idString, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -113,9 +113,9 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repoName, idString, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
