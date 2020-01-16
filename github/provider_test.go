@@ -44,6 +44,9 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_OWNER"); v == "" {
 		t.Fatal("GITHUB_OWNER must be set for acceptance tests")
 	}
+	if v := os.Getenv("GITHUB_ORGANIZATION"); v == "" {
+		t.Fatal("GITHUB_ORGANIZATION must be set for acceptance tests")
+	}
 	if v := os.Getenv("GITHUB_TEST_USER"); v == "" {
 		t.Fatal("GITHUB_TEST_USER must be set for acceptance tests")
 	}
