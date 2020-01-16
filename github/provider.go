@@ -19,7 +19,7 @@ func Provider() terraform.ResourceProvider {
 			},
 			"owner": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
 			},
