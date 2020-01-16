@@ -29,9 +29,9 @@ func testSweepRepositories(region string) error {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Organization).name, nil)
+	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func testSweepRepositories(region string) error {
 		if strings.HasPrefix(*r.Name, "tf-acc-") || strings.HasPrefix(*r.Name, "foo-") {
 			log.Printf("Destroying Repository %s", *r.Name)
 
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, *r.Name); err != nil {
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, *r.Name); err != nil {
 				return err
 			}
 		}
@@ -416,9 +416,9 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
-		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
+		owner := testAccProvider.Meta().(*Owner)
+		conn := owner.client
+		gotRepo, _, err := conn.Repositories.Get(context.TODO(), owner.name, repoName)
 		if err != nil {
 			return err
 		}
@@ -550,18 +550,18 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).client
+	ownerName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository" {
 			continue
 		}
 
-		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
+		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), ownerName, rs.Primary.ID)
 		if err == nil {
 			if gotRepo != nil && *gotRepo.Name == rs.Primary.ID {
-				return fmt.Errorf("Repository %s/%s still exists", orgName, *gotRepo.Name)
+				return fmt.Errorf("Repository %s/%s still exists", ownerName, *gotRepo.Name)
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -573,21 +573,21 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 }
 
 func testAccCreateRepositoryBranch(branch, repository string) error {
-	org := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
-		Token:        token,
-		Organization: org,
+		Token: token,
+		Owner: owner,
 	}
 
 	c, err := config.Client()
 	if err != nil {
 		return fmt.Errorf("Error creating github client: %s", err)
 	}
-	client := c.(*Organization).client
+	client := c.(*Owner).client
 
-	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
+	refs, _, err := client.Git.GetRefs(context.TODO(), owner, repository, "heads")
 	if err != nil {
 		return fmt.Errorf("Error getting reference commit: %s", err)
 	}
@@ -600,7 +600,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 		},
 	}
 
-	_, _, err = client.Git.CreateRef(context.TODO(), org, repository, newRef)
+	_, _, err = client.Git.CreateRef(context.TODO(), owner, repository, newRef)
 	if err != nil {
 		return fmt.Errorf("Error creating git reference: %s", err)
 	}

@@ -46,9 +46,9 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
@@ -73,9 +73,9 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -140,9 +140,9 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
