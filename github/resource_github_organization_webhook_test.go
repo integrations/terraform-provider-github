@@ -101,9 +101,9 @@ func testAccCheckGithubOrganizationWebhookExists(n string, hook *github.Hook) re
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
-		getHook, _, err := conn.Organizations.GetHook(context.TODO(), org.name, hookID)
+		owner := testAccProvider.Meta().(*Owner)
+		conn := owner.client
+		getHook, _, err := conn.Organizations.GetHook(context.TODO(), owner.name, hookID)
 		if err != nil {
 			return err
 		}
@@ -143,8 +143,8 @@ func testAccCheckGithubOrganizationWebhookAttributes(hook *github.Hook, want *te
 }
 
 func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).client
+	ownerName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_webhook" {
@@ -156,7 +156,7 @@ func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		gotHook, resp, err := conn.Organizations.GetHook(context.TODO(), orgName, id)
+		gotHook, resp, err := conn.Organizations.GetHook(context.TODO(), ownerName, id)
 		if err == nil {
 			if gotHook != nil && *gotHook.ID == int64(id) {
 				return fmt.Errorf("Webhook still exists")
