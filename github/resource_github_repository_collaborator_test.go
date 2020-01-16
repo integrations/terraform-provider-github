@@ -52,14 +52,14 @@ func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
+		o := testAccProvider.Meta().(*Owner).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 		isCollaborator, _, err := conn.Repositories.IsCollaborator(context.TODO(), o, r, u)
 
@@ -88,8 +88,8 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).client
+		o := testAccProvider.Meta().(*Owner).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
@@ -124,8 +124,8 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
-		o := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).client
+		o := testAccProvider.Meta().(*Owner).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)

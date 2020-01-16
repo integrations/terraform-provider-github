@@ -45,7 +45,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 }
 
 func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	repo := d.Get("repository").(string)
 
@@ -58,7 +58,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		ReadOnly: &r,
 	}
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	resultKey, _, err := client.Repositories.CreateKey(context.TODO(), owner, repo, key)
 
 	if err != nil {
@@ -74,9 +74,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repo, id := parseTwoPartID(d.Id())
 
 	i, err := strconv.ParseInt(id, 10, 64)
@@ -98,9 +98,9 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repo, id := parseTwoPartID(d.Id())
 
 	i, err := strconv.ParseInt(id, 10, 64)

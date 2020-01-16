@@ -35,11 +35,11 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name,
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Owner).name,
 		&github.Membership{Role: &r})
 	if err != nil {
 		return err
@@ -51,10 +51,10 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	_, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Owner).name)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -66,11 +66,11 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name, &github.Membership{
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Owner).name, &github.Membership{
 		Role: &r,
 	})
 	if err != nil {
@@ -82,10 +82,10 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Owner).name)
 
 	return err
 }
