@@ -175,16 +175,16 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Organization).name, repoName)
+	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Owner).name, repoName)
+	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Owner).name, repoName)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			log.Printf(
 				"[WARN] removing %s/%s from state because it no longer exists in github",
-				meta.(*Organization).name,
+				meta.(*Owner).name,
 				repoName,
 			)
 			d.SetId("")
@@ -248,9 +248,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName := d.Id()
-	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Organization).name, repoName)
-	_, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, repoName)
+	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Owner).name, repoName)
+	_, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, repoName)
 	return err
 }
