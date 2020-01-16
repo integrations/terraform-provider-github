@@ -156,8 +156,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(ctx, meta.(*Organization).name, repoReq)
+	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Owner).name, *repoReq.Name)
+	repo, _, err := client.Repositories.Create(context.TODO(), meta.(*Owner).name, repoReq)
 	if err != nil {
 		return err
 	}
