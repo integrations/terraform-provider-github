@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -113,12 +112,10 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	team, user := getTeamAndUserFromURL(membership.URL)
-
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", user)
+	d.Set("username", username)
 	d.Set("role", membership.Role)
-	d.Set("team_id", team)
+	d.Set("team_id", teamId)
 
 	return nil
 }
@@ -138,19 +135,4 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	_, err = client.Teams.RemoveTeamMembership(ctx, teamId, username)
 
 	return err
-}
-
-func getTeamAndUserFromURL(url *string) (string, string) {
-	var team, user string
-
-	urlSlice := strings.Split(*url, "/")
-	for v := range urlSlice {
-		if urlSlice[v] == "teams" {
-			team = urlSlice[v+1]
-		}
-		if urlSlice[v] == "memberships" {
-			user = urlSlice[v+1]
-		}
-	}
-	return team, user
 }
