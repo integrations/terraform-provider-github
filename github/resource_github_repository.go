@@ -151,8 +151,12 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	ctx := context.TODO()
+	owner := ""
+	if meta.(*Owner).IsOrganization() {
+		owner = meta.(*Owner).name
+	}
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		return fmt.Errorf("Cannot set the default branch on a new repository.")
@@ -161,8 +165,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	orgName := meta.(*Organization).name
 	repoReq := resourceGithubRepositoryObject(d)
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoReq.GetName())
-	repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
+	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoReq.GetName())
+	repo, _, err := client.Repositories.Create(ctx, owner, repoReq)
 	if err != nil {
 		return err
 	}
@@ -170,7 +174,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoReq.GetName(), topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repoReq.GetName(), topics)
 		if err != nil {
 			return err
 		}
@@ -221,7 +225,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	ctx := context.TODO()
 	repoReq := resourceGithubRepositoryObject(d)
