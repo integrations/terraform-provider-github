@@ -193,7 +193,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	orgName := meta.(*Owner).name
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -240,7 +239,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
 		if err != nil {
 			return err
 		}
