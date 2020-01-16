@@ -13,15 +13,15 @@ import (
 )
 
 type Config struct {
-	Token        string
-	Organization string
-	BaseURL      string
-	Insecure     bool
-	Individual   bool
-	Anonymous    bool
+	Token      string
+	Owner      string
+	BaseURL    string
+	Insecure   bool
+	Individual bool
+	Anonymous  bool
 }
 
-type Organization struct {
+type Owner struct {
 	name        string
 	client      *github.Client
 	StopContext context.Context
@@ -29,7 +29,7 @@ type Organization struct {
 
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
-	var org Organization
+	var owner Owner
 	var ts oauth2.TokenSource
 	var tc *http.Client
 
@@ -40,18 +40,16 @@ func (c *Config) Client() (interface{}, error) {
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
-	// Either Organization needs to be set, or Individual needs to be true
-	if c.Organization != "" && c.Individual {
-		return nil, fmt.Errorf("If `individual` is true, `organization` cannot be set.")
+	// Either Owner needs to be set, or Individual needs to be true
+	if c.Owner != "" && c.Individual {
+		return nil, fmt.Errorf("If `individual` is true, `owner` cannot be set.")
 	}
-	if c.Organization == "" && !c.Individual {
-		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
+	if c.Owner == "" && !c.Individual {
+		return nil, fmt.Errorf("If `individual` is false, `owner` is required.")
 	}
 
 	if c.Individual {
-		org.name = ""
-	} else {
-		org.name = c.Organization
+		owner.name = ""
 	}
 
 	// Either run as anonymous, or run with a Token
@@ -79,17 +77,16 @@ func (c *Config) Client() (interface{}, error) {
 	tc.Transport = NewRateLimitTransport(tc.Transport)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
-	org.client = github.NewClient(tc)
-
+	owner.client = github.NewClient(tc)
 	if c.BaseURL != "" {
 		u, err := url.Parse(c.BaseURL)
 		if err != nil {
 			return nil, err
 		}
-		org.client.BaseURL = u
+		owner.client.BaseURL = u
 	}
 
-	return &org, nil
+	return &owner, nil
 }
 
 func insecureHttpClient() *http.Client {
