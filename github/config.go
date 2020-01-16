@@ -16,15 +16,21 @@ type Config struct {
 }
 
 type Owner struct {
-	name        string
-	client      *github.Client
-	StopContext context.Context
+	name         string
+	client       *github.Client
+	StopContext  context.Context
+	Organization bool
+}
+
+func (o *Owner) IsOrganization() bool {
+	return o.Organization
 }
 
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
 	var owner Owner
 	owner.name = c.Owner
+	owner.Organization = true
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
@@ -39,6 +45,11 @@ func (c *Config) Client() (interface{}, error) {
 			return nil, err
 		}
 		owner.client.BaseURL = u
+	}
+
+	_, _, err := (*owner.client).Organizations.Get(context.TODO(), owner.name)
+	if err != nil {
+		owner.Organization = false
 	}
 
 	return &owner, nil
