@@ -48,7 +48,7 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	newTeam := &github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -61,7 +61,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(),
-		meta.(*Organization).name, newTeam)
+		meta.(*Owner).name, newTeam)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	team, err := getGithubTeam(d, client)
 	if err != nil {
@@ -102,7 +102,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	team, err := getGithubTeam(d, client)
 	if err != nil {
 		d.SetId("")
@@ -140,7 +140,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
