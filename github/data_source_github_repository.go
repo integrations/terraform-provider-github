@@ -108,8 +108,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).client
+	orgName := meta.(*Owner).name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
