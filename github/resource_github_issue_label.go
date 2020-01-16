@@ -55,8 +55,8 @@ func resourceGithubIssueLabel() *schema.Resource {
 // same function for two schema funcs.
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
@@ -121,7 +121,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName, name, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Reading label: %s/%s", repoName, name)
 	githubLabel, _, err := client.Issues.GetLabel(context.TODO(),
-		meta.(*Organization).name, repoName, name)
+		meta.(*Owner).name, repoName, name)
 	if err != nil {
 		log.Printf("[WARN] GitHub Issue Label (%s) not found, removing from state", d.Id())
 		d.SetId("")
@@ -146,13 +146,13 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Deleting label: %s/%s", repoName, name)
 	_, err := client.Issues.DeleteLabel(context.TODO(),
-		meta.(*Organization).name, repoName, name)
+		meta.(*Owner).name, repoName, name)
 
 	return err
 }
