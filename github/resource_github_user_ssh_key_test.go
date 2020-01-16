@@ -57,7 +57,7 @@ func testAccCheckGithubUserSshKeyExists(n string, key *github.Key) resource.Test
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		org := testAccProvider.Meta().(*Organization)
+		org := testAccProvider.Meta().(*Owner)
 		receivedKey, _, err := org.client.Users.GetKey(context.TODO(), id)
 		if err != nil {
 			return err
@@ -68,7 +68,7 @@ func testAccCheckGithubUserSshKeyExists(n string, key *github.Key) resource.Test
 }
 
 func testAccCheckGithubUserSshKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_user_ssh_key" {

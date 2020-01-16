@@ -47,7 +47,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 }
 
 func testAccGithubRepositoryProjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Owner).client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_project" {
@@ -86,7 +86,7 @@ func testAccCheckGithubRepositoryProjectExists(n string, project *github.Project
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Owner).client
 		gotProject, _, err := conn.Projects.GetProject(context.TODO(), projectID)
 		if err != nil {
 			return err

@@ -224,8 +224,8 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 	return func(s *terraform.State) error {
 		opt := &github.ListOptions{PerPage: maxPerPage}
 
-		client := testAccProvider.Meta().(*Organization).client
-		org := testAccProvider.Meta().(*Organization).name
+		client := testAccProvider.Meta().(*Owner).client
+		org := testAccProvider.Meta().(*Owner).name
 
 		for {
 			invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), org, repoName, opt)
