@@ -145,7 +145,7 @@ func getTeamAndUserFromURL(url *string) (string, string) {
 
 	urlSlice := strings.Split(*url, "/")
 	for v := range urlSlice {
-		if urlSlice[v] == "teams" {
+		if urlSlice[v] == "teams" || urlSlice[v] == "team" {
 			team = urlSlice[v+1]
 		}
 		if urlSlice[v] == "memberships" {
