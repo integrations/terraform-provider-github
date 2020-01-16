@@ -40,7 +40,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 }
 
 func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -51,7 +51,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 	_, err = client.Organizations.AddTeamRepo(context.TODO(),
 		teamId,
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		repoName,
 		&github.OrganizationAddTeamRepoOptions{
 			Permission: d.Get("permission").(string),
@@ -68,7 +68,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id())
 	if err != nil {
@@ -82,7 +82,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	repo, _, repoErr := client.Organizations.IsTeamRepo(context.TODO(),
 		teamId,
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		repoName,
 	)
 
@@ -106,7 +106,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -119,7 +119,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
 	_, err = client.Organizations.AddTeamRepo(context.TODO(),
 		teamId,
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		repoName,
 		&github.OrganizationAddTeamRepoOptions{
 			Permission: d.Get("permission").(string),
@@ -135,7 +135,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	teamIdString := d.Get("team_id").(string)
 
@@ -146,7 +146,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	_, err = client.Organizations.RemoveTeamRepo(context.TODO(),
 		teamId,
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		d.Get("repository").(string),
 	)
 
