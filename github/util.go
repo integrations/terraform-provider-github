@@ -13,7 +13,7 @@ const (
 )
 
 func checkOrganization(meta interface{}) error {
-	if meta.(*Organization).name == "" {
+	if meta.(*Owner).name == "" {
 		return fmt.Errorf("This resource requires GitHub organization to be set on the provider.")
 	}
 
