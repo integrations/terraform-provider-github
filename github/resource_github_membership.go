@@ -36,11 +36,11 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(),
 		d.Get("username").(string),
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		&github.Membership{
 			Role: github.String(d.Get("role").(string)),
 		},
@@ -55,14 +55,14 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	_, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(),
-		username, meta.(*Organization).name)
+		username, meta.(*Owner).name)
 	if err != nil {
 		log.Printf("[WARN] GitHub Membership (%s) not found, removing from state", d.Id())
 		d.SetId("")
@@ -75,10 +75,10 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	_, err := client.Organizations.RemoveOrgMembership(context.TODO(),
-		d.Get("username").(string), meta.(*Organization).name)
+		d.Get("username").(string), meta.(*Owner).name)
 
 	return err
 }

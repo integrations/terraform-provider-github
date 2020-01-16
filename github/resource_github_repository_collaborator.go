@@ -41,12 +41,12 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
 	_, err := client.Repositories.AddCollaborator(context.TODO(),
-		meta.(*Organization).name,
+		meta.(*Owner).name,
 		repoName,
 		username,
 		&github.RepositoryAddCollaboratorOptions{
@@ -63,14 +63,14 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	repoName, username, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, repoName, username)
+	invitation, err := findRepoInvitation(client, meta.(*Owner).name, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
@@ -90,7 +90,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(context.TODO(),
-			meta.(*Organization).name, repoName, opt)
+			meta.(*Owner).name, repoName, opt)
 		if err != nil {
 			return err
 		}
@@ -123,20 +123,20 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, meta.(*Organization).name, r, u)
+	invitation, err := findRepoInvitation(client, meta.(*Owner).name, r, u)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(context.TODO(), meta.(*Organization).name, r, *invitation.ID)
+		_, err = client.Repositories.DeleteInvitation(context.TODO(), meta.(*Owner).name, r, *invitation.ID)
 		return err
 	}
 
-	_, err = client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Organization).name, r, u)
+	_, err = client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Owner).name, r, u)
 	return err
 }
 
