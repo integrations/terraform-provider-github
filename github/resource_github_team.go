@@ -46,7 +46,7 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
@@ -61,7 +61,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		newTeam.ParentTeamID = &id
 	}
 
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, newTeam)
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Owner).name, newTeam)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
 	team, err := getGithubTeam(d, client)
 	if err != nil {
@@ -101,7 +101,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	team, err := getGithubTeam(d, client)
 
 	if err != nil {
@@ -144,7 +144,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	id := toGithubID(d.Id())
 	_, err := client.Organizations.DeleteTeam(context.TODO(), id)
 	return err

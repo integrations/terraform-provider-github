@@ -127,7 +127,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 }
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	r := d.Get("repository").(string)
 	b := d.Get("branch").(string)
 
@@ -136,7 +136,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Organization).name, r, b, protectionRequest)
+	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Owner).name, r, b, protectionRequest)
 	if err != nil {
 		return err
 	}
@@ -146,13 +146,13 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	r, b, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Owner).name, r, b)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
 			d.SetId("")
@@ -182,7 +182,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	r, b, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
@@ -193,13 +193,13 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Organization).name, r, b, protectionRequest)
+	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Owner).name, r, b, protectionRequest)
 	if err != nil {
 		return err
 	}
 
 	if protectionRequest.RequiredPullRequestReviews == nil {
-		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Organization).name, r, b)
+		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Owner).name, r, b)
 		if err != nil {
 			return err
 		}
@@ -211,13 +211,13 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	r, b, err := parseTwoPartID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Repositories.RemoveBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	_, err = client.Repositories.RemoveBranchProtection(context.TODO(), meta.(*Owner).name, r, b)
 	return err
 }
 
