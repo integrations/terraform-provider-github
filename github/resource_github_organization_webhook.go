@@ -78,9 +78,9 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
@@ -101,9 +101,9 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -145,9 +145,9 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -172,9 +172,9 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
