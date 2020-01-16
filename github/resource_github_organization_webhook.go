@@ -76,10 +76,10 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 }
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	hk := resourceGithubOrganizationWebhookObject(d)
 
-	hook, _, err := client.Organizations.CreateHook(context.TODO(), meta.(*Organization).name, hk)
+	hook, _, err := client.Organizations.CreateHook(context.TODO(), meta.(*Owner).name, hk)
 	if err != nil {
 		return err
 	}
@@ -89,13 +89,13 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Organization).name, hookID)
+	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Owner).name, hookID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			d.SetId("")
@@ -113,14 +113,14 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	hk := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	_, _, err = client.Organizations.EditHook(context.TODO(), meta.(*Organization).name, hookID, hk)
+	_, _, err = client.Organizations.EditHook(context.TODO(), meta.(*Owner).name, hookID, hk)
 	if err != nil {
 		return err
 	}
@@ -129,12 +129,12 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Owner).client
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	_, err = client.Organizations.DeleteHook(context.TODO(), meta.(*Organization).name, hookID)
+	_, err = client.Organizations.DeleteHook(context.TODO(), meta.(*Owner).name, hookID)
 	return err
 }
