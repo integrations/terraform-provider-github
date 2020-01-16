@@ -22,9 +22,14 @@ type Config struct {
 }
 
 type Owner struct {
-	name        string
-	client      *github.Client
-	StopContext context.Context
+	name         string
+	client       *github.Client
+	StopContext  context.Context
+	Organization bool
+}
+
+func (o *Owner) IsOrganization() bool {
+	return o.Organization
 }
 
 // Client configures and returns a fully initialized GithubClient
@@ -40,16 +45,16 @@ func (c *Config) Client() (interface{}, error) {
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
+	if !c.Individual {
+		owner.Organization = true
+	}
+
 	// Either Owner needs to be set, or Individual needs to be true
 	if c.Owner != "" && c.Individual {
 		return nil, fmt.Errorf("If `individual` is true, `owner` cannot be set.")
 	}
 	if c.Owner == "" && !c.Individual {
 		return nil, fmt.Errorf("If `individual` is false, `owner` is required.")
-	}
-
-	if c.Individual {
-		owner.name = ""
 	}
 
 	// Either run as anonymous, or run with a Token
@@ -84,6 +89,11 @@ func (c *Config) Client() (interface{}, error) {
 			return nil, err
 		}
 		owner.client.BaseURL = u
+	}
+
+	_, _, err := (*owner.client).Organizations.Get(context.TODO(), owner.name)
+	if err != nil {
+		owner.Organization = false
 	}
 
 	return &owner, nil
