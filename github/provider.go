@@ -23,6 +23,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
 			},
+			"organization": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
+				Description: descriptions["organization"],
+			},
 			"base_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -77,6 +83,8 @@ func init() {
 
 		"owner": "The GitHub owner name to manage.",
 
+		"organization": "The GitHub owner name to manage.",
+
 		"base_url": "The GitHub Base API URL",
 
 		"insecure": "Whether server should be accessed " +
@@ -86,9 +94,13 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
+		owner := d.Get("owner").(string)
+		if owner == "" {
+			owner = d.Get("organization").(string)
+		}
 		config := Config{
 			Token:        d.Get("token").(string),
-			Owner: d.Get("organization").(string),
+			Owner:        owner,
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
 		}
