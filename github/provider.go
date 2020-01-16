@@ -121,12 +121,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			owner = d.Get("owner").(string)
 		}
 		config := Config{
-			Token:        d.Get("token").(string),
-			Owner:        owner,
-			BaseURL:      d.Get("base_url").(string),
-			Insecure:     d.Get("insecure").(bool),
-			Individual:   d.Get("individual").(bool),
-			Anonymous:    d.Get("anonymous").(bool),
+			Token:      d.Get("token").(string),
+			Owner:      owner,
+			BaseURL:    d.Get("base_url").(string),
+			Insecure:   d.Get("insecure").(bool),
+			Individual: d.Get("individual").(bool),
+			Anonymous:  d.Get("anonymous").(bool),
 		}
 
 		meta, err := config.Client()
