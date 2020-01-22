@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -90,6 +89,13 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
+
+	// We intentionally set these early to allow reconciliation
+	// from an upstream bug which emptied team_id in state
+	// See https://github.com/terraform-providers/terraform-provider-github/issues/323
+	d.Set("team_id", teamIdString)
+	d.Set("username", username)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -113,12 +119,8 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	team, user := getTeamAndUserFromURL(membership.URL)
-
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", user)
 	d.Set("role", membership.Role)
-	d.Set("team_id", team)
 
 	return nil
 }
@@ -138,19 +140,4 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	_, err = client.Teams.RemoveTeamMembership(ctx, teamId, username)
 
 	return err
-}
-
-func getTeamAndUserFromURL(url *string) (string, string) {
-	var team, user string
-
-	urlSlice := strings.Split(*url, "/")
-	for v := range urlSlice {
-		if urlSlice[v] == "teams" {
-			team = urlSlice[v+1]
-		}
-		if urlSlice[v] == "memberships" {
-			user = urlSlice[v+1]
-		}
-	}
-	return team, user
 }
