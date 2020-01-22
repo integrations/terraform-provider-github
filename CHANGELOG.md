@@ -1,12 +1,12 @@
-## 2.3.0 (Unreleased)
+## 2.3.0 (January 22, 2020)
 
 BUG FIXES:
 
-* `resource/resource_github_team_membership`: Prevent spurious diffs caused by upstream API change made on 17th January [GH-325]
+* `resource/resource_github_team_membership`: Prevent spurious diffs caused by upstream API change made on 17th January ([#325](https://github.com/terraform-providers/terraform-provider-github/issues/325))
 
 ENHANCEMENTS:
 
-* `resource/repository`: Added functionality to generate a new repository from a Template Repository [GH-309]
+* `resource/repository`: Added functionality to generate a new repository from a Template Repository ([#309](https://github.com/terraform-providers/terraform-provider-github/issues/309))
 
 ## 2.2.1 (September 04, 2019)
 
