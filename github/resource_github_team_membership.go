@@ -89,6 +89,13 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
+
+	// We intentionally set these early to allow reconciliation
+	// from an upstream bug which emptied team_id in state
+	// See https://github.com/terraform-providers/terraform-provider-github/issues/323
+	d.Set("team_id", teamIdString)
+	d.Set("username", username)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -113,9 +120,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", username)
 	d.Set("role", membership.Role)
-	d.Set("team_id", teamId)
 
 	return nil
 }
