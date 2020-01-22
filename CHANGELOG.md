@@ -1,8 +1,12 @@
 ## 2.3.0 (Unreleased)
 
+BUG FIXES:
+
+* `resource/resource_github_team_membership`: Prevent spurious diffs caused by upstream API change made on 17th January [GH-325]
+
 ENHANCEMENTS:
 
-* `resource/repository`: Added functionality to generate a new repository from a Template Repository ([GH-309])
+* `resource/repository`: Added functionality to generate a new repository from a Template Repository [GH-309]
 
 ## 2.2.1 (September 04, 2019)
 
