@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"regexp"
 
 	"github.com/google/go-github/v28/github"
@@ -263,55 +262,51 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	ctx := prepareResourceContext(d)
 
 	repo, resp, err := client.Repositories.Get(ctx, orgName, repoName)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
-					orgName, repoName)
-				d.SetId("")
-				return nil
-			}
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub", orgName, repoName)
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("name", repoName)
+		d.Set("description", repo.Description)
+		d.Set("homepage_url", repo.Homepage)
+		d.Set("private", repo.Private)
+		d.Set("has_issues", repo.HasIssues)
+		d.Set("has_projects", repo.HasProjects)
+		d.Set("has_wiki", repo.HasWiki)
+		d.Set("allow_merge_commit", repo.AllowMergeCommit)
+		d.Set("allow_squash_merge", repo.AllowSquashMerge)
+		d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
+		d.Set("has_downloads", repo.HasDownloads)
+		d.Set("full_name", repo.FullName)
+		d.Set("default_branch", repo.DefaultBranch)
+		d.Set("html_url", repo.HTMLURL)
+		d.Set("ssh_clone_url", repo.SSHURL)
+		d.Set("svn_url", repo.SVNURL)
+		d.Set("git_clone_url", repo.GitURL)
+		d.Set("http_clone_url", repo.CloneURL)
+		d.Set("archived", repo.Archived)
+		d.Set("topics", flattenStringList(repo.Topics))
+
+		if repo.TemplateRepository != nil {
+			d.Set("template", []interface{}{
+				map[string]interface{}{
+					"owner":      repo.TemplateRepository.Owner.Login,
+					"repository": repo.TemplateRepository.Name,
+				},
+			})
+		} else {
+			d.Set("template", []interface{}{})
 		}
-		return err
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", repoName)
-	d.Set("description", repo.Description)
-	d.Set("homepage_url", repo.Homepage)
-	d.Set("private", repo.Private)
-	d.Set("has_issues", repo.HasIssues)
-	d.Set("has_projects", repo.HasProjects)
-	d.Set("has_wiki", repo.HasWiki)
-	d.Set("allow_merge_commit", repo.AllowMergeCommit)
-	d.Set("allow_squash_merge", repo.AllowSquashMerge)
-	d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
-	d.Set("has_downloads", repo.HasDownloads)
-	d.Set("full_name", repo.FullName)
-	d.Set("default_branch", repo.DefaultBranch)
-	d.Set("html_url", repo.HTMLURL)
-	d.Set("ssh_clone_url", repo.SSHURL)
-	d.Set("svn_url", repo.SVNURL)
-	d.Set("git_clone_url", repo.GitURL)
-	d.Set("http_clone_url", repo.CloneURL)
-	d.Set("archived", repo.Archived)
-	d.Set("topics", flattenStringList(repo.Topics))
-
-	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
-			map[string]interface{}{
-				"owner":      repo.TemplateRepository.Owner.Login,
-				"repository": repo.TemplateRepository.Name,
-			},
-		})
-	} else {
-		d.Set("template", []interface{}{})
-	}
-
-	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {

@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -101,31 +100,26 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	}
 
 	ctx := prepareResourceContext(d)
-
 	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), orgName, repoName)
 	key, resp, err := client.Repositories.GetKey(ctx, orgName, repoName, id)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository deploy key %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing repository deploy key %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("key", key.Key)
+		d.Set("read_only", key.ReadOnly)
+		d.Set("repository", repoName)
+		d.Set("title", key.Title)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("key", key.Key)
-	d.Set("read_only", key.ReadOnly)
-	d.Set("repository", repoName)
-	d.Set("title", key.Title)
-
-	return nil
 }
 
 func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {

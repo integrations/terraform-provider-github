@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v28/github"
@@ -203,49 +202,43 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
 		orgName, repoName, branch)
-	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
-		orgName, repoName, branch)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				if err := requireSignedCommitsRead(d, meta); err != nil {
-					return fmt.Errorf("Error setting signed commit restriction: %v", err)
-				}
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
-					orgName, repoName, branch)
-				d.SetId("")
-				return nil
-			}
+	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx, orgName, repoName, branch)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		if err := requireSignedCommitsRead(d, meta); err != nil {
+			return fmt.Errorf("Error setting signed commit restriction: %v", err)
+		}
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub", orgName, repoName, branch)
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("repository", repoName)
+		d.Set("branch", branch)
+		d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
+
+		if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
+			return fmt.Errorf("Error setting required_status_checks: %v", err)
 		}
 
-		return err
+		if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
+			return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
+		}
+
+		if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
+			return fmt.Errorf("Error setting restrictions: %v", err)
+		}
+
+		if err := requireSignedCommitsRead(d, meta); err != nil {
+			return fmt.Errorf("Error setting signed commit restriction: %v", err)
+		}
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("branch", branch)
-	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
-
-	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_status_checks: %v", err)
-	}
-
-	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
-	}
-
-	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting restrictions: %v", err)
-	}
-
-	if err := requireSignedCommitsRead(d, meta); err != nil {
-		return fmt.Errorf("Error setting signed commit restriction: %v", err)
-	}
-
-	return nil
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {

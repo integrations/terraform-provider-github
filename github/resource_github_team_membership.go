@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v28/github"
@@ -99,27 +98,22 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
-	membership, resp, err := client.Teams.GetTeamMembership(ctx,
-		teamId, username)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	membership, resp, err := client.Teams.GetTeamMembership(ctx, teamId, username)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("role", membership.Role)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("role", membership.Role)
-
-	return nil
 }
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {

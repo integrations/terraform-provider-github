@@ -3,7 +3,6 @@ package github
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -102,28 +101,23 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("name", project.GetName())
+		d.Set("body", project.GetBody())
+		d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d", orgName, d.Get("repository"), project.GetNumber()))
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		orgName, d.Get("repository"), project.GetNumber()))
-
-	return nil
 }
 
 func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interface{}) error {

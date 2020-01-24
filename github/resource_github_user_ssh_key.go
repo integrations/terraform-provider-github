@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -80,26 +79,23 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Reading user SSH key: %s", d.Id())
 	key, resp, err := client.Users.GetKey(ctx, id)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing user SSH key %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing user SSH key %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("title", key.Title)
+		d.Set("key", key.Key)
+		d.Set("url", key.URL)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("title", key.Title)
-	d.Set("key", key.Key)
-	d.Set("url", key.URL)
-
-	return nil
 }
 
 func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) error {

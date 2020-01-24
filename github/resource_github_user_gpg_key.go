@@ -2,10 +2,8 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -62,25 +60,21 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading user GPG key: %s", d.Id())
-	key, _, err := client.Users.GetGPGKey(ctx, id)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing user GPG key %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	key, resp, err := client.Users.GetGPGKey(ctx, id)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing user GPG key %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("key_id", key.KeyID)
+
+		return nil
 	}
-
-	d.Set("key_id", key.KeyID)
-
-	return nil
 }
 
 func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) error {

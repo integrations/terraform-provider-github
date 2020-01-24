@@ -3,9 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -114,4 +116,29 @@ func prepareResourceContext(d *schema.ResourceData) context.Context {
 	}
 
 	return ctx
+}
+
+type APIResult int
+
+const (
+	APISuccess APIResult = iota
+	APIError
+	APINotFound
+	APINotModified
+)
+
+func apiResult(resp *github.Response, err error) (APIResult, error) {
+	if err != nil {
+		if resp.StatusCode == http.StatusNotModified {
+			return APINotModified, nil
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return APINotFound, nil
+		}
+
+		return APIError, err
+	}
+
+	return APISuccess, nil
 }

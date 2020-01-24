@@ -3,7 +3,6 @@ package github
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -138,40 +137,37 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
-	hook, _, err := client.Repositories.GetHook(ctx, orgName, repoName, hookID)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository webhook %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
+	hook, resp, err := client.Repositories.GetHook(ctx, orgName, repoName, hookID)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing repository webhook %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("url", hook.URL)
+		d.Set("active", hook.Active)
+		d.Set("events", hook.Events)
+
+		// GitHub returns the secret as a string of 8 asterisks "********"
+		// We would prefer to store the real secret in state, so we'll
+		// write the configuration secret in state from what we get from
+		// ResourceData
+		if len(d.Get("configuration").([]interface{})) > 0 {
+			currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+			if hook.Config["secret"] != nil {
+				hook.Config["secret"] = currentSecret
 			}
 		}
-		return err
+
+		d.Set("configuration", []interface{}{hook.Config})
+
+		return nil
 	}
-	d.Set("url", hook.URL)
-	d.Set("active", hook.Active)
-	d.Set("events", hook.Events)
-
-	// GitHub returns the secret as a string of 8 astrisks "********"
-	// We would prefer to store the real secret in state, so we'll
-	// write the configuration secret in state from what we get from
-	// ResourceData
-	if len(d.Get("configuration").([]interface{})) > 0 {
-		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
-
-		if hook.Config["secret"] != nil {
-			hook.Config["secret"] = currentSecret
-		}
-	}
-
-	d.Set("configuration", []interface{}{hook.Config})
-
-	return nil
 }
 
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {

@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -85,28 +84,23 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading membership: %s", d.Id())
-	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
-		username, orgName)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing membership %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	membership, resp, err := client.Organizations.GetOrgMembership(ctx, username, orgName)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing membership %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("username", membership.User.Login)
+		d.Set("role", membership.Role)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", membership.User.Login)
-	d.Set("role", membership.Role)
-
-	return nil
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {

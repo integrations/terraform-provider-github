@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v28/github"
@@ -103,34 +102,30 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx, teamId, orgName, repoName)
-	if repoErr != nil {
-		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team repository association %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
+	repo, resp, err := client.Teams.IsTeamRepo(ctx, teamId, orgName, repoName)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing team repository association %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("team_id", teamIdString)
+		d.Set("repository", repo.Name)
+
+		permName, permErr := getRepoPermission(repo.Permissions)
+		if permErr != nil {
+			return permErr
 		}
-		return err
+
+		d.Set("permission", permName)
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("team_id", teamIdString)
-	d.Set("repository", repo.Name)
-
-	permName, permErr := getRepoPermission(repo.Permissions)
-	if permErr != nil {
-		return permErr
-	}
-
-	d.Set("permission", permName)
-
-	return nil
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {

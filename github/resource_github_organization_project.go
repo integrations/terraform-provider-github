@@ -3,7 +3,6 @@ package github
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v28/github"
@@ -86,28 +85,23 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] Reading organization project: %s (%s)", d.Id(), orgName)
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization project %s/%s from state because it no longer exists in GitHub",
-					orgName, d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing organization project %s/%s from state because it no longer exists in GitHub", orgName, d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		d.Set("etag", resp.Header.Get("ETag"))
+		d.Set("name", project.GetName())
+		d.Set("body", project.GetBody())
+		d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d", orgName, project.GetNumber()))
+
+		return nil
 	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
-		orgName, project.GetNumber()))
-
-	return nil
 }
 
 func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {

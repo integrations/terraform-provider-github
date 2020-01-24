@@ -2,7 +2,6 @@ package github
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -77,24 +76,25 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading project column: %s", d.Id())
-	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
-	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing project column %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	column, resp, err := client.Projects.GetProjectColumn(ctx, columnID)
+	switch apires, apierr := apiResult(resp, err); apires {
+	case APINotModified:
+		return nil
+	case APINotFound:
+		log.Printf("[WARN] Removing project column %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	case APIError:
+		return apierr
+	default:
+		projectURL := column.GetProjectURL()
+		projectID := strings.TrimPrefix(projectURL, client.BaseURL.String()+`projects/`)
+
+		d.Set("name", column.GetName())
+		d.Set("project_id", projectID)
+
+		return nil
 	}
-
-	projectURL := column.GetProjectURL()
-	projectID := strings.TrimPrefix(projectURL, client.BaseURL.String()+`projects/`)
-
-	d.Set("name", column.GetName())
-	d.Set("project_id", projectID)
-	return nil
 }
 
 func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{}) error {
