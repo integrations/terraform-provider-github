@@ -94,15 +94,10 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	teamID, userID, username, err := getTeamAndUser(teamIDString, userIDString, meta.(*Organization))
+	teamID, _, username, err := getTeamAndUser(teamIDString, userIDString, meta.(*Organization))
 	if err != nil {
 		return err
 	}
-
-	d.Set("team_id", teamIdString)
-	d.Set("username", username)
-
-	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIDString, userIDString)
 
@@ -118,8 +113,6 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return apierr
 	default:
 		d.Set("etag", resp.Header.Get("ETag"))
-		d.Set("team_id", teamID)
-		d.Set("user_id", userID)
 		d.Set("role", membership.Role)
 
 		return nil
