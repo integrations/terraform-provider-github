@@ -87,7 +87,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	client := meta.(*Organization).client
 
-	repoName, username, err := parseTwoPartID(d.Id())
+	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
 	if err != nil {
 		return err
 	}

@@ -101,7 +101,7 @@ func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
 		}
 
 		o := testAccProvider.Meta().(*Organization).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		r, u, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 
 		conn := testAccProvider.Meta().(*Organization).client
 		orgName := testAccProvider.Meta().(*Organization).name
-		repoName, username, err := parseTwoPartID(rs.Primary.ID)
+		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 
 		conn := testAccProvider.Meta().(*Organization).client
 		orgName := testAccProvider.Meta().(*Organization).name
-		repoName, username, err := parseTwoPartID(rs.Primary.ID)
+		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}

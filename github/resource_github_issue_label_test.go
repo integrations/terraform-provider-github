@@ -138,7 +138,7 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 
 		conn := testAccProvider.Meta().(*Organization).client
 		orgName := testAccProvider.Meta().(*Organization).name
-		repoName, name, err := parseTwoPartID(rs.Primary.ID)
+		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 		}
 
 		orgName := testAccProvider.Meta().(*Organization).name
-		repoName, name, err := parseTwoPartID(rs.Primary.ID)
+		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err
 		}

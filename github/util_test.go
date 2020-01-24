@@ -75,7 +75,7 @@ func TestAccGithubUtilTwoPartID(t *testing.T) {
 		t.Fatalf("Expected two part id to be foo:bar, actual: %s", id)
 	}
 
-	parsedPartOne, parsedPartTwo, err := parseTwoPartID(id)
+	parsedPartOne, parsedPartTwo, err := parseTwoPartID(id, "left", "right")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -80,7 +80,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	teamIdString, username, err := parseTwoPartID(d.Id())
+	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 	if err != nil {
 		return err
 	}
