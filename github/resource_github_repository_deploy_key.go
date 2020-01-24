@@ -79,9 +79,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	id := strconv.FormatInt(*resultKey.ID, 10)
-
-	d.SetId(buildTwoPartID(&repoName, &id))
+	d.SetId(buildTwoPartID(repoName, strconv.FormatInt(*resultKey.ID, 10)))
 
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }

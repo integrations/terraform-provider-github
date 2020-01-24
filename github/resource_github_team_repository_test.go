@@ -147,7 +147,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if repo != nil &&
-				buildTwoPartID(&teamIdString, repo.Name) == rs.Primary.ID {
+				buildTwoPartID(teamIdString, *repo.Name) == rs.Primary.ID {
 				return fmt.Errorf("Team repository still exists")
 			}
 		}

@@ -79,7 +79,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&teamIdString, &repoName))
+	d.SetId(buildTwoPartID(teamIdString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
@@ -171,7 +171,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	d.SetId(buildTwoPartID(&teamIdString, &repoName))
+	d.SetId(buildTwoPartID(teamIdString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
