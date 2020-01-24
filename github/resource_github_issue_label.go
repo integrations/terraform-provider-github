@@ -60,13 +60,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 // same function for two schema funcs.
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
@@ -135,7 +134,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -146,7 +145,6 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -181,14 +179,13 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

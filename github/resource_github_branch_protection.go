@@ -145,14 +145,13 @@ func resourceGithubBranchProtection() *schema.Resource {
 }
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
 
 	client := meta.(*Organization).client
 
-	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	branch := d.Get("branch").(string)
 
@@ -188,7 +187,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -199,7 +198,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Organization).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -254,7 +252,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -270,7 +268,6 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
@@ -310,7 +307,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	orgName, err := getOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -321,7 +318,6 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
