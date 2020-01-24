@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -104,4 +105,13 @@ func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []er
 	}
 
 	return
+}
+
+func prepareResourceContext(d *schema.ResourceData) context.Context {
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if etag, set := d.GetOk(ctxEtag); set {
+		ctx = context.WithValue(ctx, ctxEtag, etag.(string))
+	}
+
+	return ctx
 }

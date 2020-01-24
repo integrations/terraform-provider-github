@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"regexp"
@@ -65,7 +64,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	key := d.Get("key").(string)
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
-	ctx := context.Background()
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, orgName, repoName)
 	resultKey, _, err := client.Repositories.CreateKey(ctx, orgName, repoName, &github.Key{
@@ -100,10 +99,8 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return unconvertibleIdErr(idString, err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), orgName, repoName)
 	key, resp, err := client.Repositories.GetKey(ctx, orgName, repoName, id)
@@ -148,7 +145,8 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	if err != nil {
 		return unconvertibleIdErr(idString, err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting repository deploy key: %s (%s/%s)", idString, orgName, repoName)
 	_, err = client.Repositories.DeleteKey(ctx, orgName, repoName, id)

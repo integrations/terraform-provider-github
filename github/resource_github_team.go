@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -73,7 +72,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
-	ctx := context.Background()
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
 	githubTeam, _, err := client.Teams.CreateTeam(ctx,
@@ -103,10 +103,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
 	team, resp, err := client.Teams.GetTeam(ctx, id)
@@ -157,7 +155,8 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
 	team, _, err := client.Teams.EditTeam(ctx, teamId, editedTeam)
@@ -187,7 +186,8 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ctx := prepareResourceContext(d)
 
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
 	_, err = client.Teams.DeleteTeam(ctx, id)
