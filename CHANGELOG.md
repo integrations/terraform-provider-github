@@ -1,4 +1,9 @@
 ## 2.3.1 (Unreleased)
+
+BUG FIXES:
+
+* Add support for `triage` and `maintain` permissions in some resources [GH-303]
+
 ## 2.3.0 (January 22, 2020)
 
 BUG FIXES:
