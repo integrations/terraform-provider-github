@@ -37,7 +37,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "push",
-				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
+				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
 			},
 			"invitation_id": {
 				Type:     schema.TypeString,
