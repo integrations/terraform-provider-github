@@ -1,8 +1,8 @@
-## 2.3.1 (Unreleased)
+## 2.3.1 (January 27, 2020)
 
 BUG FIXES:
 
-* Add support for `triage` and `maintain` permissions in some resources [GH-303]
+* Add support for `triage` and `maintain` permissions in some resources ([#303](https://github.com/terraform-providers/terraform-provider-github/issues/303))
 
 ## 2.3.0 (January 22, 2020)
 
