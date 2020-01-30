@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 
 	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
@@ -23,12 +25,13 @@ type Config struct {
 
 type Organization struct {
 	name        string
-	client      *github.Client
+	v4client    *githubv4.Client
+	v3client    *github.Client
 	StopContext context.Context
 }
 
-// Client configures and returns a fully initialized GithubClient
-func (c *Config) Client() (interface{}, error) {
+// Clients configures and returns a fully initialized GithubClient and Githubv4Client
+func (c *Config) Clients() (interface{}, error) {
 	var org Organization
 	var ts oauth2.TokenSource
 	var tc *http.Client
@@ -79,16 +82,29 @@ func (c *Config) Client() (interface{}, error) {
 	tc.Transport = NewRateLimitTransport(tc.Transport)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
-	org.client = github.NewClient(tc)
+	// Create GraphQL Client
+	uv4, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+	uv4.Path = path.Join(uv4.Path, "graphql")
+	v4client := githubv4.NewEnterpriseClient(uv4.String(), tc)
 
-	if c.BaseURL != "" {
-		u, err := url.Parse(c.BaseURL)
-		if err != nil {
-			return nil, err
-		}
-		org.client.BaseURL = u
+	// Create Rest Client
+	uv3, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+	if uv3.String() != "https://api.github.com/" {
+		uv3.Path = path.Join(uv3.Path, "v3")
+	}
+	v3client, err := github.NewEnterpriseClient(uv3.String(), "", tc)
+	if err != nil {
+		return nil, err
 	}
 
+	org.v3client = v3client
+	org.v4client = v4client
 	return &org, nil
 }
 
