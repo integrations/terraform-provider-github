@@ -84,7 +84,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
@@ -122,7 +122,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
@@ -148,7 +148,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
