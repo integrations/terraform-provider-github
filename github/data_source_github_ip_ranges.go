@@ -1,61 +1,88 @@
 package github
 
 import (
+	"context"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/shurcooL/githubv4"
+)
+
+const (
+	GITHUB_IP_RANGE_GIT      = "git"
+	GITHUB_IP_RANGE_HOOKS    = "hooks"
+	GITHUB_IP_RANGE_IMPORTER = "importer"
+	GITHUB_IP_RANGE_PAGES    = "pages"
 )
 
 func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIpRangesRead,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
-			"hooks": {
-				Type:     schema.TypeList,
-				Computed: true,
+			GITHUB_IP_RANGE_GIT: {
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
 			},
-			"git": {
-				Type:     schema.TypeList,
-				Computed: true,
+			GITHUB_IP_RANGE_HOOKS: {
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
 			},
-			"pages": {
-				Type:     schema.TypeList,
-				Computed: true,
+			GITHUB_IP_RANGE_IMPORTER: {
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
 			},
-			"importer": {
-				Type:     schema.TypeList,
-				Computed: true,
+			GITHUB_IP_RANGE_PAGES: {
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
 			},
 		},
+
+		Read: resourceGithubAppInitIpRangesRead,
 	}
 }
 
-func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) error {
-	org := meta.(*Organization)
+func resourceGithubAppInitIpRangesRead(d *schema.ResourceData, meta interface{}) error {
+	var query struct {
+		Meta struct {
+			GitIpAddresses      []githubv4.String
+			HookIpAddresses     []githubv4.String
+			ImporterIpAddresses []githubv4.String
+			PagesIpAddresses    []githubv4.String
+		}
+	}
+	variables := map[string]interface{}{}
 
-	api, _, err := org.v3client.APIMeta(org.StopContext)
+	ctx := context.Background()
+	client := meta.(*Organization).v4client
+	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		return err
 	}
 
-	if len(api.Hooks)+len(api.Git)+len(api.Pages)+len(api.Importer) > 0 {
-		d.SetId("github-ip-ranges")
+	err = d.Set(GITHUB_IP_RANGE_GIT, query.Meta.GitIpAddresses)
+	if err != nil {
+		return err
 	}
-	if len(api.Hooks) > 0 {
-		d.Set("hooks", api.Hooks)
+
+	err = d.Set(GITHUB_IP_RANGE_HOOKS, query.Meta.HookIpAddresses)
+	if err != nil {
+		return err
 	}
-	if len(api.Git) > 0 {
-		d.Set("git", api.Git)
+
+	err = d.Set(GITHUB_IP_RANGE_IMPORTER, query.Meta.ImporterIpAddresses)
+	if err != nil {
+		return err
 	}
-	if len(api.Pages) > 0 {
-		d.Set("pages", api.Pages)
+
+	err = d.Set(GITHUB_IP_RANGE_PAGES, query.Meta.PagesIpAddresses)
+	if err != nil {
+		return err
 	}
-	if len(api.Importer) > 0 {
-		d.Set("importer", api.Importer)
-	}
+
+	d.SetId("github/ip_ranges")
 
 	return nil
 }
