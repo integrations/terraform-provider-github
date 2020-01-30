@@ -4,100 +4,70 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
+
+const (
+	REPOSITORY_COLLABORATORS = "collaborators"
+	REPOSITORY_ID            = "repository_id"
+)
+
+const (
+	USER_EMAIL         = "email"
+	USER_IS_SITE_ADMIN = "is_site_admin"
+	USER_LOGIN         = "login"
+	USER_NAME          = "name"
+	USER_PERMISSION    = "permission"
+)
+
+type User struct {
+	Email       githubv4.String
+	ID          githubv4.ID
+	IsSiteAdmin githubv4.Boolean
+	Login       githubv4.String
+	Name        githubv4.String
+}
+
+type PageInfo struct {
+	EndCursor   githubv4.String
+	HasNextPage bool
+}
 
 func dataSourceGithubCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCollaboratorsRead,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
-			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+			// Input
+			REPOSITORY_ID: {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "",
 			},
-			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"affiliation": {
-				Type: schema.TypeString,
-				ValidateFunc: validation.StringInSlice([]string{
-					"all",
-					"direct",
-					"outside",
-				}, false),
-				Optional: true,
-				Default:  "all",
-			},
-			"collaborator": {
+			// Computed
+			REPOSITORY_COLLABORATORS: {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"login": {
+						USER_LOGIN: {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-						"url": {
+						USER_EMAIL: {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"html_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"followers_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"following_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"gists_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"starred_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"subscriptions_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"organizations_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"repos_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"events_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"received_events_url": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"site_admin": {
+						USER_IS_SITE_ADMIN: {
 							Type:     schema.TypeBool,
 							Computed: true,
 						},
-						"permission": {
+						USER_NAME: {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						USER_PERMISSION: {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -105,89 +75,70 @@ func dataSourceGithubCollaborators() *schema.Resource {
 				},
 			},
 		},
+
+		Read: dataSourceGithubCollaboratorsRead,
 	}
 }
 
 func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
-
-	client := meta.(*Organization).v3client
-	ctx := context.Background()
-
-	owner := d.Get("owner").(string)
-	repo := d.Get("repository").(string)
-	affiliation := d.Get("affiliation").(string)
-
-	options := &github.ListCollaboratorsOptions{
-		Affiliation: affiliation,
-		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
-		},
+	var query struct {
+		Node struct {
+			Repository struct {
+				Collaborators struct {
+					Edges []struct {
+						Node       User
+						Permission githubv4.RepositoryPermission
+					}
+					PageInfo PageInfo
+				} `graphql:"collaborators(first: $first, after: $cursor)"`
+				ID githubv4.ID
+			} `graphql:"... on Repository"`
+		} `graphql:"node(id: $id)"`
+	}
+	variables := map[string]interface{}{
+		"id":     githubv4.ID(d.Get(REPOSITORY_ID).(string)),
+		"first":  githubv4.Int(100),
+		"cursor": (*githubv4.String)(nil),
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, affiliation))
-	d.Set("owner", owner)
-	d.Set("repository", repo)
-	d.Set("affiliation", affiliation)
+	ctx := context.Background()
+	client := meta.(*Organization).v4client
 
-	totalCollaborators := make([]interface{}, 0)
+	var allEdges []struct {
+		Node       User
+		Permission githubv4.RepositoryPermission
+	}
 	for {
-		collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repo, options)
+		err := client.Query(ctx, &query, variables)
 		if err != nil {
 			return err
 		}
 
-		result, err := flattenGitHubCollaborators(collaborators)
-		if err != nil {
-			return fmt.Errorf("unable to flatten GitHub Collaborators (Owner: %q/Repository: %q) : %+v", owner, repo, err)
-		}
+		allEdges = append(allEdges, query.Node.Repository.Collaborators.Edges...)
 
-		totalCollaborators = append(totalCollaborators, result...)
-
-		if resp.NextPage == 0 {
+		if !query.Node.Repository.Collaborators.PageInfo.HasNextPage {
 			break
 		}
-		options.Page = resp.NextPage
+		variables["cursor"] = githubv4.NewString(query.Node.Repository.Collaborators.PageInfo.EndCursor)
 	}
 
-	d.Set("collaborator", totalCollaborators)
+	var allUsers []map[string]interface{}
+	for _, u := range allEdges {
+		user := make(map[string]interface{})
+		user[USER_EMAIL] = string(u.Node.Email)
+		user[USER_IS_SITE_ADMIN] = bool(u.Node.IsSiteAdmin)
+		user[USER_LOGIN] = string(u.Node.Login)
+		user[USER_NAME] = string(u.Node.Name)
+		user[USER_PERMISSION] = string(u.Permission)
+		allUsers = append(allUsers, user)
+	}
+
+	err := d.Set(REPOSITORY_COLLABORATORS, allUsers)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(fmt.Sprintf("%s/collaborators", query.Node.Repository.ID))
 
 	return nil
-}
-
-func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, error) {
-	if collaborators == nil {
-		return make([]interface{}, 0), nil
-	}
-
-	results := make([]interface{}, 0)
-
-	for _, c := range collaborators {
-		result := make(map[string]interface{})
-
-		result["login"] = c.Login
-		result["id"] = c.ID
-		result["url"] = c.URL
-		result["html_url"] = c.HTMLURL
-		result["following_url"] = c.FollowingURL
-		result["followers_url"] = c.FollowersURL
-		result["gists_url"] = c.GistsURL
-		result["starred_url"] = c.StarredURL
-		result["subscriptions_url"] = c.SubscriptionsURL
-		result["organizations_url"] = c.OrganizationsURL
-		result["repos_url"] = c.ReposURL
-		result["events_url"] = c.EventsURL
-		result["received_events_url"] = c.ReceivedEventsURL
-		result["type"] = c.Type
-		result["site_admin"] = c.SiteAdmin
-
-		permissionName, err := getRepoPermission(c.Permissions)
-		if err != nil {
-			return nil, err
-		}
-
-		result["permission"] = permissionName
-		results = append(results, result)
-	}
-
-	return results, nil
 }
