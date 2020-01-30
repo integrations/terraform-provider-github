@@ -2,96 +2,107 @@ package github
 
 import (
 	"context"
-	"log"
+	"fmt"
 
-	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
+
+const (
+	ORGANIZATION_REPOSITORIES = "repositories"
+)
+
+const (
+	REPOSITORY_ID   = "repository_id"
+	REPOSITORY_NAME = "name"
+)
+
+type PageInfo struct {
+	EndCursor   githubv4.String
+	HasNextPage bool
+}
 
 func dataSourceGithubRepositories() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoriesRead,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
-			"query": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"sort": {
-				Type:         schema.TypeString,
-				Default:      "updated",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"stars", "fork", "updated"}, false),
-			},
-			"full_names": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			// Computed
+			ORGANIZATION_REPOSITORIES: {
+				Type:     schema.TypeList,
 				Computed: true,
-			},
-			"names": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						REPOSITORY_ID: {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						REPOSITORY_NAME: {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
 				},
-				Computed: true,
 			},
 		},
+
+		Read: dataSourceGithubRepositoriesRead,
 	}
 }
 
 func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+	var query struct {
+		Organization struct {
+			Repositories struct {
+				Nodes []struct {
+					ID   githubv4.ID
+					Name githubv4.String
+				}
+				PageInfo PageInfo
+			} `graphql:"repositories(first: $first, after: $cursor)"`
+		} `graphql:"organization(login: $login)"`
+	}
+	variables := map[string]interface{}{
+		"login":  githubv4.String(meta.(*Organization).name),
+		"first":  githubv4.Int(100),
+		"cursor": (*githubv4.String)(nil),
 	}
 
-	client := meta.(*Organization).v3client
-
-	query := d.Get("query").(string)
-	opt := &github.SearchOptions{
-		Sort: d.Get("sort").(string),
-		ListOptions: github.ListOptions{
-			PerPage: 100,
-		},
+	var allRepositories []struct {
+		ID   githubv4.ID
+		Name githubv4.String
 	}
 
-	log.Printf("[DEBUG] Searching for GitHub repositories: %q", query)
-	fullNames, names, err := searchGithubRepositories(client, query, opt)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(query)
-	d.Set("full_names", fullNames)
-	d.Set("names", names)
-
-	return nil
-}
-
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
-	fullNames := make([]string, 0)
-
-	names := make([]string, 0)
-
+	ctx := context.Background()
+	client := meta.(*Organization).v4client
 	for {
-		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
+		err := client.Query(ctx, &query, variables)
 		if err != nil {
-			return fullNames, names, err
+			return err
 		}
 
-		for _, repo := range results.Repositories {
-			fullNames = append(fullNames, repo.GetFullName())
-			names = append(names, repo.GetName())
-		}
+		allRepositories = append(allRepositories, query.Organization.Repositories.Nodes...)
 
-		if resp.NextPage == 0 {
+		if !query.Organization.Repositories.PageInfo.HasNextPage {
 			break
 		}
-		opt.Page = resp.NextPage
+
+		variables["cursor"] = githubv4.NewString(query.Organization.Repositories.PageInfo.EndCursor)
 	}
 
-	return fullNames, names, nil
+	var repositories []map[string]interface{}
+	for _, r := range allRepositories {
+		repository := make(map[string]interface{})
+		repository[REPOSITORY_ID] = fmt.Sprintf("%s", r.ID)
+		repository[REPOSITORY_NAME] = string(r.Name)
+		repositories = append(repositories, repository)
+	}
+	err := d.Set(ORGANIZATION_REPOSITORIES, repositories)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(fmt.Sprintf("%s/repositories", meta.(*Organization).name))
+
+	return nil
 }
