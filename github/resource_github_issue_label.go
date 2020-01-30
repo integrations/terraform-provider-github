@@ -65,7 +65,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
@@ -140,7 +140,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
 		return err
@@ -186,7 +186,7 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)

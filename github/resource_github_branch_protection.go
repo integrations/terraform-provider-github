@@ -150,7 +150,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -193,7 +193,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
@@ -259,7 +259,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
@@ -315,7 +315,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
@@ -376,7 +376,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 }
 
 func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
@@ -402,7 +402,7 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 
 func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {

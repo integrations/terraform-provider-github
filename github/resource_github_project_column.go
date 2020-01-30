@@ -45,7 +45,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	options := github.ProjectColumnOptions{
 		Name: d.Get("name").(string),
@@ -73,7 +73,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -106,7 +106,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	options := github.ProjectColumnOptions{
 		Name: d.Get("name").(string),
@@ -128,7 +128,7 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

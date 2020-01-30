@@ -108,7 +108,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	var repoName string
 

@@ -48,7 +48,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -76,7 +76,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -120,7 +120,7 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 
 	name := d.Get("name").(string)
@@ -151,7 +151,7 @@ func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
