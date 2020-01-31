@@ -15,22 +15,12 @@ import (
 
 func resourceGithubRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCreate,
-		Read:   resourceGithubRepositoryRead,
-		Update: resourceGithubRepositoryUpdate,
-		Delete: resourceGithubRepositoryDelete,
-		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("auto_init", false)
-				return []*schema.ResourceData{d}, nil
-			},
-		},
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -157,6 +147,26 @@ func resourceGithubRepository() *schema.Resource {
 				},
 			},
 		},
+
+		Create: resourceGithubRepositoryCreate,
+		Read:   resourceGithubRepositoryRead,
+		Update: resourceGithubRepositoryUpdate,
+		Delete: resourceGithubRepositoryDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("auto_init", false)
+				return []*schema.ResourceData{d}, nil
+			},
+		},
+
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryUpgradeV0,
+				Version: 0,
+			},
+		},
 	}
 }
 
@@ -228,7 +238,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 
-			d.SetId(*repo.Name)
+			d.SetId(repo.GetNodeID())
 		}
 	} else {
 		// Create without a repository template
@@ -236,7 +246,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		if err != nil {
 			return err
 		}
-		d.SetId(*repo.Name)
+		d.SetId(repo.GetNodeID())
 	}
 
 	topics := repoReq.Topics
@@ -258,7 +268,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
-	repoName := d.Id()
+	repoName := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
 
@@ -337,7 +347,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	repoName := d.Id()
+	repoName := d.Get("name").(string)
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -346,7 +356,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
-	d.SetId(*repo.Name)
+	d.SetId(repo.GetNodeID())
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
@@ -366,7 +376,7 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	client := meta.(*Organization).v3client
-	repoName := d.Id()
+	repoName := d.Get("name").(string)
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
