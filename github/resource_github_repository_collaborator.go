@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v28/github"
@@ -97,8 +98,19 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				// this short circuits the rest of the code because if the
+				// repo is 404, no reason to try to list existing collaborators
+				log.Printf("[WARN] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
+					orgName, repoName, username)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
-	} else if invitation != nil {
+	}
+	if invitation != nil {
 		username = *invitation.Invitee.Login
 		log.Printf("[DEBUG] Found invitation for %q", username)
 
