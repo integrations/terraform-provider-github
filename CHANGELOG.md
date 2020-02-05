@@ -1,4 +1,9 @@
-## 2.4.0 (Unreleased)
+## 2.3.2 (Unreleased)
+
+BUG FIXES:
+
+* Handle repository 404 for `github_repository_collaborator` resource [GH-348]
+
 ## 2.3.1 (January 27, 2020)
 
 BUG FIXES:
