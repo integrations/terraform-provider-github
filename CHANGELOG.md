@@ -1,8 +1,8 @@
-## 2.3.2 (Unreleased)
+## 2.3.2 (February 05, 2020)
 
 BUG FIXES:
 
-* Handle repository 404 for `github_repository_collaborator` resource [GH-348]
+* Handle repository 404 for `github_repository_collaborator` resource ([#348](https://github.com/terraform-providers/terraform-provider-github/issues/348))
 
 ## 2.3.1 (January 27, 2020)
 
