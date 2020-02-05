@@ -98,7 +98,7 @@ In the organization you are using above, create the following test repositories:
 * `test-repo-template`
   * Configure the repository to be a [Template repository](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-template-repository)
 
-Export an environment variable corresponding to GITHUB_TEMPLATE_REPOSITORY=test-repo-template.
+Export an environment variable corresponding to `GITHUB_TEMPLATE_REPOSITORY=test-repo-template`.
 
 
 ### GitHub users
