@@ -100,7 +100,6 @@ In the organization you are using above, create the following test repositories:
 
 Export an environment variable corresponding to `GITHUB_TEMPLATE_REPOSITORY=test-repo-template`.
 
-
 ### GitHub users
 Export your github username (the one you used to create the personal access token above) as `GITHUB_TEST_USER`. You will need to export a
 different github username as `GITHUB_TEST_COLLABORATOR`. Please note that these usernames cannot be the same as each other, and both of them
