@@ -24,7 +24,7 @@ resource "github_repository" "example" {
 
   template {
     owner = "github"
-    repo = "terraform-module-template"
+    repository = "terraform-module-template"
   }
 }
 ```
