@@ -36,7 +36,55 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"taget_commitish": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"body": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"draft": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"prerelease": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"created_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"published_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"html_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"asserts_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"upload_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"zipball_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"tarball_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -83,7 +131,20 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
+	d.Set("release_tag", release.GetTagName())
+	d.Set("taget_commitish", release.GetTargetCommitish())
+	d.Set("name", release.GetName())
+	d.Set("body", release.GetBody())
+	d.Set("draft", release.GetDraft())
+	d.Set("prerelease", release.GetPrerelease())
+	d.Set("created_at", release.GetCreatedAt())
+	d.Set("published_at", release.GetPublishedAt())
 	d.Set("url", release.GetURL())
+	d.Set("html_url", release.GetHTMLURL())
+	d.Set("asserts_url", release.GetAssetsURL())
+	d.Set("upload_url", release.GetUploadURL())
+	d.Set("zipball_url", release.GetZipballURL())
+	d.Set("tarball_url", release.GetTarballURL())
 
 	return nil
 }
