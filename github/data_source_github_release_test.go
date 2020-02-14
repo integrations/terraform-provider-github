@@ -38,7 +38,7 @@ func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", 0),
+				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", 0),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
 					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", regexp.MustCompile(`hashicorp/terraform/tarball`)),
@@ -77,7 +77,7 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", id),
+				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", id),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.github_release.test", "release_id", strconv.FormatInt(id, 10)),
 					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
@@ -119,7 +119,7 @@ func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, tag, 0),
+				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, tag, 0),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.github_release.test", "release_tag", tag),
 					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
@@ -156,5 +156,5 @@ data "github_release" "test" {
 	release_tag = "%s"
 	release_id = %d
 }
-`, repo, owner, retrieveBy, tag , id)
+`, repo, owner, retrieveBy, tag, id)
 }
