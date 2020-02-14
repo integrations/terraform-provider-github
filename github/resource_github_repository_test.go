@@ -73,7 +73,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						Homepage:         "http://example.com/",
 						HasIssues:        true,
 						HasWiki:          true,
-						IsTemplate:		  false,
+						IsTemplate:       false,
 						AllowMergeCommit: true,
 						AllowSquashMerge: false,
 						AllowRebaseMerge: false,
@@ -565,7 +565,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	HasIssues         bool
 	HasProjects       bool
 	HasWiki           bool
-	IsTemplate		  bool
+	IsTemplate        bool
 	AllowMergeCommit  bool
 	AllowSquashMerge  bool
 	AllowRebaseMerge  bool
@@ -757,7 +757,7 @@ resource "github_repository" "foo" {
 
   has_issues         = true
   has_wiki           = true
-  is_template		 = false
+  is_template        = false
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false

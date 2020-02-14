@@ -61,7 +61,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"is_template": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"allow_merge_commit": {
@@ -174,7 +174,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		HasIssues:         github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:       github.Bool(d.Get("has_projects").(bool)),
 		HasWiki:           github.Bool(d.Get("has_wiki").(bool)),
-		IsTemplate:		   github.Bool(d.Get("is_template").(bool)),
+		IsTemplate:        github.Bool(d.Get("is_template").(bool)),
 		AllowMergeCommit:  github.Bool(d.Get("allow_merge_commit").(bool)),
 		AllowSquashMerge:  github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:  github.Bool(d.Get("allow_rebase_merge").(bool)),
