@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -36,7 +36,7 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"taget_commitish": {
+			"target_commitish": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -109,7 +109,7 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	case "id":
 		releaseID := int64(d.Get("release_id").(int))
 		if releaseID == 0 {
-			return errors.New("'release_id' must be set when 'retrieve_by' = 'id'")
+			return fmt.Errorf("`release_id` must be set when `retrieve_by` = `id`")
 		}
 
 		log.Printf("[INFO] Refreshing GitHub release by id %d from repository %s", releaseID, repository)
@@ -117,13 +117,13 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	case "tag":
 		tag := d.Get("release_tag").(string)
 		if tag == "" {
-			return errors.New("'release_tag' must be set when 'retrieve_by' = 'tag'")
+			return fmt.Errorf("`release_tag` must be set when `retrieve_by` = `tag`")
 		}
 
 		log.Printf("[INFO] Refreshing GitHub release by tag %s from repository %s", tag, repository)
 		release, _, err = client.Repositories.GetReleaseByTag(ctx, owner, repository, tag)
 	default:
-		return errors.New("One of: 'latest', 'id', 'tag' must be set for 'retrieve_by'")
+		return fmt.Errorf("one of: `latest`, `id`, `tag` must be set for `retrieve_by`")
 	}
 
 	if err != nil {
@@ -132,7 +132,7 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
 	d.Set("release_tag", release.GetTagName())
-	d.Set("taget_commitish", release.GetTargetCommitish())
+	d.Set("target_commitish", release.GetTargetCommitish())
 	d.Set("name", release.GetName())
 	d.Set("body", release.GetBody())
 	d.Set("draft", release.GetDraft())
