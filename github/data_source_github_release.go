@@ -112,7 +112,7 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 			return errors.New("'release_id' must be set when 'retrieve_by' = 'id'")
 		}
 
-		log.Printf("[INFO] Refreshing GitHub release by id %s from repository %s", releaseID, repository)
+		log.Printf("[INFO] Refreshing GitHub release by id %d from repository %s", releaseID, repository)
 		release, _, err = client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	case "tag":
 		tag := d.Get("release_tag").(string)
