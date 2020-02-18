@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"testing"
@@ -28,9 +29,11 @@ func TestAccGithubReleaseDataSource_fetchByLatestNoReleaseReturnsError(t *testin
 }
 
 func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
-	repo := "terraform"
-	owner := "hashicorp"
+	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	owner := os.Getenv("GITHUB_TEST_USER")
 	retrieveBy := "latest"
+	urlResponse := regexp.MustCompile(`hashicorp/terraform`)
+	tarballResponse := regexp.MustCompile(`hashicorp/terraform/tarball`)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -40,13 +43,12 @@ func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
 			{
 				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", 0),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
-					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", regexp.MustCompile(`hashicorp/terraform/tarball`)),
+					resource.TestMatchResourceAttr("data.github_release.test", "url", urlResponse),
+					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", tarballResponse),
 				),
 			},
 		},
 	})
-
 }
 
 func TestAccGithubReleaseDataSource_fetchByIdWithNoIdReturnsError(t *testing.T) {
@@ -59,17 +61,17 @@ func TestAccGithubReleaseDataSource_fetchByIdWithNoIdReturnsError(t *testing.T) 
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCheckGithubReleaseDataSourceConfig("", "", retrieveBy, "", 0),
-				ExpectError: regexp.MustCompile("release_id` must be set when `retrieve_by` = `id`"),
+				ExpectError: regexp.MustCompile("`release_id` must be set when `retrieve_by` = `id`"),
 			},
 		},
 	})
 }
 
 func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
-	repo := "terraform"
-	owner := "hashicorp"
+	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	owner := os.Getenv("GITHUB_TEST_USER")
 	retrieveBy := "id"
-	id := int64(23055013)
+	id, _ := strconv.ParseInt(os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID"), 10, 64)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -89,10 +91,10 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 }
 
 func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
-	repo := "terraform"
-	owner := "hashicorp"
+	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	owner := os.Getenv("GITHUB_TEST_USER")
 	retrieveBy := "tag"
-	id := int64(23055013)
+	id := int64(0)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -108,10 +110,12 @@ func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
 }
 
 func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
-	repo := "terraform"
-	owner := "hashicorp"
+	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	owner := os.Getenv("GITHUB_TEST_USER")
 	retrieveBy := "tag"
-	tag := "v0.12.20"
+	tag := "v1.0"
+	urlResponse := regexp.MustCompile(`hashicorp/terraform`)
+	tarballResponse := regexp.MustCompile(`hashicorp/terraform/tarball`)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -122,8 +126,8 @@ func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
 				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, tag, 0),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.github_release.test", "release_tag", tag),
-					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
-					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", regexp.MustCompile(`hashicorp/terraform/tarball`)),
+					resource.TestMatchResourceAttr("data.github_release.test", "url", urlResponse),
+					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", tarballResponse),
 				),
 			},
 		},

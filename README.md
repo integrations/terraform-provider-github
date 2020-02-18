@@ -98,6 +98,7 @@ In the organization you are using above, create the following test repositories:
   * Create a `test-branch` branch
 * `test-repo-template`
   * Configure the repository to be a [Template repository](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-template-repository)
+  * Create a release on the repository with `tag = v1.0`
 
 ### GitHub users
 Export your github username (the one you used to create the personal access token above) as `GITHUB_TEST_USER`. You will need to export a
@@ -107,3 +108,5 @@ the acceptance tests do real things (and will trigger some notifications for thi
 
 Additionally the user exported as `GITHUB_TEST_USER` should have a public email address configured in their profile; this should be exported
 as `GITHUB_TEST_USER_EMAIL` and the Github name exported as `GITHUB_TEST_USER_NAME` (this could be different to your GitHub login).
+
+Finally, export the ID of the release created in the template repository as `GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID`
