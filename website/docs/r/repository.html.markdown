@@ -65,11 +65,11 @@ The following arguments are supported:
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
-* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
+* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. ~> **NOTE** Currently, the API does not support unarchiving.
 
 * `topics` - (Optional) The list of topics of the repository.
 
-~> **NOTE** Currently, the API does not support unarchiving.
+* `auto_delete_head_branch` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
 ## Attributes Reference
 
