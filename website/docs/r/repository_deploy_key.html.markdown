@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_deploy_key"
-sidebar_current: "docs-github-resource-repository-deploy-key"
 description: |-
   Provides a GitHub repository deploy key resource.
 ---

@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
+	dsn := "data.github_collaborators.test"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -20,8 +21,8 @@ func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
 			{
 				Config: testAccCheckGithubCollaboratorsDataSourceConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_collaborators.test", "collaborator.#"),
-					resource.TestCheckResourceAttr("data.github_collaborators.test", "affiliation", "all"),
+					resource.TestCheckResourceAttrSet(dsn, "collaborator.#"),
+					resource.TestCheckResourceAttr(dsn, "affiliation", "all"),
 				),
 			},
 		},

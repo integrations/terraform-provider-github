@@ -23,7 +23,7 @@ func checkOrganization(meta interface{}) error {
 
 func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	return func(k, old, new string, d *schema.ResourceData) bool {
-		return strings.ToLower(old) == strings.ToLower(new)
+		return strings.EqualFold(old, new)
 	}
 }
 
@@ -45,11 +45,11 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	}
 }
 
-// return the pieces of id `a:b` as a, b
-func parseTwoPartID(id string) (string, string, error) {
+// return the pieces of id `left:right` as left, right
+func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q). Expected organization:name", id)
+		return "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s", id, left, right)
 	}
 
 	return parts[0], parts[1], nil
@@ -104,4 +104,9 @@ func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []er
 	}
 
 	return
+}
+
+func splitRepoFilePath(path string) (string, string) {
+	parts := strings.Split(path, "/")
+	return parts[0], strings.Join(parts[1:], "/")
 }

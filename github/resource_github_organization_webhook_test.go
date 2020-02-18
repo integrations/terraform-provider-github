@@ -8,13 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 	var hook github.Hook
+
+	rn := "github_organization_webhook.foo"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,7 +26,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
+					testAccCheckGithubOrganizationWebhookExists(rn, &hook),
 					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -39,7 +41,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookExists("github_organization_webhook.foo", &hook),
+					testAccCheckGithubOrganizationWebhookExists(rn, &hook),
 					testAccCheckGithubOrganizationWebhookAttributes(&hook, &testAccGithubOrganizationWebhookExpectedAttributes{
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
@@ -57,6 +59,8 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 
 func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 
+	rn := "github_organization_webhook.foo"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -65,7 +69,7 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 			{
 				Config: testAccGithubOrganizationWebhookConfig_secret,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationWebhookSecret("github_organization_webhook.foo", "VerySecret"),
+					testAccCheckGithubOrganizationWebhookSecret(rn, "VerySecret"),
 				),
 			},
 		},
@@ -155,7 +159,7 @@ func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
 
 		gotHook, resp, err := conn.Organizations.GetHook(context.TODO(), orgName, id)
 		if err == nil {
-			if gotHook != nil && *gotHook.ID == int64(id) {
+			if gotHook != nil && *gotHook.ID == id {
 				return fmt.Errorf("Webhook still exists")
 			}
 		}

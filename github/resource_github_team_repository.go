@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -36,7 +36,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "pull",
-				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
+				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -92,7 +92,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	client := meta.(*Organization).client
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id())
+	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
@@ -107,12 +107,10 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)",
-		teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx,
-		teamId, orgName, repoName)
+	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepo(ctx, teamId, orgName, repoName)
 	if repoErr != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

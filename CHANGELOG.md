@@ -1,17 +1,40 @@
-## 2.2.1 (Unreleased)
+## 2.4.0 (Unreleased)
+## 2.3.2 (February 05, 2020)
+
+BUG FIXES:
+
+* Handle repository 404 for `github_repository_collaborator` resource ([#348](https://github.com/terraform-providers/terraform-provider-github/issues/348))
+
+## 2.3.1 (January 27, 2020)
+
+BUG FIXES:
+
+* Add support for `triage` and `maintain` permissions in some resources ([#303](https://github.com/terraform-providers/terraform-provider-github/issues/303))
+
+## 2.3.0 (January 22, 2020)
+
+BUG FIXES:
+
+* `resource/resource_github_team_membership`: Prevent spurious diffs caused by upstream API change made on 17th January ([#325](https://github.com/terraform-providers/terraform-provider-github/issues/325))
 
 ENHANCEMENTS:
 
-* dependencies: Updates module `hashicorp/terraform` to `v0.12.4` [GH-243]
-* `resource/github_branch_protection`: Will now return an error when users are not correctly added [GH-158]
-* `provider`: Added optional `anonymous` attribute, and made `token` optional [GH-255]
+* `resource/repository`: Added functionality to generate a new repository from a Template Repository ([#309](https://github.com/terraform-providers/terraform-provider-github/issues/309))
+
+## 2.2.1 (September 04, 2019)
+
+ENHANCEMENTS:
+
+* dependencies: Updated module `hashicorp/terraform` to `v0.12.7` ([#273](https://github.com/terraform-providers/terraform-provider-github/issues/273))
+* `resource/github_branch_protection`: Will now return an error when users are not correctly added ([#158](https://github.com/terraform-providers/terraform-provider-github/issues/158))
+* `provider`: Added optional `anonymous` attribute, and made `token` optional ([#255](https://github.com/terraform-providers/terraform-provider-github/issues/255))
 
 BUG FIXES:
-* `resource/github_repository`: Allow setting `default_branch` to `master` on creation [GH-150]
-* `resource/github_team_repository`: Validation of `team_id` [GH-253]
-* `resource/github_team_membership`: Validation of `team_id` [GH-253]
-* `resource/github_organization_webhook`: Properly set webhook secret in state [GH-251]
-* `resource/github_repository_webhook`: Properly set webhook secret in state [GH-251]
+* `resource/github_repository`: Allow setting `default_branch` to `master` on creation ([#150](https://github.com/terraform-providers/terraform-provider-github/issues/150))
+* `resource/github_team_repository`: Validation of `team_id` ([#253](https://github.com/terraform-providers/terraform-provider-github/issues/253))
+* `resource/github_team_membership`: Validation of `team_id` ([#253](https://github.com/terraform-providers/terraform-provider-github/issues/253))
+* `resource/github_organization_webhook`: Properly set webhook secret in state ([#251](https://github.com/terraform-providers/terraform-provider-github/issues/251))
+* `resource/github_repository_webhook`: Properly set webhook secret in state ([#251](https://github.com/terraform-providers/terraform-provider-github/issues/251))
 
 ## 2.2.0 (June 28, 2019)
 

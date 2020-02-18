@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_collaborator"
-sidebar_current: "docs-github-resource-repository-collaborator"
 description: |-
   Provides a GitHub repository collaborator resource.
 ---

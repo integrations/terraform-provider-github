@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team_repository"
-sidebar_current: "docs-github-resource-team-repository"
 description: |-
   Manages the associations between teams and repositories.
 ---

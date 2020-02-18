@@ -8,13 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -26,7 +27,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -41,7 +42,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
@@ -53,11 +54,18 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:        rn,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+			},
 		},
 	})
 }
 
 func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
@@ -69,7 +77,7 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
@@ -82,51 +90,12 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryWebhook_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryWebhookConfig(randString),
-			},
-			{
-				ResourceName:        "github_repository_webhook.foo",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
-			},
-		},
-	})
-}
-
-func TestAccGithubRepositoryWebhook_importSecret(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookSecret("github_repository_webhook.foo", "RandomSecretString"),
-				),
-			},
-			{
-				ResourceName:            "github_repository_webhook.foo",
+				ResourceName:            rn,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
-				ImportStateVerifyIgnore: []string{"configuration.0.secret"}, // github does not allow a read of the actual secret
+				ImportStateVerifyIgnore: []string{"configuration.0.secret"},
 			},
 		},
 	})
@@ -178,21 +147,6 @@ func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *test
 		}
 		if !reflect.DeepEqual(hook.Config, want.Configuration) {
 			return fmt.Errorf("got hook configuration %q; want %q", hook.Config, want.Configuration)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckGithubRepositoryWebhookSecret(r, secret string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[r]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", r)
-		}
-
-		if rs.Primary.Attributes["configuration.0.secret"] != secret {
-			return fmt.Errorf("Configured secret in %s does not match secret in state.  (Expected: %s, Actual: %s)", r, secret, rs.Primary.Attributes["configuration.0.secret"])
 		}
 
 		return nil

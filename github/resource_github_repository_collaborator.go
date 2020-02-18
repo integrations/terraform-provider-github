@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -37,7 +38,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "push",
-				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
+				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
 			},
 			"invitation_id": {
 				Type:     schema.TypeString,
@@ -88,7 +89,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	client := meta.(*Organization).client
 
 	orgName := meta.(*Organization).name
-	repoName, username, err := parseTwoPartID(d.Id())
+	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
 	if err != nil {
 		return err
 	}
@@ -97,9 +98,22 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				// this short circuits the rest of the code because if the
+				// repo is 404, no reason to try to list existing collaborators
+				log.Printf("[WARN] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
+					orgName, repoName, username)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
-	} else if invitation != nil {
+	}
+	if invitation != nil {
 		username = *invitation.Invitee.Login
+		log.Printf("[DEBUG] Found invitation for %q", username)
+
 		permissionName, err := getInvitationPermission(invitation)
 		if err != nil {
 			return err
@@ -123,9 +137,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		if err != nil {
 			return err
 		}
+		log.Printf("[DEBUG] Found %d collaborators, checking if any matches %q", len(collaborators), username)
 
 		for _, c := range collaborators {
-			if strings.ToLower(*c.Login) == strings.ToLower(username) {
+			if strings.EqualFold(*c.Login, username) {
+				log.Printf("[DEBUG] Matching collaborator found for %q", username)
 				permissionName, err := getRepoPermission(c.Permissions)
 				if err != nil {
 					return err
@@ -171,7 +187,6 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		username = *invitation.Invitee.Login
 		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
 		return err
 	}
@@ -191,7 +206,7 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 
 		for _, i := range invitations {
-			if strings.ToLower(*i.Invitee.Login) == strings.ToLower(collaborator) {
+			if strings.EqualFold(*i.Invitee.Login, collaborator) {
 				return i, nil
 			}
 		}

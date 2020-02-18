@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository"
-sidebar_current: "docs-github-resource-repository-x"
 description: |-
   Creates and manages repositories within GitHub organizations
 ---
@@ -22,6 +21,11 @@ resource "github_repository" "example" {
   description = "My awesome codebase"
 
   private = true
+
+  template {
+    owner = "github"
+    repository = "terraform-module-template"
+  }
 }
 ```
 
@@ -65,11 +69,21 @@ The following arguments are supported:
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
-* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. ~> **NOTE** Currently, the API does not support unarchiving.
+* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
+~> **NOTE** Currently, the API does not support unarchiving.
 
 * `topics` - (Optional) The list of topics of the repository.
 
 * `auto_delete_head_branch` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
+
+* `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
+
+### Template Repositories
+
+`template` supports the following arguments:
+
+* `owner`: The GitHub organization or user the template repository is owned by.
+* `repository`: The name of the template repository.
 
 ## Attributes Reference
 

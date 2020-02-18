@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,6 +18,8 @@ func TestAccGithubMembership_basic(t *testing.T) {
 
 	var membership github.Membership
 
+	rn := "github_membership.test_org_membership"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -26,9 +28,14 @@ func TestAccGithubMembership_basic(t *testing.T) {
 			{
 				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
-					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
+					testAccCheckGithubMembershipExists(rn, &membership),
+					testAccCheckGithubMembershipRoleState(rn, &membership),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -42,6 +49,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 	var membership github.Membership
 	var otherMembership github.Membership
 
+	rn := "github_membership.test_org_membership"
 	otherCase := flipUsernameCase(testCollaborator)
 
 	if testCollaborator == otherCase {
@@ -56,31 +64,18 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 			{
 				Config: testAccGithubMembershipConfig(testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
+					testAccCheckGithubMembershipExists(rn, &membership),
 				),
 			},
 			{
 				Config: testAccGithubMembershipConfig(otherCase),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &otherMembership),
+					testAccCheckGithubMembershipExists(rn, &otherMembership),
 					testAccGithubMembershipTheSame(&membership, &otherMembership),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubMembership_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubMembershipConfig(testCollaborator),
-			},
-			{
-				ResourceName:      "github_membership.test_org_membership",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -95,7 +90,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 		if rs.Type != "github_membership" {
 			continue
 		}
-		orgName, username, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
 		}
@@ -128,7 +123,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		orgName, username, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
 		}
@@ -154,7 +149,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
-		orgName, username, err := parseTwoPartID(rs.Primary.ID)
+		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
 		}

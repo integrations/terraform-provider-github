@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_user_invitation_accepter"
-sidebar_current: "docs-github-resource-user-invitation-accepter"
 description: |-
   Provides a resource to manage GitHub repository collaborator invitations.
 ---

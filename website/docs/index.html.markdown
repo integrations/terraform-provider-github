@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "Provider: GitHub"
-sidebar_current: "docs-github-index"
 description: |-
   The GitHub provider is used to interact with GitHub organization resources.
 ---

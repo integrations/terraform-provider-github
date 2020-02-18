@@ -2,12 +2,13 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
@@ -141,6 +142,24 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"template": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"owner": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"repository": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -179,20 +198,55 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
 	}
 
-	orgName := meta.(*Organization).name
 	repoReq := resourceGithubRepositoryObject(d)
+	orgName := meta.(*Organization).name
+	repoName := repoReq.GetName()
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoReq.GetName())
-	repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
-	if err != nil {
-		return err
+	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
+
+	if template, ok := d.GetOk("template"); ok {
+		templateConfigBlocks := template.([]interface{})
+
+		for _, templateConfigBlock := range templateConfigBlocks {
+			templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
+			if !ok {
+				return errors.New("failed to unpack template configuration block")
+			}
+
+			templateRepo := templateConfigMap["repository"].(string)
+			templateRepoOwner := templateConfigMap["owner"].(string)
+			templateRepoReq := github.TemplateRepoRequest{
+				Name:        &repoName,
+				Owner:       &orgName,
+				Description: github.String(d.Get("description").(string)),
+				Private:     github.Bool(d.Get("private").(bool)),
+			}
+
+			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
+				templateRepoOwner,
+				templateRepo,
+				&templateRepoReq,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			d.SetId(*repo.Name)
+		}
+	} else {
+		// Create without a repository template
+		repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
+		if err != nil {
+			return err
+		}
+		d.SetId(*repo.Name)
 	}
-	d.SetId(*repo.Name)
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoReq.GetName(), topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
 		if err != nil {
 			return err
 		}
@@ -256,6 +310,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("archived", repo.Archived)
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("auto_delete_head_branch", repo.DeleteBranchOnMerge)
+
+	if repo.TemplateRepository != nil {
+		d.Set("template", []interface{}{
+			map[string]interface{}{
+				"owner":      repo.TemplateRepository.Owner.Login,
+				"repository": repo.TemplateRepository.Name,
+			},
+		})
+	} else {
+		d.Set("template", []interface{}{})
+	}
+
 	return nil
 }
 

@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_user"
-sidebar_current: "docs-github-datasource-user"
 description: |-
   Get information on a GitHub user.
 ---

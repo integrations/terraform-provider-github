@@ -84,18 +84,28 @@ testing. It will need to have the following scopes selected:
 Once the token has been created, it must be exported in your environment as `GITHUB_TOKEN`.
 
 ### GitHub organization
-If you do not have an organization already that you are comfortable running tests again, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the
+If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the
 organization must then be exported in your environment as `GITHUB_ORGANIZATION`.
 
-### Test repository
-In the organization you are using above, create a test repository named `test-repo`. Make sure the repository is configured as follows:
-* The description should be `Test description, used in GitHub Terraform provider acceptance test.`
-* The website url should be `http://www.example.com`
-* Create two topics within the repo named `test-topic` and `second-test-topic`
-* In the repo settings, make sure all features and merge button options are enabled.
+### Test repositories
+In the organization you are using above, create the following test repositories:
+
+* `test-repo`
+  * The description should be `Test description, used in GitHub Terraform provider acceptance test.`
+  * The website url should be `http://www.example.com`
+  * Create two topics within the repo named `test-topic` and `second-test-topic`
+  * In the repo settings, make sure all features and merge button options are enabled.
+  * Create a `test-branch` branch
+* `test-repo-template`
+  * Configure the repository to be a [Template repository](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-template-repository)
+
+Export an environment variable corresponding to `GITHUB_TEMPLATE_REPOSITORY=test-repo-template`.
 
 ### GitHub users
 Export your github username (the one you used to create the personal access token above) as `GITHUB_TEST_USER`. You will need to export a
 different github username as `GITHUB_TEST_COLLABORATOR`. Please note that these usernames cannot be the same as each other, and both of them
 must be real github usernames. The collaborator user does not need to be added as a collaborator to your test repo or organization, but as
 the acceptance tests do real things (and will trigger some notifications for this user), you should probably make sure the person you specify knows that you're doing this just to be nice.
+
+Additionally the user exported as `GITHUB_TEST_USER` should have a public email address configured in their profile; this should be exported
+as `GITHUB_TEST_USER_EMAIL` and the Github name exported as `GITHUB_TEST_USER_NAME` (this could be different to your GitHub login).

@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_organization_webhook"
-sidebar_current: "docs-github-resource-organization-webhook"
 description: |-
   Creates and manages webhooks for GitHub organizations
 ---

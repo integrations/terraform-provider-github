@@ -6,13 +6,15 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubProjectColumn_basic(t *testing.T) {
 	var column github.ProjectColumn
+
+	rn := "github_project_column.column"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +24,7 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 			{
 				Config: testAccGithubProjectColumnConfig("new column name"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists("github_project_column.column", &column),
+					testAccCheckGithubProjectColumnExists(rn, &column),
 					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
 						Name: "new column name",
 					}),
@@ -31,27 +33,14 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 			{
 				Config: testAccGithubProjectColumnConfig("updated column name"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists("github_project_column.column", &column),
+					testAccCheckGithubProjectColumnExists(rn, &column),
 					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
 						Name: "updated column name",
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubProjectColumn_importBasic(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubProjectColumnDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubProjectColumnConfig("a column"),
-			},
-			{
-				ResourceName:      "github_project_column.column",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
