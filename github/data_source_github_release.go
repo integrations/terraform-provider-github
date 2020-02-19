@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 	"strconv"
 	"strings"
@@ -27,6 +28,11 @@ func dataSourceGithubRelease() *schema.Resource {
 			"retrieve_by": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"latest",
+					"id",
+					"tag",
+				}, false),
 			},
 			"release_tag": {
 				Type:     schema.TypeString,

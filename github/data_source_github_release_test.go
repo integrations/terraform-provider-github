@@ -30,10 +30,10 @@ func TestAccGithubReleaseDataSource_fetchByLatestNoReleaseReturnsError(t *testin
 
 func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_TEST_USER")
+	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "latest"
-	urlResponse := regexp.MustCompile(`hashicorp/terraform`)
-	tarballResponse := regexp.MustCompile(`hashicorp/terraform/tarball`)
+	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
+	expectedTarball := regexp.MustCompile(fmt.Sprintf("%s/%s/tarball", owner, repo))
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -43,8 +43,8 @@ func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
 			{
 				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", 0),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("data.github_release.test", "url", urlResponse),
-					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", tarballResponse),
+					resource.TestMatchResourceAttr("data.github_release.test", "url", expectedUrl),
+					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", expectedTarball),
 				),
 			},
 		},
@@ -69,8 +69,10 @@ func TestAccGithubReleaseDataSource_fetchByIdWithNoIdReturnsError(t *testing.T) 
 
 func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_TEST_USER")
+	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "id"
+	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
+	expectedTarball := regexp.MustCompile(fmt.Sprintf("%s/%s/tarball", owner, repo))
 	id, _ := strconv.ParseInt(os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID"), 10, 64)
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -82,8 +84,8 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, "", id),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.github_release.test", "release_id", strconv.FormatInt(id, 10)),
-					resource.TestMatchResourceAttr("data.github_release.test", "url", regexp.MustCompile(`hashicorp/terraform`)),
-					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", regexp.MustCompile(`hashicorp/terraform/tarball`)),
+					resource.TestMatchResourceAttr("data.github_release.test", "url", expectedUrl),
+					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", expectedTarball),
 				),
 			},
 		},
@@ -92,7 +94,7 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 
 func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_TEST_USER")
+	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "tag"
 	id := int64(0)
 	resource.ParallelTest(t, resource.TestCase{
@@ -111,11 +113,11 @@ func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
 
 func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_TEST_USER")
+	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "tag"
 	tag := "v1.0"
-	urlResponse := regexp.MustCompile(`hashicorp/terraform`)
-	tarballResponse := regexp.MustCompile(`hashicorp/terraform/tarball`)
+	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
+	expectedTarball := regexp.MustCompile(fmt.Sprintf("%s/%s/tarball", owner, repo))
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -126,8 +128,8 @@ func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
 				Config: testAccCheckGithubReleaseDataSourceConfig(repo, owner, retrieveBy, tag, 0),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.github_release.test", "release_tag", tag),
-					resource.TestMatchResourceAttr("data.github_release.test", "url", urlResponse),
-					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", tarballResponse),
+					resource.TestMatchResourceAttr("data.github_release.test", "url", expectedUrl),
+					resource.TestMatchResourceAttr("data.github_release.test", "tarball_url", expectedTarball),
 				),
 			},
 		},
@@ -144,7 +146,7 @@ func TestAccGithubReleaseDataSource_invalidRetrieveMethodReturnsError(t *testing
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCheckGithubReleaseDataSourceConfig("", "", retrieveBy, "", 0),
-				ExpectError: regexp.MustCompile("one of: `latest`, `id`, `tag` must be set for `retrieve_by`"),
+				ExpectError: regexp.MustCompile("expected retrieve_by to be one of \\[latest id tag]"),
 			},
 		},
 	})
