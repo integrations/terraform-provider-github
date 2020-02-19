@@ -146,7 +146,7 @@ func TestAccGithubReleaseDataSource_invalidRetrieveMethodReturnsError(t *testing
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCheckGithubReleaseDataSourceConfig("", "", retrieveBy, "", 0),
-				ExpectError: regexp.MustCompile("expected retrieve_by to be one of \\[latest id tag]"),
+				ExpectError: regexp.MustCompile(`expected retrieve_by to be one of \[latest id tag]`),
 			},
 		},
 	})
