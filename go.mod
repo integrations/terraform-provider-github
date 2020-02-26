@@ -1,7 +1,5 @@
 module github.com/terraform-providers/terraform-provider-github
 
-go 1.13
-
 require (
 	github.com/google/go-github/v29 v29.0.2
 	github.com/hashicorp/terraform v0.12.20
