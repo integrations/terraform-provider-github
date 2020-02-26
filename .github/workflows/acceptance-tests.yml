@@ -1,0 +1,65 @@
+name: Acceptance Tests
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  acceptance-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Match /run-acceptance-tests prefix
+        id: match_prefix
+        uses: jcudit/match-prefix@v1.0.0
+        with:
+          prefix: '/run-acceptance-tests'
+
+      - name: Acknowledge on calling Issue
+        uses: octokit/request-action@v1.1.0
+        with:
+          route: POST /repos/:owner/:repo/issues/${{ steps.match_prefix.outputs.issue_number }}/comments
+          body: |
+            👋 @${{ steps.match_prefix.outputs.issue_actor }} - Starting Action.
+            Follow along on the [Actions tab](${{ steps.match_prefix.outputs.actions_url }}).
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse Arguments From Comment Body
+        run: |
+          echo ::set-env name=RUN_FILTER::$(
+            echo "${{ steps.match_prefix.outputs.comment_body }}" | \
+            cut -d ' ' -f 2
+          )
+
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+        with:
+          ref: ${{ env.GITHUB_SHA }}
+
+      - name: Generate Test Fixtures
+        run: |
+          openssl req -x509 -newkey rsa:4096 -days 1 -nodes \
+            -subj "/C=US/ST=CA/L=San Francisco/O=HashiCorp, Inc./CN=localhost" \
+            -keyout github/test-fixtures/key.pem -out github/test-fixtures/cert.pem
+
+      - name: Acceptance Tests
+        uses: terraformtesting/acceptance-tests@v1.1.0
+        with:
+          RUN_FILTER: ${{ env.RUN_FILTER }}
+          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_USER: github-terraform-test-user
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GITHUB_TEST_USER_TOKEN }}
+          GITHUB_TEST_COLLABORATOR: github-terraform-test-collaborator
+          GITHUB_TEST_COLLABORATOR_TOKEN: ${{ secrets.GITHUB_TEST_COLLABORATOR_TOKEN }}
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 23826477
+
+      - name: Report Results To Calling Issue
+        if: always()
+        uses: octokit/request-action@v1.1.0
+        with:
+          route: POST /repos/:owner/:repo/issues/${{ steps.match_prefix.outputs.issue_number }}/comments
+          body: |
+            👋 @${{ steps.match_prefix.outputs.issue_actor }} - Action Complete.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
