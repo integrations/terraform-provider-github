@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -161,7 +161,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
-	team, _, err := client.Teams.EditTeam(ctx, teamId, editedTeam)
+	team, _, err := client.Teams.EditTeam(ctx, teamId, editedTeam, false)
 	if err != nil {
 		return err
 	}

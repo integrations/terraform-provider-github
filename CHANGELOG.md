@@ -1,4 +1,12 @@
-## 2.4.0 (Unreleased)
+## 2.5.0 (Unreleased)
+## 2.4.0 (February 26, 2020)
+
+ENHANCEMENTS:
+
+* **New Data Source** `github_release` ([#356](https://github.com/terraform-providers/terraform-provider-github/pull/356))
+
+* **New Resource:** `github_repository_file` ([#318](https://github.com/terraform-providers/terraform-provider-github/pull/318))
+
 ## 2.3.2 (February 05, 2020)
 
 BUG FIXES:

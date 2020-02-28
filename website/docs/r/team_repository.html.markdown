@@ -44,7 +44,7 @@ The following arguments are supported:
 * `team_id` - (Required) The GitHub team id
 * `repository` - (Required) The repository to add to the team.
 * `permission` - (Optional) The permissions of team members regarding the repository.
-  Must be one of `pull`, `push`, or `admin`. Defaults to `pull`.
+  Must be one of `pull`, `triage`, `push`, `maintain`, or `admin`. Defaults to `pull`.
 
 
 ## Import

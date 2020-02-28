@@ -67,6 +67,9 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TEMPLATE_REPOSITORY"); v == "" {
 		t.Fatal("GITHUB_TEMPLATE_REPOSITORY must be set for acceptance tests")
 	}
+	if v := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID"); v == "" {
+		t.Fatal("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID must be set for acceptance tests")
+	}
 }
 
 func TestProvider_individual(t *testing.T) {

@@ -25,7 +25,7 @@ func webhookConfigurationSchema() *schema.Schema {
 					Sensitive: true,
 				},
 				"insecure_ssl": {
-					Type:     schema.TypeString,
+					Type:     schema.TypeBool,
 					Optional: true,
 				},
 			},
