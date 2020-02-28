@@ -60,3 +60,6 @@ The following arguments are supported in the `provider` block:
 * `anonymous`: (Optional) Authenticate without a token.  When `anonymous` is true, the provider will not be able to
   access resources that require authentication. Setting to true will lead the GitHub provider to work in an anonymous
   mode with the corresponding API [rate limits](https://developer.github.com/v3/#rate-limiting).  Defaults to `false`.
+
+* `id`: (Computed) This is the ID of the target GitHub organization which is being managed. The value of this is set by
+  provider based on the name specified in `organization`.

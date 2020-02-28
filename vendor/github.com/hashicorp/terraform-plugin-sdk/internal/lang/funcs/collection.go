@@ -940,7 +940,7 @@ var ReverseFunc = function.New(&function.Spec{
 	},
 })
 
-// SetProductFunc calculates the cartesian product of two or more sets or
+// SetProductFunc calculates the Cartesian product of two or more sets or
 // sequences. If the arguments are all lists then the result is a list of tuples,
 // preserving the ordering of all of the input lists. Otherwise the result is a
 // set of tuples.
@@ -1179,7 +1179,6 @@ func sliceIndexes(args []cty.Value) (int, int, bool, error) {
 	return startIndex, endIndex, startKnown && endKnown, nil
 }
 
-// TransposeFunc contructs a function that takes a map of lists of strings and
 // TransposeFunc constructs a function that takes a map of lists of strings and
 // swaps the keys and values to produce a new map of lists of strings.
 var TransposeFunc = function.New(&function.Spec{
@@ -1224,6 +1223,10 @@ var TransposeFunc = function.New(&function.Spec{
 				values = append(values, cty.StringVal(v))
 			}
 			outputMap[outKey] = cty.ListVal(values)
+		}
+
+		if len(outputMap) == 0 {
+			return cty.MapValEmpty(cty.List(cty.String)), nil
 		}
 
 		return cty.MapVal(outputMap), nil
@@ -1491,7 +1494,7 @@ func Reverse(list cty.Value) (cty.Value, error) {
 	return ReverseFunc.Call([]cty.Value{list})
 }
 
-// SetProduct computes the cartesian product of sets or sequences.
+// SetProduct computes the Cartesian product of sets or sequences.
 func SetProduct(sets ...cty.Value) (cty.Value, error) {
 	return SetProductFunc.Call(sets)
 }
