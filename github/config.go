@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"golang.org/x/oauth2"
 )
 

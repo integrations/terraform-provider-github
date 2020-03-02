@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/kylelemons/godebug/pretty"
 )
 
@@ -77,7 +77,7 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
@@ -96,10 +96,6 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 				),
 			},
 			{
-				Config:      testAccGithubBranchProtectionConfigUser(repoName, "user_with_underscore"),
-				ExpectError: regexp.MustCompile("unable to add users in restrictions: user_with_underscore"),
-			},
-			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -108,9 +104,6 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 	})
 }
 
-/* TODO: Research what's going on with this restrictions bug in the API
-that started 2 Aug '19. No changes were made before the error started
-*/
 func TestAccGithubBranchProtection_teams(t *testing.T) {
 	var firstP, secondP, thirdP github.Protection
 
@@ -480,7 +473,7 @@ resource "github_team" "first" {
 resource "github_team_repository" "first" {
   team_id    = "${github_team.first.id}"
   repository = "${github_repository.test.name}"
-  permission = "pull"
+  permission = "push"
 }
 
 resource "github_team" "second" {
@@ -490,7 +483,7 @@ resource "github_team" "second" {
 resource "github_team_repository" "second" {
   team_id    = "${github_team.second.id}"
   repository = "${github_repository.test.name}"
-  permission = "pull"
+  permission = "push"
 }
 
 resource "github_branch_protection" "master" {

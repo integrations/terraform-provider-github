@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
@@ -88,6 +88,12 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		hook.Config = config[0].(map[string]interface{})
 	}
 
+	if hook.Config["insecure_ssl"].(bool) {
+		hook.Config["insecure_ssl"] = "1"
+	} else {
+		hook.Config["insecure_ssl"] = "0"
+	}
+
 	return hook
 }
 
@@ -117,6 +123,13 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	if hook.Config["secret"] != nil {
 		hook.Config["secret"] = hk.Config["secret"]
 	}
+
+	if hook.Config["insecure_ssl"] == "1" {
+		hook.Config["insecure_ssl"] = true
+	} else {
+		hook.Config["insecure_ssl"] = false
+	}
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return resourceGithubRepositoryWebhookRead(d, meta)
@@ -171,6 +184,12 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		if hook.Config["secret"] != nil {
 			hook.Config["secret"] = currentSecret
 		}
+	}
+
+	if hook.Config["insecure_ssl"] == "1" {
+		hook.Config["insecure_ssl"] = true
+	} else {
+		hook.Config["insecure_ssl"] = false
 	}
 
 	d.Set("configuration", []interface{}{hook.Config})

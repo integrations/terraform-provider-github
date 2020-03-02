@@ -6,24 +6,22 @@
 
 package chacha20
 
-import (
-	"encoding/binary"
+import "encoding/binary"
+
+const (
+	bufSize = 256
+	haveAsm = true
 )
 
-var haveAsm = true
-
-const bufSize = 256
-
 //go:noescape
-func chaCha20_ctr32_vsx(out, inp *byte, len int, key *[8]uint32, counter *uint32)
+func chaCha20_ctr32_vmx(out, inp *byte, len int, key *[8]uint32, counter *uint32)
 
 func (c *Cipher) xorKeyStreamAsm(dst, src []byte) {
-	// This implementation can handle buffers that aren't multiples of
-	// 256.
 	if len(src) >= bufSize {
-		chaCha20_ctr32_vsx(&dst[0], &src[0], len(src), &c.key, &c.counter)
-	} else if len(src)%bufSize != 0 {
-		chaCha20_ctr32_vsx(&c.buf[0], &c.buf[0], bufSize, &c.key, &c.counter)
+		chaCha20_ctr32_vmx(&dst[0], &src[0], len(src)-len(src)%bufSize, &c.key, &c.counter)
+	}
+	if len(src)%bufSize != 0 {
+		chaCha20_ctr32_vmx(&c.buf[0], &c.buf[0], bufSize, &c.key, &c.counter)
 		start := len(src) - len(src)%bufSize
 		ts, td, tb := src[start:], dst[start:], c.buf[:]
 		// Unroll loop to XOR 32 bytes per iteration.
@@ -48,6 +46,7 @@ func (c *Cipher) xorKeyStreamAsm(dst, src []byte) {
 			td[i] = tb[i] ^ v
 		}
 		c.len = bufSize - (len(src) % bufSize)
+
 	}
 
 }

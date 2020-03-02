@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubRelease() *schema.Resource {
