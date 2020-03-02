@@ -124,11 +124,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 		hook.Config["secret"] = hk.Config["secret"]
 	}
 
-	if hook.Config["insecure_ssl"] == "1" {
-		hook.Config["insecure_ssl"] = true
-	} else {
-		hook.Config["insecure_ssl"] = false
-	}
+	hook.Config = insecureSslStringToBool(hook.Config)
 
 	d.Set("configuration", []interface{}{hook.Config})
 
@@ -186,11 +182,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if hook.Config["insecure_ssl"] == "1" {
-		hook.Config["insecure_ssl"] = true
-	} else {
-		hook.Config["insecure_ssl"] = false
-	}
+	hook.Config = insecureSslStringToBool(hook.Config)
 
 	d.Set("configuration", []interface{}{hook.Config})
 
@@ -237,4 +229,14 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Deleting repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
 	_, err = client.Repositories.DeleteHook(ctx, orgName, repoName, hookID)
 	return err
+}
+
+func insecureSslStringToBool(config map[string]interface{}) map[string]interface{} {
+	if config["insecure_ssl"] == "1" {
+		config["insecure_ssl"] = true
+	} else {
+		config["insecure_ssl"] = false
+	}
+
+	return config
 }
