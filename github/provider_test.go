@@ -73,7 +73,7 @@ func testAccPreCheck(t *testing.T) {
 func TestProvider_individual(t *testing.T) {
 
 	username := "hashibot"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
