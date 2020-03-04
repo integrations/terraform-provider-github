@@ -16,7 +16,7 @@ func TestAccGithubBranch_basic(t *testing.T) {
 	var (
 		reference github.Reference
 
-		name   = "test"
+		name   = "main"
 		repo   = "test-repo"
 		branch = "test-branch-" + acctest.RandString(5)
 		rn     = "github_branch." + name
