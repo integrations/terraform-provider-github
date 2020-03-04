@@ -5,12 +5,13 @@ description: |-
   Get information on a GitHub release.
 ---
 
-# github\_user
+# github\_release
 
 Use this data source to retrieve information about a GitHub release in a specified repository.
 
 ## Example Usage
 To retrieve the latest release that is present in a repository:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
@@ -18,7 +19,9 @@ data "github_release" "example" {
     retrieve_by = "latest"
 }
 ```
+
 To retrieve a specific release from a repository based on it's ID:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
@@ -27,7 +30,9 @@ data "github_release" "example" {
     id          = 12345
 }
 ```
-Finally, to retrieve a release based on it's tag: 
+
+Finally, to retrieve a release based on it's tag:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
