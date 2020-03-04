@@ -46,6 +46,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_branch":                   resourceGithubBranch(),
 			"github_branch_protection":        resourceGithubBranchProtection(),
 			"github_issue_label":              resourceGithubIssueLabel(),
 			"github_membership":               resourceGithubMembership(),
@@ -54,7 +55,6 @@ func Provider() terraform.ResourceProvider {
 			"github_organization_webhook":     resourceGithubOrganizationWebhook(),
 			"github_project_column":           resourceGithubProjectColumn(),
 			"github_repository_collaborator":  resourceGithubRepositoryCollaborator(),
-			"github_repository_branch":        resourceGithubRepositoryBranch(),
 			"github_repository_deploy_key":    resourceGithubRepositoryDeployKey(),
 			"github_repository_file":          resourceGithubRepositoryFile(),
 			"github_repository_project":       resourceGithubRepositoryProject(),
@@ -69,14 +69,14 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_collaborators":     dataSourceGithubCollaborators(),
-			"github_ip_ranges":         dataSourceGithubIpRanges(),
-			"github_release":           dataSourceGithubRelease(),
-			"github_repositories":      dataSourceGithubRepositories(),
-			"github_repository":        dataSourceGithubRepository(),
-			"github_repository_branch": dataSourceGithubRepositoryBranch(),
-			"github_team":              dataSourceGithubTeam(),
-			"github_user":              dataSourceGithubUser(),
+			"github_branch":        dataSourceGithubBranch(),
+			"github_collaborators": dataSourceGithubCollaborators(),
+			"github_ip_ranges":     dataSourceGithubIpRanges(),
+			"github_release":       dataSourceGithubRelease(),
+			"github_repositories":  dataSourceGithubRepositories(),
+			"github_repository":    dataSourceGithubRepository(),
+			"github_team":          dataSourceGithubTeam(),
+			"github_user":          dataSourceGithubUser(),
 		},
 	}
 

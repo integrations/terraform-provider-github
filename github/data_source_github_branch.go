@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceGithubRepositoryBranch() *schema.Resource {
+func dataSourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryBranchRead,
+		Read: dataSourceGithubBranchRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -23,7 +23,6 @@ func dataSourceGithubRepositoryBranch() *schema.Resource {
 				ForceNew: true,
 				Default:  "master",
 			},
-
 			"ref": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -36,7 +35,7 @@ func dataSourceGithubRepositoryBranch() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryBranchRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

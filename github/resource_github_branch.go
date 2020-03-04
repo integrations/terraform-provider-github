@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceGithubRepositoryBranch() *schema.Resource {
+func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryBranchCreate,
-		Read:   resourceGithubRepositoryBranchRead,
-		Delete: resourceGithubRepositoryBranchDelete,
+		Create: resourceGithubBranchCreate,
+		Read:   resourceGithubBranchRead,
+		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -41,7 +41,6 @@ func resourceGithubRepositoryBranch() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
-
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -58,7 +57,7 @@ func resourceGithubRepositoryBranch() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryBranchCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -96,10 +95,10 @@ func resourceGithubRepositoryBranchCreate(d *schema.ResourceData, meta interface
 
 	d.SetId(buildTwoPartID(&repoName, &branchName))
 
-	return resourceGithubRepositoryBranchRead(d, meta)
+	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubRepositoryBranchRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -144,7 +143,7 @@ func resourceGithubRepositoryBranchRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceGithubRepositoryBranchDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

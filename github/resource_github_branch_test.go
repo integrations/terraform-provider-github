@@ -11,25 +11,27 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccGithubRepositoryBranch_basic(t *testing.T) {
-	var reference github.Reference
+func TestAccGithubBranch_basic(t *testing.T) {
 
-	name := "test"
-	repo := "tf-acc-test-repo-branch-" + acctest.RandString(5)
-	branch := "foobar"
-	id := repo + ":" + branch
+	var (
+		reference github.Reference
 
-	rn := "github_repository_branch." + name
+		name   = "test"
+		repo   = "test-repo"
+		branch = "test-branch-" + acctest.RandString(5)
+		rn     = "github_branch." + name
+		id     = repo + ":" + branch
+	)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubRepositoryBranchDestroy,
+		CheckDestroy: testAccGithubBranchDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryBranchConfig(name, repo, branch),
+				Config: testAccGithubBranchConfig(name, repo, branch),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryBranchExists(rn, id, &reference),
+					testAccCheckGithubBranchExists(rn, id, &reference),
 					resource.TestCheckResourceAttr(rn, "repository", repo),
 					resource.TestCheckResourceAttr(rn, "branch", branch),
 					resource.TestCheckResourceAttr(rn, "source_branch", "master"),
@@ -40,9 +42,9 @@ func TestAccGithubRepositoryBranch_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccGithubRepositoryBranchConfig(name, repo, branch),
+				Config: testAccGithubBranchConfig(name, repo, branch),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryBranchExists(rn, id, &reference),
+					testAccCheckGithubBranchExists(rn, id, &reference),
 					resource.TestCheckResourceAttr(rn, "repository", repo),
 					resource.TestCheckResourceAttr(rn, "branch", branch),
 					resource.TestCheckResourceAttr(rn, "source_branch", "master"),
@@ -66,24 +68,18 @@ func TestAccGithubRepositoryBranch_basic(t *testing.T) {
 	})
 }
 
-func testAccGithubRepositoryBranchConfig(name, repo, branch string) string {
+func testAccGithubBranchConfig(name, repo, branch string) string {
 	return fmt.Sprintf(`
-resource "github_repository" "%s" {
-  name        = "%s"
-  description = "Terraform Acceptance Test"
-  auto_init   = true
-}
-
-resource "github_repository_branch" "%s" {
-  repository = github_repository.%s.name
+resource "github_branch" "%s" {
+  repository = "%s"
   branch     = "%s"
 }
-`, name, repo, name, name, branch)
+`, name, repo, branch)
 }
 
-func testAccGithubRepositoryBranchDestroy(s *terraform.State) error {
+func testAccGithubBranchDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_repository_branch" {
+		if rs.Type != "github_branch" {
 			continue
 		}
 
@@ -109,7 +105,7 @@ func testAccGithubRepositoryBranchDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckGithubRepositoryBranchExists(n, id string, reference *github.Reference) resource.TestCheckFunc {
+func testAccCheckGithubBranchExists(n, id string, reference *github.Reference) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
