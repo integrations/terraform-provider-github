@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborator() *schema.Resource {

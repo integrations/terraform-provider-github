@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
@@ -32,7 +32,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
 							"content_type": "json",
-							"insecure_ssl": true,
+							"insecure_ssl": "1",
 						},
 						Active: true,
 					}),
@@ -47,7 +47,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
 							"content_type": "form",
-							"insecure_ssl": false,
+							"insecure_ssl": "0",
 						},
 						Active: false,
 					}),

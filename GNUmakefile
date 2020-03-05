@@ -12,12 +12,9 @@ tools:
 build: fmtcheck
 	go install
 
-errcheck:
-	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
-
 fmt:
 	@echo "==> Fixing source code with gofmt..."
-	gofmt -w $(GOFMT_FILES)
+	gofmt -s -w $(GOFMT_FILES)
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
@@ -25,7 +22,7 @@ fmtcheck:
 lint:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
-	
+
 test: fmtcheck
 	go test -i $(TEST) || exit 1
 	echo $(TEST) | \
@@ -41,6 +38,15 @@ test-compile:
 		exit 1; \
 	fi
 	go test -c $(TEST) $(TESTARGS)
+
+vet:
+	@echo "go vet ."
+	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
+		echo ""; \
+		echo "Vet found suspicious constructs. Please check the reported constructs"; \
+		echo "and fix them if necessary before submitting the code for review."; \
+		exit 1; \
+	fi
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
@@ -60,5 +66,5 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck lint tools test-compile website website-lint website-test
+.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test
 

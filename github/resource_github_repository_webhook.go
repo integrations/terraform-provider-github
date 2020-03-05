@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
@@ -88,6 +88,12 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		hook.Config = config[0].(map[string]interface{})
 	}
 
+	if hook.Config["insecure_ssl"].(bool) {
+		hook.Config["insecure_ssl"] = "1"
+	} else {
+		hook.Config["insecure_ssl"] = "0"
+	}
+
 	return hook
 }
 
@@ -117,6 +123,9 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	if hook.Config["secret"] != nil {
 		hook.Config["secret"] = hk.Config["secret"]
 	}
+
+	hook.Config = insecureSslStringToBool(hook.Config)
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return resourceGithubRepositoryWebhookRead(d, meta)
@@ -173,6 +182,8 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	hook.Config = insecureSslStringToBool(hook.Config)
+
 	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
@@ -218,4 +229,14 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Deleting repository webhook: %s (%s/%s)", d.Id(), orgName, repoName)
 	_, err = client.Repositories.DeleteHook(ctx, orgName, repoName, hookID)
 	return err
+}
+
+func insecureSslStringToBool(config map[string]interface{}) map[string]interface{} {
+	if config["insecure_ssl"] == "1" {
+		config["insecure_ssl"] = true
+	} else {
+		config["insecure_ssl"] = false
+	}
+
+	return config
 }
