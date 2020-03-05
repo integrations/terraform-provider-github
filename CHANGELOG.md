@@ -1,10 +1,10 @@
-## 2.4.1 (Unreleased)
+## 2.4.1 (March 05, 2020)
 
 BUG FIXES:
 
-* Updates `go-github` to `v29` to unblock planned feature development [GH-342]
-* Fixes `insecure_ssl` parameter behaviour for `github_organization_webhook` and  `github_repository_webhook` [GH-365]
-* Fixes label behaviour to not create new labels when renaming a `github_issue_label` [GH-288]
+* Updates `go-github` to `v29` to unblock planned feature development ([#342](https://github.com/terraform-providers/terraform-provider-github/issues/342))
+* Fixes `insecure_ssl` parameter behaviour for `github_organization_webhook` and  `github_repository_webhook` ([#365](https://github.com/terraform-providers/terraform-provider-github/issues/365))
+* Fixes label behaviour to not create new labels when renaming a `github_issue_label` ([#288](https://github.com/terraform-providers/terraform-provider-github/issues/288))
 
 ## 2.4.0 (February 26, 2020)
 
