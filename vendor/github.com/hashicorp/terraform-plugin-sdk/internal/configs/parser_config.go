@@ -42,12 +42,6 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	file.CoreVersionConstraints, reqDiags = sniffCoreVersionRequirements(body)
 	diags = append(diags, reqDiags...)
 
-	// We'll load the experiments first because other decoding logic in the
-	// loop below might depend on these experiments.
-	var expDiags hcl.Diagnostics
-	file.ActiveExperiments, expDiags = sniffActiveExperiments(body)
-	diags = append(diags, expDiags...)
-
 	content, contentDiags := body.Content(configFileSchema)
 	diags = append(diags, contentDiags...)
 
@@ -58,9 +52,8 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
-			// We ignore the "terraform_version" and "experiments" attributes
-			// here because sniffCoreVersionRequirements and
-			// sniffActiveExperiments already dealt with those above.
+			// We ignore the "terraform_version" attribute here because
+			// sniffCoreVersionRequirements already dealt with that above.
 
 			for _, innerBlock := range content.Blocks {
 				switch innerBlock.Type {
@@ -75,7 +68,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs...)
+					file.ProviderRequirements = append(file.ProviderRequirements, reqs...)
 
 				default:
 					// Should never happen because the above cases should be exhaustive
@@ -155,7 +148,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 // able to find, but may return no constraints at all if the given body is
 // so invalid that it cannot be decoded at all.
 func sniffCoreVersionRequirements(body hcl.Body) ([]VersionConstraint, hcl.Diagnostics) {
-	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
+	rootContent, _, diags := body.PartialContent(configFileVersionSniffRootSchema)
 
 	var constraints []VersionConstraint
 
@@ -220,8 +213,9 @@ var configFileSchema = &hcl.BodySchema{
 // a configuration file.
 var terraformBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{Name: "required_version"},
-		{Name: "experiments"},
+		{
+			Name: "required_version",
+		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
@@ -234,9 +228,8 @@ var terraformBlockSchema = &hcl.BodySchema{
 	},
 }
 
-// configFileTerraformBlockSniffRootSchema is a schema for
-// sniffCoreVersionRequirements and sniffActiveExperiments.
-var configFileTerraformBlockSniffRootSchema = &hcl.BodySchema{
+// configFileVersionSniffRootSchema is a schema for sniffCoreVersionRequirements
+var configFileVersionSniffRootSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
 			Type: "terraform",
@@ -249,16 +242,6 @@ var configFileVersionSniffBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "required_version",
-		},
-	},
-}
-
-// configFileExperimentsSniffBlockSchema is a schema for sniffActiveExperiments,
-// to decode a single attribute from inside a "terraform" block.
-var configFileExperimentsSniffBlockSchema = &hcl.BodySchema{
-	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "experiments",
 		},
 	},
 }

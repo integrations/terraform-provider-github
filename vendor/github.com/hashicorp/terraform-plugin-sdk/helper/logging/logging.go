@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/hashicorp/logutils"
 )
 
 // These are the environmental variables that determine if we log, and if
@@ -16,14 +18,13 @@ const (
 	EnvLogFile = "TF_LOG_PATH" // Set to a file
 )
 
-// ValidLevels are the log level names that Terraform recognizes.
-var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
+var ValidLevels = []logutils.LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 
 // LogOutput determines where we should send logs (if anywhere) and the log level.
 func LogOutput() (logOutput io.Writer, err error) {
 	logOutput = ioutil.Discard
 
-	logLevel := CurrentLogLevel()
+	logLevel := LogLevel()
 	if logLevel == "" {
 		return
 	}
@@ -37,21 +38,14 @@ func LogOutput() (logOutput io.Writer, err error) {
 		}
 	}
 
-	if logLevel == "TRACE" {
-		// Just pass through logs directly then, without any level filtering at all.
-		return logOutput, nil
-	}
-
-	// Otherwise we'll use our level filter, which is a heuristic-based
-	// best effort thing that is not totally reliable but helps to reduce
-	// the volume of logs in some cases.
-	logOutput = &LevelFilter{
+	// This was the default since the beginning
+	logOutput = &logutils.LevelFilter{
 		Levels:   ValidLevels,
-		MinLevel: LogLevel(logLevel),
+		MinLevel: logutils.LogLevel(logLevel),
 		Writer:   logOutput,
 	}
 
-	return logOutput, nil
+	return
 }
 
 // SetOutput checks for a log destination with LogOutput, and calls
@@ -70,8 +64,8 @@ func SetOutput() {
 	log.SetOutput(out)
 }
 
-// CurrentLogLevel returns the current log level string based the environment vars
-func CurrentLogLevel() string {
+// LogLevel returns the current log level string based the environment vars
+func LogLevel() string {
 	envLevel := os.Getenv(EnvLog)
 	if envLevel == "" {
 		return ""
@@ -85,16 +79,13 @@ func CurrentLogLevel() string {
 		log.Printf("[WARN] Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
 			envLevel, ValidLevels)
 	}
-	if logLevel != "TRACE" {
-		log.Printf("[WARN] Log levels other than TRACE are currently unreliable, and are supported only for backward compatibility.\n  Use TF_LOG=TRACE to see Terraform's internal logs.\n  ----")
-	}
 
 	return logLevel
 }
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace
 func IsDebugOrHigher() bool {
-	level := string(CurrentLogLevel())
+	level := string(LogLevel())
 	return level == "DEBUG" || level == "TRACE"
 }
 

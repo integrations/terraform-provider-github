@@ -18,10 +18,6 @@ import (
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
 	*NodeAbstractResource
-
-	// We attach dependencies to the Resource during refresh, since the
-	// instances are instantiated during DynamicExpand.
-	Dependencies []addrs.AbsResource
 }
 
 var (
@@ -31,13 +27,7 @@ var (
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeResource             = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResource)(nil)
-	_ GraphNodeAttachDependencies   = (*NodeRefreshableManagedResource)(nil)
 )
-
-// GraphNodeAttachDependencies
-func (n *NodeRefreshableManagedResource) AttachDependencies(deps []addrs.AbsResource) {
-	n.Dependencies = deps
-}
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -68,7 +58,6 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
-		a.Dependencies = n.Dependencies
 
 		return &NodeRefreshableManagedResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -214,11 +203,6 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				Output: &state,
 			},
 
-			&EvalRefreshDependencies{
-				State:        &state,
-				Dependencies: &n.Dependencies,
-			},
-
 			&EvalRefresh{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
@@ -233,7 +217,6 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   &n.Dependencies,
 			},
 		},
 	}
@@ -293,7 +276,6 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   &n.Dependencies,
 			},
 
 			// We must also save the planned change, so that expressions in

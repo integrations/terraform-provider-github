@@ -35,7 +35,7 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd []*RequiredProvider) {
+func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd []*ProviderRequirement) {
 	// Any provider name that's mentioned in the override gets nilled out in
 	// our map so that we'll rebuild it below. Any provider not mentioned is
 	// left unchanged.
@@ -43,8 +43,7 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 		delete(recv, reqd.Name)
 	}
 	for _, reqd := range ovrd {
-		fqn := addrs.NewLegacyProvider(reqd.Name)
-		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
+		recv[reqd.Name] = append(recv[reqd.Name], reqd.Requirement)
 	}
 }
 

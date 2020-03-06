@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
@@ -21,6 +22,15 @@ func copyDir(dst, src string) error {
 
 		if path == src {
 			return nil
+		}
+
+		if strings.HasPrefix(filepath.Base(path), ".") {
+			// Skip any dot files
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
 		}
 
 		// The "path" has the src prefixed to it. We need to join our

@@ -53,9 +53,7 @@ type ResourceInstanceObjectSrc struct {
 	// ResourceInstanceObject.
 	Private      []byte
 	Status       ObjectStatus
-	Dependencies []addrs.AbsResource
-	// deprecated
-	DependsOn []addrs.Referenceable
+	Dependencies []addrs.Referenceable
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
@@ -88,7 +86,6 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		Value:        val,
 		Status:       os.Status,
 		Dependencies: os.Dependencies,
-		DependsOn:    os.DependsOn,
 		Private:      os.Private,
 	}, nil
 }

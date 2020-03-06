@@ -28,13 +28,12 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeResource           = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeEvalable           = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator          = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer          = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeAttachDestroyer
@@ -96,11 +95,6 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	}
 
 	return ret
-}
-
-// GraphNodeAttachDependencies
-func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.AbsResource) {
-	n.Dependencies = deps
 }
 
 // GraphNodeEvalable
@@ -177,6 +171,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Dependencies:   n.StateReferences(),
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
@@ -346,6 +341,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			&EvalApply{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Dependencies:   n.StateReferences(),
 				State:          &state,
 				Change:         &diffApply,
 				Provider:       &provider,
@@ -356,17 +352,17 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				CreateNew:      &createNew,
 			},
 			&EvalMaybeTainted{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &diffApply,
-				Error:  &err,
+				Addr:        addr.Resource,
+				State:       &state,
+				Change:      &diffApply,
+				Error:       &err,
+				StateOutput: &state,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   &n.Dependencies,
 			},
 			&EvalApplyProvisioners{
 				Addr:           addr.Resource,
@@ -377,26 +373,25 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				When:           configs.ProvisionerWhenCreate,
 			},
 			&EvalMaybeTainted{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &diffApply,
-				Error:  &err,
+				Addr:        addr.Resource,
+				State:       &state,
+				Change:      &diffApply,
+				Error:       &err,
+				StateOutput: &state,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   &n.Dependencies,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					return createBeforeDestroyEnabled && err != nil, nil
 				},
 				Then: &EvalMaybeRestoreDeposedObject{
-					Addr:          addr.Resource,
-					PlannedChange: &diffApply,
-					Key:           &deposedKey,
+					Addr: addr.Resource,
+					Key:  &deposedKey,
 				},
 			},
 

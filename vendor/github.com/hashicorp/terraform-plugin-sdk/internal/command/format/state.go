@@ -138,7 +138,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				}
 
 				var schema *configschema.Block
-				provider := addr.DefaultProviderConfig().Absolute(m.Addr).ProviderConfig.StringCompact()
+				provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
 				if _, exists := schemas.Providers[provider]; !exists {
 					// This should never happen in normal use because we should've
 					// loaded all of the schemas and checked things prior to this

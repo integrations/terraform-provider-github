@@ -61,9 +61,8 @@ func (r Resource) DefaultProviderConfig() ProviderConfig {
 	if under := strings.Index(typeName, "_"); under != -1 {
 		typeName = typeName[:under]
 	}
-
 	return ProviderConfig{
-		Type: NewLegacyProvider(typeName),
+		Type: typeName,
 	}
 }
 

@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-// testStepImportState runs an import state test step
+// testStepImportState runs an imort state test step
 func testStepImportState(
 	opts terraform.ContextOpts,
 	state *terraform.State,
@@ -96,6 +96,7 @@ func testStepImportState(
 	if err != nil {
 		return nil, err
 	}
+
 	// Go through the new state and verify
 	if step.ImportStateCheck != nil {
 		var states []*terraform.InstanceState
@@ -137,7 +138,7 @@ func testStepImportState(
 			// this shouldn't happen in any reasonable case.
 			var rsrcSchema *schema.Resource
 			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(r.Provider); !diags.HasErrors() {
-				providerType := providerAddr.ProviderConfig.Type.LegacyString()
+				providerType := providerAddr.ProviderConfig.Type
 				if provider, ok := step.providers[providerType]; ok {
 					if provider, ok := provider.(*schema.Provider); ok {
 						rsrcSchema = provider.ResourcesMap[r.Type]

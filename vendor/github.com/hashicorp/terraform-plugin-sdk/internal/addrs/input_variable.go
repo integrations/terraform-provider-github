@@ -34,7 +34,7 @@ func (m ModuleInstance) InputVariable(name string) AbsInputVariableInstance {
 
 func (v AbsInputVariableInstance) String() string {
 	if len(v.Module) == 0 {
-		return v.Variable.String()
+		return v.String()
 	}
 
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.Variable.String())

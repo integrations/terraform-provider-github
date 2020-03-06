@@ -70,13 +70,12 @@ func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
 	}
 
 	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.ProviderConfigRef.Name),
+		Type:  r.ProviderConfigRef.Name,
 		Alias: r.ProviderConfigRef.Alias,
 	}
 }
 
 func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.ManagedResourceMode,
 		Type:      block.Labels[0],
@@ -86,15 +85,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Managed:   &ManagedResource{},
 	}
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions. We do this up front here because
-	// then we can also catch instances inside special blocks like "connection",
-	// before PartialContent extracts them.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
-	content, remain, moreDiags := block.Body.PartialContent(resourceBlockSchema)
-	diags = append(diags, moreDiags...)
+	content, remain, diags := block.Body.PartialContent(resourceBlockSchema)
 	r.Config = remain
 
 	if !hclsyntax.ValidIdentifier(r.Type) {
@@ -273,17 +264,6 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		}
 	}
 
-	// Now we can validate the connection block references if there are any destroy provisioners.
-	// TODO: should we eliminate standalone connection blocks?
-	if r.Managed.Connection != nil {
-		for _, p := range r.Managed.Provisioners {
-			if p.When == ProvisionerWhenDestroy {
-				diags = append(diags, onlySelfRefs(r.Managed.Connection.Config)...)
-				break
-			}
-		}
-	}
-
 	return r, diags
 }
 
@@ -447,7 +427,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 // location information and keeping just the addressing information.
 func (r *ProviderConfigRef) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.Name),
+		Type:  r.Name,
 		Alias: r.Alias,
 	}
 }
