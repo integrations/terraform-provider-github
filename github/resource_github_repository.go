@@ -156,6 +156,10 @@ func resourceGithubRepository() *schema.Resource {
 					},
 				},
 			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -304,6 +308,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("http_clone_url", repo.CloneURL)
 	d.Set("archived", repo.Archived)
 	d.Set("topics", flattenStringList(repo.Topics))
+	d.Set("node_id", repo.GetNodeID())
 
 	if repo.TemplateRepository != nil {
 		d.Set("template", []interface{}{
