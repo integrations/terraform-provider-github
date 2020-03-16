@@ -55,14 +55,10 @@ The following arguments are supported:
 
 * `html_url` - URL to the repository on the web.
 
-* `ssh_clone_url` - URL that can be provided to `git clone` to clone the
-  repository via SSH.
+* `ssh_clone_url` - URL that can be provided to `git clone` to clone the repository via SSH.
 
-* `http_clone_url` - URL that can be provided to `git clone` to clone the
-  repository via HTTPS.
+* `http_clone_url` - URL that can be provided to `git clone` to clone the repository via HTTPS.
 
-* `git_clone_url` - URL that can be provided to `git clone` to clone the
-  repository anonymously via the git protocol.
+* `git_clone_url` - URL that can be provided to `git clone` to clone the repository anonymously via the git protocol.
 
-* `svn_url` - URL that can be provided to `svn checkout` to check out
-  the repository via GitHub's Subversion protocol emulation.
+* `svn_url` - URL that can be provided to `svn checkout` to check out the repository via GitHub's Subversion protocol emulation.

@@ -21,17 +21,17 @@ data "github_collaborators" "test" {
 ## Arguments Reference
 
  * `owner` - (Required) The organization that owns the repository.
- 
+
  * `repository` - (Required) The name of the repository.
- 
+
  * `affiliation` - (Optional) Filter collaborators returned by their affiliation. Can be one of: `outside`, `direct`, `all`.  Defaults to `all`.
- 
+
 ## Attributes Reference
 
  * `collaborator` - An Array of GitHub collaborators.  Each `collaborator` block consists of the fields documented below.
- 
+
 ___
- 
+
 The `collaborator` block consists of:
 
 * `login` - The collaborator's login.
