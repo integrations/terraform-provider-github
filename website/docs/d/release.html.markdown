@@ -7,7 +7,7 @@ description: |-
 
 # github\_release
 
-Use this data source to retrieve information about a GitHub release in a specified repository.
+Use this data source to retrieve information about a GitHub release in a specific repository.
 
 ## Example Usage
 To retrieve the latest release that is present in a repository:
