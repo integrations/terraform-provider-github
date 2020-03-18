@@ -33,7 +33,7 @@ The following arguments are supported:
 * `content` - (Required) The file content.
 
 * `branch` - (Optional) Git branch (defaults to `master`).
-  The branch must already exist, it willl not be created if it does not already exist.
+  The branch must already exist, it will not be created if it does not already exist.
 
 * `commit_author` - (Optional) Committer author name to use.
 
