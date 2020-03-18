@@ -111,11 +111,11 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	gpg, _, err := client.Users.ListGPGKeys(ctx, username, nil)
+	gpg, _, err := client.Users.ListGPGKeys(ctx, user.GetLogin(), nil)
 	if err != nil {
 		return err
 	}
-	ssh, _, err := client.Users.ListKeys(ctx, username, nil)
+	ssh, _, err := client.Users.ListKeys(ctx, user.GetLogin(), nil)
 	if err != nil {
 		return err
 	}
