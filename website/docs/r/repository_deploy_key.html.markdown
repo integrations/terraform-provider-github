@@ -34,7 +34,7 @@ resource "github_repository_deploy_key" "example_repository_deploy_key" {
 
 The following arguments are supported:
 
-* `key` - (Required) A ssh key.
+* `key` - (Required) A SSH key.
 * `read_only` - (Required) A boolean qualifying the key to be either read only or read/write.
 * `repository` - (Required) Name of the GitHub repository.
 * `title` - (Required) A title.

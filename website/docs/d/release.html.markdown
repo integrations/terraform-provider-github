@@ -5,12 +5,13 @@ description: |-
   Get information on a GitHub release.
 ---
 
-# github\_user
+# github\_release
 
-Use this data source to retrieve information about a GitHub release in a specified repository.
+Use this data source to retrieve information about a GitHub release in a specific repository.
 
 ## Example Usage
 To retrieve the latest release that is present in a repository:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
@@ -18,7 +19,9 @@ data "github_release" "example" {
     retrieve_by = "latest"
 }
 ```
+
 To retrieve a specific release from a repository based on it's ID:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
@@ -27,7 +30,9 @@ data "github_release" "example" {
     id          = 12345
 }
 ```
-Finally, to retrieve a release based on it's tag: 
+
+Finally, to retrieve a release based on it's tag:
+
 ```hcl
 data "github_release" "example" {
     repository  = "example-repository"
@@ -40,15 +45,15 @@ data "github_release" "example" {
 ## Argument Reference
 
  *  `repository`  -  (Required) Name of the repository to retrieve the release from.
- 
+
  *  `owner`  -  (Required) Owner of the repository.
- 
+
  *  `retrieve_by`  -  (Required) Describes how to fetch the release. Valid values are `id`, `tag`, `latest`.
- 
+
  *  `release_id`  -  (Optional) ID of the release to retrieve. Must be specified when `retrieve_by` = `id`.
- 
+
  *  `release_tag`  -  (Optional) Tag of the release to retrieve. Must be specified when `retrieve_by` = `tag`.
- 
+
 
 ## Attributes Reference
 

@@ -51,7 +51,7 @@ In addition to the above arguments, the following attributes are exported:
 
 ## Import
 
-GitHub Repository Collaborators can be imported using an id made up of `repository:username`, e.g.
+GitHub Repository Collaborators can be imported using an ID made up of `repository:username`, e.g.
 
 ```
 $ terraform import github_repository_collaborator.collaborator terraform:someuser

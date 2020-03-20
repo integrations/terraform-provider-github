@@ -36,7 +36,7 @@ The following attributes are exported:
 
 ## Import
 
-SSH keys can be imported using the their ID e.g.
+SSH keys can be imported using their ID e.g.
 
 ```
 $ terraform import github_user_ssh_key.example 1234567

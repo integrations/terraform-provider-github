@@ -47,7 +47,7 @@ The following arguments are supported:
 
 ## Import
 
-GitHub Issue Labels can be imported using an id made up of `repository:name`, e.g.
+GitHub Issue Labels can be imported using an ID made up of `repository:name`, e.g.
 
 ```
 $ terraform import github_issue_label.panic_label terraform:panic

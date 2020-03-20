@@ -45,7 +45,7 @@ The following arguments are supported:
 * `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features
   on the repository.
 
-* `has_projects` - (Optional) Set to `true` to enable the GitHub Projects features on the repository. Per the github [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
+* `has_projects` - (Optional) Set to `true` to enable the GitHub Projects features on the repository. Per the GitHub [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
 
 * `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on
   the repository.
@@ -56,8 +56,7 @@ The following arguments are supported:
 
 * `allow_rebase_merge` - (Optional) Set to `false` to disable rebase merges on the repository.
 
-* `has_downloads` - (Optional) Set to `true` to enable the (deprecated)
-  downloads features on the repository.
+* `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
 
 * `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.
 
@@ -69,8 +68,7 @@ The following arguments are supported:
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
-* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`.
-~> **NOTE** Currently, the API does not support unarchiving.
+* `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. **NOTE** Currently, the API does not support unarchiving.
 
 * `topics` - (Optional) The list of topics of the repository.
 
@@ -91,17 +89,13 @@ The following additional attributes are exported:
 
 * `html_url` - URL to the repository on the web.
 
-* `ssh_clone_url` - URL that can be provided to `git clone` to clone the
-  repository via SSH.
+* `ssh_clone_url` - URL that can be provided to `git clone` to clone the repository via SSH.
 
-* `http_clone_url` - URL that can be provided to `git clone` to clone the
-  repository via HTTPS.
+* `http_clone_url` - URL that can be provided to `git clone` to clone the repository via HTTPS.
 
-* `git_clone_url` - URL that can be provided to `git clone` to clone the
-  repository anonymously via the git protocol.
+* `git_clone_url` - URL that can be provided to `git clone` to clone the repository anonymously via the git protocol.
 
-* `svn_url` - URL that can be provided to `svn checkout` to check out
-  the repository via GitHub's Subversion protocol emulation.
+* `svn_url` - URL that can be provided to `svn checkout` to check out the repository via GitHub's Subversion protocol emulation.
 
 
 ## Import
