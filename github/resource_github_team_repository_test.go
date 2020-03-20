@@ -123,7 +123,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		}
 
 		repo, _, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			repository.GetID(),
+			testAccProvider.Meta().(*Organization).id,
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)

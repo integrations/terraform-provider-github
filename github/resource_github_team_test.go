@@ -146,7 +146,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), team.Organization.GetID(), id)
+		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Organization).id, id)
 		if err != nil {
 			return err
 		}
