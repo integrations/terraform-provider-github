@@ -9,7 +9,7 @@ description: |-
 
 Protects a GitHub branch.
 
-This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users and teams, can also be configured.
+This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users, teams, and apps, can also be configured.
 
 ## Example Usage
 
@@ -36,6 +36,7 @@ resource "github_branch_protection" "example" {
   restrictions {
     users = ["foo-user"]
     teams = ["${github_team.example.slug}"]
+    apps  = ["foo-app"]
   }
 }
 
@@ -86,13 +87,14 @@ The following arguments are supported:
 
 * `users`: (Optional) The list of user logins with push access.
 * `teams`: (Optional) The list of team slugs with push access.
+* `apps`: (Optional) The list of app slugs with push access.
   Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 
 `restrictions` is only available for organization-owned repositories.
 
 ## Import
 
-GitHub Branch Protection can be imported using an id made up of `repository:branch`, e.g.
+GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
 
 ```
 $ terraform import github_branch_protection.terraform terraform:master

@@ -1,8 +1,8 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -46,6 +46,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_actions_secret":           resourceGithubActionsSecret(),
 			"github_branch":                   resourceGithubBranch(),
 			"github_branch_protection":        resourceGithubBranchProtection(),
 			"github_issue_label":              resourceGithubIssueLabel(),
@@ -69,14 +70,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_branch":        dataSourceGithubBranch(),
-			"github_collaborators": dataSourceGithubCollaborators(),
-			"github_ip_ranges":     dataSourceGithubIpRanges(),
-			"github_release":       dataSourceGithubRelease(),
-			"github_repositories":  dataSourceGithubRepositories(),
-			"github_repository":    dataSourceGithubRepository(),
-			"github_team":          dataSourceGithubTeam(),
-			"github_user":          dataSourceGithubUser(),
+			"github_actions_public_key": dataSourceGithubActionsPublicKey(),
+			"github_branch":             dataSourceGithubBranch(),
+			"github_collaborators":      dataSourceGithubCollaborators(),
+			"github_ip_ranges":          dataSourceGithubIpRanges(),
+			"github_release":            dataSourceGithubRelease(),
+			"github_repositories":       dataSourceGithubRepositories(),
+			"github_repository":         dataSourceGithubRepository(),
+			"github_team":               dataSourceGithubTeam(),
+			"github_user":               dataSourceGithubUser(),
 		},
 	}
 

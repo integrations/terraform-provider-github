@@ -11,7 +11,7 @@ Requirements
 ------------
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.10.x
--	[Go](https://golang.org/doc/install) 1.11 (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.13 (to build the provider plugin)
 
 Building The Provider
 ---------------------
@@ -106,7 +106,8 @@ Export an environment variable corresponding to `GITHUB_TEMPLATE_REPOSITORY=test
 Export your github username (the one you used to create the personal access token above) as `GITHUB_TEST_USER`. You will need to export a
 different github username as `GITHUB_TEST_COLLABORATOR`. Please note that these usernames cannot be the same as each other, and both of them
 must be real github usernames. The collaborator user does not need to be added as a collaborator to your test repo or organization, but as
-the acceptance tests do real things (and will trigger some notifications for this user), you should probably make sure the person you specify knows that you're doing this just to be nice.
+the acceptance tests do real things (and will trigger some notifications for this user), you should probably make sure the person you specify
+knows that you're doing this just to be nice. You can also export `GITHUB_TEST_COLLABORATOR_TOKEN` in order to test the invitation acceptance.
 
 Additionally the user exported as `GITHUB_TEST_USER` should have a public email address configured in their profile; this should be exported
 as `GITHUB_TEST_USER_EMAIL` and the Github name exported as `GITHUB_TEST_USER_NAME` (this could be different to your GitHub login).

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"golang.org/x/oauth2"
 )
 
@@ -23,6 +23,7 @@ type Config struct {
 
 type Organization struct {
 	name        string
+	id          int64
 	client      *github.Client
 	StopContext context.Context
 }
@@ -46,12 +47,6 @@ func (c *Config) Client() (interface{}, error) {
 	}
 	if c.Organization == "" && !c.Individual {
 		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
-	}
-
-	if c.Individual {
-		org.name = ""
-	} else {
-		org.name = c.Organization
 	}
 
 	// Either run as anonymous, or run with a Token
@@ -87,6 +82,18 @@ func (c *Config) Client() (interface{}, error) {
 			return nil, err
 		}
 		org.client.BaseURL = u
+	}
+
+	if c.Individual {
+		org.name = ""
+	} else {
+		org.name = c.Organization
+
+		remoteOrg, _, err := org.client.Organizations.Get(ctx, org.name)
+		if err != nil {
+			return nil, err
+		}
+		org.id = remoteOrg.GetID()
 	}
 
 	return &org, nil

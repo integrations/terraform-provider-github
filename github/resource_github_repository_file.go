@@ -8,8 +8,8 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryFile() *schema.Resource {
@@ -320,12 +320,26 @@ func checkRepositoryFileExists(client *github.Client, org, repo, file, branch st
 
 func getFileCommit(client *github.Client, org, repo, file, branch string) (*github.RepositoryCommit, error) {
 	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
-	commits, _, err := client.Repositories.ListCommits(ctx, org, repo, &github.CommitsListOptions{SHA: branch})
-	if err != nil {
-		return nil, err
+	opts := &github.CommitsListOptions{
+		SHA: branch,
+	}
+	allCommits := []*github.RepositoryCommit{}
+	for {
+		commits, resp, err := client.Repositories.ListCommits(ctx, org, repo, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		allCommits = append(allCommits, commits...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opts.Page = resp.NextPage
 	}
 
-	for _, c := range commits {
+	for _, c := range allCommits {
 		sha := c.GetSHA()
 
 		// Skip merge commits

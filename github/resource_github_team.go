@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubTeam() *schema.Resource {
@@ -98,7 +98,13 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
+	orgId := meta.(*Organization).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -110,7 +116,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
-	team, resp, err := client.Teams.GetTeam(ctx, id)
+	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -142,7 +148,13 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
+	orgId := meta.(*Organization).id
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -161,7 +173,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
-	team, _, err := client.Teams.EditTeam(ctx, teamId, editedTeam)
+	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
 	if err != nil {
 		return err
 	}
@@ -182,7 +194,13 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Organization).client
+	orgId := meta.(*Organization).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -191,6 +209,6 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
-	_, err = client.Teams.DeleteTeam(ctx, id)
+	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
 	return err
 }
