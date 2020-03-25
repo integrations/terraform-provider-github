@@ -305,18 +305,21 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 			return fmt.Errorf("Expected `dismiss_state_reviews` to be %t, got %t", expectedStale, reviews.DismissStaleReviews)
 		}
 
-		users := []string{}
-		for _, u := range reviews.DismissalRestrictions.Users {
-			users = append(users, *u.Login)
+		var users, teams []string
+		if reviews.DismissalRestrictions != nil {
+			for _, u := range reviews.DismissalRestrictions.Users {
+				users = append(users, *u.Login)
+			}
+
+			for _, t := range reviews.DismissalRestrictions.Teams {
+				teams = append(teams, *t.Slug)
+			}
 		}
+
 		if diff := pretty.Compare(users, expectedUsers); diff != "" {
 			return fmt.Errorf("diff %q: (-got +want)\n%s", "required_pull_request_reviews.dismissal_users", diff)
 		}
 
-		teams := []string{}
-		for _, t := range reviews.DismissalRestrictions.Teams {
-			teams = append(teams, *t.Slug)
-		}
 		sort.Strings(teams)
 		sort.Strings(expectedTeams)
 		if diff := pretty.Compare(teams, expectedTeams); diff != "" {

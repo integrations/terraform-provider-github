@@ -433,17 +433,18 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.RequiredPullRequestReviews
 	if rprr != nil {
-		users := make([]interface{}, 0, len(rprr.DismissalRestrictions.Users))
-		for _, u := range rprr.DismissalRestrictions.Users {
-			if u.Login != nil {
-				users = append(users, *u.Login)
+		var users, teams []interface{}
+		if rprr.DismissalRestrictions != nil {
+			for _, u := range rprr.DismissalRestrictions.Users {
+				if u.Login != nil {
+					users = append(users, *u.Login)
+				}
 			}
-		}
 
-		teams := make([]interface{}, 0, len(rprr.DismissalRestrictions.Teams))
-		for _, t := range rprr.DismissalRestrictions.Teams {
-			if t.Slug != nil {
-				teams = append(teams, *t.Slug)
+			for _, t := range rprr.DismissalRestrictions.Teams {
+				if t.Slug != nil {
+					teams = append(teams, *t.Slug)
+				}
 			}
 		}
 
