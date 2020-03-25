@@ -35,11 +35,6 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
