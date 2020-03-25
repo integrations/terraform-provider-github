@@ -14,9 +14,12 @@ import (
 
 const (
 	ctxEtag    = "etag"
-	ctxId      = "id"
+	ctxId      = ctxIdType("id")
 	writeDelay = 1 * time.Second
 )
+
+// ctxIdType is used to avoid collisions between packages using context
+type ctxIdType string
 
 // etagTransport allows saving API quota by passing previously stored Etag
 // available via context to request headers
