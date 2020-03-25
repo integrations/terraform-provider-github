@@ -45,11 +45,3 @@ The following arguments are supported:
 * `plaintext_value` - (Required) Plaintext value of the secret to be encrypted
 * `key_id`          - (Required) ID if the key used for encryption
 * `public_key`      - (Required) Public key of the repository to be used in encryption of the `plaintext_value`
-
-## Import
-
-Repositories can be imported using the `name`, e.g.
-
-```
-$ terraform import github_repository.terraform terraform
-```
