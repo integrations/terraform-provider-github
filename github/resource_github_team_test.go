@@ -192,17 +192,23 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 		}
 
 		team, resp, err := conn.Teams.GetTeamByID(context.TODO(), orgId, id)
-		if err == nil && team != nil {
-			teamID := strconv.FormatInt(*team.ID, 10)
-			if team != nil && teamID == rs.Primary.ID {
-				return fmt.Errorf("Team still exists")
+		if err != nil {
+			if resp.StatusCode != 404 {
+				return err
 			}
 		}
-		if resp.StatusCode != 404 {
-			return err
+
+		var teamID string
+		if team != nil {
+			teamID = strconv.FormatInt(*team.ID, 10)
 		}
+		if teamID == rs.Primary.ID {
+			return fmt.Errorf("Team still exists")
+		}
+
 		return nil
 	}
+
 	return nil
 }
 
