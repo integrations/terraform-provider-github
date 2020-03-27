@@ -1,4 +1,20 @@
 ## 2.5.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* Add `apps` To `github_branch_protection` Restrictions
+* **New Data Source** `github_actions_public_key` ([GH-362])
+* **New Data Source** `github_actions_secrets` ([GH-362])
+* **New Resource:** `github_actions_secret` ([GH-362])
+
+BUG FIXES:
+
+* Prevent Panic From DismissalRestrictions ([GH-385])
+* Update `go-github` to `v29.0.3` ([GH-369])
+* Update `go` to `1.13` ([GH-372])
+* Documentation Fixes For Consistency And Typography
+
+
 ## 2.4.1 (March 05, 2020)
 
 BUG FIXES:
