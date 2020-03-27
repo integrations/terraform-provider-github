@@ -1,0 +1,62 @@
+---
+layout: "github"
+page_title: "GitHub: github_branch"
+description: |-
+  Creates and manages branches within GitHub repositories.
+---
+
+# github\_branch
+
+This resource allows you to create and manage branches within your repository.
+
+Additional constraints can be applied to ensure your branch is created from
+another branch or commit.
+
+## Example Usage
+
+```hcl
+resource "github_repository" "example" {
+  name        = "example"
+  description = "My awesome codebase"
+
+  private = true
+
+  template {
+    owner = "github"
+    repository = "terraform-module-template"
+  }
+}
+
+resource "github_branch" "development" {
+  repository  = github_repository.example.name
+  branch      = "development"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `repository` - (Required) The GitHub repository name.
+
+* `branch` - (Required) The repository branch to create.
+
+* `source_branch` - (Optional) The branch name to start from. Defaults to `master`.
+
+* `source_sha` - (Optional) The commit hash to start from. Defaults to the tip of `source_branch`.
+
+## Attribute Reference
+
+The following additional attributes are exported:
+
+* `ref` - A string representing the Github reference, in the form of `refs/heads/<branch>`.
+
+* `sha` - A string storing the reference starting hash. This is not populated when imported.
+
+## Import
+
+GitHub Branch can be imported using an ID made up of `repository:branch`, e.g.
+
+```
+$ terraform import github_branch.terraform terraform:master
+```
