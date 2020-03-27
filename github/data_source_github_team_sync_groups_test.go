@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupsDataSource_noMatchReturnsError(t *testing.T) {
-	slug := "non-existing"
+	orgName, teamSlug := "ne", "non-existing"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -17,17 +17,18 @@ func TestAccGithubTeamSyncGroupsDataSource_noMatchReturnsError(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCheckGithubTeamSyncGroupsDataSourceConfig(slug),
+				Config:      testAccCheckGithubTeamSyncGroupsDataSourceConfig(orgName, teamSlug),
 				ExpectError: regexp.MustCompile(`Could not find team`),
 			},
 		},
 	})
 }
 
-func testAccCheckGithubTeamSyncGroupsDataSourceConfig(slug string) string {
+func testAccCheckGithubTeamSyncGroupsDataSourceConfig(orgName, teamSlug string) string {
 	return fmt.Sprintf(`
-data "github_team_synv_groups" "test" {
-  slug = "%s"
+data "github_team_sync_groups" "test" {
+	org_name = "%s"
+	team_slug = "%s"
 }
-`, slug)
+`, orgName, teamSlug)
 }
