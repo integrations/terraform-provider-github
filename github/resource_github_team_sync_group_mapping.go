@@ -2,9 +2,11 @@ package github
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubTeamSyncGroupMapping() *schema.Resource {
@@ -18,13 +20,34 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_slug": {
+			"retrieve_by": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"id",
+					"slug",
+				}, false),
+			},
+			"org_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"org_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"team_slug": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"team_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"groups": {
 				Type:     schema.TypeList,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
@@ -42,18 +65,6 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 					},
 				},
 			},
-			"org_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"org_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"team_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -69,18 +80,31 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	}
 
 	client := meta.(*Organization).client
-	orgName := meta.(*Organization).name
 	ctx := context.Background()
 
-	slug := d.Get("team_slug").(string)
-	team, err := getGithubTeamBySlug(ctx, client, orgName, slug)
+	retrieveBy := d.Get("retrieve_by").(string)
+	var team *github.Team
+
+	if retrieveBy == "id" {
+		orgID := meta.(*Organization).id
+		teamID, err := strconv.ParseInt(d.Get("team_id").(string), 10, 64)
+		if err != nil {
+			return err
+		}
+		team, _, err = client.Teams.GetTeamByID(ctx, orgID, teamID)
+	} else {
+		orgName := meta.(*Organization).name
+		slug := d.Get("team_slug").(string)
+		team, err = getGithubTeamBySlug(ctx, client, orgName, slug)
+	}
+
 	if err != nil {
 		return err
 	}
 
 	if g, ok := d.GetOk("groups"); ok {
 		var idpGL github.IDPGroupList
-		gL := g.([]map[string]string)
+		gL := g.([]interface{})
 		if len(gL) > 0 {
 			idpGL.Groups = createIDPGroups(gL)
 		}
@@ -92,9 +116,9 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	}
 
 	d.SetId("github-team-sync-group-mappings")
+	d.Set("org_name", meta.(*Organization).name)
 	d.Set("org_id", meta.(*Organization).id)
-	d.Set("org_name", orgName)
-	d.Set("team_id", team.GetID())
+	d.Set("team_id", string(team.GetID()))
 	return resourceGithubTeamRead(d, meta)
 }
 
@@ -144,7 +168,7 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 
 	if g, ok := d.GetOk("groups"); ok {
 		var idpGL github.IDPGroupList
-		gL := g.([]map[string]string)
+		gL := g.([]interface{})
 		if len(gL) > 0 {
 			idpGL.Groups = createIDPGroups(gL)
 		}
@@ -172,12 +196,13 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	return err
 }
 
-func createIDPGroups(gL []map[string]string) []*github.IDPGroup {
+func createIDPGroups(gL []interface{}) []*github.IDPGroup {
 	var idpGroups []*github.IDPGroup
 	for _, group := range gL {
-		id := group["group_id"]
-		name := group["group_name"]
-		description := group["description"]
+		g := group.(map[string]interface{})
+		id := g["group_id"].(string)
+		name := g["group_name"].(string)
+		description := g["description"].(string)
 		idpGroup := github.IDPGroup{&id, &name, &description}
 		idpGroups = append(idpGroups, &idpGroup)
 	}

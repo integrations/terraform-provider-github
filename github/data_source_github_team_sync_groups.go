@@ -2,9 +2,13 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 
+	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func dataSourceGithubTeamSyncGroups() *schema.Resource {
@@ -12,21 +16,29 @@ func dataSourceGithubTeamSyncGroups() *schema.Resource {
 		Read: dataSourceGithubTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
-			"team_slug": {
+			"retrieve_by": {
 				Type:     schema.TypeString,
 				Required: true,
-			},
-			"org_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"id",
+					"slug",
+				}, false),
 			},
 			"org_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"team_id": {
-				Type:     schema.TypeInt,
+			"org_id": {
+				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"team_slug": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"team_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"groups": {
 				Type:     schema.TypeList,
@@ -53,20 +65,35 @@ func dataSourceGithubTeamSyncGroups() *schema.Resource {
 }
 
 func dataSourceGithubTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
-	slug := d.Get("team_slug").(string)
-	log.Printf("[INFO] Refreshing GitHub Team Sync Groups: %s", slug)
+	retrieveBy := d.Get("retrieve_by").(string)
+	log.Print("[INFO] Refreshing GitHub Team Sync Groups")
 
 	client := meta.(*Organization).client
 	ctx := context.Background()
 
-	team, err := getGithubTeamBySlug(ctx, client, meta.(*Organization).name, slug)
+	var team *github.Team
+	var err error
+
+	if retrieveBy == "id" {
+		orgID := meta.(*Organization).id
+		teamID, err := strconv.ParseInt(d.Get("team_id").(string), 10, 64)
+		if err != nil {
+			return err
+		}
+		team, _, err = client.Teams.GetTeamByID(ctx, orgID, teamID)
+	} else {
+		orgName := meta.(*Organization).name
+		slug := d.Get("team_slug").(string)
+		team, err = getGithubTeamBySlug(ctx, client, orgName, slug)
+	}
+
 	if err != nil {
 		return err
 	}
 
 	idpGroups, _, err := client.Teams.ListIDPGroupsForTeam(ctx, string(team.GetID()))
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not find team with slug: %s", d.Get("team_slug").(string))
 	}
 
 	groups := []map[string]string{}
@@ -80,9 +107,11 @@ func dataSourceGithubTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId("github-team-sync-groups")
-	d.Set("org_id", meta.(*Organization).id)
 	d.Set("org_name", meta.(*Organization).name)
-	d.Set("team_id", team.GetID())
+	d.Set("org_id", meta.(*Organization).id)
+	if d.Get("team_id") == nil {
+		d.Set("team_id", string(team.GetID()))
+	}
 	d.Set("groups", groups)
 
 	return nil
