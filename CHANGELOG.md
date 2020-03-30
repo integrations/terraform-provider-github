@@ -1,17 +1,18 @@
-## 2.5.0 (Unreleased)
+## 2.6.0 (Unreleased)
+## 2.5.0 (March 30, 2020)
 
 ENHANCEMENTS:
 
 * Add `apps` To `github_branch_protection` Restrictions
-* **New Data Source** `github_actions_public_key` ([GH-362])
-* **New Data Source** `github_actions_secrets` ([GH-362])
-* **New Resource:** `github_actions_secret` ([GH-362])
+* **New Data Source** `github_actions_public_key` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
+* **New Data Source** `github_actions_secrets` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
+* **New Resource:** `github_actions_secret` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
 
 BUG FIXES:
 
-* Prevent Panic From DismissalRestrictions ([GH-385])
-* Update `go-github` to `v29.0.3` ([GH-369])
-* Update `go` to `1.13` ([GH-372])
+* Prevent Panic From DismissalRestrictions ([[#385](https://github.com/terraform-providers/terraform-provider-github/issues/385)])
+* Update `go-github` to `v29.0.3` ([[#369](https://github.com/terraform-providers/terraform-provider-github/issues/369)])
+* Update `go` to `1.13` ([[#372](https://github.com/terraform-providers/terraform-provider-github/issues/372)])
 * Documentation Fixes For Consistency And Typography
 
 
