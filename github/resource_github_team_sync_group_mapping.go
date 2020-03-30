@@ -35,7 +35,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"group_description": {
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -177,7 +177,7 @@ func createIDPGroups(gL []map[string]string) []*github.IDPGroup {
 	for _, group := range gL {
 		id := group["group_id"]
 		name := group["group_name"]
-		description := group["group_descripton"]
+		description := group["description"]
 		idpGroup := github.IDPGroup{&id, &name, &description}
 		idpGroups = append(idpGroups, &idpGroup)
 	}
