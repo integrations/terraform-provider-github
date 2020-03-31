@@ -44,7 +44,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"groups": {
+			"group": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -58,7 +58,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"description": {
+						"group_description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -102,11 +102,11 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	if g, ok := d.GetOk("groups"); ok {
+	if g, ok := d.GetOk("group"); ok {
 		var idpGL github.IDPGroupList
 		gL := g.([]interface{})
 		if len(gL) > 0 {
-			idpGL.Groups = createIDPGroups(gL)
+			idpGL = github.IDPGroupList{Groups: createIDPGroups(gL)}
 		}
 		_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnections(ctx, string(team.GetID()), idpGL)
 		if err != nil {
@@ -144,14 +144,14 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 	var groups []map[string]string
 	for _, g := range groupList.Groups {
 		group := map[string]string{
-			"group_id":    g.GetGroupID(),
-			"group_name":  g.GetGroupName(),
-			"description": g.GetGroupDescription(),
+			"group_id":          g.GetGroupID(),
+			"group_name":        g.GetGroupName(),
+			"group_description": g.GetGroupDescription(),
 		}
 		groups = append(groups, group)
 	}
 
-	d.Set("groups", groups)
+	d.Set("group", groups)
 
 	return nil
 }
@@ -166,11 +166,11 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 	teamID := d.Get("team_id").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	if g, ok := d.GetOk("groups"); ok {
+	if g, ok := d.GetOk("group"); ok {
 		var idpGL github.IDPGroupList
 		gL := g.([]interface{})
 		if len(gL) > 0 {
-			idpGL.Groups = createIDPGroups(gL)
+			idpGL = github.IDPGroupList{Groups: createIDPGroups(gL)}
 		}
 		_, _, err := client.Teams.CreateOrUpdateIDPGroupConnections(ctx, teamID, idpGL)
 		if err != nil {
@@ -202,8 +202,8 @@ func createIDPGroups(gL []interface{}) []*github.IDPGroup {
 		g := group.(map[string]interface{})
 		id := g["group_id"].(string)
 		name := g["group_name"].(string)
-		description := g["description"].(string)
-		idpGroup := github.IDPGroup{&id, &name, &description}
+		description := g["group_description"].(string)
+		idpGroup := github.IDPGroup{GroupID: &id, GroupName: &name, GroupDescription: &description}
 		idpGroups = append(idpGroups, &idpGroup)
 	}
 	return idpGroups

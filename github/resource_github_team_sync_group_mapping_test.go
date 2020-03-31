@@ -12,6 +12,9 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
+	if isEnterprise != "true" {
+		t.Skip()
+	}
 	var team github.Team
 
 	rn := "github_team.foo"
@@ -32,18 +35,18 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName, groupID, groupName, description),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists(rn, &team),
-					resource.TestCheckResourceAttrSet(rn, "groups"),
-					resource.TestCheckResourceAttr(rn, "groups.0.group_id", groupID),
-					resource.TestCheckResourceAttr(rn, "groups.0.group_name", groupName),
-					resource.TestCheckResourceAttr(rn, "groups.0.description", description),
+					resource.TestCheckResourceAttrSet(rn, "group"),
+					resource.TestCheckResourceAttr(rn, "group.0.group_id", groupID),
+					resource.TestCheckResourceAttr(rn, "group.0.group_name", groupName),
+					resource.TestCheckResourceAttr(rn, "group.0.group_description", description),
 				),
 			},
 			{
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName, groupID, groupName, updatedDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists(rn, &team),
-					resource.TestCheckResourceAttrSet(rn, "groups"),
-					resource.TestCheckResourceAttr(rn, "groups.0.description", updatedDescription),
+					resource.TestCheckResourceAttrSet(rn, "group"),
+					resource.TestCheckResourceAttr(rn, "group.0.group_description", updatedDescription),
 				),
 			},
 			{
@@ -87,10 +90,10 @@ resource "github_team" "foo" {
 resource "github_team_sync_group_mapping" "test" {
 	retrieve_by = "slug"
 	team_slug = "${github_team.foo.slug}"
-	groups {
+	group {
 		group_id = "%s"
 		group_name = "%s"
-		description = "%s"
+		group_description = "%s"
 	}
 }
 `, teamName, groupID, groupName, description)

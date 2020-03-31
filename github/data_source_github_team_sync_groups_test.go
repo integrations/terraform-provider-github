@@ -9,6 +9,9 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupsDataSource_noMatchReturnsError(t *testing.T) {
+	if isEnterprise != "true" {
+		t.Skip()
+	}
 	teamID := "67890"
 	teamSlug := "non-existing"
 	resource.ParallelTest(t, resource.TestCase{

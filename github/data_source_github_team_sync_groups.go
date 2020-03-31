@@ -53,7 +53,7 @@ func dataSourceGithubTeamSyncGroups() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"description": {
+						"group_description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -99,9 +99,9 @@ func dataSourceGithubTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}
 	groups := []map[string]string{}
 	for _, g := range idpGroups.Groups {
 		group := map[string]string{
-			"group_id":    g.GetGroupID(),
-			"group_name":  g.GetGroupName(),
-			"description": g.GetGroupDescription(),
+			"group_id":          g.GetGroupID(),
+			"group_name":        g.GetGroupName(),
+			"group_description": g.GetGroupDescription(),
 		}
 		groups = append(groups, group)
 	}
