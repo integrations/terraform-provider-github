@@ -15,7 +15,26 @@ func resourceGithubBranch() *schema.Resource {
 		Read:   resourceGithubBranchRead,
 		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				client := meta.(*Organization).client
+				orgName := meta.(*Organization).name
+				repoName, _, err := parseTwoPartID(d.Id(), "repository", "branch")
+				if err != nil {
+					return nil, err
+				}
+				sourceBranch := "master"
+
+				log.Printf("[DEBUG] Querying source_branch state to derive source_sha")
+				ref, _, err := client.Git.GetRef(context.Background(), orgName, repoName, "refs/heads/"+sourceBranch)
+				if err != nil {
+					return nil, err
+				}
+
+				d.Set("source_branch", sourceBranch)
+				d.Set("source_sha", *ref.Object.SHA)
+
+				return []*schema.ResourceData{d}, resourceGithubBranchRead(d, meta)
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -70,7 +89,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	branchName := d.Get("branch").(string)
 	sourceBranchName := d.Get("source_branch").(string)
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
-		log.Printf("[DEBUG] Querying source branch state to derive source_sha")
+		log.Printf("[DEBUG] Querying source_branch state to derive source_sha")
 		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, "refs/heads/"+sourceBranchName)
 		if err != nil {
 			return err
@@ -130,6 +149,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(buildTwoPartID(&repoName, &branchName))
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("repository", repoName)
 	d.Set("branch", branchName)

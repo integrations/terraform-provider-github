@@ -56,10 +56,6 @@ func TestAccGithubBranch_basic(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"source_branch",
-					"source_sha",
-				},
 			},
 		},
 	})

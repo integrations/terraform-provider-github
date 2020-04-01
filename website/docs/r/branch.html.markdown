@@ -43,7 +43,7 @@ The following arguments are supported:
 
 * `source_branch` - (Optional) The branch name to start from. Defaults to `master`.
 
-* `source_sha` - (Optional) The commit hash to start from. Defaults to the tip of `source_branch`.
+* `source_sha` - (Optional) The commit hash to start from. Defaults to the tip of `source_branch`. If provided, `source_branch` is ignored.
 
 ## Attribute Reference
 
@@ -51,6 +51,7 @@ The following additional attributes are exported:
 
 * `ref` - A string representing the Github reference, in the form of `refs/heads/<branch>`.
 
+* `source_sha` - A string storing the commit this branch was started from. When imported, defaults to the tip of `master` at the time of import.
 
 ## Import
 
