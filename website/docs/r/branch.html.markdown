@@ -51,7 +51,6 @@ The following additional attributes are exported:
 
 * `ref` - A string representing the Github reference, in the form of `refs/heads/<branch>`.
 
-* `sha` - A string storing the reference starting hash. This is not populated when imported.
 
 ## Import
 

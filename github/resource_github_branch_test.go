@@ -38,7 +38,6 @@ func TestAccGithubBranch_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(rn, "source_sha"),
 					resource.TestCheckResourceAttrSet(rn, "etag"),
 					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
 				),
 			},
 			{
@@ -51,7 +50,6 @@ func TestAccGithubBranch_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(rn, "source_sha"),
 					resource.TestCheckResourceAttrSet(rn, "etag"),
 					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
 				),
 			},
 			{
@@ -61,7 +59,6 @@ func TestAccGithubBranch_basic(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"source_branch",
 					"source_sha",
-					"sha",
 				},
 			},
 		},

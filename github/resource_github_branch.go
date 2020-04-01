@@ -49,10 +49,6 @@ func resourceGithubBranch() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"sha": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -138,7 +134,6 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("repository", repoName)
 	d.Set("branch", branchName)
 	d.Set("ref", *ref.Ref)
-	d.Set("sha", *ref.Object.SHA)
 
 	return nil
 }
