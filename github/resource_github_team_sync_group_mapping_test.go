@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -15,11 +14,11 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	if isEnterprise != "true" {
 		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
 	}
-	var groupList github.IDPGroupList
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("tf-acc-test-%s", randString)
+	groupName := "test_team_group"
 	description := fmt.Sprintf("tf-group-description-%s", randString)
-	rn := "github_team_sync_group_mapping.test_team_group_mapping"
+	rn := "github_team_sync_group_mapping.test_mapping"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -29,16 +28,16 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 			{
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamSyncGroupMappingExists(rn, &groupList),
-					testAccCheckGithubTeamSyncGroupMappingNum(1, &groupList),
+					resource.TestCheckResourceAttrSet(rn, "group.#"),
+					resource.TestCheckResourceAttr(rn, "group.0.name", groupName),
 				),
 			},
 			{
 				Config: testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamSyncGroupMappingExists(rn, &groupList),
-					testAccCheckGithubTeamSyncGroupMappingDidIncreaseCount(&groupList),
-					testAccCheckGithubTeamSyncGroupMappingUpdatedDescription(description, &groupList),
+					resource.TestCheckResourceAttrSet(rn, "group.#"),
+					resource.TestCheckResourceAttr(rn, "group.0.description", description),
+					resource.TestCheckResourceAttr(rn, "group.1.description", description),
 				),
 			},
 			{
@@ -54,10 +53,10 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 	if isEnterprise != "true" {
 		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
 	}
-	var groupList github.IDPGroupList
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("tf-acc-test-%s", randString)
-	rn := "github_team_sync_group_mapping.test_team_group_mapping"
+	groupName := "test_team_group"
+	rn := "github_team_sync_group_mapping.test_mapping"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -67,15 +66,14 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 			{
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamSyncGroupMappingExists(rn, &groupList),
-					testAccCheckGithubTeamSyncGroupMappingNum(1, &groupList),
+					resource.TestCheckResourceAttrSet(rn, "group.#"),
+					resource.TestCheckResourceAttr(rn, "group.0.name", groupName),
 				),
 			},
 			{
 				Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamSyncGroupMappingExists(rn, &groupList),
-					testAccCheckGithubTeamSyncGroupMappingListEmpty(&groupList),
+					resource.TestCheckResourceAttr(rn, "group.#", "0"),
 				),
 			},
 			{
@@ -85,79 +83,6 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckGithubTeamSyncGroupMappingExists(n string, idpGroupList *github.IDPGroupList) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		client := testAccProvider.Meta().(*Organization).client
-		orgName := testAccProvider.Meta().(*Organization).name
-		slug := rs.Primary.Attributes["team_slug"]
-
-		team, err := getGithubTeamBySlug(context.TODO(), client, orgName, slug)
-		if err != nil {
-			return err
-		}
-		found, _, err := client.Teams.ListIDPGroupsForTeam(context.TODO(), string(team.GetID()))
-
-		if found == nil {
-			return fmt.Errorf("Team-Sync Mapping not found in team '%s'", team.GetName())
-		}
-
-		*idpGroupList = *found
-
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamSyncGroupMappingNum(v int, idpGroupList *github.IDPGroupList) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if len(idpGroupList.Groups) != v {
-			return fmt.Errorf("should number of group connections to team set to %d", v)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamSyncGroupMappingDidIncreaseCount(idpGroupList *github.IDPGroupList) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if len(idpGroupList.Groups) <= 1 {
-			return fmt.Errorf("should number of group connections to team set to more than 1")
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamSyncGroupMappingUpdatedDescription(v string, idpGroupList *github.IDPGroupList) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		for _, group := range idpGroupList.Groups {
-			if group.GetGroupDescription() != v {
-				return fmt.Errorf("should description for group set to %s", v)
-			}
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamSyncGroupMappingListEmpty(idpGroupList *github.IDPGroupList) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if len(idpGroupList.Groups) != 0 {
-			return fmt.Errorf("should groups for team set to empty array")
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
@@ -198,7 +123,7 @@ resource "github_team" "test_team" {
   description = "team for acc-tests"
 }
 
-resource "github_team_sync_group_mapping" "test_team_group_mapping" {
+resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
@@ -222,11 +147,11 @@ resource "github_team" "test_team" {
   description = "team for acc-tests"
 }
 
-resource "github_team_sync_group_mapping" "test_team_group_mapping" {
+resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = data.github_organization_team_sync_groups.test_groups.groups
+    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if "test_team_group" in g.name]
     content {
       group_id          = each.value.group_id
       group_name        = each.value.group_name
@@ -246,7 +171,7 @@ resource "github_team" "test_team" {
   description = "team for acc-tests"
 }
 
-resource "github_team_sync_group_mapping" "test_team_group_mapping" {
+resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   group = []
