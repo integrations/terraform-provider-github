@@ -17,14 +17,13 @@ https://help.github.com/en/github/setting-up-and-managing-organizations-and-team
 
 ```hcl
 
-data "github_team_sync_groups" "example_groups" {}
+data "github_organization_team_sync_groups" "example_groups" {}
 
 resource "github_team_sync_group_mapping" "example_group_mapping" {
-  retrieve_by      = "slug" 
   team_slug        = "example"
   
   dynamic "group" {
-    for_each = [for g in data.example_groups.groups : g if g.name == "some_team_group"]
+    for_each = [for g in data.github_organization_team_sync_groups.example_groups.groups : g if g.name == "some_team_group"]
     content {
       group_id          = each.value.group_id
       group_name        = each.value.group_name
@@ -38,10 +37,8 @@ resource "github_team_sync_group_mapping" "example_group_mapping" {
 
 The following arguments are supported:
 
-* `retrieve_by`     - (Required) Name of the repository
-* `team_id`         - (Optional) ID of the team  
-* `team_slug`       - (Optional) Slug of the team
-* `group`           - (Optional) An Array of GitHub Identity Provider Groups.  Each `group` block consists of the fields documented below.
+* `team_slug`       - (Required) Slug of the team
+* `group`           - (Required) An Array of GitHub Identity Provider Groups (or empty []).  Each `group` block consists of the fields documented below.
 ___
 
 The `group` block consists of:
@@ -52,10 +49,3 @@ The `group` block consists of:
 
 * `group_description` - The description of the IdP group.
 
-## Attribute Reference
-
-In addition to the above arguments, the following attributes are exported:
-
- * `org_name` - The name of the team's organization.
-
- * `org_id` - The ID of the team's organization.

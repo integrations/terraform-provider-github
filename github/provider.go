@@ -70,15 +70,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_collaborators":      dataSourceGithubCollaborators(),
-			"github_ip_ranges":          dataSourceGithubIpRanges(),
-			"github_release":            dataSourceGithubRelease(),
-			"github_repositories":       dataSourceGithubRepositories(),
-			"github_repository":         dataSourceGithubRepository(),
-			"github_team_sync_groups":   dataSourceGithubTeamSyncGroups(),
-			"github_team":               dataSourceGithubTeam(),
-			"github_user":               dataSourceGithubUser(),
-			"github_actions_public_key": dataSourceGithubActionsPublicKey(),
+			"github_collaborators":                 dataSourceGithubCollaborators(),
+			"github_ip_ranges":                     dataSourceGithubIpRanges(),
+			"github_release":                       dataSourceGithubRelease(),
+			"github_repositories":                  dataSourceGithubRepositories(),
+			"github_repository":                    dataSourceGithubRepository(),
+			"github_organization_team_sync_groups": dataSourceGithubOrganizationTeamSyncGroups(),
+			"github_team":                          dataSourceGithubTeam(),
+			"github_user":                          dataSourceGithubUser(),
+			"github_actions_public_key":            dataSourceGithubActionsPublicKey(),
 		},
 	}
 
