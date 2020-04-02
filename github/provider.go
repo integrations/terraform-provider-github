@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 			"github_branch":             dataSourceGithubBranch(),
 			"github_collaborators":      dataSourceGithubCollaborators(),
 			"github_ip_ranges":          dataSourceGithubIpRanges(),
+			"github_membership":         dataSourceGithubMembership(),
 			"github_release":            dataSourceGithubRelease(),
 			"github_repositories":       dataSourceGithubRepositories(),
 			"github_repository":         dataSourceGithubRepository(),

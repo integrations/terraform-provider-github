@@ -1,4 +1,17 @@
 ## 2.6.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* resource/github_repository: Introduce Option To Manage `Delete Branch on Merge` [GH-399]
+* resource/github_repository: Configure Repository As Template [GH-357]
+* **New Data Source** `github_membership` [GH-396]
+
+## 2.5.1 (April 02, 2020)
+
+BUG FIXES:
+
+* Fix Broken Link For `github_actions_secret` Documentation ([#405](https://github.com/terraform-providers/terraform-provider-github/issues/405))
+
 ## 2.5.0 (March 30, 2020)
 
 ENHANCEMENTS:
