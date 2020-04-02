@@ -1,8 +1,8 @@
-## 2.5.1 (Unreleased)
+## 2.5.1 (April 02, 2020)
 
 BUG FIXES:
 
-* Fix Broken Link For `github_actions_secret` Documentation [GH-405]
+* Fix Broken Link For `github_actions_secret` Documentation ([#405](https://github.com/terraform-providers/terraform-provider-github/issues/405))
 
 ## 2.5.0 (March 30, 2020)
 
