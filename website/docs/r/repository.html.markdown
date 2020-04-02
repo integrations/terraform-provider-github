@@ -49,6 +49,8 @@ The following arguments are supported:
 
 * `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on
   the repository.
+  
+* `is_template` - (Optional) Set to `true` to tell GitHub that this is a template repository.
 
 * `allow_merge_commit` - (Optional) Set to `false` to disable merge commits on the repository.
 
