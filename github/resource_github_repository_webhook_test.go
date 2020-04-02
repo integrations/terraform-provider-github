@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
@@ -33,7 +33,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
 							"content_type": "json",
-							"insecure_ssl": "true",
+							"insecure_ssl": "1",
 						},
 						Active: true,
 					}),
@@ -48,7 +48,7 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
 							"content_type": "form",
-							"insecure_ssl": "false",
+							"insecure_ssl": "0",
 						},
 						Active: false,
 					}),
@@ -84,7 +84,7 @@ func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
 							"url":          "https://www.terraform.io/webhook",
 							"content_type": "json",
 							"secret":       "********",
-							"insecure_ssl": "false",
+							"insecure_ssl": "0",
 						},
 						Active: true,
 					}),

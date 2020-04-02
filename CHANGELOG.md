@@ -1,4 +1,50 @@
-## 2.4.0 (Unreleased)
+## 2.6.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* resource/github_repository: Introduce Option To Manage `Delete Branch on Merge` [GH-399]
+* resource/github_repository: Configure Repository As Template [GH-357]
+* **New Data Source** `github_membership` [GH-396]
+
+## 2.5.1 (April 02, 2020)
+
+BUG FIXES:
+
+* Fix Broken Link For `github_actions_secret` Documentation ([#405](https://github.com/terraform-providers/terraform-provider-github/issues/405))
+
+## 2.5.0 (March 30, 2020)
+
+ENHANCEMENTS:
+
+* Add `apps` To `github_branch_protection` Restrictions
+* **New Data Source** `github_actions_public_key` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
+* **New Data Source** `github_actions_secrets` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
+* **New Resource:** `github_actions_secret` ([[#362](https://github.com/terraform-providers/terraform-provider-github/issues/362)])
+
+BUG FIXES:
+
+* Prevent Panic From DismissalRestrictions ([[#385](https://github.com/terraform-providers/terraform-provider-github/issues/385)])
+* Update `go-github` to `v29.0.3` ([[#369](https://github.com/terraform-providers/terraform-provider-github/issues/369)])
+* Update `go` to `1.13` ([[#372](https://github.com/terraform-providers/terraform-provider-github/issues/372)])
+* Documentation Fixes For Consistency And Typography
+
+
+## 2.4.1 (March 05, 2020)
+
+BUG FIXES:
+
+* Updates `go-github` to `v29` to unblock planned feature development ([#342](https://github.com/terraform-providers/terraform-provider-github/issues/342))
+* Fixes `insecure_ssl` parameter behaviour for `github_organization_webhook` and  `github_repository_webhook` ([#365](https://github.com/terraform-providers/terraform-provider-github/issues/365))
+* Fixes label behaviour to not create new labels when renaming a `github_issue_label` ([#288](https://github.com/terraform-providers/terraform-provider-github/issues/288))
+
+## 2.4.0 (February 26, 2020)
+
+ENHANCEMENTS:
+
+* **New Data Source** `github_release` ([#356](https://github.com/terraform-providers/terraform-provider-github/pull/356))
+
+* **New Resource:** `github_repository_file` ([#318](https://github.com/terraform-providers/terraform-provider-github/pull/318))
+
 ## 2.3.2 (February 05, 2020)
 
 BUG FIXES:

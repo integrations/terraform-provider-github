@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubUserSshKey_basic(t *testing.T) {
@@ -96,12 +96,7 @@ func testAccGithubUserSshKeyConfig(title string) string {
 	return fmt.Sprintf(`
 resource "github_user_ssh_key" "test" {
   title = "%s"
-  key   = "${tls_private_key.test.public_key_openssh}"
-}
-
-resource "tls_private_key" "test" {
-  algorithm   = "ECDSA"
-  ecdsa_curve = "P384"
+  key   = "ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBM3cbPV+J02cSXUJ5pfUfQ839WfYbhmM44J8xCslmZeyGVvql+wdfVoKCToh4N6zokCVkBDgnPL2oWnuyqYL7W2vOUiZLt5USunQ/Ywg7ZVkT1ULiGslF2P72AZVrkoq9Q=="
 }
 `, title)
 }

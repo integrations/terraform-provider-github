@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubTeam_basic(t *testing.T) {
@@ -146,7 +146,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		githubTeam, _, err := conn.Teams.GetTeam(context.TODO(), id)
+		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Organization).id, id)
 		if err != nil {
 			return err
 		}
@@ -179,6 +179,7 @@ func testAccCheckGithubTeamAttributes(team *github.Team, name, description strin
 
 func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).client
+	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team" {
@@ -190,18 +191,24 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		team, resp, err := conn.Teams.GetTeam(context.TODO(), id)
-		if err == nil {
-			teamId := strconv.FormatInt(*team.ID, 10)
-			if team != nil && teamId == rs.Primary.ID {
-				return fmt.Errorf("Team still exists")
+		team, resp, err := conn.Teams.GetTeamByID(context.TODO(), orgId, id)
+		if err != nil {
+			if resp.StatusCode != 404 {
+				return err
 			}
 		}
-		if resp.StatusCode != 404 {
-			return err
+
+		var teamID string
+		if team != nil {
+			teamID = strconv.FormatInt(*team.ID, 10)
 		}
+		if teamID == rs.Primary.ID {
+			return fmt.Errorf("Team still exists")
+		}
+
 		return nil
 	}
+
 	return nil
 }
 

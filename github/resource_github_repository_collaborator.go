@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborator() *schema.Resource {
@@ -63,7 +63,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, err = client.Repositories.AddCollaborator(ctx,
+	_, _, err = client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
 		username,

@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func webhookConfigurationSchema() *schema.Schema {
@@ -25,7 +25,7 @@ func webhookConfigurationSchema() *schema.Schema {
 					Sensitive: true,
 				},
 				"insecure_ssl": {
-					Type:     schema.TypeString,
+					Type:     schema.TypeBool,
 					Optional: true,
 				},
 			},

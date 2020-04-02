@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubTeamRepository_basic(t *testing.T) {
@@ -122,7 +122,8 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, _, err := conn.Teams.IsTeamRepo(context.TODO(),
+		repo, _, err := conn.Teams.IsTeamRepoByID(context.TODO(),
+			testAccProvider.Meta().(*Organization).id,
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)
@@ -137,6 +138,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 
 func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).client
+	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_repository" {
@@ -152,7 +154,8 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, resp, err := conn.Teams.IsTeamRepo(context.TODO(),
+		repo, resp, err := conn.Teams.IsTeamRepoByID(context.TODO(),
+			orgId,
 			teamId,
 			testAccProvider.Meta().(*Organization).name,
 			repoName)

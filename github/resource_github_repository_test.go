@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func init() {
@@ -68,19 +68,20 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						IsTemplate:       false,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						HasProjects:      false,
-						DefaultBranch:    "master",
-						Archived:         false,
+						Name:                name,
+						Description:         description,
+						Homepage:            "http://example.com/",
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
 					}),
 				),
 			},
@@ -557,24 +558,25 @@ func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Re
 }
 
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name              string
-	Description       string
-	Homepage          string
-	Private           bool
-	HasDownloads      bool
-	HasIssues         bool
-	HasProjects       bool
-	HasWiki           bool
-	IsTemplate        bool
-	AllowMergeCommit  bool
-	AllowSquashMerge  bool
-	AllowRebaseMerge  bool
-	AutoInit          bool
-	DefaultBranch     string
-	LicenseTemplate   string
-	GitignoreTemplate string
-	Archived          bool
-	Topics            []string
+	Name                string
+	Description         string
+	Homepage            string
+	Private             bool
+	HasDownloads        bool
+	HasIssues           bool
+	HasProjects         bool
+	HasWiki             bool
+	IsTemplate          bool
+	AllowMergeCommit    bool
+	AllowSquashMerge    bool
+	AllowRebaseMerge    bool
+	DeleteBranchOnMerge bool
+	AutoInit            bool
+	DefaultBranch       string
+	LicenseTemplate     string
+	GitignoreTemplate   string
+	Archived            bool
+	Topics              []string
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {

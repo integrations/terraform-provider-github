@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubIssueLabel_basic(t *testing.T) {
-	var label github.Label
+	var label, updatedLabel github.Label
 
 	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
@@ -33,8 +33,9 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 			{
 				Config: testAccGithubIssueLabelUpdateConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists(rn, &label),
-					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
+					testAccCheckGithubIssueLabelExists(rn, &updatedLabel),
+					testAccCheckGithubIssueLabelAttributes(&updatedLabel, "bar", "FFFFFF"),
+					testAccCheckGithubIssueLabelIDUnchanged(&label, &updatedLabel),
 				),
 			},
 			{
@@ -164,6 +165,15 @@ func testAccCheckGithubIssueLabelAttributes(label *github.Label, name, color str
 			return fmt.Errorf("Issue label color does not match: %s, %s", *label.Color, color)
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckGithubIssueLabelIDUnchanged(label, updatedLabel *github.Label) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		if *label.ID != *updatedLabel.ID {
+			return fmt.Errorf("label was recreated")
+		}
 		return nil
 	}
 }

@@ -27,6 +27,6 @@ resource "github_project_column" "column" {
 
 The following arguments are supported:
 
-* `project_id` - (Required) The id of an existing project that the column will be created in.
+* `project_id` - (Required) The ID of an existing project that the column will be created in.
 
 * `name` - (Required) The name of the column.

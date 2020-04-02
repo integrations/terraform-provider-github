@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v28/github"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubBranchProtection() *schema.Resource {
@@ -119,6 +119,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"teams": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"apps": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -428,17 +433,18 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.RequiredPullRequestReviews
 	if rprr != nil {
-		users := make([]interface{}, 0, len(rprr.DismissalRestrictions.Users))
-		for _, u := range rprr.DismissalRestrictions.Users {
-			if u.Login != nil {
-				users = append(users, *u.Login)
+		var users, teams []interface{}
+		if rprr.DismissalRestrictions != nil {
+			for _, u := range rprr.DismissalRestrictions.Users {
+				if u.Login != nil {
+					users = append(users, *u.Login)
+				}
 			}
-		}
 
-		teams := make([]interface{}, 0, len(rprr.DismissalRestrictions.Teams))
-		for _, t := range rprr.DismissalRestrictions.Teams {
-			if t.Slug != nil {
-				teams = append(teams, *t.Slug)
+			for _, t := range rprr.DismissalRestrictions.Teams {
+				if t.Slug != nil {
+					teams = append(teams, *t.Slug)
+				}
 			}
 		}
 
@@ -473,10 +479,18 @@ func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protec
 			}
 		}
 
+		apps := make([]interface{}, 0, len(restrictions.Apps))
+		for _, t := range restrictions.Apps {
+			if t.Slug != nil {
+				apps = append(apps, *t.Slug)
+			}
+		}
+
 		return d.Set("restrictions", []interface{}{
 			map[string]interface{}{
 				"users": schema.NewSet(schema.HashString, users),
 				"teams": schema.NewSet(schema.HashString, teams),
+				"apps":  schema.NewSet(schema.HashString, apps),
 			},
 		})
 	}
@@ -557,6 +571,7 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 			if v == nil {
 				restrictions.Users = []string{}
 				restrictions.Teams = []string{}
+				restrictions.Apps = []string{}
 				return restrictions, nil
 			}
 			m := v.(map[string]interface{})
@@ -565,6 +580,8 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 			restrictions.Users = users
 			teams := expandNestedSet(m, "teams")
 			restrictions.Teams = teams
+			apps := expandNestedSet(m, "apps")
+			restrictions.Apps = apps
 		}
 		return restrictions, nil
 	}
