@@ -1,3 +1,4 @@
+## 2.6.0 (Unreleased)
 ## 2.5.1 (April 02, 2020)
 
 BUG FIXES:
