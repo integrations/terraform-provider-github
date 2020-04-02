@@ -226,7 +226,7 @@ resource "github_team_sync_group_mapping" "test_team_group_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = data.test_groups.groups
+    for_each = data.github_organization_team_sync_groups.test_groups.groups
     content {
       group_id          = each.value.group_id
       group_name        = each.value.group_name

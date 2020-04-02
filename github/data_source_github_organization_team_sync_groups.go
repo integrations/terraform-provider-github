@@ -80,7 +80,7 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}
 	results := make([]interface{}, 0)
 	for _, group := range idpGroupList.Groups {
 		result := make(map[string]interface{})
-		result["group_id"] = group.GetGroupDescription()
+		result["group_id"] = group.GetGroupID()
 		result["group_name"] = group.GetGroupName()
 		result["group_description"] = group.GetGroupDescription()
 		results = append(results, result)
