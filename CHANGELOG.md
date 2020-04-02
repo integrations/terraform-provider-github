@@ -1,4 +1,9 @@
-## 2.6.0 (Unreleased)
+## 2.5.1 (Unreleased)
+
+BUG FIXES:
+
+* Fix Broken Link For `github_actions_secret` Documentation [GH-405]
+
 ## 2.5.0 (March 30, 2020)
 
 ENHANCEMENTS:
