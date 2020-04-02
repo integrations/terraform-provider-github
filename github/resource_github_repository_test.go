@@ -68,18 +68,20 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						HasProjects:      false,
-						DefaultBranch:    "master",
-						Archived:         false,
+						Name:                name,
+						Description:         description,
+						Homepage:            "http://example.com/",
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
 					}),
 				),
 			},
@@ -94,6 +96,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowMergeCommit: false,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
+						IsTemplate:       true,
 						DefaultBranch:    "master",
 						HasProjects:      false,
 						Archived:         false,
@@ -555,23 +558,25 @@ func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Re
 }
 
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name              string
-	Description       string
-	Homepage          string
-	Private           bool
-	HasDownloads      bool
-	HasIssues         bool
-	HasProjects       bool
-	HasWiki           bool
-	AllowMergeCommit  bool
-	AllowSquashMerge  bool
-	AllowRebaseMerge  bool
-	AutoInit          bool
-	DefaultBranch     string
-	LicenseTemplate   string
-	GitignoreTemplate string
-	Archived          bool
-	Topics            []string
+	Name                string
+	Description         string
+	Homepage            string
+	Private             bool
+	HasDownloads        bool
+	HasIssues           bool
+	HasProjects         bool
+	HasWiki             bool
+	IsTemplate          bool
+	AllowMergeCommit    bool
+	AllowSquashMerge    bool
+	AllowRebaseMerge    bool
+	DeleteBranchOnMerge bool
+	AutoInit            bool
+	DefaultBranch       string
+	LicenseTemplate     string
+	GitignoreTemplate   string
+	Archived            bool
+	Topics              []string
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
@@ -597,6 +602,9 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if *repo.HasWiki != want.HasWiki {
 			return fmt.Errorf("got has wiki %#v; want %#v", *repo.HasWiki, want.HasWiki)
+		}
+		if *repo.IsTemplate != want.IsTemplate {
+			return fmt.Errorf("got has IsTemplate %#v; want %#v", *repo.IsTemplate, want.IsTemplate)
 		}
 		if *repo.AllowMergeCommit != want.AllowMergeCommit {
 			return fmt.Errorf("got allow merge commit %#v; want %#v", *repo.AllowMergeCommit, want.AllowMergeCommit)
@@ -751,6 +759,7 @@ resource "github_repository" "foo" {
 
   has_issues         = true
   has_wiki           = true
+  is_template        = false
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
@@ -782,6 +791,7 @@ resource "github_repository" "foo" {
 
   has_issues         = false
   has_wiki           = false
+  is_template        = true
   allow_merge_commit = false
   allow_squash_merge = true
   allow_rebase_merge = true
