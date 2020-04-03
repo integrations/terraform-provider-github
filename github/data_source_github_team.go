@@ -40,6 +40,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -72,6 +76,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", team.GetDescription())
 	d.Set("privacy", team.GetPrivacy())
 	d.Set("permission", team.GetPermission())
+	d.Set("node_id", team.GetNodeID())
 
 	return nil
 }
