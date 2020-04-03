@@ -1,3 +1,4 @@
+## 2.7.0 (Unreleased)
 ## 2.6.0 (April 03, 2020)
 
 ENHANCEMENTS:
