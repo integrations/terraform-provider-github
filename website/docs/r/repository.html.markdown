@@ -58,7 +58,7 @@ The following arguments are supported:
 
 * `allow_rebase_merge` - (Optional) Set to `false` to disable rebase merges on the repository.
 
-* `auto_delete_head_branch` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
+* `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
 
