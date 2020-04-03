@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -16,7 +18,6 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	}
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("tf-acc-test-%s", randString)
-	groupName := "test_team_group"
 	description := fmt.Sprintf("tf-group-description-%s", randString)
 	rn := "github_team_sync_group_mapping.test_mapping"
 
@@ -28,16 +29,13 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 			{
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(rn, "group.#"),
-					resource.TestCheckResourceAttr(rn, "group.0.name", groupName),
+					testAccCheckGithubTeamSyncGroupMappingMeta(rn),
 				),
 			},
 			{
 				Config: testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(rn, "group.#"),
-					resource.TestCheckResourceAttr(rn, "group.0.description", description),
-					resource.TestCheckResourceAttr(rn, "group.1.description", description),
+					testAccCheckGithubTeamSyncGroupMappingDescriptionUpdateMeta(rn, description),
 				),
 			},
 			{
@@ -55,7 +53,6 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 	}
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("tf-acc-test-%s", randString)
-	groupName := "test_team_group"
 	rn := "github_team_sync_group_mapping.test_mapping"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -66,14 +63,13 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 			{
 				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(rn, "group.#"),
-					resource.TestCheckResourceAttr(rn, "group.0.name", groupName),
+					testAccCheckGithubTeamSyncGroupMappingMeta(rn),
 				),
 			},
 			{
 				Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "0"),
+					resource.TestCheckResourceAttr(rn, "groups.#", "0"),
 				),
 			},
 			{
@@ -83,6 +79,70 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckGithubTeamSyncGroupMappingMeta(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, groupCount, err := getResourceStateAndCount(s, n)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < *groupCount; i++ {
+			idx := "groups." + strconv.Itoa(i)
+			if v, ok := rs.Primary.Attributes[idx+".group_id"]; !ok || v == "" {
+				return fmt.Errorf("group %v is missing group_id", i)
+			}
+			if v, ok := rs.Primary.Attributes[idx+".group_name"]; !ok || v == "" {
+				return fmt.Errorf("group %v is missing group_name", i)
+			}
+			if v, ok := rs.Primary.Attributes[idx+".group_description"]; !ok || v == "" {
+				return fmt.Errorf("group %v is missing group_description", i)
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckGithubTeamSyncGroupMappingDescriptionUpdateMeta(n, description string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, groupCount, err := getResourceStateAndCount(s, n)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < *groupCount; i++ {
+			idx := "groups." + strconv.Itoa(i)
+			if v, ok := rs.Primary.Attributes[idx+".group_description"]; !ok || v != description {
+				return fmt.Errorf("group %v group_description expected %s, actual %s", i, description, v)
+			}
+		}
+
+		return nil
+	}
+}
+
+func getResourceStateAndCount(s *terraform.State, rn string) (*terraform.ResourceState, *int, error) {
+	rs, ok := s.RootModule().Resources[rn]
+	if !ok {
+		return nil, nil, fmt.Errorf("Can't find team-sync group-mappings resource: %s", rn)
+	}
+
+	groupCountStr, ok := rs.Primary.Attributes["groups.#"]
+	if !ok {
+		return rs, nil, errors.New("can't find 'groups' attribute")
+	}
+
+	groupCount, err := strconv.Atoi(groupCountStr)
+	if err != nil {
+		return rs, nil, errors.New("failed to read number of valid groups")
+	}
+	if groupCount < 1 {
+		return rs, &groupCount, fmt.Errorf("expected at least 1 valid group, received %d, this is most likely a bug",
+			groupCount)
+	}
+	return rs, &groupCount, nil
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
@@ -127,7 +187,7 @@ resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if g.name == "test_team_group"]
+    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if g.group_name == "test_team_group"]
     content {
       group_id          = each.value.group_id
       group_name        = each.value.group_name
@@ -151,10 +211,10 @@ resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if "test_team_group" in g.name]
+    for_each = data.github_organization_team_sync_groups.test_groups.groups
     content {
-      group_id          = each.value.group_id
-      group_name        = each.value.group_name
+      group_id          = group.value["group_id"]
+      group_name        = group.value["group_name"]
       group_description = "%s"
     }
   } 
@@ -173,8 +233,7 @@ resource "github_team" "test_team" {
 
 resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
-  
-  group = []
+  groups = []
 }
 `, teamName)
 }

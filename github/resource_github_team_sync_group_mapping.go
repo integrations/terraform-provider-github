@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/v29/github"
@@ -23,7 +24,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"group": {
+			"groups": {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
@@ -79,7 +80,7 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.SetId("github-team-sync-group-mappings")
+	d.SetId(fmt.Sprintf("teams/%s/team-sync/group-mappings", slug))
 
 	return resourceGithubTeamRead(d, meta)
 }
@@ -115,7 +116,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.Set("group", groups)
+	d.Set("groups", groups)
 
 	return nil
 }
@@ -174,8 +175,24 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	return err
 }
 
+func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}, error) {
+	if idpGroupList == nil {
+		return make([]interface{}, 0), nil
+	}
+	results := make([]interface{}, 0)
+	for _, group := range idpGroupList.Groups {
+		result := make(map[string]interface{})
+		result["group_id"] = group.GetGroupID()
+		result["group_name"] = group.GetGroupName()
+		result["group_description"] = group.GetGroupDescription()
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
 func expandTeamSyncGroups(d *schema.ResourceData) (*github.IDPGroupList, error) {
-	if v, ok := d.GetOk("group"); ok {
+	if v, ok := d.GetOk("groups"); ok {
 		vL := v.([]interface{})
 		idpGroupList := new(github.IDPGroupList)
 		groups := make([]*github.IDPGroup, 0)

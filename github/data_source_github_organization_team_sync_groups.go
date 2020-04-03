@@ -67,24 +67,8 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 		options.Page = string(resp.NextPage)
 	}
 
-	d.SetId("github-org-team-sync-groups")
+	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
 	d.Set("groups", groups)
 
 	return nil
-}
-
-func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}, error) {
-	if idpGroupList == nil {
-		return make([]interface{}, 0), nil
-	}
-	results := make([]interface{}, 0)
-	for _, group := range idpGroupList.Groups {
-		result := make(map[string]interface{})
-		result["group_id"] = group.GetGroupID()
-		result["group_name"] = group.GetGroupName()
-		result["group_description"] = group.GetGroupDescription()
-		results = append(results, result)
-	}
-
-	return results, nil
 }

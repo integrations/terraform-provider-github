@@ -17,7 +17,7 @@ data "github_organization_team_sync_groups" "test" {}
 
 ## Attributes Reference
 
- * `group` - An Array of GitHub Identity Provider Groups.  Each `group` block consists of the fields documented below.
+ * `groups` - An Array of GitHub Identity Provider Groups.  Each `group` block consists of the fields documented below.
 
 ___
 
