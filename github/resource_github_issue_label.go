@@ -142,7 +142,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &name))
+	d.SetId(buildTwoPartID(repoName, name))
 
 	return resourceGithubIssueLabelRead(d, meta)
 }
@@ -186,9 +186,9 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("repository", repoName)
 	d.Set("name", name)
-	d.Set("color", githubLabel.Color)
-	d.Set("description", githubLabel.Description)
-	d.Set("url", githubLabel.URL)
+	d.Set("color", githubLabel.GetColor())
+	d.Set("description", githubLabel.GetDescription())
+	d.Set("url", githubLabel.GetURL())
 
 	return nil
 }

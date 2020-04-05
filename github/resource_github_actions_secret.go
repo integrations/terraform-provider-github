@@ -80,7 +80,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repo, &secretName))
+	d.SetId(buildTwoPartID(repo, secretName))
 	return resourceGithubActionsSecretRead(d, meta)
 }
 

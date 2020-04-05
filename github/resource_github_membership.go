@@ -68,7 +68,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+	d.SetId(buildTwoPartID(membership.GetOrganization().GetLogin(), membership.GetUser().GetLogin()))
 
 	return resourceGithubMembershipRead(d, meta)
 }
@@ -110,8 +110,8 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", membership.User.Login)
-	d.Set("role", membership.Role)
+	d.Set("username", membership.GetUser().GetLogin())
+	d.Set("role", membership.GetUser())
 
 	return nil
 }

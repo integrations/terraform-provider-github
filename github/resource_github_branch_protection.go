@@ -183,7 +183,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branch))
+	d.SetId(buildTwoPartID(repoName, branch))
 
 	if err = requireSignedCommitsUpdate(d, meta); err != nil {
 		return err
@@ -237,7 +237,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("repository", repoName)
 	d.Set("branch", branch)
-	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
+	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
@@ -305,7 +305,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		}
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branch))
+	d.SetId(buildTwoPartID(repoName, branch))
 
 	if err = requireSignedCommitsUpdate(d, meta); err != nil {
 		return err
@@ -362,7 +362,7 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 }
 
 func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
-	rsc := protection.RequiredStatusChecks
+	rsc := protection.GetRequiredStatusChecks()
 	if rsc != nil {
 		contexts := make([]interface{}, 0, len(rsc.Contexts))
 		for _, c := range rsc.Contexts {
@@ -431,17 +431,20 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
-	rprr := protection.RequiredPullRequestReviews
+	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
 		var users, teams []interface{}
-		if rprr.DismissalRestrictions != nil {
-			for _, u := range rprr.DismissalRestrictions.Users {
+		restrictions := rprr.GetDismissalRestrictions()
+
+		if restrictions != nil {
+			users = make([]interface{}, 0, len(restrictions.Users))
+			for _, u := range restrictions.Users {
 				if u.Login != nil {
 					users = append(users, *u.Login)
 				}
 			}
-
-			for _, t := range rprr.DismissalRestrictions.Teams {
+			teams = make([]interface{}, 0, len(restrictions.Teams))
+			for _, t := range restrictions.Teams {
 				if t.Slug != nil {
 					teams = append(teams, *t.Slug)
 				}
@@ -463,7 +466,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 }
 
 func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
-	restrictions := protection.Restrictions
+	restrictions := protection.GetRestrictions()
 	if restrictions != nil {
 		users := make([]interface{}, 0, len(restrictions.Users))
 		for _, u := range restrictions.Users {

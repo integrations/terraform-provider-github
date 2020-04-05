@@ -67,7 +67,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*column.ID, 10))
+	d.SetId(strconv.FormatInt(column.GetID(), 10))
 
 	return resourceGithubProjectColumnRead(d, meta)
 }

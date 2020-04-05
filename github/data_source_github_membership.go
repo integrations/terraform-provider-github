@@ -44,10 +44,10 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+	d.SetId(buildTwoPartID(membership.GetOrganization().GetLogin(), membership.GetUser().GetLogin()))
 
-	d.Set("username", membership.User.Login)
-	d.Set("role", membership.Role)
+	d.Set("username", membership.GetUser().GetLogin())
+	d.Set("role", membership.GetRole())
 	d.Set("etag", resp.Header.Get("ETag"))
 	return nil
 }

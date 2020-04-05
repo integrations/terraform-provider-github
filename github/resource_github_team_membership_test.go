@@ -187,15 +187,15 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return err
 		}
 
-		resourceRole := membership.Role
-		actualRole := teamMembership.Role
+		resourceRole := membership.GetRole()
+		actualRole := teamMembership.GetRole()
 
-		if *resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", *resourceRole, expected)
+		if resourceRole != expected {
+			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
-		if *resourceRole != *actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", *resourceRole, *actualRole)
+		if resourceRole != actualRole {
+			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}

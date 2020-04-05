@@ -157,12 +157,12 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 
 func testAccCheckGithubIssueLabelAttributes(label *github.Label, name, color string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *label.Name != name {
-			return fmt.Errorf("Issue label name does not match: %s, %s", *label.Name, name)
+		if n := label.GetName(); n != name {
+			return fmt.Errorf("Issue label name does not match: %s, %s", n, name)
 		}
 
-		if *label.Color != color {
-			return fmt.Errorf("Issue label color does not match: %s, %s", *label.Color, color)
+		if c := label.GetColor(); c != color {
+			return fmt.Errorf("Issue label color does not match: %s, %s", c, color)
 		}
 
 		return nil
@@ -171,7 +171,7 @@ func testAccCheckGithubIssueLabelAttributes(label *github.Label, name, color str
 
 func testAccCheckGithubIssueLabelIDUnchanged(label, updatedLabel *github.Label) resource.TestCheckFunc {
 	return func(_ *terraform.State) error {
-		if *label.ID != *updatedLabel.ID {
+		if label.GetID() != updatedLabel.GetID() {
 			return fmt.Errorf("label was recreated")
 		}
 		return nil
@@ -196,7 +196,7 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 			orgName, repoName, name)
 		if err == nil {
 			if label != nil &&
-				buildTwoPartID(label.Name, label.Color) == rs.Primary.ID {
+				buildTwoPartID(label.GetName(), label.GetColor()) == rs.Primary.ID {
 				return fmt.Errorf("Issue label still exists")
 			}
 		}
