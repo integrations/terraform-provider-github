@@ -24,7 +24,6 @@ jobs:
           echo ::set-env name=RUN_FILTER::$(
             echo $LABEL_NAME | cut -d/ -f 2
           )
-
           if [[ "$RUN_FILTER" != *"TestAcc"* ]]; then exit 1; fi
 
       - name: Checkout
