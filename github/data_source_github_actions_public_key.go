@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
@@ -17,11 +18,11 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 			},
 			"key_id": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 			"key": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 		},
 	}
