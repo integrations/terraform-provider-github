@@ -7,7 +7,7 @@ on:
 jobs:
   acceptance-tests:
     runs-on: ubuntu-latest
-    if: contains(join(github.event.issue.labels.*.name, ', '), 'acceptance-test/')
+    if: contains(join(github.event.issue.labels.*.name, ' '), 'acceptance-test')
     steps:
 
       - name: Parse Context From Environment
@@ -38,6 +38,7 @@ jobs:
 
       - name: Acceptance Tests
         uses: terraformtesting/acceptance-tests@v1.2.0
+        if: startsWith(${{ env.RUN_FILTER }}, 'TestAcc')
         with:
           RUN_FILTER: ${{ env.RUN_FILTER }}
           GITHUB_ORGANIZATION: terraformtesting
