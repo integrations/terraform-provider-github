@@ -48,6 +48,10 @@ func getInvitationPermission(i *github.RepositoryInvitation) (string, error) {
 		return pushPermission, nil
 	} else if *i.Permissions == adminPermission {
 		return adminPermission, nil
+	} else if *i.Permissions == maintainPermission {
+		return maintainPermission, nil
+	} else if *i.Permissions == triagePermission {
+		return triagePermission, nil
 	}
 
 	return "", fmt.Errorf("unexpected permission value: %v", *i.Permissions)
