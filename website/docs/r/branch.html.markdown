@@ -15,21 +15,9 @@ another branch or commit.
 ## Example Usage
 
 ```hcl
-resource "github_repository" "example" {
-  name        = "example"
-  description = "My awesome codebase"
-
-  private = true
-
-  template {
-    owner = "github"
-    repository = "terraform-module-template"
-  }
-}
-
 resource "github_branch" "development" {
-  repository  = github_repository.example.name
-  branch      = "development"
+  repository = "example"
+  branch     = "development"
 }
 ```
 
@@ -49,9 +37,13 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
-* `ref` - A string representing the Github reference, in the form of `refs/heads/<branch>`.
+* `source_sha` - A string storing the commit this branch was started from. Not populated when imported.
 
-* `source_sha` - A string storing the commit this branch was started from. When imported, defaults to the tip of `master` at the time of import.
+* `etag` - An etag representing the Branch object.
+
+* `ref` - A string representing a branch reference, in the form of `refs/heads/<branch>`.
+
+* `sha` - A string storing the reference's `HEAD` commit's SHA1.
 
 ## Import
 

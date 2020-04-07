@@ -30,7 +30,8 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
-* `ref` - A string representing a GitHub reference, in the form of `refs/heads/<branch>`.
+* `etag` - An etag representing the Branch object.
 
-* `sha` - A string storing the reference starting hash.
-  _Note: This is not populated when imported_.
+* `ref` - A string representing a branch reference, in the form of `refs/heads/<branch>`.
+
+* `sha` - A string storing the reference's `HEAD` commit's SHA1.

@@ -20,19 +20,41 @@ func TestAccGithubBranchDataSource_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckGithubBranchDataSourceConfigDefault(name, repo),
+				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "master"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "repository", repo),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
+					resource.TestCheckResourceAttrSet(rn, "etag"),
 					resource.TestCheckResourceAttrSet(rn, "ref"),
 					resource.TestCheckResourceAttrSet(rn, "sha"),
 				),
 			},
 			{
-				Config: testAccCheckGithubBranchDataSourceConfigSpecified(name, repo, "test-branch"),
+				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "master"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "repository", repo),
+					resource.TestCheckResourceAttr(rn, "branch", "master"),
+					resource.TestCheckResourceAttrSet(rn, "etag"),
+					resource.TestCheckResourceAttrSet(rn, "ref"),
+					resource.TestCheckResourceAttrSet(rn, "sha"),
+				),
+			},
+			{
+				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "test-branch"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "repository", repo),
 					resource.TestCheckResourceAttr(rn, "branch", "test-branch"),
+					resource.TestCheckResourceAttrSet(rn, "etag"),
+					resource.TestCheckResourceAttrSet(rn, "ref"),
+					resource.TestCheckResourceAttrSet(rn, "sha"),
+				),
+			},
+			{
+				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "test-branch"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "repository", repo),
+					resource.TestCheckResourceAttr(rn, "branch", "test-branch"),
+					resource.TestCheckResourceAttrSet(rn, "etag"),
 					resource.TestCheckResourceAttrSet(rn, "ref"),
 					resource.TestCheckResourceAttrSet(rn, "sha"),
 				),
@@ -42,15 +64,7 @@ func TestAccGithubBranchDataSource_basic(t *testing.T) {
 
 }
 
-func testAccCheckGithubBranchDataSourceConfigDefault(name, repo string) string {
-	return fmt.Sprintf(`
-data "github_branch" "%s" {
-  repository = "%s"
-}
-`, name, repo)
-}
-
-func testAccCheckGithubBranchDataSourceConfigSpecified(name, repo, branch string) string {
+func testAccCheckGithubBranchDataSourceConfig(name, repo, branch string) string {
 	return fmt.Sprintf(`
 data "github_branch" "%s" {
   repository = "%s"

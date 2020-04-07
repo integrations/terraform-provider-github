@@ -2,8 +2,10 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -15,26 +17,7 @@ func resourceGithubBranch() *schema.Resource {
 		Read:   resourceGithubBranchRead,
 		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*Organization).client
-				orgName := meta.(*Organization).name
-				repoName, _, err := parseTwoPartID(d.Id(), "repository", "branch")
-				if err != nil {
-					return nil, err
-				}
-				sourceBranch := "master"
-
-				log.Printf("[DEBUG] Querying source_branch state to derive source_sha")
-				ref, _, err := client.Git.GetRef(context.Background(), orgName, repoName, "refs/heads/"+sourceBranch)
-				if err != nil {
-					return nil, err
-				}
-
-				d.Set("source_branch", sourceBranch)
-				d.Set("source_sha", *ref.Object.SHA)
-
-				return []*schema.ResourceData{d}, resourceGithubBranchRead(d, meta)
-			},
+			State: resourceGithubBranchImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -68,6 +51,10 @@ func resourceGithubBranch() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"sha": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -87,25 +74,31 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
+	branchRefName := "refs/heads/" + branchName
 	sourceBranchName := d.Get("source_branch").(string)
+	sourceBranchRefName := "refs/heads/" + sourceBranchName
+
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
-		log.Printf("[DEBUG] Querying source_branch state to derive source_sha")
-		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, "refs/heads/"+sourceBranchName)
+		log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s) to derive source_sha",
+			orgName, repoName, sourceBranchRefName)
+		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
 		if err != nil {
-			return err
+			return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
+				orgName, repoName, sourceBranchRefName, err)
 		}
 		d.Set("source_sha", *ref.Object.SHA)
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
-	log.Printf("[DEBUG] Creating repository branch: %s/%s (%s)",
-		orgName, repoName, branchName)
+	log.Printf("[DEBUG] Creating GitHub branch reference %s/%s (%s)",
+		orgName, repoName, branchRefName)
 	_, _, err = client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
-		Ref:    github.String("refs/heads/" + branchName),
-		Object: &github.GitObject{SHA: github.String(sourceBranchSHA)},
+		Ref:    &branchRefName,
+		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating GitHub branch reference %s/%s (%s): %s",
+			orgName, repoName, branchRefName, err)
 	}
 
 	d.SetId(buildTwoPartID(&repoName, &branchName))
@@ -130,23 +123,25 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Reading repository branch: %s/%s (%s)",
-		orgName, repoName, branchName)
-	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, "refs/heads/"+branchName)
+	log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s)",
+		orgName, repoName, branchRefName)
+	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch %s/%s from state because it no longer exists in Github",
-					orgName, repoName)
+				log.Printf("[WARN] Removing branch %s/%s (%s) from state because it no longer exists in Github",
+					orgName, repoName, branchName)
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
+			orgName, repoName, branchRefName, err)
 	}
 
 	d.SetId(buildTwoPartID(&repoName, &branchName))
@@ -154,6 +149,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("repository", repoName)
 	d.Set("branch", branchName)
 	d.Set("ref", *ref.Ref)
+	d.Set("sha", *ref.Object.SHA)
 
 	return nil
 }
@@ -172,10 +168,35 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
+	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Deleting repository branch: %s/%s (%s)",
-		orgName, repoName, branchName)
-	_, err = client.Git.DeleteRef(ctx, orgName, repoName, "refs/heads/"+branchName)
+	log.Printf("[DEBUG] Deleting GitHub branch reference %s/%s (%s)",
+		orgName, repoName, branchRefName)
+	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
+	if err != nil {
+		return fmt.Errorf("Error deleting GitHub branch reference %s/%s (%s): %s",
+			orgName, repoName, branchRefName, err)
+	}
 
-	return err
+	return nil
+}
+
+func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return nil, err
+	}
+
+	sourceBranch := "master"
+	if strings.Contains(branchName, ":") {
+		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
+		if err != nil {
+			return nil, err
+		}
+		d.SetId(buildTwoPartID(&repoName, &branchName))
+	}
+
+	d.Set("source_branch", sourceBranch)
+
+	return []*schema.ResourceData{d}, resourceGithubBranchRead(d, meta)
 }

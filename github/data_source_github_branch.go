@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -19,9 +20,12 @@ func dataSourceGithubBranch() *schema.Resource {
 			},
 			"branch": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
-				Default:  "master",
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"ref": {
 				Type:     schema.TypeString,
@@ -45,16 +49,19 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
+	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Reading repository branch: %s/%s (%s)",
-		orgName, repoName, branchName)
-	ref, _, err := client.Git.GetRef(
-		context.TODO(), orgName, repoName, "refs/heads/"+branchName)
+	log.Printf("[DEBUG] Reading GitHub branch reference %s/%s (%s)",
+		orgName, repoName, branchRefName)
+	ref, resp, err := client.Git.GetRef(
+		context.TODO(), orgName, repoName, branchRefName)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error reading GitHub branch reference %s/%s (%s): %s",
+			orgName, repoName, branchRefName, err)
 	}
 
 	d.SetId(buildTwoPartID(&repoName, &branchName))
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("ref", *ref.Ref)
 	d.Set("sha", *ref.Object.SHA)
 
