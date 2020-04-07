@@ -1,9 +1,9 @@
-## 2.6.1 (Unreleased)
+## 2.6.1 (April 07, 2020)
 
 BUG FIXES:
 
-* Documentation Fix For Option To Manage `Delete Branch on Merge` [GH-408]
-* Documentation Fix For `github_actions_secret` / `github_actions_public_key` [GH-413]
+* Documentation Fix For Option To Manage `Delete Branch on Merge` ([#408](https://github.com/terraform-providers/terraform-provider-github/issues/408))
+* Documentation Fix For `github_actions_secret` / `github_actions_public_key` ([#413](https://github.com/terraform-providers/terraform-provider-github/issues/413))
 
 ## 2.6.0 (April 03, 2020)
 
