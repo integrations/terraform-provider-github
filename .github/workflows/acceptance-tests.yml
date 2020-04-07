@@ -7,6 +7,7 @@ on:
 jobs:
   acceptance-tests:
     runs-on: ubuntu-latest
+    if: contains(join(github.event.pull_request.labels.*.name, ', '), 'acceptance-test')
     steps:
 
       - name: Parse Context From Environment
@@ -23,9 +24,7 @@ jobs:
           echo ::set-env name=RUN_FILTER::$(
             echo $LABEL_NAME | cut -d/ -f 2
           )
-
-      - name: Match Expected Label Prefix
-        run: echo ${LABEL_NAME} | egrep -q "^acceptance-test/"
+          if [[ "$LABEL_NAME" != *"TestAcc"* ]]; then exit 1; fi
 
       - name: Checkout
         uses: actions/checkout@v2.0.0
