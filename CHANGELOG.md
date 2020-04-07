@@ -1,4 +1,10 @@
-## 2.7.0 (Unreleased)
+## 2.6.1 (Unreleased)
+
+BUG FIXES:
+
+* Documentation Fix For Option To Manage `Delete Branch on Merge` [GH-408]
+* Documentation Fix For `github_actions_secret` / `github_actions_public_key` [GH-413]
+
 ## 2.6.0 (April 03, 2020)
 
 ENHANCEMENTS:
