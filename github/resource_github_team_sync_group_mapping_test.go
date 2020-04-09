@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -25,20 +26,24 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+				Config:      testAccGithubTeamSyncGroupMappingConfig(teamName),
+				ExpectError: regexp.MustCompile(`Not Found`),
 			},
 			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("couldn't be found: %s", rn)),
 			},
 			{
-				Config: testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
+				Config:      testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
+				ExpectError: regexp.MustCompile(`Not Found`),
 			},
 			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("couldn't be found: %s", rn)),
 			},
 		},
 	})
@@ -58,20 +63,24 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+				Config:      testAccGithubTeamSyncGroupMappingConfig(teamName),
+				ExpectError: regexp.MustCompile(`Not Found`),
 			},
 			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("couldn't be found: %s", rn)),
 			},
 			{
-				Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
+				Config:      testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
+				ExpectError: regexp.MustCompile(`Not Found`),
 			},
 			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("couldn't be found: %s", rn)),
 			},
 		},
 	})
@@ -90,7 +99,7 @@ func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
 		if err != nil {
 			return err
 		}
-		groupList, _, err := conn.Teams.ListIDPGroupsForTeam(ctx, string(team.GetID()))
+		groupList, _, err := conn.Teams.ListIDPGroupsForTeam(ctx, team.GetName())
 		if err != nil {
 			return err
 		}
@@ -119,11 +128,11 @@ resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if g.group_name == "test_team_group"]
+    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if length(regexall("^acctest-github-provider", g.group_name)) > 0]
     content {
-      group_id          = each.value.group_id
-      group_name        = each.value.group_name
-      group_description = each.value.group_description
+      group_id          = group.value.group_id
+      group_name        = group.value.group_name
+      group_description = group.value.group_description
     }
   } 
 }
@@ -143,10 +152,10 @@ resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
   
   dynamic "group" {
-    for_each = data.github_organization_team_sync_groups.test_groups.groups
+    for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if length(regexall("^acctest-github-provider", g.group_name)) > 0]
     content {
-      group_id          = group.value["group_id"]
-      group_name        = group.value["group_name"]
+      group_id          = group.value.group_id
+      group_name        = group.value.group_name
       group_description = "%s"
     }
   } 
@@ -165,7 +174,6 @@ resource "github_team" "test_team" {
 
 resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
-  groups = []
 }
 `, teamName)
 }

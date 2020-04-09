@@ -24,9 +24,9 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"groups": {
-				Type:     schema.TypeList,
-				Required: true,
+			"group": {
+				Type:     schema.TypeSet,
+				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -69,12 +69,9 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	idpGroupList, err := expandTeamSyncGroups(d)
-	if err != nil {
-		return err
-	}
+	idpGroupList := expandTeamSyncGroups(d)
 	log.Printf("[DEBUG] Creating team-sync group mapping (Team: %s)", team.GetName())
-	_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnections(ctx, string(team.GetID()), *idpGroupList)
+	_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), *idpGroupList)
 	if err != nil {
 		return err
 	}
@@ -106,7 +103,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Reading team-sync group mapping (Team: %s)", team.GetName())
-	idpGroupList, _, err := client.Teams.ListIDPGroupsForTeam(ctx, string(team.GetID()))
+	idpGroupList, _, err := client.Teams.ListIDPGroupsForTeam(ctx, team.GetName())
 	if err != nil {
 		return err
 	}
@@ -137,12 +134,9 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	idpGroupList, err := expandTeamSyncGroups(d)
-	if err != nil {
-		return err
-	}
+	idpGroupList := expandTeamSyncGroups(d)
 	log.Printf("[DEBUG] Updating team-sync group mapping (Team: %s)", team.GetName())
-	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, string(team.GetID()), *idpGroupList)
+	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), *idpGroupList)
 	if err != nil {
 		return err
 	}
@@ -170,7 +164,7 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	emptyGroupList := github.IDPGroupList{Groups: groups}
 
 	log.Printf("[DEBUG] Deleting team-sync group mapping (Team: %s)", team.GetName())
-	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, string(team.GetID()), emptyGroupList)
+	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), emptyGroupList)
 
 	return err
 }
@@ -191,21 +185,28 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}
 	return results, nil
 }
 
-func expandTeamSyncGroups(d *schema.ResourceData) (*github.IDPGroupList, error) {
-	if v, ok := d.GetOk("groups"); ok {
-		vL := v.([]interface{})
-		idpGroupList := new(github.IDPGroupList)
-		groups := make([]*github.IDPGroup, 0)
+// expandTeamSyncGroups creates an IDPGroupList with an array of IdP groups
+// defined in the *schema.ResourceData to be later used to create or update
+// IdP group connections in Github; if the "group" key is not present,
+// an empty array must be set in the IDPGroupList per API endpoint specs:
+// https://developer.github.com/v3/teams/team_sync/#create-or-update-idp-group-connections
+func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
+	groups := make([]*github.IDPGroup, 0)
+	if v, ok := d.GetOk("group"); ok {
+		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			m := v.(map[string]interface{})
-			group := new(github.IDPGroup)
-			group.GroupID = m["group_id"].(*string)
-			group.GroupName = m["group_name"].(*string)
-			group.GroupDescription = m["group_description"].(*string)
+			groupID := m["group_id"].(string)
+			groupName := m["group_name"].(string)
+			groupDescription := m["group_description"].(string)
+			group := &github.IDPGroup{
+				GroupID:          &groupID,
+				GroupName:        &groupName,
+				GroupDescription: &groupDescription,
+			}
 			groups = append(groups, group)
 		}
-		idpGroupList.Groups = groups
-		return idpGroupList, nil
 	}
-	return nil, nil
+	return &github.IDPGroupList{Groups: groups}
+
 }
