@@ -189,7 +189,7 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 
 	sourceBranch := "master"
 	if strings.Contains(branchName, ":") {
-		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
+		_, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
 		if err != nil {
 			return nil, err
 		}
