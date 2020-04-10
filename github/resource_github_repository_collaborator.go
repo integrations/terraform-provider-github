@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -63,7 +63,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, _, err = client.Repositories.AddCollaborator(ctx,
+	_, resp, err := client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
 		username,
@@ -73,6 +73,9 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode == http.StatusNoContent {
+		return fmt.Errorf("User %s is already a collaborator", username)
 	}
 
 	d.SetId(buildTwoPartID(&repoName, &username))
