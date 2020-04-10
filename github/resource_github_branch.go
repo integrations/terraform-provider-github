@@ -182,7 +182,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	_, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,6 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 		if err != nil {
 			return nil, err
 		}
-		d.SetId(buildTwoPartID(&repoName, &branchName))
 	}
 
 	d.Set("source_branch", sourceBranch)
