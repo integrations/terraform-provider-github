@@ -49,7 +49,7 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 }
 
 func testAccGithubProjectColumnDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_project_column" {
@@ -87,7 +87,7 @@ func testAccCheckGithubProjectColumnExists(n string, project *github.ProjectColu
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		gotColumn, _, err := conn.Projects.GetProjectColumn(context.TODO(), columnID)
 		if err != nil {
 			return err

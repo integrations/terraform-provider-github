@@ -50,7 +50,7 @@ func testAccCheckGithubUserGpgKeyExists(n string, key *github.GPGKey) resource.T
 		}
 
 		org := testAccProvider.Meta().(*Organization)
-		receivedKey, _, err := org.client.Users.GetGPGKey(context.TODO(), id)
+		receivedKey, _, err := org.v3client.Users.GetGPGKey(context.TODO(), id)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func testAccCheckGithubUserGpgKeyExists(n string, key *github.GPGKey) resource.T
 }
 
 func testAccCheckGithubUserGpgKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_user_gpg_key" {

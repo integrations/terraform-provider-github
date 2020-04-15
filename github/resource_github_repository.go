@@ -202,7 +202,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
 		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
@@ -271,7 +271,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	repoName := d.Id()
 
@@ -343,7 +343,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
@@ -383,7 +383,7 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

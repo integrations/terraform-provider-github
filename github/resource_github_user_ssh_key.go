@@ -48,7 +48,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 }
 
 func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
@@ -69,7 +69,7 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -105,7 +105,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
