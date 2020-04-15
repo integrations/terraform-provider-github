@@ -199,6 +199,7 @@ func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, fun
 	mux.HandleFunc("/users/hashibot", testRespondJson(userResponseBody))
 	mux.HandleFunc("/users/hashibot/gpg_keys", testRespondJson(gpgKeysResponseBody))
 	mux.HandleFunc("/users/hashibot/keys", testRespondJson(keysResponseBody))
+	mux.HandleFunc("/orgs/"+testOrganization, testRespondJson(orgResponseBody(port)))
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -317,3 +318,14 @@ const keysResponseBody = `[
     "key": "ssh-rsa AAA..."
   }
 ]`
+
+func orgResponseBody(port string) string {
+	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOrganization)
+	return fmt.Sprintf(`
+{
+	"login": "%s",
+	"url" : "%s",
+	"repos_url": "%s/repos"
+}
+`, testOrganization, url, url)
+}
