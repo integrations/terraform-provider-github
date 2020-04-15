@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func init() {
@@ -50,11 +52,13 @@ func testSweepRepositories(region string) error {
 
 func TestAccGithubRepository_basic(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
@@ -62,27 +66,29 @@ func TestAccGithubRepository_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						HasProjects:      false,
-						DefaultBranch:    "master",
-						Archived:         false,
+						Name:                name,
+						Description:         description,
+						Homepage:            "http://example.com/",
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
 					}),
 				),
 			},
 			{
 				Config: testAccGithubRepositoryUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      "Updated " + description,
@@ -90,11 +96,20 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						AllowMergeCommit: false,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
+						IsTemplate:       true,
 						DefaultBranch:    "master",
 						HasProjects:      false,
 						Archived:         false,
 					}),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -102,11 +117,13 @@ func TestAccGithubRepository_basic(t *testing.T) {
 
 func TestAccGithubRepository_archive(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
@@ -114,7 +131,7 @@ func TestAccGithubRepository_archive(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryArchivedConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -130,17 +147,27 @@ func TestAccGithubRepository_archive(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
@@ -148,7 +175,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -167,7 +194,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryArchivedConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -183,23 +210,8 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 					}),
 				),
 			},
-		},
-	})
-}
-
-func TestAccGithubRepository_importBasic(t *testing.T) {
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryConfig(randString),
-			},
-			{
-				ResourceName:      "github_repository.foo",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -207,13 +219,39 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_hasProjects(t *testing.T) {
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigHasProjects(randString),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
@@ -221,7 +259,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigDefaultBranch(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      description,
@@ -240,11 +278,13 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 			},
 			{
 				PreConfig: func() {
-					testAccCreateRepositoryBranch("foo", *repo.Name)
+					if err := testAccCreateRepositoryBranch("foo", *repo.Name); err != nil {
+						panic(err.Error())
+					}
 				},
 				Config: testAccGithubRepositoryUpdateConfigDefaultBranch(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:             name,
 						Description:      "Updated " + description,
@@ -261,17 +301,27 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_templates(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
@@ -279,7 +329,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTemplates(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:              name,
 						Description:       description,
@@ -298,30 +348,52 @@ func TestAccGithubRepository_templates(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "gitignore_template", "license_template",
+				},
+			},
 		},
 	})
 }
 
 func TestAccGithubRepository_topics(t *testing.T) {
 	var repo github.Repository
+
+	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
 	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"TOPIC"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
+			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"-topic"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
+			{
+				Config:      testAccGithubRepositoryConfigTopics(randString, `"töpic"`),
+				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
+			},
+			{
 				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2"`),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
 						Homepage:    "http://example.com/",
-						Topics:      []string{"topic1", "topic2"},
+						Topics:      []string{"topic2", "topic1"},
 
 						// non-zero defaults
 						DefaultBranch:    "master",
@@ -334,7 +406,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2", "topic3"`),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
@@ -352,7 +424,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfigTopics(randString, ``),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryExists(rn, &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
 						Name:        name,
 						Description: description,
@@ -366,6 +438,86 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						AllowRebaseMerge: true,
 					}),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryConfigAutoInitForceNew(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "auto_init", "false"),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryConfigAutoInitForceNewUpdate(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "auto_init", "true"),
+					resource.TestCheckResourceAttr(rn, "license_template", "mpl-2.0"),
+					resource.TestCheckResourceAttr(rn, "gitignore_template", "Go"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "license_template", "gitignore_template",
+				},
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_createFromTemplate(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCreateFromTemplate(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryTemplateRepoAttribute(rn, &repo),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
 			},
 		},
 	})
@@ -394,24 +546,37 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 	}
 }
 
+func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Repository) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if *repo.TemplateRepository.IsTemplate != true {
+			return fmt.Errorf("got repo %q; want %q", *repo.TemplateRepository, repo)
+		}
+
+		return nil
+	}
+}
+
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name              string
-	Description       string
-	Homepage          string
-	Private           bool
-	HasDownloads      bool
-	HasIssues         bool
-	HasProjects       bool
-	HasWiki           bool
-	AllowMergeCommit  bool
-	AllowSquashMerge  bool
-	AllowRebaseMerge  bool
-	AutoInit          bool
-	DefaultBranch     string
-	LicenseTemplate   string
-	GitignoreTemplate string
-	Archived          bool
-	Topics            []string
+	Name                string
+	Description         string
+	Homepage            string
+	Private             bool
+	HasDownloads        bool
+	HasIssues           bool
+	HasProjects         bool
+	HasWiki             bool
+	IsTemplate          bool
+	AllowMergeCommit    bool
+	AllowSquashMerge    bool
+	AllowRebaseMerge    bool
+	DeleteBranchOnMerge bool
+	AutoInit            bool
+	DefaultBranch       string
+	LicenseTemplate     string
+	GitignoreTemplate   string
+	Archived            bool
+	Topics              []string
 }
 
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
@@ -432,8 +597,14 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if *repo.HasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", *repo.HasIssues, want.HasIssues)
 		}
+		if *repo.HasProjects != want.HasProjects {
+			return fmt.Errorf("got has projects %#v; want %#v", *repo.HasProjects, want.HasProjects)
+		}
 		if *repo.HasWiki != want.HasWiki {
 			return fmt.Errorf("got has wiki %#v; want %#v", *repo.HasWiki, want.HasWiki)
+		}
+		if *repo.IsTemplate != want.IsTemplate {
+			return fmt.Errorf("got has IsTemplate %#v; want %#v", *repo.IsTemplate, want.IsTemplate)
 		}
 		if *repo.AllowMergeCommit != want.AllowMergeCommit {
 			return fmt.Errorf("got allow merge commit %#v; want %#v", *repo.AllowMergeCommit, want.AllowMergeCommit)
@@ -450,6 +621,8 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		if len(want.Topics) != len(repo.Topics) {
 			return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
 		}
+		sort.Strings(repo.Topics)
+		sort.Strings(want.Topics)
 		for i := range want.Topics {
 			if repo.Topics[i] != want.Topics[i] {
 				return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
@@ -576,41 +749,53 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 func testAccGithubRepositoryConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues         = true
+  has_wiki           = true
+  is_template        = false
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
-  has_downloads = true
+  has_downloads      = true
+  auto_init          = false
 }
 `, randString, randString)
+}
+
+func testAccGithubRepositoryConfigHasProjects(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  has_projects = true
+}
+`, randString)
 }
 
 func testAccGithubRepositoryUpdateConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Updated Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Updated Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = false
-  has_wiki = false
+  has_issues         = false
+  has_wiki           = false
+  is_template        = true
   allow_merge_commit = false
   allow_squash_merge = true
   allow_rebase_merge = true
-  has_downloads = false
+  has_downloads      = false
 }
 `, randString, randString)
 }
@@ -618,21 +803,21 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryArchivedConfig(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues         = true
+  has_wiki           = true
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
-  has_downloads = true
-  archived = true
+  has_downloads      = true
+  archived           = true
 }
 `, randString, randString)
 }
@@ -640,21 +825,22 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryConfigDefaultBranch(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues         = true
+  has_wiki           = true
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
-  has_downloads = true
-  auto_init = true
+  has_downloads      = true
+  auto_init          = true
+  default_branch     = "master"
 }
 `, randString, randString)
 }
@@ -662,22 +848,22 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryUpdateConfigDefaultBranch(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Updated Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Updated Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues         = true
+  has_wiki           = true
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
-  has_downloads = true
-  auto_init = true
-  default_branch = "foo"
+  has_downloads      = true
+  auto_init          = true
+  default_branch     = "foo"
 }
 `, randString, randString)
 }
@@ -685,25 +871,56 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryConfigTemplates(randString string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Terraform acceptance tests %s"
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues         = true
+  has_wiki           = true
   allow_merge_commit = true
   allow_squash_merge = false
   allow_rebase_merge = false
-  has_downloads = true
+  has_downloads      = true
 
-  license_template = "ms-pl"
+  license_template   = "ms-pl"
   gitignore_template = "C++"
 }
 `, randString, randString)
+}
+
+func testAccGithubRepositoryCreateFromTemplate(randString string) string {
+
+	owner := os.Getenv("GITHUB_ORGANIZATION")
+	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+	template {
+		owner = "%s"
+		repository = "%s"
+	}
+
+	# So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues         = true
+  has_wiki           = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+
+}
+`, randString, randString, owner, repository)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
@@ -720,4 +937,29 @@ resource "github_repository" "foo" {
   topics = [%s]
 }
 `, randString, randString, topicList)
+}
+
+func testAccGithubRepositoryConfigAutoInitForceNew(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name      = "tf-acc-test-%s"
+  auto_init = false
+}
+`, randString)
+}
+
+func testAccGithubRepositoryConfigAutoInitForceNewUpdate(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name               = "tf-acc-test-%s"
+  auto_init          = true
+  license_template   = "mpl-2.0"
+  gitignore_template = "Go"
+}
+
+resource "github_branch_protection" "repo_name_master" {
+  repository = "${github_repository.foo.name}"
+  branch     = "master"
+}
+`, randString)
 }

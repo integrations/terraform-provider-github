@@ -3,49 +3,76 @@ package github
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
-	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryDeployKeyExists("github_repository_deploy_key.test_repo_deploy_key"),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "read_only", "false"),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "repository", repositoryName),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "key", testAccGithubRepositoryDeployKeytestDeployKey),
-					resource.TestCheckResourceAttr("github_repository_deploy_key.test_repo_deploy_key", "title", "title"),
-				),
-			},
+func TestSuppressDeployKeyDiff(t *testing.T) {
+	testCases := []struct {
+		OldValue, NewValue string
+		ExpectSuppression  bool
+	}{
+		{
+			"ssh-rsa AAAABB...cd+==",
+			"ssh-rsa AAAABB...cd+== terraform-acctest@hashicorp.com\n",
+			true,
 		},
-	})
+		{
+			"ssh-rsa AAAABB...cd+==",
+			"ssh-rsa AAAABB...cd+==",
+			true,
+		},
+		{
+			"ssh-rsa AAAABV...cd+==",
+			"ssh-rsa DIFFERENT...cd+==",
+			false,
+		},
+	}
+
+	tcCount := len(testCases)
+	for i, tc := range testCases {
+		suppressed := suppressDeployKeyDiff("test", tc.OldValue, tc.NewValue, nil)
+		if tc.ExpectSuppression && !suppressed {
+			t.Fatalf("%d/%d: Expected %q and %q to be suppressed",
+				i+1, tcCount, tc.OldValue, tc.NewValue)
+		}
+		if !tc.ExpectSuppression && suppressed {
+			t.Fatalf("%d/%d: Expected %q and %q NOT to be suppressed",
+				i+1, tcCount, tc.OldValue, tc.NewValue)
+		}
+	}
+
 }
 
-func TestAccGithubRepositoryDeployKey_importBasic(t *testing.T) {
+func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
+	rn := "github_repository_deploy_key.test_repo_deploy_key"
 	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	resource.Test(t, resource.TestCase{
+	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
+
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName),
+				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryDeployKeyExists(rn),
+					resource.TestCheckResourceAttr(rn, "read_only", "false"),
+					resource.TestCheckResourceAttr(rn, "repository", repositoryName),
+					resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
+					resource.TestCheckResourceAttr(rn, "title", "title"),
+				),
 			},
 			{
-				ResourceName:      "github_repository_deploy_key.test_repo_deploy_key",
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -61,18 +88,18 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Owner).name
-		r, i, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
 		}
 
-		id, err := strconv.ParseInt(i, 10, 64)
+		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(idString, err)
 		}
 
-		_, resp, err := conn.Repositories.GetKey(context.TODO(), o, r, id)
+		_, resp, err := conn.Repositories.GetKey(context.TODO(), ownerName, repoName, id)
 
 		if err != nil && resp.Response.StatusCode != 404 {
 			return err
@@ -95,18 +122,18 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 		}
 
 		conn := testAccProvider.Meta().(*Owner).client
-		o := testAccProvider.Meta().(*Owner).name
-		r, i, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
 		}
 
-		id, err := strconv.ParseInt(i, 10, 64)
+		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(idString, err)
 		}
 
-		_, _, err = conn.Repositories.GetKey(context.TODO(), o, r, id)
+		_, _, err = conn.Repositories.GetKey(context.TODO(), ownerName, repoName, id)
 		if err != nil {
 			return err
 		}
@@ -115,19 +142,17 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 	}
 }
 
-const testAccGithubRepositoryDeployKeytestDeployKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDnDk1liOxXwE27fjOVVHl6RNVgQznGqGIfhsoa5QNfLOcoWJR3EIv44dSUx1GSvxQ7uR9qBY/i/SEdAbKdupo3Ru5sykc0GqaMRVys+Cin/Lgnl6+ntmTZOudNjIbz10Vfu/dKmexSzqlD3XWzPGXRI5WyKWzvc2XKjRdfnOOzogJpqJ5kh/CN0ZhCzBPTu/b4mJl2ionTEzEeLK2g4Re4IuU/dGoyf0LGLidjmqhSY7dQtL+mfte9m3x/BQTrDf0+AW3kGWXR8EL0EyIJ2HRtHW67YnoOcTAFK0hDCuKgvt78rqdUQ2bVjcsIhNqnvQMPf3ZeZ5bP2JqB9zKaFl8uaRJv+TdxEeFTkgnbYb85M+aBggBYr6xxeb24g7WlU0iPxJ8GmjvCizxe2I1DOJDRDozn1sinKjapNRdJy00iuo46TJC5Wgmid0vnMJ7SMZtubz+btxhoFLt4F4U2JnILaYG4/buJg4H/GkqmkE8G3hr4b4mgsFXBtBFgK6uCTFQSvvV7TyyWkZxHL6DRCxL/Dp0bSj+EM8Tw1K304EvkBEO3rMyvPs4nXL7pepyKWalmUI8U4Qp2xMXSq7fmfZY55osb03MUAtKl0wJ/ykyKOwYWeLbubSVcc6VPx5bXZmnM5bTcZdYW9+vNt86X2F2b0h/sIkGNEPpqQQBzElY+fQ=="
-
-func testAccGithubRepositoryDeployKeyConfig(name string) string {
+func testAccGithubRepositoryDeployKeyConfig(name, keyPath string) string {
 	return fmt.Sprintf(`
-  resource "github_repository" "test_repo" {
-		name = "%s"
-	}
+resource "github_repository" "test_repo" {
+  name = "%s"
+}
 
-	resource "github_repository_deploy_key" "test_repo_deploy_key" {
-    key = "%s"
-    read_only = "false"
-    repository = "${github_repository.test_repo.name}"
-    title = "title"
-  }
-`, name, testAccGithubRepositoryDeployKeytestDeployKey)
+resource "github_repository_deploy_key" "test_repo_deploy_key" {
+  key        = "${file("%s")}"
+  read_only  = "false"
+  repository = "${github_repository.test_repo.name}"
+  title      = "title"
+}
+`, name, keyPath)
 }

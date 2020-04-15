@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubRepository() *schema.Resource {
@@ -98,19 +98,27 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
 
-	orgName := meta.(*Owner).name
+	client := meta.(*Owner).client
+	ownerName := meta.(*Owner).name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
-		orgName, repoName, err = splitRepoFullName(fullName.(string))
+		ownerName, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
 			return err
 		}
@@ -123,8 +131,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("One of %q or %q has to be provided", "full_name", "name")
 	}
 
-	log.Printf("[DEBUG] Reading GitHub repository %s/%s", orgName, repoName)
-	repo, _, err := client.Repositories.Get(context.TODO(), orgName, repoName)
+	log.Printf("[DEBUG] Reading GitHub repository %s/%s", ownerName, repoName)
+	repo, _, err := client.Repositories.Get(context.TODO(), ownerName, repoName)
 	if err != nil {
 		return err
 	}
@@ -149,6 +157,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
 	d.Set("archived", repo.Archived)
+	d.Set("node_id", repo.GetNodeID())
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
 	if err != nil {

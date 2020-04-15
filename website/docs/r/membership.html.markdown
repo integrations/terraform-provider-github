@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_membership"
-sidebar_current: "docs-github-resource-membership"
 description: |-
   Provides a GitHub membership resource.
 ---
@@ -35,7 +34,7 @@ The following arguments are supported:
 
 ## Import
 
-GitHub Membership can be imported using an id made up of `organization:username`, e.g.
+GitHub Membership can be imported using an ID made up of `organization:username`, e.g.
 
 ```
 $ terraform import github_membership.member hashicorp:someuser

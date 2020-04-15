@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team"
-sidebar_current: "docs-github-resource-team-x"
 description: |-
   Provides a GitHub team resource.
 ---
@@ -40,10 +39,13 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the created team.
+* `slug` - The slug of the created team, which may or may not differ from `name`,
+  depending on whether `name` contains "URL-unsafe" characters.
+  Useful when referencing the team in [`github_branch_protection`](/docs/providers/github/r/branch_protection.html).
 
 ## Import
 
-GitHub Teams can be imported using the github team Id e.g.
+GitHub Teams can be imported using the GitHub team ID e.g.
 
 ```
 $ terraform import github_team.core 1234567

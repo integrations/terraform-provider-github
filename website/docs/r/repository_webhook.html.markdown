@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_webhook"
-sidebar_current: "docs-github-resource-repository-webhook"
 description: |-
   Creates and manages repository webhooks within GitHub organizations
 ---
@@ -46,15 +45,15 @@ resource "github_repository_webhook" "foo" {
 
 The following arguments are supported:
 
-* `name` - (Required) The type of the webhook. See a list of [available hooks](https://api.github.com/hooks).
-
 * `repository` - (Required) The repository of the webhook.
 
-* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
+* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
 
-* `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
+* `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`. `secret` is [the shared secret, see API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
 
 * `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
+
+* `name` - (Optional) The type of the webhook. `web` is the default and the only option.
 
 ## Attributes Reference
 
@@ -64,7 +63,7 @@ The following additional attributes are exported:
 
 ## Import
 
-Repository Webhooks can be imported using the `name` of the repository, combined with the `id` of the webhook, separated by a `/` character.
+Repository webhooks can be imported using the `name` of the repository, combined with the `id` of the webhook, separated by a `/` character.
 The `id` of the webhook can be found in the URL of the webhook. For example: `"https://github.com/foo-org/foo-repo/settings/hooks/14711452"`.
 
 Importing uses the name of the repository, as well as the ID of the webhook, e.g.
@@ -72,3 +71,5 @@ Importing uses the name of the repository, as well as the ID of the webhook, e.g
 ```
 $ terraform import github_repository_webhook.terraform terraform/11235813
 ```
+
+If secret is populated in the webhook's configuration, the value will be imported as "********".

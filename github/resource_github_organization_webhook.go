@@ -2,11 +2,12 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubOrganizationWebhook() *schema.Resource {
@@ -17,23 +18,22 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		Update: resourceGithubOrganizationWebhookUpdate,
 		Delete: resourceGithubOrganizationWebhookDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubWebhookMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGithubOrganizationWebhookName,
+				Type:     schema.TypeString,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
 			},
-			"events": &schema.Schema{
+			"events": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"configuration": {
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
+			"configuration": webhookConfigurationSchema(),
 			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -43,81 +43,143 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func validateGithubOrganizationWebhookName(v interface{}, k string) (ws []string, errors []error) {
-	if v.(string) != "web" {
-		errors = append(errors, fmt.Errorf("Github: name can only be web"))
-	}
-	return
-}
-
 func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hook {
-	url := d.Get("url").(string)
-	active := d.Get("active").(bool)
 	events := []string{}
 	eventSet := d.Get("events").(*schema.Set)
 	for _, v := range eventSet.List() {
 		events = append(events, v.(string))
 	}
-	name := d.Get("name").(string)
 
 	hook := &github.Hook{
-		Name:   &name,
-		URL:    &url,
+		URL:    github.String(d.Get("url").(string)),
 		Events: events,
-		Active: &active,
-		Config: d.Get("configuration").(map[string]interface{}),
+		Active: github.Bool(d.Get("active").(bool)),
+	}
+
+	config := d.Get("configuration").([]interface{})
+	if len(config) > 0 {
+		hook.Config = config[0].(map[string]interface{})
 	}
 
 	return hook
 }
 
 func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hk := resourceGithubOrganizationWebhookObject(d)
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	hook, _, err := client.Organizations.CreateHook(context.TODO(), meta.(*Owner).name, hk)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	webhookObj := resourceGithubOrganizationWebhookObject(d)
+	ctx := context.Background()
+
+	log.Printf("[DEBUG] Creating organization webhook: %d (%s)", webhookObj.GetID(), ownerName)
+	hook, _, err := client.Organizations.CreateHook(ctx, ownerName, webhookObj)
+
 	if err != nil {
 		return err
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from our request to GitHub
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = webhookObj.Config["secret"]
+	}
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
 func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hookID, _ := strconv.ParseInt(d.Id(), 10, 64)
-
-	hook, resp, err := client.Organizations.GetHook(context.TODO(), meta.(*Owner).name, hookID)
+	err := checkOrganization(meta)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			d.SetId("")
-			return nil
+		return err
+	}
+
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading organization webhook: %s (%s)", d.Id(), ownerName)
+	hook, resp, err := client.Organizations.GetHook(ctx, ownerName, hookID)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing organization webhook %s/%s from state because it no longer exists in GitHub",
+					ownerName, d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
-	d.Set("name", hook.Name)
+
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
-	d.Set("configuration", hook.Config)
+
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from what we get from
+	// ResourceData
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
+	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
 
 func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hk := resourceGithubOrganizationWebhookObject(d)
-	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Organizations.EditHook(context.TODO(), meta.(*Owner).name, hookID, hk)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	webhookObj := resourceGithubOrganizationWebhookObject(d)
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Updating organization webhook: %s (%s)", d.Id(), ownerName)
+
+	_, _, err = client.Organizations.EditHook(ctx,
+		ownerName, hookID, webhookObj)
 	if err != nil {
 		return err
 	}
@@ -126,12 +188,21 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Organizations.DeleteHook(context.TODO(), meta.(*Owner).name, hookID)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting organization webhook: %s (%s)", d.Id(), ownerName)
+	_, err = client.Organizations.DeleteHook(ctx, ownerName, hookID)
 	return err
 }

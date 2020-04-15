@@ -2,48 +2,89 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	rn := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),
-					testAccCheckGithubRepositoryCollaboratorPermission("github_repository_collaborator.test_repo_collaborator"),
+					testAccCheckGithubRepositoryCollaboratorExists(rn),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn),
+					resource.TestCheckResourceAttr(rn, "permission", expectedPermission),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
 }
 
-func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
+func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	rn := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
-	resource.Test(t, resource.TestCase{
+	var origInvitation github.RepositoryInvitation
+	var otherInvitation github.RepositoryInvitation
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
+				),
 			},
 			{
-				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, otherCase),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, otherCase, &otherInvitation),
+					resource.TestCheckResourceAttr(rn, "username", testCollaborator),
+					testAccGithubRepositoryCollaboratorTheSame(&origInvitation, &otherInvitation),
+				),
+			},
+			{
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -60,7 +101,7 @@ func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
 		}
 
 		o := testAccProvider.Meta().(*Owner).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		r, u, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
@@ -93,20 +134,21 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 		}
 
 		conn := testAccProvider.Meta().(*Owner).client
-		o := testAccProvider.Meta().(*Owner).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
 
-		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
+		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
+			ownerName, repoName, nil)
 		if err != nil {
 			return err
 		}
 
 		hasInvitation := false
 		for _, i := range invitations {
-			if *i.Invitee.Login == u {
+			if *i.Invitee.Login == username {
 				hasInvitation = true
 				break
 			}
@@ -132,19 +174,20 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		}
 
 		conn := testAccProvider.Meta().(*Owner).client
-		o := testAccProvider.Meta().(*Owner).name
-		r, u, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
 
-		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(), o, r, nil)
+		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
+			ownerName, repoName, nil)
 		if err != nil {
 			return err
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == u {
+			if *i.Invitee.Login == username {
 				permName, err := getInvitationPermission(i)
 
 				if err != nil {
@@ -163,16 +206,60 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 	}
 }
 
-func testAccGithubRepositoryCollaboratorConfig(repoName string) string {
+func testAccGithubRepositoryCollaboratorConfig(repoName, username string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
-	name = "%s"
+  name = "%s"
 }
 
-  resource "github_repository_collaborator" "test_repo_collaborator" {
-    repository = "${github_repository.test.name}"
-    username = "%s"
-    permission = "%s"
-  }
-`, repoName, testCollaborator, expectedPermission)
+resource "github_repository_collaborator" "test_repo_collaborator" {
+  repository = "${github_repository.test.name}"
+  username   = "%s"
+  permission = "%s"
+}
+`, repoName, username, expectedPermission)
+}
+
+func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, invitation *github.RepositoryInvitation) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		opt := &github.ListOptions{PerPage: maxPerPage}
+
+		client := testAccProvider.Meta().(*Owner).client
+		org := testAccProvider.Meta().(*Owner).name
+
+		for {
+			invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), org, repoName, opt)
+			if err != nil {
+				return errors.New(err.Error())
+			}
+
+			if len(invitations) > 1 {
+				return fmt.Errorf("multiple invitations have been sent for repository %s", repoName)
+			}
+
+			for _, i := range invitations {
+				if strings.EqualFold(*i.Invitee.Login, username) {
+					invitation = i
+					return nil
+				}
+			}
+
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
+		}
+
+		return fmt.Errorf("no invitation found for %s", username)
+	}
+}
+
+func testAccGithubRepositoryCollaboratorTheSame(orig, other *github.RepositoryInvitation) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if orig.ID != other.ID {
+			return errors.New("collaborators are different")
+		}
+
+		return nil
+	}
 }

@@ -2,13 +2,15 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"strconv"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubTeam() *schema.Resource {
-
 	return &schema.Resource{
 		Create: resourceGithubTeamCreate,
 		Read:   resourceGithubTeamRead,
@@ -41,27 +43,46 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"slug": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	n := d.Get("name").(string)
-	desc := d.Get("description").(string)
-	p := d.Get("privacy").(string)
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	newTeam := &github.NewTeam{
-		Name:        n,
-		Description: &desc,
-		Privacy:     &p,
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	name := d.Get("name").(string)
+	newTeam := github.NewTeam{
+		Name:        name,
+		Description: github.String(d.Get("description").(string)),
+		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
+	ctx := context.Background()
 
-	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Owner).name, newTeam)
+	log.Printf("[DEBUG] Creating team: %s (%s)", name, ownerName)
+	githubTeam, _, err := client.Teams.CreateTeam(ctx,
+		ownerName, newTeam)
 	if err != nil {
 		return err
 	}
@@ -70,24 +91,52 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *githubTeam.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *githubTeam.ID, mapping)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(fromGithubID(githubTeam.ID))
+	d.SetId(strconv.FormatInt(*githubTeam.ID, 10))
 	return resourceGithubTeamRead(d, meta)
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-
-	team, err := getGithubTeam(d, client)
+	err := checkOrganization(meta)
 	if err != nil {
-		d.SetId("")
-		return nil
+		return err
 	}
+
+	client := meta.(*Owner).client
+	orgId := meta.(*Owner).id
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading team: %s", d.Id())
+	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
 	d.Set("privacy", team.Privacy)
@@ -97,33 +146,39 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("parent_team_id", "")
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
+	d.Set("slug", team.GetSlug())
+	d.Set("node_id", team.GetNodeID())
+
 	return nil
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	team, err := getGithubTeam(d, client)
-
+	err := checkOrganization(meta)
 	if err != nil {
-		d.SetId("")
-		return nil
+		return err
 	}
 
-	name := d.Get("name").(string)
-	description := d.Get("description").(string)
-	privacy := d.Get("privacy").(string)
+	client := meta.(*Owner).client
+	orgId := meta.(*Owner).id
 
-	editedTeam := &github.NewTeam{
-		Name:        name,
-		Description: &description,
-		Privacy:     &privacy,
+	editedTeam := github.NewTeam{
+		Name:        d.Get("name").(string),
+		Description: github.String(d.Get("description").(string)),
+		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		editedTeam.ParentTeamID = &id
 	}
 
-	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, editedTeam)
+	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Updating team: %s", d.Id())
+	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
 	if err != nil {
 		return err
 	}
@@ -133,25 +188,32 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *team.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *team.ID, mapping)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(fromGithubID(team.ID))
+	d.SetId(strconv.FormatInt(*team.ID, 10))
 	return resourceGithubTeamRead(d, meta)
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	id := toGithubID(d.Id())
-	_, err := client.Organizations.DeleteTeam(context.TODO(), id)
-	return err
-}
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-func getGithubTeam(d *schema.ResourceData, github *github.Client) (*github.Team, error) {
-	id := toGithubID(d.Id())
-	team, _, err := github.Organizations.GetTeam(context.TODO(), id)
-	return team, err
+	client := meta.(*Owner).client
+	orgId := meta.(*Owner).id
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting team: %s", d.Id())
+	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	return err
 }

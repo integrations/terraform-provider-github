@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_issue_label"
-sidebar_current: "docs-github-resource-issue-label"
 description: |-
   Provides a GitHub issue label resource.
 ---
@@ -42,11 +41,13 @@ The following arguments are supported:
 
 * `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
 
+* `description` - (Optional) A short description of the label.
+
 * `url` - (Computed) The URL to the issue label
 
 ## Import
 
-GitHub Issue Labels can be imported using an id made up of `repository:name`, e.g.
+GitHub Issue Labels can be imported using an ID made up of `repository:name`, e.g.
 
 ```
 $ terraform import github_issue_label.panic_label terraform:panic

@@ -2,17 +2,18 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubMembership() *schema.Resource {
-
 	return &schema.Resource{
-		Create: resourceGithubMembershipCreate,
+		Create: resourceGithubMembershipCreateOrUpdate,
 		Read:   resourceGithubMembershipRead,
-		Update: resourceGithubMembershipUpdate,
+		Update: resourceGithubMembershipCreateOrUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -20,9 +21,10 @@ func resourceGithubMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: caseInsensitive(),
 			},
 			"role": {
 				Type:         schema.TypeString,
@@ -30,17 +32,38 @@ func resourceGithubMembership() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	n := d.Get("username").(string)
-	r := d.Get("role").(string)
+func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
 
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Owner).name,
-		&github.Membership{Role: &r})
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	username := d.Get("username").(string)
+	roleName := d.Get("role").(string)
+	ctx := context.Background()
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxId, d.Id())
+	}
+
+	log.Printf("[DEBUG] Creating membership: %s/%s", ownerName, username)
+	membership, _, err := client.Organizations.EditOrgMembership(ctx,
+		username,
+		ownerName,
+		&github.Membership{
+			Role: github.String(roleName),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -51,44 +74,61 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	_, n, err := parseTwoPartID(d.Id())
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Owner).name)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
 	if err != nil {
-		d.SetId("")
-		return nil
+		return err
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
+	log.Printf("[DEBUG] Reading membership: %s", d.Id())
+	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
+		username, ownerName)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing membership %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("username", membership.User.Login)
 	d.Set("role", membership.Role)
-	return nil
-}
-
-func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	n := d.Get("username").(string)
-	r := d.Get("role").(string)
-
-	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Owner).name, &github.Membership{
-		Role: &r,
-	})
-	if err != nil {
-		return err
-	}
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
 
 	return nil
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	n := d.Get("username").(string)
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
 
-	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Owner).name)
+	client := meta.(*Owner).client
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
+	_, err = client.Organizations.RemoveOrgMembership(ctx,
+		d.Get("username").(string), ownerName)
 
 	return err
 }

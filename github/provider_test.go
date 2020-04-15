@@ -7,23 +7,35 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 var testUser string = os.Getenv("GITHUB_TEST_USER")
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var testOrganization string = os.Getenv("GITHUB_ORGANIZATION")
 
 var testAccProviders map[string]terraform.ResourceProvider
+var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
 var testAccProvider *schema.Provider
 
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"github": testAccProvider,
+	}
+	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory {
+		return map[string]terraform.ResourceProviderFactory{
+			"github": func() (terraform.ResourceProvider, error) {
+				p := Provider()
+				*providers = append(*providers, p.(*schema.Provider))
+				return p, nil
+			},
+		}
 	}
 }
 
@@ -50,6 +62,86 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TEST_COLLABORATOR"); v == "" {
 		t.Fatal("GITHUB_TEST_COLLABORATOR must be set for acceptance tests")
 	}
+	if v := os.Getenv("GITHUB_TEMPLATE_REPOSITORY"); v == "" {
+		t.Fatal("GITHUB_TEMPLATE_REPOSITORY must be set for acceptance tests")
+	}
+	if v := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID"); v == "" {
+		t.Fatal("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID must be set for acceptance tests")
+	}
+}
+
+func TestProvider_individual(t *testing.T) {
+
+	username := "hashibot"
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				// Test individual is true.  Because GITHUB_ORGANIZATION should be set for these tests, we'll pass an
+				// empty string for `org` to unset the organization
+				Config: configProviderOrganization("", true) + testAccCheckGithubUserDataSourceConfig(username),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
+				),
+			},
+			{
+				// Test individual is true, but resource requires organization.  Because GITHUB_ORGANIZATION should be
+				// set for these tests, we'll pass an empty string for `org` to unset the organization
+				Config:      configProviderOrganization("", true) + testAccGithubMembershipConfig(username),
+				ExpectError: regexp.MustCompile("This resource requires GitHub organization to be set on the provider."),
+			},
+			{
+				// Test conflicting `individual` and `organization`
+				Config:      configProviderOrganization(testOrganization, true) + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `individual` is true, `organization` cannot be set."),
+			},
+			{
+				// Test neither `individual` or `organization` is set.  Because GITHUB_ORGANIZATION should be
+				// set for these tests, we'll pass an empty string for `org` to unset the organization
+				Config:      configProviderOrganization("", false) + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `individual` is false, `organization` is required."),
+			},
+		},
+	})
+}
+
+func TestProvider_anonymous(t *testing.T) {
+
+	username := "hashibot"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				// Test anonymous is true.  Because GITHUB_TOKEN should be set for these tests, we'll pass an
+				// empty string for `token` to unset the token
+				Config: configProviderToken("", true) + testAccCheckGithubUserDataSourceConfig(username),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+					resource.TestCheckResourceAttr("data.github_user.test", "name", "HashiBot"),
+				),
+			},
+			{
+				// Test conflicting `anonymous` and `token`
+				Config:      configProviderToken(os.Getenv("GITHUB_TOKEN"), true) + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `anonymous` is true, `token` cannot be set."),
+			},
+			{
+				// Test neither `anonymous` or `token` is set.  Because GITHUB_TOKEN should be
+				// set for these tests, we'll pass an empty string for `token` to unset the token
+				Config:      configProviderToken("", false) + testAccCheckGithubUserDataSourceConfig(username),
+				ExpectError: regexp.MustCompile("If `anonymous` is false, `token` is required."),
+			},
+		},
+	})
 }
 
 func TestProvider_insecure(t *testing.T) {
@@ -60,8 +152,13 @@ func TestProvider_insecure(t *testing.T) {
 	certFile := filepath.Join("test-fixtures", "cert.pem")
 	keyFile := filepath.Join("test-fixtures", "key.pem")
 
-	url, closeFunc := githubApiMock(port, certFile, keyFile, t)
-	defer closeFunc()
+	url, closeFunc := githubTLSApiMock(port, certFile, keyFile, t)
+	defer func() {
+		err := closeFunc()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	oldBaseUrl := os.Getenv("GITHUB_BASE_URL")
 	defer os.Setenv("GITHUB_BASE_URL", oldBaseUrl)
@@ -97,7 +194,7 @@ func TestProvider_insecure(t *testing.T) {
 	})
 }
 
-func githubApiMock(port, certFile, keyFile string, t *testing.T) (string, func() error) {
+func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, func() error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users/hashibot", testRespondJson(userResponseBody))
 	mux.HandleFunc("/users/hashibot/gpg_keys", testRespondJson(gpgKeysResponseBody))
@@ -108,6 +205,7 @@ func githubApiMock(port, certFile, keyFile string, t *testing.T) (string, func()
 		Handler: mux,
 	}
 
+	// nolint: errcheck
 	go server.ListenAndServeTLS(certFile, keyFile)
 
 	return "https://localhost:" + port + "/", server.Close
@@ -116,8 +214,28 @@ func githubApiMock(port, certFile, keyFile string, t *testing.T) (string, func()
 func testRespondJson(responseBody string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(responseBody))
+		if _, err := w.Write([]byte(responseBody)); err != nil {
+			return
+		}
 	}
+}
+
+func configProviderOrganization(org string, individual bool) string {
+	return fmt.Sprintf(`
+provider "github" {
+    organization = "%s"
+    individual = %s
+}
+`, org, strconv.FormatBool(individual))
+}
+
+func configProviderToken(token string, anonymous bool) string {
+	return fmt.Sprintf(`
+provider "github" {
+    token = "%s"
+    anonymous = %s
+}
+`, token, strconv.FormatBool(anonymous))
 }
 
 const userResponseBody = `{

@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubIpRanges() *schema.Resource {
@@ -9,22 +9,22 @@ func dataSourceGithubIpRanges() *schema.Resource {
 		Read: dataSourceGithubIpRangesRead,
 
 		Schema: map[string]*schema.Schema{
-			"hooks": &schema.Schema{
+			"hooks": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"git": &schema.Schema{
+			"git": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"pages": &schema.Schema{
+			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"importer": &schema.Schema{
+			"importer": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},

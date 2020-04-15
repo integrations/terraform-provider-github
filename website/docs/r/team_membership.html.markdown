@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_team_membership"
-sidebar_current: "docs-github-resource-team-membership"
 description: |-
   Provides a GitHub team membership resource.
 ---
@@ -47,7 +46,7 @@ The following arguments are supported:
 
 ## Import
 
-GitHub Team Membership can be imported using an id made up of `teamid:username`, e.g.
+GitHub Team Membership can be imported using an ID made up of `teamid:username`, e.g.
 
 ```
 $ terraform import github_team_membership.member 1234567:someuser

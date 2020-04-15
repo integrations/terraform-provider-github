@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_ip_ranges"
-sidebar_current: "docs-github-datasource-ip-ranges"
+page_title: "GitHub: github_ip_ranges"
 description: |-
-  Get information on a GitHub's IP addresses.
----
+  Get information on GitHub's IP addresses.
+-------------------------------------------
 
 # github_ip_ranges
 
-Use this data source to retrieve information about a GitHub's IP addresses.
+Use this data source to retrieve information about GitHub's IP addresses.
+
 ## Example Usage
 
 ```hcl

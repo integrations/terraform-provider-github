@@ -8,17 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryWebhookDestroy,
@@ -26,9 +27,8 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
 						Events: []string{"pull_request"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhook",
@@ -42,9 +42,8 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryWebhookUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryWebhookExists("github_repository_webhook.foo", fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
 					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
-						Name:   "web",
 						Events: []string{"issues"},
 						Configuration: map[string]interface{}{
 							"url":          "https://google.de/webhooks",
@@ -55,26 +54,48 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:        rn,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+			},
 		},
 	})
 }
 
-func TestAccGithubRepositoryWebhook_importBasic(t *testing.T) {
+func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
+	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	var hook github.Hook
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		CheckDestroy: testAccCheckGithubRepositoryWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryWebhookConfig(randString),
+				Config: testAccGithubRepositoryWebhookConfig_secret(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryWebhookExists(rn, fmt.Sprintf("foo-%s", randString), &hook),
+					testAccCheckGithubRepositoryWebhookAttributes(&hook, &testAccGithubRepositoryWebhookExpectedAttributes{
+						Events: []string{"pull_request"},
+						Configuration: map[string]interface{}{
+							"url":          "https://www.terraform.io/webhook",
+							"content_type": "json",
+							"secret":       "********",
+							"insecure_ssl": "0",
+						},
+						Active: true,
+					}),
+				),
 			},
 			{
-				ResourceName:        "github_repository_webhook.foo",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+				ResourceName:            rn,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("foo-%s/", randString),
+				ImportStateVerifyIgnore: []string{"configuration.0.secret"},
 			},
 		},
 	})
@@ -87,7 +108,10 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 			return fmt.Errorf("Not Found: %s", n)
 		}
 
-		hookID, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		hookID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return unconvertibleIdErr(rs.Primary.ID, err)
+		}
 		if hookID == 0 {
 			return fmt.Errorf("No repository name is set")
 		}
@@ -104,7 +128,6 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 }
 
 type testAccGithubRepositoryWebhookExpectedAttributes struct {
-	Name          string
 	Events        []string
 	Configuration map[string]interface{}
 	Active        bool
@@ -113,9 +136,6 @@ type testAccGithubRepositoryWebhookExpectedAttributes struct {
 func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *testAccGithubRepositoryWebhookExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *hook.Name != want.Name {
-			return fmt.Errorf("got hook %q; want %q", *hook.Name, want.Name)
-		}
 		if *hook.Active != want.Active {
 			return fmt.Errorf("got hook %t; want %t", *hook.Active, want.Active)
 		}
@@ -144,7 +164,7 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
-			return err
+			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
 		gotHook, resp, err := conn.Repositories.GetHook(context.TODO(), ownerName, rs.Primary.Attributes["repository"], id)
@@ -163,49 +183,17 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 func testAccGithubRepositoryWebhookConfig(randString string) string {
 	return fmt.Sprintf(`
-    resource "github_repository" "foo" {
-      name = "foo-%s"
-      description = "Terraform acceptance tests"
-      homepage_url = "http://example.com/"
-
-      # So that acceptance tests can be run in a github organization
-      # with no billing
-      private = false
-
-      has_issues = true
-      has_wiki = true
-      has_downloads = true
-    }
-
-    resource "github_repository_webhook" "foo" {
-      depends_on = ["github_repository.foo"]
-      repository = "foo-%s"
-
-      name = "web"
-      configuration {
-        url = "https://google.de/webhook"
-        content_type = "json"
-        insecure_ssl = true
-      }
-
-      events = ["pull_request"]
-    }
-    `, randString, randString)
-}
-
-func testAccGithubRepositoryWebhookUpdateConfig(randString string) string {
-	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "foo-%s"
-  description = "Terraform acceptance tests"
+  name         = "foo-%s"
+  description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
-  has_issues = true
-  has_wiki = true
+  has_issues    = true
+  has_wiki      = true
   has_downloads = true
 }
 
@@ -213,9 +201,70 @@ resource "github_repository_webhook" "foo" {
   depends_on = ["github_repository.foo"]
   repository = "foo-%s"
 
-  name = "web"
   configuration {
-    url = "https://google.de/webhooks"
+    url          = "https://google.de/webhook"
+    content_type = "json"
+    insecure_ssl = true
+  }
+
+  events = ["pull_request"]
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryWebhookConfig_secret(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "foo-%s"
+  description  = "Terraform acceptance tests"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues    = true
+  has_wiki      = true
+  has_downloads = true
+}
+
+resource "github_repository_webhook" "foo" {
+  repository = "${github_repository.foo.name}"
+
+  configuration {
+    url          = "https://www.terraform.io/webhook"
+    content_type = "json"
+    secret       = "RandomSecretString"
+    insecure_ssl = false
+  }
+
+  events = ["pull_request"]
+}
+`, randString)
+}
+
+func testAccGithubRepositoryWebhookUpdateConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "foo-%s"
+  description  = "Terraform acceptance tests"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues    = true
+  has_wiki      = true
+  has_downloads = true
+}
+
+resource "github_repository_webhook" "foo" {
+  depends_on = ["github_repository.foo"]
+  repository = "foo-%s"
+
+  configuration {
+    url          = "https://google.de/webhooks"
     content_type = "form"
     insecure_ssl = false
   }

@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_collaborator"
-sidebar_current: "docs-github-resource-repository-collaborator"
 description: |-
   Provides a GitHub repository collaborator resource.
 ---
@@ -44,10 +43,15 @@ The following arguments are supported:
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
             Must be one of `pull`, `push`, or `admin`. Defaults to `push`.
 
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+* `invitation_id` - ID of the invitation to be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html)
 
 ## Import
 
-GitHub Repository Collaborators can be imported using an id made up of `repository:username`, e.g.
+GitHub Repository Collaborators can be imported using an ID made up of `repository:username`, e.g.
 
 ```
 $ terraform import github_repository_collaborator.collaborator terraform:someuser

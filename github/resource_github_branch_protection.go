@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubBranchProtection() *schema.Resource {
@@ -95,6 +98,12 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
+						"required_approving_review_count": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1,
+							ValidateFunc: validation.IntBetween(1, 6),
+						},
 					},
 				},
 			},
@@ -114,6 +123,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						"apps": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -122,68 +136,136 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"require_signed_commits": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).client
-	r := d.Get("repository").(string)
-	b := d.Get("branch").(string)
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	branch := d.Get("branch").(string)
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
 		return err
 	}
+	ctx := context.Background()
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Owner).name, r, b, protectionRequest)
+	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
+		ownerName, repoName, branch)
+	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
+		ownerName,
+		repoName,
+		branch,
+		protectionRequest,
+	)
 	if err != nil {
 		return err
 	}
-	d.SetId(buildTwoPartID(&r, &b))
+
+	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
+		return err
+	}
+
+	d.SetId(buildTwoPartID(&repoName, &branch))
+
+	if err = requireSignedCommitsUpdate(d, meta); err != nil {
+		return err
+	}
 
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	r, b, err := parseTwoPartID(d.Id())
+	err := checkOwner(meta)
 	if err != nil {
 		return err
 	}
 
-	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Owner).name, r, b)
+	client := meta.(*Owner).client
+
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
-			d.SetId("")
-			return nil
+		return err
+	}
+	ownerName := meta.(*Owner).name
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
+		ownerName, repoName, branch)
+	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
+		ownerName, repoName, branch)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				if err := requireSignedCommitsRead(d, meta); err != nil {
+					return fmt.Errorf("Error setting signed commit restriction: %v", err)
+				}
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
+					ownerName, repoName, branch)
+				d.SetId("")
+				return nil
+			}
 		}
 
 		return err
 	}
 
-	d.Set("repository", r)
-	d.Set("branch", b)
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("repository", repoName)
+	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
 
-	if err := flattenRequiredStatusChecks(d, githubProtection); err != nil {
+	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
 	}
 
-	if err := flattenRequiredPullRequestReviews(d, githubProtection); err != nil {
+	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
 	}
 
-	if err := flattenRestrictions(d, githubProtection); err != nil {
+	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting restrictions: %v", err)
+	}
+
+	if err := requireSignedCommitsRead(d, meta); err != nil {
+		return fmt.Errorf("Error setting signed commit restriction: %v", err)
 	}
 
 	return nil
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).client
-	r, b, err := parseTwoPartID(d.Id())
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
 	}
@@ -193,61 +275,93 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateBranchProtection(context.TODO(), meta.(*Owner).name, r, b, protectionRequest)
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
+		ownerName, repoName, branch)
+	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
+		ownerName,
+		repoName,
+		branch,
+		protectionRequest,
+	)
 	if err != nil {
 		return err
 	}
 
+	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
+		return err
+	}
+
 	if protectionRequest.RequiredPullRequestReviews == nil {
-		_, err = client.Repositories.RemovePullRequestReviewEnforcement(context.TODO(), meta.(*Owner).name, r, b)
+		_, err = client.Repositories.RemovePullRequestReviewEnforcement(ctx,
+			ownerName,
+			repoName,
+			branch,
+		)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(buildTwoPartID(&r, &b))
+	d.SetId(buildTwoPartID(&repoName, &branch))
+
+	if err = requireSignedCommitsUpdate(d, meta); err != nil {
+		return err
+	}
 
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	r, b, err := parseTwoPartID(d.Id())
+	err := checkOwner(meta)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Repositories.RemoveBranchProtection(context.TODO(), meta.(*Owner).name, r, b)
+	client := meta.(*Owner).client
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", ownerName, repoName, branch)
+	_, err = client.Repositories.RemoveBranchProtection(ctx,
+		ownerName, repoName, branch)
 	return err
 }
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
-	protectionRequest := new(github.ProtectionRequest)
+	req := &github.ProtectionRequest{
+		EnforceAdmins: d.Get("enforce_admins").(bool),
+	}
 
 	rsc, err := expandRequiredStatusChecks(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.RequiredStatusChecks = rsc
+	req.RequiredStatusChecks = rsc
 
 	rprr, err := expandRequiredPullRequestReviews(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.RequiredPullRequestReviews = rprr
+	req.RequiredPullRequestReviews = rprr
 
 	res, err := expandRestrictions(d)
 	if err != nil {
 		return nil, err
 	}
-	protectionRequest.Restrictions = res
+	req.Restrictions = res
 
-	protectionRequest.EnforceAdmins = d.Get("enforce_admins").(bool)
-
-	return protectionRequest, nil
+	return req, nil
 }
 
-func flattenRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
+func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
 	rsc := protection.RequiredStatusChecks
 	if rsc != nil {
 		contexts := make([]interface{}, 0, len(rsc.Contexts))
@@ -255,56 +369,100 @@ func flattenRequiredStatusChecks(d *schema.ResourceData, protection *github.Prot
 			contexts = append(contexts, c)
 		}
 
-		if err := d.Set("required_status_checks", []interface{}{
+		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
 				"strict":   rsc.Strict,
 				"contexts": schema.NewSet(schema.HashString, contexts),
 			},
-		}); err != nil {
-			return err
-		}
-	} else {
-		d.Set("required_status_checks", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("required_status_checks", []interface{}{})
 }
 
-func flattenRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
+func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*Owner).client
+
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+	ownerName := meta.(*Owner).name
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading branch protection signed commit status: %s/%s (%s)", ownerName, repoName, branch)
+	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
+		ownerName, repoName, branch)
+	if err != nil {
+		log.Printf("[WARN] Not able to read signature protection: %s/%s (%s)", ownerName, repoName, branch)
+		return nil
+	}
+
+	return d.Set("require_signed_commits", signedCommitStatus.Enabled)
+}
+
+func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+	requiredSignedCommit := d.Get("require_signed_commits").(bool)
+	client := meta.(*Owner).client
+
+	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+	ownerName := meta.(*Owner).name
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	if requiredSignedCommit {
+		log.Printf("[DEBUG] Enabling branch protection signed commit: %s/%s (%s) - $s", ownerName, repoName, branch)
+		_, _, err = client.Repositories.RequireSignaturesOnProtectedBranch(ctx, ownerName, repoName, branch)
+	} else {
+		log.Printf("[DEBUG] Removing branch protection signed commit: %s/%s (%s) - $s", ownerName, repoName, branch)
+		_, err = client.Repositories.OptionalSignaturesOnProtectedBranch(ctx, ownerName, repoName, branch)
+	}
+	return err
+}
+
+func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.RequiredPullRequestReviews
 	if rprr != nil {
-		users := make([]interface{}, 0, len(rprr.DismissalRestrictions.Users))
-		for _, u := range rprr.DismissalRestrictions.Users {
-			if u.Login != nil {
-				users = append(users, *u.Login)
+		var users, teams []interface{}
+		if rprr.DismissalRestrictions != nil {
+			for _, u := range rprr.DismissalRestrictions.Users {
+				if u.Login != nil {
+					users = append(users, *u.Login)
+				}
+			}
+
+			for _, t := range rprr.DismissalRestrictions.Teams {
+				if t.Slug != nil {
+					teams = append(teams, *t.Slug)
+				}
 			}
 		}
 
-		teams := make([]interface{}, 0, len(rprr.DismissalRestrictions.Teams))
-		for _, t := range rprr.DismissalRestrictions.Teams {
-			if t.Slug != nil {
-				teams = append(teams, *t.Slug)
-			}
-		}
-
-		if err := d.Set("required_pull_request_reviews", []interface{}{
+		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"dismiss_stale_reviews":      rprr.DismissStaleReviews,
-				"dismissal_users":            schema.NewSet(schema.HashString, users),
-				"dismissal_teams":            schema.NewSet(schema.HashString, teams),
-				"require_code_owner_reviews": rprr.RequireCodeOwnerReviews,
+				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
+				"dismissal_users":                 schema.NewSet(schema.HashString, users),
+				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
+				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
+				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 			},
-		}); err != nil {
-			return err
-		}
-	} else {
-		d.Set("required_pull_request_reviews", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("required_pull_request_reviews", []interface{}{})
 }
 
-func flattenRestrictions(d *schema.ResourceData, protection *github.Protection) error {
+func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
 	restrictions := protection.Restrictions
 	if restrictions != nil {
 		users := make([]interface{}, 0, len(restrictions.Users))
@@ -321,19 +479,23 @@ func flattenRestrictions(d *schema.ResourceData, protection *github.Protection) 
 			}
 		}
 
-		if err := d.Set("restrictions", []interface{}{
+		apps := make([]interface{}, 0, len(restrictions.Apps))
+		for _, t := range restrictions.Apps {
+			if t.Slug != nil {
+				apps = append(apps, *t.Slug)
+			}
+		}
+
+		return d.Set("restrictions", []interface{}{
 			map[string]interface{}{
 				"users": schema.NewSet(schema.HashString, users),
 				"teams": schema.NewSet(schema.HashString, teams),
+				"apps":  schema.NewSet(schema.HashString, apps),
 			},
-		}); err != nil {
-			return fmt.Errorf("Error setting restrictions: %v", err)
-		}
-	} else {
-		d.Set("restrictions", []interface{}{})
+		})
 	}
 
-	return nil
+	return d.Set("restrictions", []interface{}{})
 }
 
 func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusChecks, error) {
@@ -386,6 +548,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
+			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
 		}
 
 		return rprr, nil
@@ -408,6 +571,7 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 			if v == nil {
 				restrictions.Users = []string{}
 				restrictions.Teams = []string{}
+				restrictions.Apps = []string{}
 				return restrictions, nil
 			}
 			m := v.(map[string]interface{})
@@ -416,6 +580,8 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 			restrictions.Users = users
 			teams := expandNestedSet(m, "teams")
 			restrictions.Teams = teams
+			apps := expandNestedSet(m, "apps")
+			restrictions.Apps = apps
 		}
 		return restrictions, nil
 	}
@@ -432,4 +598,35 @@ func expandNestedSet(m map[string]interface{}, target string) []string {
 		}
 	}
 	return res
+}
+
+func checkBranchRestrictionsUsers(actual *github.BranchRestrictions, expected *github.BranchRestrictionsRequest) error {
+	if expected == nil {
+		return nil
+	}
+
+	expectedUsers := expected.Users
+
+	if actual == nil {
+		return fmt.Errorf("unable to add users in restrictions: %s", strings.Join(expectedUsers, ", "))
+	}
+
+	actualLoopUp := make(map[string]struct{}, len(actual.Users))
+	for _, a := range actual.Users {
+		actualLoopUp[a.GetLogin()] = struct{}{}
+	}
+
+	notFounds := make([]string, 0, len(actual.Users))
+
+	for _, e := range expectedUsers {
+		if _, ok := actualLoopUp[e]; !ok {
+			notFounds = append(notFounds, e)
+		}
+	}
+
+	if len(notFounds) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("unable to add users in restrictions: %s", strings.Join(notFounds, ", "))
 }

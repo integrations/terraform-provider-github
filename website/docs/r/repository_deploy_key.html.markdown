@@ -1,7 +1,6 @@
 ---
 layout: "github"
 page_title: "GitHub: github_repository_deploy_key"
-sidebar_current: "docs-github-resource-repository-deploy-key"
 description: |-
   Provides a GitHub repository deploy key resource.
 ---
@@ -24,10 +23,10 @@ Further documentation on GitHub repository deploy keys:
 ```hcl
 # Add a deploy key
 resource "github_repository_deploy_key" "example_repository_deploy_key" {
- 	title = "Repository test key"
-	repository = "test-repo"
-	key = "ssh-rsa AAA..."
-	read_only = "false"
+  title      = "Repository test key"
+  repository = "test-repo"
+  key        = "ssh-rsa AAA..."
+  read_only  = "false"
 }
 ```
 
@@ -35,7 +34,7 @@ resource "github_repository_deploy_key" "example_repository_deploy_key" {
 
 The following arguments are supported:
 
-* `key` - (Required) A ssh key.
+* `key` - (Required) A SSH key.
 * `read_only` - (Required) A boolean qualifying the key to be either read only or read/write.
 * `repository` - (Required) Name of the GitHub repository.
 * `title` - (Required) A title.

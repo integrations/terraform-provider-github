@@ -3,11 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
@@ -28,11 +30,14 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubWebhookMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
+				Removed:  "The `name` attribute is no longer necessary.",
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -45,10 +50,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"configuration": {
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
+			"configuration": webhookConfigurationSchema(),
 			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -57,6 +59,10 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -70,65 +76,138 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 	for _, v := range eventSet.List() {
 		events = append(events, v.(string))
 	}
-	name := d.Get("name").(string)
 
 	hook := &github.Hook{
-		Name:   &name,
 		URL:    &url,
 		Events: events,
 		Active: &active,
-		Config: d.Get("configuration").(map[string]interface{}),
+	}
+
+	config := d.Get("configuration").([]interface{})
+	if len(config) > 0 {
+		hook.Config = config[0].(map[string]interface{})
+	}
+
+	if hook.Config["insecure_ssl"].(bool) {
+		hook.Config["insecure_ssl"] = "1"
+	} else {
+		hook.Config["insecure_ssl"] = "0"
 	}
 
 	return hook
 }
 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hk := resourceGithubRepositoryWebhookObject(d)
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
 
-	hook, _, err := client.Repositories.CreateHook(context.TODO(), meta.(*Owner).name, d.Get("repository").(string), hk)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	hk := resourceGithubRepositoryWebhookObject(d)
+	ctx := context.Background()
+
+	log.Printf("[DEBUG] Creating repository webhook: %d (%s/%s)", hk.GetID(), ownerName, repoName)
+	hook, _, err := client.Repositories.CreateHook(ctx, ownerName, repoName, hk)
 	if err != nil {
 		return err
 	}
 	d.SetId(strconv.FormatInt(*hook.ID, 10))
 
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from our request to GitHub
+	if hook.Config["secret"] != nil {
+		hook.Config["secret"] = hk.Config["secret"]
+	}
+
+	hook.Config = insecureSslStringToBool(hook.Config)
+
+	d.Set("configuration", []interface{}{hook.Config})
+
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
 
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	err := checkOwner(meta)
 	if err != nil {
 		return err
 	}
 
-	hook, resp, err := client.Repositories.GetHook(context.TODO(), meta.(*Owner).name, d.Get("repository").(string), hookID)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			d.SetId("")
-			return nil
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading repository webhook: %s (%s/%s)", d.Id(), ownerName, repoName)
+	hook, _, err := client.Repositories.GetHook(ctx, ownerName, repoName, hookID)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing repository webhook %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
-	d.Set("name", hook.Name)
 	d.Set("url", hook.URL)
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
-	d.Set("configuration", hook.Config)
+
+	// GitHub returns the secret as a string of 8 astrisks "********"
+	// We would prefer to store the real secret in state, so we'll
+	// write the configuration secret in state from what we get from
+	// ResourceData
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+
+		if hook.Config["secret"] != nil {
+			hook.Config["secret"] = currentSecret
+		}
+	}
+
+	hook.Config = insecureSslStringToBool(hook.Config)
+
+	d.Set("configuration", []interface{}{hook.Config})
 
 	return nil
 }
 
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	hk := resourceGithubRepositoryWebhookObject(d)
-	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	err := checkOwner(meta)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Repositories.EditHook(context.TODO(), meta.(*Owner).name, d.Get("repository").(string), hookID, hk)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	hk := resourceGithubRepositoryWebhookObject(d)
+	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Updating repository webhook: %s (%s/%s)", d.Id(), ownerName, repoName)
+	_, _, err = client.Repositories.EditHook(ctx, ownerName, repoName, hookID, hk)
 	if err != nil {
 		return err
 	}
@@ -138,11 +217,26 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return unconvertibleIdErr(d.Id(), err)
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting repository webhook: %s (%s/%s)", d.Id(), ownerName, repoName)
+	_, err = client.Repositories.DeleteHook(ctx, ownerName, repoName, hookID)
+	return err
+}
+
+func insecureSslStringToBool(config map[string]interface{}) map[string]interface{} {
+	if config["insecure_ssl"] == "1" {
+		config["insecure_ssl"] = true
+	} else {
+		config["insecure_ssl"] = false
 	}
 
-	_, err = client.Repositories.DeleteHook(context.TODO(), meta.(*Owner).name, d.Get("repository").(string), hookID)
-	return err
+	return config
 }

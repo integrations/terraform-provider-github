@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubIssueLabel_basic(t *testing.T) {
-	var label github.Label
+	var label, updatedLabel github.Label
 
+	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -25,16 +26,22 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 			{
 				Config: testAccGithubIssueLabelConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelExists(rn, &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "foo", "000000"),
 				),
 			},
 			{
 				Config: testAccGithubIssueLabelUpdateConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
-					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
+					testAccCheckGithubIssueLabelExists(rn, &updatedLabel),
+					testAccCheckGithubIssueLabelAttributes(&updatedLabel, "bar", "FFFFFF"),
+					testAccCheckGithubIssueLabelIDUnchanged(&label, &updatedLabel),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -43,10 +50,11 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 	var label github.Label
 
+	rn := "github_issue_label.test"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
@@ -54,28 +62,63 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 			{
 				Config: testAccGitHubIssueLabelExistsConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelExists(rn, &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
 }
 
-func TestAccGithubIssueLabel_importBasic(t *testing.T) {
-	rString := acctest.RandString(5)
-	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
+func TestAccGithubIssueLabel_description(t *testing.T) {
+	var label github.Label
 
-	resource.Test(t, resource.TestCase{
+	rn := "github_issue_label.test"
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-desc-%s", rString)
+	description := "Terraform Acceptance Test"
+	updatedDescription := "Terraform Acceptance Test Updated"
+
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueLabelConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", ""),
+				),
 			},
 			{
-				ResourceName:      "github_issue_label.test",
+				Config: testAccGithubIssueLabelConfig_description(repoName, description),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", description),
+				),
+			},
+			{
+				Config: testAccGithubIssueLabelConfig_description(repoName, updatedDescription),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", updatedDescription),
+				),
+			},
+			{
+				Config: testAccGithubIssueLabelConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists(rn, &label),
+					resource.TestCheckResourceAttr(rn, "description", ""),
+				),
+			},
+			{
+				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -95,13 +138,14 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 		}
 
 		conn := testAccProvider.Meta().(*Owner).client
-		o := testAccProvider.Meta().(*Owner).name
-		r, n, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err
 		}
 
-		githubLabel, _, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
+		githubLabel, _, err := conn.Issues.GetLabel(context.TODO(),
+			ownerName, repoName, name)
 		if err != nil {
 			return err
 		}
@@ -125,6 +169,15 @@ func testAccCheckGithubIssueLabelAttributes(label *github.Label, name, color str
 	}
 }
 
+func testAccCheckGithubIssueLabelIDUnchanged(label, updatedLabel *github.Label) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		if *label.ID != *updatedLabel.ID {
+			return fmt.Errorf("label was recreated")
+		}
+		return nil
+	}
+}
+
 func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Owner).client
 
@@ -133,14 +186,14 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Owner).name
-		r, n, err := parseTwoPartID(rs.Primary.ID)
+		ownerName := testAccProvider.Meta().(*Owner).name
+		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err
 		}
 
-		label, res, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
-
+		label, res, err := conn.Issues.GetLabel(context.TODO(),
+			ownerName, repoName, name)
 		if err == nil {
 			if label != nil &&
 				buildTwoPartID(label.Name, label.Color) == rs.Primary.ID {
@@ -196,4 +249,19 @@ resource "github_issue_label" "test" {
   color      = "FF00FF"
 }
 `, repoName)
+}
+
+func testAccGithubIssueLabelConfig_description(repoName, description string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name = "%s"
+}
+
+resource "github_issue_label" "test" {
+  repository  = "${github_repository.test.name}"
+  name        = "foo"
+  color       = "000000"
+  description = "%s"
+}
+`, repoName, description)
 }

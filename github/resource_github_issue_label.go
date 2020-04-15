@@ -3,9 +3,10 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubIssueLabel() *schema.Resource {
@@ -32,7 +33,15 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -51,43 +60,80 @@ func resourceGithubIssueLabel() *schema.Resource {
 // same function for two schema funcs.
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	o := meta.(*Owner).name
-	r := d.Get("repository").(string)
-	n := d.Get("name").(string)
-	c := d.Get("color").(string)
-
-	label := &github.Label{
-		Name:  &n,
-		Color: &c,
+	err := checkOwner(meta)
+	if err != nil {
+		return err
 	}
 
-	log.Printf("[DEBUG] Querying label existence %s/%s (%s)", o, r, n)
-	existing, _, _ := client.Issues.GetLabel(context.TODO(), o, r, n)
+	client := meta.(*Owner).client
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	name := d.Get("name").(string)
+	color := d.Get("color").(string)
+
+	label := &github.Label{
+		Name:  github.String(name),
+		Color: github.String(color),
+	}
+	ctx := context.Background()
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxId, d.Id())
+	}
+
+	// Pull out the original name. If we already have a resource, this is the
+	// parsed ID. If not, it's the value given to the resource.
+	var originalName string
+	if d.Id() == "" {
+		originalName = name
+	} else {
+		var err error
+		_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
+		name, ownerName, repoName)
+	existing, resp, err := client.Issues.GetLabel(ctx,
+		ownerName, repoName, originalName)
+	if err != nil && resp.StatusCode != http.StatusNotFound {
+		return err
+	}
 
 	if existing != nil {
-		log.Printf("[DEBUG] Updating label: %s/%s (%s: %s)", o, r, n, c)
+		label.Description = github.String(d.Get("description").(string))
+
+		log.Printf("[DEBUG] Updating label: %s:%s (%s/%s)",
+			name, color, ownerName, repoName)
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
-		var oname string
+		var originalName string
 		if d.Id() == "" {
-			oname = n
+			originalName = name
 		} else {
 			var err error
-			_, oname, err = parseTwoPartID(d.Id())
+			_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
 			if err != nil {
 				return err
 			}
 		}
 
-		_, _, err := client.Issues.EditLabel(context.TODO(), o, r, oname, label)
+		_, _, err := client.Issues.EditLabel(ctx,
+			ownerName, repoName, originalName, label)
 		if err != nil {
 			return err
 		}
 	} else {
-		log.Printf("[DEBUG] Creating label: %s/%s (%s: %s)", o, r, n, c)
-		_, resp, err := client.Issues.CreateLabel(context.TODO(), o, r, label)
+		if v, ok := d.GetOk("description"); ok {
+			label.Description = github.String(v.(string))
+		}
+
+		log.Printf("[DEBUG] Creating label: %s:%s (%s/%s)",
+			name, color, ownerName, repoName)
+		_, resp, err := client.Issues.CreateLabel(ctx,
+			ownerName, repoName, label)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating label: %#v", *resp)
 		}
@@ -96,39 +142,72 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	d.SetId(buildTwoPartID(&r, &n))
+	d.SetId(buildTwoPartID(&repoName, &name))
 
 	return resourceGithubIssueLabelRead(d, meta)
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	r, n, err := parseTwoPartID(d.Id())
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] Reading label: %s/%s", r, n)
-	githubLabel, _, err := client.Issues.GetLabel(context.TODO(), meta.(*Owner).name, r, n)
+	client := meta.(*Owner).client
+	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
-		d.SetId("")
-		return nil
+		return err
 	}
 
-	d.Set("repository", r)
-	d.Set("name", n)
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, ownerName, repoName)
+	githubLabel, resp, err := client.Issues.GetLabel(ctx,
+		ownerName, repoName, name)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
+					name, ownerName, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("repository", repoName)
+	d.Set("name", name)
 	d.Set("color", githubLabel.Color)
+	d.Set("description", githubLabel.Description)
 	d.Set("url", githubLabel.URL)
 
 	return nil
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	r := d.Get("repository").(string)
-	n := d.Get("name").(string)
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	log.Printf("[DEBUG] Deleting label: %s/%s", r, n)
-	_, err := client.Issues.DeleteLabel(context.TODO(), meta.(*Owner).name, r, n)
+	client := meta.(*Owner).client
+
+	ownerName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	name := d.Get("name").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting label: %s (%s/%s)", name, ownerName, repoName)
+	_, err = client.Issues.DeleteLabel(ctx,
+		ownerName, repoName, name)
 	return err
 }

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"golang.org/x/oauth2"
 )
 
@@ -19,34 +19,29 @@ type Config struct {
 }
 
 type Owner struct {
-	name         string
-	client       *github.Client
-	StopContext  context.Context
-	Organization bool
-}
-
-func (o *Owner) IsOrganization() bool {
-	return o.Organization
+	name           string
+	id             int64
+	client         *github.Client
+	StopContext    context.Context
+	IsOrganization bool
 }
 
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Client() (interface{}, error) {
 	var owner Owner
 	owner.name = c.Owner
-	owner.Organization = true
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: c.Token},
-	)
+	owner.IsOrganization = false
+	var ts oauth2.TokenSource
+	var tc *http.Client
 
 	ctx := context.Background()
 
 	if c.Insecure {
-		httpClient := insecureHttpClient()
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+		insecureClient := insecureHttpClient()
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
-	tc := oauth2.NewClient(ctx, ts)
-
+	tc = oauth2.NewClient(ctx, ts)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
 	owner.client = github.NewClient(tc)
@@ -58,9 +53,13 @@ func (c *Config) Client() (interface{}, error) {
 		owner.client.BaseURL = u
 	}
 
-	_, _, err := (*owner.client).Organizations.Get(context.TODO(), owner.name)
+	remoteOrg, _, err := owner.client.Organizations.Get(ctx, owner.name)
 	if err != nil {
-		owner.Organization = false
+		return nil, err
+	}
+	if remoteOrg != nil {
+		owner.IsOrganization = true
+		owner.id = remoteOrg.GetID()
 	}
 
 	return &owner, nil

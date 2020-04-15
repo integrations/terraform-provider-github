@@ -2,22 +2,28 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"regexp"
 
-	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/google/go-github/v29/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
-
 	return &schema.Resource{
 		Create: resourceGithubRepositoryCreate,
 		Read:   resourceGithubRepositoryRead,
 		Update: resourceGithubRepositoryUpdate,
 		Delete: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("auto_init", false)
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -54,6 +60,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"is_template": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"allow_merge_commit": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -69,9 +79,15 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"delete_branch_on_merge": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"auto_init": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 			"default_branch": {
 				Type:        schema.TypeString,
@@ -82,10 +98,12 @@ func resourceGithubRepository() *schema.Resource {
 			"license_template": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"gitignore_template": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"archived": {
 				Type:     schema.TypeBool,
@@ -93,9 +111,12 @@ func resourceGithubRepository() *schema.Resource {
 				Default:  false,
 			},
 			"topics": {
-				Type:     schema.TypeList,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:     schema.TypeSet,
 				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
+				},
 			},
 
 			"full_name": {
@@ -122,73 +143,120 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"template": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"owner": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"repository": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	name := d.Get("name").(string)
-	description := d.Get("description").(string)
-	homepageUrl := d.Get("homepage_url").(string)
-	private := d.Get("private").(bool)
-	hasDownloads := d.Get("has_downloads").(bool)
-	hasIssues := d.Get("has_issues").(bool)
-	hasProjects := d.Get("has_projects").(bool)
-	hasWiki := d.Get("has_wiki").(bool)
-	allowMergeCommit := d.Get("allow_merge_commit").(bool)
-	allowSquashMerge := d.Get("allow_squash_merge").(bool)
-	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
-	autoInit := d.Get("auto_init").(bool)
-	licenseTemplate := d.Get("license_template").(string)
-	gitIgnoreTemplate := d.Get("gitignore_template").(string)
-	archived := d.Get("archived").(bool)
-	topics := expandStringList(d.Get("topics").([]interface{}))
-
-	repo := &github.Repository{
-		Name:              &name,
-		Description:       &description,
-		Homepage:          &homepageUrl,
-		Private:           &private,
-		HasDownloads:      &hasDownloads,
-		HasIssues:         &hasIssues,
-		HasProjects:       &hasProjects,
-		HasWiki:           &hasWiki,
-		AllowMergeCommit:  &allowMergeCommit,
-		AllowSquashMerge:  &allowSquashMerge,
-		AllowRebaseMerge:  &allowRebaseMerge,
-		AutoInit:          &autoInit,
-		LicenseTemplate:   &licenseTemplate,
-		GitignoreTemplate: &gitIgnoreTemplate,
-		Archived:          &archived,
-		Topics:            topics,
+	return &github.Repository{
+		Name:                github.String(d.Get("name").(string)),
+		Description:         github.String(d.Get("description").(string)),
+		Homepage:            github.String(d.Get("homepage_url").(string)),
+		Private:             github.Bool(d.Get("private").(bool)),
+		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
+		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
+		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
+		HasWiki:             github.Bool(d.Get("has_wiki").(bool)),
+		IsTemplate:          github.Bool(d.Get("is_template").(bool)),
+		AllowMergeCommit:    github.Bool(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
+		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
+		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
+		LicenseTemplate:     github.String(d.Get("license_template").(string)),
+		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
+		Archived:            github.Bool(d.Get("archived").(bool)),
+		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
 	}
-
-	return repo
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).client
-	ctx := context.TODO()
-	owner := ""
-	if meta.(*Owner).IsOrganization() {
-		owner = meta.(*Owner).name
-	}
-
-	if _, ok := d.GetOk("default_branch"); ok {
-		return fmt.Errorf("Cannot set the default branch on a new repository.")
-	}
-
-	repoReq := resourceGithubRepositoryObject(d)
-	log.Printf("[DEBUG] create github repository %s/%s", owner, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(context.TODO(), owner, repoReq)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
-	d.SetId(*repo.Name)
+
+	client := meta.(*Owner).client
+
+	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
+		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
+	}
+
+	repoReq := resourceGithubRepositoryObject(d)
+	ownerName := meta.(*Owner).name
+	repoName := repoReq.GetName()
+	ctx := context.Background()
+
+	log.Printf("[DEBUG] Creating repository: %s/%s", ownerName, repoName)
+
+	if template, ok := d.GetOk("template"); ok {
+		templateConfigBlocks := template.([]interface{})
+
+		for _, templateConfigBlock := range templateConfigBlocks {
+			templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
+			if !ok {
+				return errors.New("failed to unpack template configuration block")
+			}
+
+			templateRepo := templateConfigMap["repository"].(string)
+			templateRepoOwner := templateConfigMap["owner"].(string)
+			templateRepoReq := github.TemplateRepoRequest{
+				Name:        &repoName,
+				Owner:       &ownerName,
+				Description: github.String(d.Get("description").(string)),
+				Private:     github.Bool(d.Get("private").(bool)),
+			}
+
+			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
+				templateRepoOwner,
+				templateRepo,
+				&templateRepoReq,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			d.SetId(*repo.Name)
+		}
+	} else {
+		// Create without a repository template
+		repo, _, err := client.Repositories.Create(ctx, ownerName, repoReq)
+		if err != nil {
+			return err
+		}
+		d.SetId(*repo.Name)
+	}
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repoReq.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, ownerName, repoName, topics)
 		if err != nil {
 			return err
 		}
@@ -198,33 +266,51 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOwner(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).client
+	ownerName := meta.(*Owner).name
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Owner).name, repoName)
-	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Owner).name, repoName)
+	log.Printf("[DEBUG] Reading repository: %s/%s", ownerName, repoName)
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	repo, resp, err := client.Repositories.Get(ctx, ownerName, repoName)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			log.Printf(
-				"[WARN] removing %s/%s from state because it no longer exists in github",
-				meta.(*Owner).name,
-				repoName,
-			)
-			d.SetId("")
-			return nil
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
+					ownerName, repoName)
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", repoName)
 	d.Set("description", repo.Description)
 	d.Set("homepage_url", repo.Homepage)
 	d.Set("private", repo.Private)
 	d.Set("has_issues", repo.HasIssues)
+	d.Set("has_projects", repo.HasProjects)
 	d.Set("has_wiki", repo.HasWiki)
+	d.Set("is_template", repo.IsTemplate)
 	d.Set("allow_merge_commit", repo.AllowMergeCommit)
 	d.Set("allow_squash_merge", repo.AllowSquashMerge)
 	d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
+	d.Set("delete_branch_on_merge", repo.DeleteBranchOnMerge)
 	d.Set("has_downloads", repo.HasDownloads)
 	d.Set("full_name", repo.FullName)
 	d.Set("default_branch", repo.DefaultBranch)
@@ -235,12 +321,30 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("http_clone_url", repo.CloneURL)
 	d.Set("archived", repo.Archived)
 	d.Set("topics", flattenStringList(repo.Topics))
+	d.Set("node_id", repo.GetNodeID())
+
+	if repo.TemplateRepository != nil {
+		d.Set("template", []interface{}{
+			map[string]interface{}{
+				"owner":      repo.TemplateRepository.Owner.Login,
+				"repository": repo.TemplateRepository.Name,
+			},
+		})
+	} else {
+		d.Set("template", []interface{}{})
+	}
+
 	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).client
-	ctx := context.TODO()
+
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
@@ -252,8 +356,11 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Owner).name, repoName)
-	repo, _, err := client.Repositories.Edit(ctx, meta.(*Owner).name, repoName, repoReq)
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Updating repository: %s/%s", ownerName, repoName)
+	repo, _, err := client.Repositories.Edit(ctx, ownerName, repoName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -261,7 +368,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, meta.(*Owner).name, *repo.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, ownerName, *repo.Name, topics)
 		if err != nil {
 			return err
 		}
@@ -271,9 +378,18 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).client
 	repoName := d.Id()
-	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Owner).name, repoName)
-	_, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, repoName)
+	ownerName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	log.Printf("[DEBUG] Deleting repository: %s/%s", ownerName, repoName)
+	_, err = client.Repositories.Delete(ctx, ownerName, repoName)
+
 	return err
 }
