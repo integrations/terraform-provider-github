@@ -93,7 +93,7 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
@@ -133,7 +133,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
@@ -173,7 +173,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
@@ -224,7 +224,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 	return func(s *terraform.State) error {
 		opt := &github.ListOptions{PerPage: maxPerPage}
 
-		client := testAccProvider.Meta().(*Organization).client
+		client := testAccProvider.Meta().(*Organization).v3client
 		org := testAccProvider.Meta().(*Organization).name
 
 		for {

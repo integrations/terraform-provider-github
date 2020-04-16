@@ -92,7 +92,7 @@ func testAccCheckGithubOrganizationWebhookExists(n string, hook *github.Hook) re
 		}
 
 		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
+		conn := org.v3client
 		getHook, _, err := conn.Organizations.GetHook(context.TODO(), org.name, hookID)
 		if err != nil {
 			return err
@@ -144,7 +144,7 @@ func testAccCheckGithubOrganizationWebhookSecret(r, secret string) resource.Test
 }
 
 func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 	orgName := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {

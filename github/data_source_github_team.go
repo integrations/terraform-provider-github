@@ -52,7 +52,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	slug := d.Get("slug").(string)
 	log.Printf("[INFO] Refreshing GitHub Team: %s", slug)
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgId := meta.(*Organization).id
 	ctx := context.Background()
 

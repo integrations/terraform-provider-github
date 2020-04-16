@@ -103,7 +103,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -137,7 +137,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -195,7 +195,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -216,7 +216,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)

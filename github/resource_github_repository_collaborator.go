@@ -54,7 +54,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
@@ -89,7 +89,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
@@ -177,7 +177,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
