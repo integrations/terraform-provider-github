@@ -69,7 +69,7 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
-func TestProvider_owner(t *testing.T) {
+func TestAccProvider_owner(t *testing.T) {
 
 	username := "hashibot"
 	resource.ParallelTest(t, resource.TestCase{
