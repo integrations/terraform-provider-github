@@ -30,7 +30,7 @@ func testSweepRepositories(region string) error {
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
 	if err != nil {
@@ -536,7 +536,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 		}
 
 		owner := testAccProvider.Meta().(*Owner)
-		conn := owner.client
+		conn := owner.v3client
 		gotRepo, _, err := conn.Repositories.Get(context.TODO(), owner.name, repoName)
 		if err != nil {
 			return err
@@ -688,7 +688,7 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 	ownerName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
@@ -715,15 +715,16 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
+		BaseURL:      baseURL,
 		Token: token,
 		Owner: owner,
 	}
 
-	c, err := config.Client()
+	c, err := config.Clients()
 	if err != nil {
 		return fmt.Errorf("Error creating github client: %s", err)
 	}
-	client := c.(*Owner).client
+	client := c.(*Owner).v3client
 
 	refs, _, err := client.Git.GetRefs(context.TODO(), owner, repository, "heads")
 	if err != nil {

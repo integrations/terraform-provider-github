@@ -111,7 +111,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return fmt.Errorf("No team repository ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).client
+		conn := testAccProvider.Meta().(*Owner).v3client
 
 		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID, "team_id", "repository")
 		if err != nil {
@@ -137,7 +137,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 }
 
 func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 	orgId := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {

@@ -48,7 +48,7 @@ func testSweepRepositoryFiles(region string) error {
 }
 
 func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
 	_, files, _, err := client.Repositories.GetContents(
@@ -309,7 +309,7 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 			return fmt.Errorf("No repository file path set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		org := testAccProvider.Meta().(*Owner).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
@@ -382,7 +382,7 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 }
 
 func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 	org := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {

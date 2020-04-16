@@ -65,7 +65,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	ownerName := meta.(*Owner).name
 	name := d.Get("name").(string)
@@ -107,7 +107,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -158,7 +158,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
 	editedTeam := github.NewTeam{
@@ -204,7 +204,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

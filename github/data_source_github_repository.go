@@ -112,7 +112,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 	var repoName string
 

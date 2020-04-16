@@ -32,7 +32,7 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 	username := d.Get("username").(string)
 	log.Printf("[INFO] Refreshing GitHub membership: %s", username)
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
 	ctx := context.Background()

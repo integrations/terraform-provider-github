@@ -78,7 +78,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	ownerName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
@@ -109,7 +109,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	ownerName := meta.(*Owner).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -166,7 +166,7 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	ownerName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
@@ -193,7 +193,7 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Owner).client
+	client := meta.(*Owner).v3client
 
 	ownerName := meta.(*Owner).name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)

@@ -33,7 +33,7 @@ func TestAccOrganizationBlock_basic(t *testing.T) {
 }
 
 func testAccOrganizationBlockDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 	ownerName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
@@ -60,7 +60,7 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 
 		username := rs.Primary.ID
-		conn := testAccProvider.Meta().(*Owner).client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		ownerName := testAccProvider.Meta().(*Owner).name
 
 		blocked, _, err := conn.Organizations.IsBlocked(context.TODO(), ownerName, username)

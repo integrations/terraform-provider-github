@@ -117,7 +117,7 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 		}
 
 		owner := testAccProvider.Meta().(*Owner)
-		conn := owner.client
+		conn := owner.v3client
 		getHook, _, err := conn.Repositories.GetHook(context.TODO(), owner.name, repoName, hookID)
 		if err != nil {
 			return err
@@ -154,7 +154,7 @@ func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *test
 }
 
 func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 	ownerName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {

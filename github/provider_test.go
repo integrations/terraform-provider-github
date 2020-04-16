@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -98,7 +99,7 @@ func TestProvider_owner(t *testing.T) {
 	})
 }
 
-func TestProvider_insecure(t *testing.T) {
+func TestAccProvider_insecure(t *testing.T) {
 	// Use ephemeral port range (49152–65535)
 	port := fmt.Sprintf("%d", 49152+rand.Intn(16382))
 
@@ -153,6 +154,7 @@ func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, fun
 	mux.HandleFunc("/users/hashibot", testRespondJson(userResponseBody))
 	mux.HandleFunc("/users/hashibot/gpg_keys", testRespondJson(gpgKeysResponseBody))
 	mux.HandleFunc("/users/hashibot/keys", testRespondJson(keysResponseBody))
+	mux.HandleFunc("/orgs/"+testOwner, testRespondJson(orgResponseBody(port)))
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -270,3 +272,14 @@ const keysResponseBody = `[
     "key": "ssh-rsa AAA..."
   }
 ]`
+
+func orgResponseBody(port string) string {
+	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOrganization)
+	return fmt.Sprintf(`
+{
+	"login": "%s",
+	"url" : "%s",
+	"repos_url": "%s/repos"
+}
+`, testOrganization, url, url)
+}

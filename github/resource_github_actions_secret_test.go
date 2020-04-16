@@ -77,7 +77,7 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 		}
 
 		org := testAccProvider.Meta().(*Owner)
-		conn := org.client
+		conn := org.v3client
 		_, _, err := conn.Actions.GetSecret(context.TODO(), org.name, repoName, secretName)
 		if err != nil {
 			t.Log("Failed to get secret")
@@ -89,7 +89,7 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 }
 
 func testAccCheckGithubActionsSecretDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Owner).client
+	client := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_actions_secret" {

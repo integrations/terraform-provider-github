@@ -137,7 +137,7 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 			return fmt.Errorf("No issue label ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		ownerName := testAccProvider.Meta().(*Owner).name
 		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
@@ -179,7 +179,7 @@ func testAccCheckGithubIssueLabelIDUnchanged(label, updatedLabel *github.Label) 
 }
 
 func testAccGithubIssueLabelDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_issue_label" {

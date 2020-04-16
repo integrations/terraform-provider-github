@@ -3,11 +3,14 @@ package github
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
@@ -26,11 +29,10 @@ type Owner struct {
 	IsOrganization bool
 }
 
-// Client configures and returns a fully initialized GithubClient
-func (c *Config) Client() (interface{}, error) {
+// Clients configures and returns a fully initialized GithubClient and Githubv4Client
+func (c *Config) Clients() (interface{}, error) {
 	var owner Owner
-	owner.name = c.Owner
-	owner.IsOrganization = false
+	var ts oauth2.TokenSource
 	var tc *http.Client
 
 	ctx := context.Background()
@@ -44,18 +46,38 @@ func (c *Config) Client() (interface{}, error) {
 		&oauth2.Token{AccessToken: c.Token},
 	)
 	tc = oauth2.NewClient(ctx, ts)
+	tc.Transport = NewRateLimitTransport(tc.Transport)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
-	owner.client = github.NewClient(tc)
-	if c.BaseURL != "" {
-		u, err := url.Parse(c.BaseURL)
-		if err != nil {
-			return nil, err
-		}
-		owner.client.BaseURL = u
+	// Create GraphQL Client
+	uv4, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
 	}
+	uv4.Path = path.Join(uv4.Path, "graphql")
+	v4client := githubv4.NewEnterpriseClient(uv4.String(), tc)
 
-	remoteOrg, _, _ := (*owner.client).Organizations.Get(ctx, owner.name)
+	// Create Rest Client
+	uv3, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+	if uv3.String() != "https://api.github.com/" {
+		uv3.Path = uv3.Path + "v3/"
+	}
+	v3client, err := github.NewEnterpriseClient(uv3.String(), "", tc)
+	if err != nil {
+		return nil, err
+	}
+	v3client.BaseURL = uv3
+
+	owner.v3client = v3client
+	owner.v4client = v4client
+
+
+	owner.name = c.Owner
+	owner.IsOrganization = false
+	remoteOrg, _, err := (*owner.client).v3client.Organizations.Get(ctx, owner.name)
 	if remoteOrg != nil {
 		owner.IsOrganization = true
 		owner.id = remoteOrg.GetID()
