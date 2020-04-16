@@ -154,7 +154,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return err
 		}
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, ownerName)
 		if err != nil {
 			return err
 		}

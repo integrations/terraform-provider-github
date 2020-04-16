@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -274,12 +273,12 @@ const keysResponseBody = `[
 ]`
 
 func orgResponseBody(port string) string {
-	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOrganization)
+	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOwner)
 	return fmt.Sprintf(`
 {
 	"login": "%s",
 	"url" : "%s",
 	"repos_url": "%s/repos"
 }
-`, testOrganization, url, url)
+`, testOwner, url, url)
 }

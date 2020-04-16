@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -24,7 +23,8 @@ type Config struct {
 type Owner struct {
 	name           string
 	id             int64
-	client         *github.Client
+	v3client       *github.Client
+	v4client       *githubv4.Client
 	StopContext    context.Context
 	IsOrganization bool
 }
@@ -32,7 +32,6 @@ type Owner struct {
 // Clients configures and returns a fully initialized GithubClient and Githubv4Client
 func (c *Config) Clients() (interface{}, error) {
 	var owner Owner
-	var ts oauth2.TokenSource
 	var tc *http.Client
 
 	ctx := context.Background()
@@ -74,10 +73,9 @@ func (c *Config) Clients() (interface{}, error) {
 	owner.v3client = v3client
 	owner.v4client = v4client
 
-
 	owner.name = c.Owner
 	owner.IsOrganization = false
-	remoteOrg, _, err := (*owner.client).v3client.Organizations.Get(ctx, owner.name)
+	remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
 	if remoteOrg != nil {
 		owner.IsOrganization = true
 		owner.id = remoteOrg.GetID()

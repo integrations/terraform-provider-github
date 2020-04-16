@@ -711,13 +711,14 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 }
 
 func testAccCreateRepositoryBranch(branch, repository string) error {
+	baseURL := os.Getenv("GITHUB_BASE_URL")
 	owner := os.Getenv("GITHUB_OWNER")
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
-		BaseURL:      baseURL,
-		Token: token,
-		Owner: owner,
+		BaseURL: baseURL,
+		Token:   token,
+		Owner:   owner,
 	}
 
 	c, err := config.Clients()
