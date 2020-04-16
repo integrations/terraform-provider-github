@@ -894,7 +894,7 @@ resource "github_repository" "foo" {
 
 func testAccGithubRepositoryCreateFromTemplate(randString string) string {
 
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 
 	return fmt.Sprintf(`

@@ -10,7 +10,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
@@ -101,10 +101,8 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-		owner := d.Get("organization").(string)
-		if owner == "" {
-			owner = d.Get("owner").(string)
-		}
+		owner := d.Get("owner").(string)
+
 		config := Config{
 			Token:    d.Get("token").(string),
 			Owner:    owner,

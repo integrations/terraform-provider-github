@@ -39,5 +39,5 @@ data "github_collaborators" "test" {
   owner      = "%s"
   repository = "${github_repository.test.name}"
 }
-`, repo, testOrganization)
+`, repo, testOwner)
 }

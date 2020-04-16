@@ -41,7 +41,7 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOwner(meta)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOwner(meta)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}

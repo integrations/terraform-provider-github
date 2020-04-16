@@ -14,8 +14,8 @@ const (
 )
 
 func checkOrganization(meta interface{}) error {
-	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("This resource requires GitHub organization to be set on the provider.")
+	if meta.(*Owner).IsOrganization == false {
+		return fmt.Errorf("This resource requires a GitHub organization to be set as the owner in the provider.")
 	}
 
 	return nil
@@ -23,7 +23,7 @@ func checkOrganization(meta interface{}) error {
 
 func checkOwner(meta interface{}) error {
 	if meta.(*Owner).name == "" {
-		return fmt.Errorf("This resource requires GitHub organization to be set on the provider.")
+		return fmt.Errorf("This resource requires GitHub owner to be set on the provider.")
 	}
 
 	return nil

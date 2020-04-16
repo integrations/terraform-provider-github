@@ -31,7 +31,6 @@ func (c *Config) Client() (interface{}, error) {
 	var owner Owner
 	owner.name = c.Owner
 	owner.IsOrganization = false
-	var ts oauth2.TokenSource
 	var tc *http.Client
 
 	ctx := context.Background()
@@ -41,6 +40,9 @@ func (c *Config) Client() (interface{}, error) {
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
 	}
 
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: c.Token},
+	)
 	tc = oauth2.NewClient(ctx, ts)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
@@ -53,10 +55,7 @@ func (c *Config) Client() (interface{}, error) {
 		owner.client.BaseURL = u
 	}
 
-	remoteOrg, _, err := owner.client.Organizations.Get(ctx, owner.name)
-	if err != nil {
-		return nil, err
-	}
+	remoteOrg, _, _ := (*owner.client).Organizations.Get(ctx, owner.name)
 	if remoteOrg != nil {
 		owner.IsOrganization = true
 		owner.id = remoteOrg.GetID()
