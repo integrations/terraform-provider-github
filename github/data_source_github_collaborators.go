@@ -110,7 +110,7 @@ func dataSourceGithubCollaborators() *schema.Resource {
 
 func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	owner := d.Get("owner").(string)

@@ -23,7 +23,7 @@ func Provider() terraform.ResourceProvider {
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_BASE_URL", ""),
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_BASE_URL", "https://api.github.com/"),
 				Description: descriptions["base_url"],
 			},
 			"insecure": {
@@ -124,7 +124,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Anonymous:    d.Get("anonymous").(bool),
 		}
 
-		meta, err := config.Client()
+		meta, err := config.Clients()
 		if err != nil {
 			return nil, err
 		}

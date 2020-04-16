@@ -69,6 +69,8 @@ Acceptance test prerequisites
 -----------------------------
 In order to successfully run the full suite of acceptance tests, you will need to have the following:
 
+export `https://api.github.com/` as the environment variable `GITHUB_BASE_URL`.
+
 ### GitHub personal access token
 You will need to create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) for
 testing. It will need to have the following scopes selected:

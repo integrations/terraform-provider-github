@@ -23,7 +23,6 @@ in your code. See below for an example of this abstraction.
 
 ```hcl
 data "github_actions_public_key" "example_public_key" {
-  owner      = "example_owner"
   repository = "example_repository"
 }
 
@@ -31,8 +30,6 @@ resource "github_actions_secret" "example_secret" {
   repository       = "example_repository"
   secret_name      = "example_secret_name"
   plaintext_value  = var.some_secret_string
-  key_id           = github_actions_public_key.example_public_key.key_id
-  public_key       = github_actions_public_key.example_public_key.key
 }
 ```
 
@@ -43,5 +40,8 @@ The following arguments are supported:
 * `repository`      - (Required) Name of the repository
 * `secret_name`     - (Required) Name of the secret
 * `plaintext_value` - (Required) Plaintext value of the secret to be encrypted
-* `key_id`          - (Required) ID if the key used for encryption
-* `public_key`      - (Required) Public key of the repository to be used in encryption of the `plaintext_value`
+
+## Attributes Reference
+
+* `created_at`      - Date of actions_secret creation.
+* `updated_at`      - Date of actions_secret update.

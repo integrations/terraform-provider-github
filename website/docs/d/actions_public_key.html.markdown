@@ -14,14 +14,12 @@ Note that the provider `token` must have admin rights to a repository to retriev
 
 ```hcl
 data "github_secrets_public_key" "example" {
-  owner      = "example_owner"
   repository = "example_repo"
 }
 ```
 
 ## Argument Reference
 
- * `owner`      - (Required) Owner of the repository.
  * `repository` - (Required) Name of the repository to get public key from.
 
 ## Attributes Reference

@@ -1,10 +1,18 @@
-## 2.6.0 (Unreleased)
+## 2.7.0 (Unreleased)
+## 2.6.1 (April 07, 2020)
+
+BUG FIXES:
+
+* Documentation Fix For Option To Manage `Delete Branch on Merge` ([#408](https://github.com/terraform-providers/terraform-provider-github/issues/408))
+* Documentation Fix For `github_actions_secret` / `github_actions_public_key` ([#413](https://github.com/terraform-providers/terraform-provider-github/issues/413))
+
+## 2.6.0 (April 03, 2020)
 
 ENHANCEMENTS:
 
-* resource/github_repository: Introduce Option To Manage `Delete Branch on Merge` [GH-399]
-* resource/github_repository: Configure Repository As Template [GH-357]
-* **New Data Source** `github_membership` [GH-396]
+* resource/github_repository: Introduce Option To Manage `Delete Branch on Merge` ([#399](https://github.com/terraform-providers/terraform-provider-github/issues/399))
+* resource/github_repository: Configure Repository As Template ([#357](https://github.com/terraform-providers/terraform-provider-github/issues/357))
+* **New Data Source** `github_membership` ([#396](https://github.com/terraform-providers/terraform-provider-github/issues/396))
 
 ## 2.5.1 (April 02, 2020)
 

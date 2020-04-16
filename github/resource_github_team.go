@@ -51,6 +51,10 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -61,7 +65,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	name := d.Get("name").(string)
@@ -103,7 +107,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgId := meta.(*Organization).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -143,6 +147,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
 	d.Set("slug", team.GetSlug())
+	d.Set("node_id", team.GetNodeID())
 
 	return nil
 }
@@ -153,7 +158,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgId := meta.(*Organization).id
 
 	editedTeam := github.NewTeam{
@@ -199,7 +204,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgId := meta.(*Organization).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
