@@ -324,7 +324,7 @@ const keysResponseBody = `[
 ]`
 
 func orgResponseBody(port string) string {
-	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOrganization)
+	url := fmt.Sprintf(`https://localhost:%s/v3/orgs/%s`, port, testOrganization)
 	return fmt.Sprintf(`
 {
 	"login": "%s",
