@@ -87,7 +87,7 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 	orgName := testAccProvider.Meta().(*Organization).name
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {

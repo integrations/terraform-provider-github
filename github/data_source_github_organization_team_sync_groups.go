@@ -41,7 +41,7 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
 	log.Print("[INFO] Refreshing GitHub Organization Team-Sync Groups")
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	orgName := meta.(*Organization).name
