@@ -367,7 +367,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
 
-	// Can only update a repository if the repository's current or future state is not "archived" (ie. read-only)
+	// Can only update a repository if it is not archived
+	// or the update is to archive the repository (unarchiving is not supported by the Github API)
 	if !d.Get("archived").(bool) || d.HasChange("archived") {
 		repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 		if err != nil {
