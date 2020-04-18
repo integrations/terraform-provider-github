@@ -400,10 +400,12 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 
 	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
 	if archiveOnDestroy {
-		if !d.Get("archived").(bool) {
+		if d.Get("archived").(bool) {
+			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", orgName, repoName)
+		} else {
 			d.Set("archived", true)
 			repoReq := resourceGithubRepositoryObject(d)
-			log.Printf("[DEBUG] Archiving repository: %s/%s", orgName, repoName)
+			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", orgName, repoName)
 			_, _, err = client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 		}
 	} else {
