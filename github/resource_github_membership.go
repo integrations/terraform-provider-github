@@ -111,7 +111,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("username", membership.GetUser().GetLogin())
-	d.Set("role", membership.GetUser())
+	d.Set("role", membership.GetRole())
 
 	return nil
 }
