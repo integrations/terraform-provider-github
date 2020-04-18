@@ -22,6 +22,7 @@ func resourceGithubRepository() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				d.Set("auto_init", false)
+				d.Set("archive_on_destroy", false)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -106,6 +107,11 @@ func resourceGithubRepository() *schema.Resource {
 				ForceNew: true,
 			},
 			"archived": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"archive_on_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -360,17 +366,21 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
-	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
-	if err != nil {
-		return err
-	}
-	d.SetId(*repo.Name)
 
-	if d.HasChange("topics") {
-		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, *repo.Name, topics)
+	// Can only update a repository if the repository's current or future state is not "archived" (ie. read-only)
+	if !d.Get("archived").(bool) || d.HasChange("archived") {
+		repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 		if err != nil {
 			return err
+		}
+		d.SetId(*repo.Name)
+
+		if d.HasChange("topics") {
+			topics := repoReq.Topics
+			_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, *repo.Name, topics)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -388,8 +398,18 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	_, err = client.Repositories.Delete(ctx, orgName, repoName)
+	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
+	if archiveOnDestroy {
+		if !d.Get("archived").(bool) {
+			d.Set("archived", true)
+			repoReq := resourceGithubRepositoryObject(d)
+			log.Printf("[DEBUG] Archiving repository: %s/%s", orgName, repoName)
+			_, _, err = client.Repositories.Edit(ctx, orgName, repoName, repoReq)
+		}
+	} else {
+		log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
+		_, err = client.Repositories.Delete(ctx, orgName, repoName)
+	}
 
 	return err
 }

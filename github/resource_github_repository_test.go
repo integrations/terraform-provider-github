@@ -219,6 +219,120 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_archiveOnDestroy(t *testing.T) {
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryArchiveOnDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, false, true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "archive_on_destroy", "true"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "archive_on_destroy",
+				},
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_archiveOnDestroyUpdate(t *testing.T) {
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, false, true),
+			},
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, false, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "archive_on_destroy", "false"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_archivedAndArchiveOnDestroy(t *testing.T) {
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryArchiveOnDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, true, true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "archive_on_destroy", "true"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "archive_on_destroy",
+				},
+			},
+		},
+	})
+}
+
+func TestAccGithubRepository_archivedAndArchiveOnDestroyUpdate(t *testing.T) {
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, true, true),
+			},
+			{
+				Config: testAccGithubRepositoryArchiveOnDestroyConfig(randString, true, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "archive_on_destroy", "false"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
 func TestAccGithubRepository_hasProjects(t *testing.T) {
 	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
@@ -687,6 +801,27 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 	}
 }
 
+func testAccCheckGithubRepositoryArchiveOnDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*Organization).v3client
+	orgName := testAccProvider.Meta().(*Organization).name
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_repository" {
+			continue
+		}
+
+		gotRepo, _, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+		if gotRepo == nil {
+			return fmt.Errorf("Repository %s/%s no longer exists, expected to be archived on destroy", orgName, rs.Primary.ID)
+		}
+		return nil
+	}
+	return nil
+}
+
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).v3client
 	orgName := testAccProvider.Meta().(*Organization).name
@@ -822,6 +957,28 @@ resource "github_repository" "foo" {
   archived           = true
 }
 `, randString, randString)
+}
+func testAccGithubRepositoryArchiveOnDestroyConfig(randString string, archived, archiveOnDestroy bool) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues         = true
+  has_wiki           = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+  archived           = "%v"
+  archive_on_destroy = "%v"
+}
+`, randString, randString, archived, archiveOnDestroy)
 }
 
 func testAccGithubRepositoryConfigDefaultBranch(randString string) string {
