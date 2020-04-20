@@ -200,7 +200,7 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 
 		var teamID string
 		if team != nil {
-			teamID = strconv.FormatInt(*team.ID, 10)
+			teamID = strconv.FormatInt(team.GetID(), 10)
 		}
 		if teamID == rs.Primary.ID {
 			return fmt.Errorf("Team still exists")
