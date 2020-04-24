@@ -112,6 +112,8 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		}
 
 		conn := testAccProvider.Meta().(*Organization).v3client
+		orgId := testAccProvider.Meta().(*Organization).id
+		orgName := testAccProvider.Meta().(*Organization).name
 
 		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID, "team_id", "repository")
 		if err != nil {
@@ -122,11 +124,20 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, _, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			testAccProvider.Meta().(*Organization).id,
-			teamId,
-			testAccProvider.Meta().(*Organization).name,
-			repoName)
+		var repo *github.Repository
+		if testAccProvider.Meta().(*Organization).isEnterprise {
+			repo, _, err = IsEnterpriseTeamRepoByID(context.TODO(),
+				conn,
+				teamId,
+				orgName,
+				repoName)
+		} else {
+			repo, _, err = conn.Teams.IsTeamRepoByID(context.TODO(),
+				orgId,
+				teamId,
+				orgName,
+				repoName)
+		}
 
 		if err != nil {
 			return err
@@ -139,6 +150,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).v3client
 	orgId := testAccProvider.Meta().(*Organization).id
+	orgName := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_repository" {
@@ -154,11 +166,21 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		repo, resp, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			orgId,
-			teamId,
-			testAccProvider.Meta().(*Organization).name,
-			repoName)
+		var repo *github.Repository
+		var resp *github.Response
+		if testAccProvider.Meta().(*Organization).isEnterprise {
+			repo, resp, err = IsEnterpriseTeamRepoByID(context.TODO(),
+				conn,
+				teamId,
+				orgName,
+				repoName)
+		} else {
+			repo, resp, err = conn.Teams.IsTeamRepoByID(context.TODO(),
+				orgId,
+				teamId,
+				orgName,
+				repoName)
+		}
 
 		if err == nil {
 			if repo != nil &&

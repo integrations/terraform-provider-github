@@ -4,14 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net/http"
-	"net/url"
-	"path"
-
 	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+	"net/http"
+	"net/url"
+	"path"
+	"strings"
 )
 
 type Config struct {
@@ -24,11 +24,12 @@ type Config struct {
 }
 
 type Organization struct {
-	name        string
-	id          int64
-	v3client    *github.Client
-	v4client    *githubv4.Client
-	StopContext context.Context
+	name         string
+	id           int64
+	v3client     *github.Client
+	v4client     *githubv4.Client
+	StopContext  context.Context
+	isEnterprise bool
 }
 
 // Clients configures and returns a fully initialized GithubClient and Githubv4Client
@@ -112,6 +113,7 @@ func (c *Config) Clients() (interface{}, error) {
 			return nil, err
 		}
 		org.id = remoteOrg.GetID()
+		org.isEnterprise = strings.EqualFold(remoteOrg.GetPlan().GetName(), "enterprise")
 	}
 
 	return &org, nil

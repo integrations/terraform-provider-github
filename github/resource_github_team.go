@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -120,7 +121,14 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Reading team: %s", d.Id())
-	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	var team *github.Team
+	var resp *github.Response
+	if meta.(*Organization).isEnterprise {
+		team, resp, err = GetEnterpriseTeamByID(ctx, client, id)
+	} else {
+		team, resp, err = client.Teams.GetTeamByID(ctx, orgId, id)
+	}
+
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -178,7 +186,12 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating team: %s", d.Id())
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
+	var team *github.Team
+	if meta.(*Organization).isEnterprise {
+		team, _, err = EditEnterpriseTeamByID(ctx, client, teamId, editedTeam)
+	} else {
+		team, _, err = client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
+	}
 	if err != nil {
 		return err
 	}
@@ -214,6 +227,57 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
-	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	if meta.(*Organization).isEnterprise {
+		_, err = DeleteEnterpriseTeamByID(ctx, client, id)
+	} else {
+		_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	}
 	return err
+}
+
+// API functionality below is no longer available in go-github v29.0.3+.
+// Naming conventions reflect Enterprise Github Account support.
+// Code taken from go-github v29.0.2 as a temporary work-around to [GH-404] and [GH-434].
+func GetEnterpriseTeamByID(ctx context.Context, client *github.Client, id int64) (*github.Team, *github.Response, error) {
+	u := fmt.Sprintf("teams/%v", id)
+	req, err := client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(github.Team)
+	resp, err := client.Do(ctx, req, t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, nil
+}
+
+func EditEnterpriseTeamByID(ctx context.Context, client *github.Client, id int64, team github.NewTeam) (*github.Team, *github.Response, error) {
+	u := fmt.Sprintf("teams/%v", id)
+	req, err := client.NewRequest("PATCH", u, team)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(github.Team)
+	resp, err := client.Do(ctx, req, t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, nil
+}
+
+func DeleteEnterpriseTeamByID(ctx context.Context, client *github.Client, id int64) (*github.Response, error) {
+	u := fmt.Sprintf("teams/%v", id)
+	req, err := client.NewRequest("DELETE", u, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Do(ctx, req, nil)
 }

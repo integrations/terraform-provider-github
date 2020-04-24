@@ -145,8 +145,12 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 		if err != nil {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
-
-		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Organization).id, id)
+		var githubTeam *github.Team
+		if testAccProvider.Meta().(*Organization).isEnterprise {
+			githubTeam, _, err = GetEnterpriseTeamByID(context.TODO(), conn, id)
+		} else {
+			githubTeam, _, err = conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Organization).id, id)
+		}
 		if err != nil {
 			return err
 		}
@@ -191,7 +195,13 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		team, resp, err := conn.Teams.GetTeamByID(context.TODO(), orgId, id)
+		var team *github.Team
+		var resp *github.Response
+		if testAccProvider.Meta().(*Organization).isEnterprise {
+			team, resp, err = GetEnterpriseTeamByID(context.TODO(), conn, id)
+		} else {
+			team, resp, err = conn.Teams.GetTeamByID(context.TODO(), orgId, id)
+		}
 		if err != nil {
 			if resp.StatusCode != 404 {
 				return err

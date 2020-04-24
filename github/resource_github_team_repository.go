@@ -2,9 +2,11 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -67,16 +69,21 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
-		orgName,
-		repoName,
-		&github.TeamAddTeamRepoOptions{
-			Permission: permission,
-		},
-	)
 
+	opts := &github.TeamAddTeamRepoOptions{
+		Permission: permission,
+	}
+	if meta.(*Organization).isEnterprise {
+		_, err = AddEnterpriseTeamRepoByID(ctx, client, teamId, orgName, repoName, opts)
+	} else {
+		_, err = client.Teams.AddTeamRepoByID(ctx,
+			orgId,
+			teamId,
+			orgName,
+			repoName,
+			opts,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -111,7 +118,14 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
-	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	var repo *github.Repository
+	var resp *github.Response
+	var repoErr error
+	if meta.(*Organization).isEnterprise {
+		repo, resp, repoErr = IsEnterpriseTeamRepoByID(ctx, client, teamId, orgName, repoName)
+	} else {
+		repo, resp, repoErr = client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	}
 	if repoErr != nil {
 		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -163,19 +177,24 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
 		teamIdString, permission, orgName, repoName)
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
-		orgName,
-		repoName,
-		&github.TeamAddTeamRepoOptions{
-			Permission: permission,
-		},
-	)
-
+	opts := &github.TeamAddTeamRepoOptions{
+		Permission: permission,
+	}
+	if meta.(*Organization).isEnterprise {
+		_, err = AddEnterpriseTeamRepoByID(ctx, client, teamId, orgName, repoName, opts)
+	} else {
+		_, err = client.Teams.AddTeamRepoByID(ctx,
+			orgId,
+			teamId,
+			orgName,
+			repoName,
+			opts,
+		)
+	}
 	if err != nil {
 		return err
 	}
+
 	d.SetId(buildTwoPartID(teamIdString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
@@ -202,6 +221,55 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
 		teamIdString, orgName, repoName)
-	_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	if meta.(*Organization).isEnterprise {
+		_, err = RemoveEnterpriseTeamRepoByID(ctx, client, teamId, orgName, repoName)
+	} else {
+		_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	}
 	return err
+}
+
+// API functionality below is no longer available in go-github v29.0.3+.
+// Naming conventions reflect Enterprise Github Account support.
+// Code taken from go-github v29.0.2 as a temporary work-around to [GH-404] and [GH-434].
+func IsEnterpriseTeamRepoByID(ctx context.Context, client *github.Client, teamId int64, owner, repo string) (*github.Repository, *github.Response, error) {
+	u := fmt.Sprintf("teams/%v/repos/%v/%v", teamId, owner, repo)
+	req, err := client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	mediaTypeOrgPermissionRepo := "application/vnd.github.v3.repository+json"
+	headers := []string{mediaTypeOrgPermissionRepo}
+	req.Header.Set("Accept", strings.Join(headers, ", "))
+
+	repository := new(github.Repository)
+	resp, err := client.Do(ctx, req, repository)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return repository, resp, nil
+}
+
+func AddEnterpriseTeamRepoByID(ctx context.Context, client *github.Client, teamId int64, owner, repo string, opts *github.TeamAddTeamRepoOptions) (*github.Response, error) {
+	u := fmt.Sprintf("teams/%v/repos/%v/%v", teamId, owner, repo)
+	req, err := client.NewRequest("PUT", u, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Do(ctx, req, nil)
+
+}
+
+func RemoveEnterpriseTeamRepoByID(ctx context.Context, client *github.Client, teamId int64, owner, repo string) (*github.Response, error) {
+	u := fmt.Sprintf("teams/%v/repos/%v/%v", teamId, owner, repo)
+	req, err := client.NewRequest("DELETE", u, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Do(ctx, req, nil)
 }
