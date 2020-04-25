@@ -101,7 +101,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 			orgName, repoName, branchRefName, err)
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branchName))
+	d.SetId(buildTwoPartID(repoName, branchName))
 
 	return resourceGithubBranchRead(d, meta)
 }
@@ -144,7 +144,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 			orgName, repoName, branchRefName, err)
 	}
 
-	d.SetId(buildTwoPartID(&repoName, &branchName))
+	d.SetId(buildTwoPartID(repoName, branchName))
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("repository", repoName)
 	d.Set("branch", branchName)
