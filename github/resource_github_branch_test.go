@@ -150,7 +150,7 @@ func testAccCheckGithubBranchDestroy(s *terraform.State) error {
 			continue
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, branchName, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
@@ -184,7 +184,7 @@ func testAccCheckGithubBranchExists(n, id string, reference *github.Reference) r
 			return fmt.Errorf("Expected ID to be %v, got %v", id, rs.Primary.ID)
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, branchName, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
