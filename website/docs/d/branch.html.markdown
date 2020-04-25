@@ -12,7 +12,7 @@ Use this data source to retrieve information about a repository branch.
 ## Example Usage
 
 ```hcl
-data "github_branch" "master" {
+data "github_branch" "development" {
   repository = "example"
   branch     = "development"
 }
