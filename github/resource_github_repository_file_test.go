@@ -48,7 +48,7 @@ func testSweepRepositoryFiles(region string) error {
 }
 
 func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	org := meta.(*Organization).name
 
 	_, files, _, err := client.Repositories.GetContents(
@@ -58,10 +58,10 @@ func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
 	}
 
 	for _, f := range files {
-		if strings.HasPrefix(*f.Name, "tf-acc-") {
-			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", *f.Name, org, branch)
+		if name := f.GetName(); strings.HasPrefix(name, "tf-acc-") {
+			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", name, org, branch)
 			opts := &github.RepositoryContentFileOptions{Branch: github.String(branch)}
-			if _, _, err := client.Repositories.DeleteFile(context.TODO(), org, "test-repo", *f.Name, opts); err != nil {
+			if _, _, err := client.Repositories.DeleteFile(context.TODO(), org, "test-repo", name, opts); err != nil {
 				return err
 			}
 		}
@@ -309,7 +309,7 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 			return fmt.Errorf("No repository file path set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		org := testAccProvider.Meta().(*Organization).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
@@ -356,16 +356,16 @@ type testAccGithubRepositoryFileExpectedCommitAttributes struct {
 func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryCommit, want *testAccGithubRepositoryFileExpectedCommitAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if commit.Commit.Committer.GetName() != want.CommitAuthor {
-			return fmt.Errorf("got committer author name %q; want %q", commit.Commit.Committer.GetName(), want.CommitAuthor)
+		if name := commit.GetCommit().GetCommitter().GetName(); name != want.CommitAuthor {
+			return fmt.Errorf("got committer author name %q; want %q", name, want.CommitAuthor)
 		}
 
-		if commit.Commit.Committer.GetEmail() != want.CommitEmail {
-			return fmt.Errorf("got committer author email %q; want %q", commit.Commit.Committer.GetEmail(), want.CommitEmail)
+		if email := commit.GetCommit().GetCommitter().GetEmail(); email != want.CommitEmail {
+			return fmt.Errorf("got committer author email %q; want %q", email, want.CommitEmail)
 		}
 
-		if commit.Commit.GetMessage() != want.CommitMessage {
-			return fmt.Errorf("got commit message %q; want %q", commit.Commit.GetMessage(), want.CommitMessage)
+		if message := commit.GetCommit().GetMessage(); message != want.CommitMessage {
+			return fmt.Errorf("got commit message %q; want %q", message, want.CommitMessage)
 		}
 
 		if len(commit.Files) != 1 {
@@ -373,8 +373,8 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 		}
 
 		file := commit.Files[0]
-		if file.GetFilename() != want.Filename {
-			return fmt.Errorf("got filename %q; want %q", file.GetFilename(), want.Filename)
+		if filename := file.GetFilename(); filename != want.Filename {
+			return fmt.Errorf("got filename %q; want %q", filename, want.Filename)
 		}
 
 		return nil
@@ -382,7 +382,7 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 }
 
 func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 	org := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {

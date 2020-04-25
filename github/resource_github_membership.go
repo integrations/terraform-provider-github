@@ -46,7 +46,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
@@ -57,7 +57,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
-	membership, _, err := client.Organizations.EditOrgMembership(ctx,
+	_, _, err = client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
@@ -68,7 +68,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+	d.SetId(buildTwoPartID(orgName, username))
 
 	return resourceGithubMembershipRead(d, meta)
 }
@@ -79,7 +79,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
@@ -110,8 +110,8 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", membership.User.Login)
-	d.Set("role", membership.Role)
+	d.Set("username", username)
+	d.Set("role", membership.GetRole())
 
 	return nil
 }
@@ -122,7 +122,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

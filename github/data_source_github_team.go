@@ -40,6 +40,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"node_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -48,7 +52,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	slug := d.Get("slug").(string)
 	log.Printf("[INFO] Refreshing GitHub Team: %s", slug)
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	team, err := getGithubTeamBySlug(ctx, client, meta.(*Organization).name, slug)
@@ -72,6 +76,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", team.GetDescription())
 	d.Set("privacy", team.GetPrivacy())
 	d.Set("permission", team.GetPermission())
+	d.Set("node_id", team.GetNodeID())
 
 	return nil
 }

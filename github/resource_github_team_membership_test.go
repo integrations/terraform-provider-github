@@ -96,7 +96,7 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -139,7 +139,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -171,7 +171,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -187,15 +187,15 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return err
 		}
 
-		resourceRole := membership.Role
-		actualRole := teamMembership.Role
+		resourceRole := membership.GetRole()
+		actualRole := teamMembership.GetRole()
 
-		if *resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", *resourceRole, expected)
+		if resourceRole != expected {
+			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
-		if *resourceRole != *actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", *resourceRole, *actualRole)
+		if resourceRole != actualRole {
+			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}

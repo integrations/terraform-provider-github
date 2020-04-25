@@ -59,7 +59,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	repoName := d.Get("repository").(string)
 	key := d.Get("key").(string)
@@ -79,9 +79,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	id := strconv.FormatInt(*resultKey.ID, 10)
+	id := strconv.FormatInt(resultKey.GetID(), 10)
 
-	d.SetId(buildTwoPartID(&repoName, &id))
+	d.SetId(buildTwoPartID(repoName, id))
 
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }
@@ -92,7 +92,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	owner := meta.(*Organization).name
 	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
@@ -127,10 +127,10 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("key", key.Key)
-	d.Set("read_only", key.ReadOnly)
+	d.Set("key", key.GetKey())
+	d.Set("read_only", key.GetReadOnly())
 	d.Set("repository", repoName)
-	d.Set("title", key.Title)
+	d.Set("title", key.GetTitle())
 
 	return nil
 }
@@ -141,7 +141,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	owner := meta.(*Organization).name
 	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")

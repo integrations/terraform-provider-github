@@ -26,7 +26,7 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 }
 
 func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	invitationIdString := d.Get("invitation_id").(string)
 	invitationId, err := strconv.Atoi(invitationIdString)

@@ -84,7 +84,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
@@ -99,7 +99,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if membership != nil &&
-				buildTwoPartID(membership.Organization.Login, membership.User.Login) == rs.Primary.ID {
+				buildTwoPartID(orgName, username) == rs.Primary.ID {
 				return fmt.Errorf("Organization membership %q still exists", rs.Primary.ID)
 			}
 		}
@@ -122,7 +122,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
@@ -148,7 +148,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
@@ -159,12 +159,12 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return err
 		}
 
-		resourceRole := membership.Role
-		actualRole := githubMembership.Role
+		resourceRole := membership.GetRole()
+		actualRole := githubMembership.GetRole()
 
-		if *resourceRole != *actualRole {
+		if resourceRole != actualRole {
 			return fmt.Errorf("Membership role %v in resource does match actual state of %v",
-				*resourceRole, *actualRole)
+				resourceRole, actualRole)
 		}
 		return nil
 	}
@@ -181,7 +181,7 @@ func testAccGithubMembershipConfig(username string) string {
 
 func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *orig.URL != *other.URL {
+		if orig.GetURL() != other.GetURL() {
 			return errors.New("users are different")
 		}
 

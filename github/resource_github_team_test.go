@@ -140,7 +140,7 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return fmt.Errorf("No Team ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return unconvertibleIdErr(rs.Primary.ID, err)
@@ -178,7 +178,7 @@ func testAccCheckGithubTeamAttributes(team *github.Team, name, description strin
 }
 
 func testAccCheckGithubTeamDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
@@ -200,7 +200,7 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 
 		var teamID string
 		if team != nil {
-			teamID = strconv.FormatInt(*team.ID, 10)
+			teamID = strconv.FormatInt(team.GetID(), 10)
 		}
 		if teamID == rs.Primary.ID {
 			return fmt.Errorf("Team still exists")

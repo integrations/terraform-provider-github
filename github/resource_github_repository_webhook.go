@@ -103,7 +103,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -115,7 +115,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*hook.ID, 10))
+	d.SetId(strconv.FormatInt(hook.GetID(), 10))
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
@@ -137,7 +137,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -166,8 +166,8 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 		return err
 	}
-	d.Set("url", hook.URL)
-	d.Set("active", hook.Active)
+	d.Set("url", hook.GetURL())
+	d.Set("active", hook.GetActive())
 	d.Set("events", hook.Events)
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
@@ -195,7 +195,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)
@@ -216,7 +216,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	orgName := meta.(*Organization).name
 	repoName := d.Get("repository").(string)

@@ -92,7 +92,7 @@ func testAccCheckGithubOrganizationWebhookExists(n string, hook *github.Hook) re
 		}
 
 		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
+		conn := org.v3client
 		getHook, _, err := conn.Organizations.GetHook(context.TODO(), org.name, hookID)
 		if err != nil {
 			return err
@@ -111,11 +111,11 @@ type testAccGithubOrganizationWebhookExpectedAttributes struct {
 func testAccCheckGithubOrganizationWebhookAttributes(hook *github.Hook, want *testAccGithubOrganizationWebhookExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *hook.Active != want.Active {
-			return fmt.Errorf("got hook %t; want %t", *hook.Active, want.Active)
+		if active := hook.GetActive(); active != want.Active {
+			return fmt.Errorf("got hook %t; want %t", active, want.Active)
 		}
-		if !strings.HasPrefix(*hook.URL, "https://") {
-			return fmt.Errorf("got http URL %q; want to start with 'https://'", *hook.URL)
+		if URL := hook.GetURL(); !strings.HasPrefix(URL, "https://") {
+			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
 		}
 		if !reflect.DeepEqual(hook.Events, want.Events) {
 			return fmt.Errorf("got hook events %q; want %q", hook.Events, want.Events)
@@ -144,7 +144,7 @@ func testAccCheckGithubOrganizationWebhookSecret(r, secret string) resource.Test
 }
 
 func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 	orgName := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {
@@ -159,7 +159,7 @@ func testAccCheckGithubOrganizationWebhookDestroy(s *terraform.State) error {
 
 		gotHook, resp, err := conn.Organizations.GetHook(context.TODO(), orgName, id)
 		if err == nil {
-			if gotHook != nil && *gotHook.ID == id {
+			if gotHook != nil && gotHook.GetID() == id {
 				return fmt.Errorf("Webhook still exists")
 			}
 		}

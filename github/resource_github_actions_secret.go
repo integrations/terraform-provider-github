@@ -50,7 +50,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	owner := meta.(*Organization).name
 	ctx := context.Background()
 
@@ -80,7 +80,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repo, &secretName))
+	d.SetId(buildTwoPartID(repo, secretName))
 	return resourceGithubActionsSecretRead(d, meta)
 }
 
@@ -90,7 +90,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	owner := meta.(*Organization).name
 	ctx := context.Background()
 
@@ -118,7 +118,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -134,7 +134,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)

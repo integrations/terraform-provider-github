@@ -35,7 +35,7 @@ func resourceGithubUserGpgKey() *schema.Resource {
 }
 
 func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	pubKey := d.Get("armored_public_key").(string)
 	ctx := context.Background()
@@ -46,13 +46,13 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(*key.ID, 10))
+	d.SetId(strconv.FormatInt(key.GetID(), 10))
 
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
 
 func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -80,13 +80,13 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("key_id", key.KeyID)
+	d.Set("key_id", key.GetKeyID())
 
 	return nil
 }
 
 func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

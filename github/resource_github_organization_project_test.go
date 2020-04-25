@@ -42,7 +42,7 @@ func TestAccGithubOrganizationProject_basic(t *testing.T) {
 }
 
 func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_project" {
@@ -81,7 +81,7 @@ func testAccCheckGithubOrganizationProjectExists(n string, project *github.Proje
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		gotProject, _, err := conn.Projects.GetProject(context.TODO(), projectID)
 		if err != nil {
 			return err
@@ -99,14 +99,14 @@ type testAccGithubOrganizationProjectExpectedAttributes struct {
 func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *project.Name != want.Name {
-			return fmt.Errorf("got project %q; want %q", *project.Name, want.Name)
+		if name := project.GetName(); name != want.Name {
+			return fmt.Errorf("got project %q; want %q", name, want.Name)
 		}
-		if *project.Body != want.Body {
-			return fmt.Errorf("got project %q; want %q", *project.Body, want.Body)
+		if body := project.GetBody(); body != want.Body {
+			return fmt.Errorf("got project %q; want %q", body, want.Body)
 		}
-		if !strings.HasPrefix(*project.URL, "https://") {
-			return fmt.Errorf("got http URL %q; want to start with 'https://'", *project.URL)
+		if URL := project.GetURL(); !strings.HasPrefix(URL, "https://") {
+			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
 		}
 
 		return nil

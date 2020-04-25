@@ -93,7 +93,7 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
@@ -133,7 +133,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
@@ -148,7 +148,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 
 		hasInvitation := false
 		for _, i := range invitations {
-			if *i.Invitee.Login == username {
+			if i.GetInvitee().GetLogin() == username {
 				hasInvitation = true
 				break
 			}
@@ -173,7 +173,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
@@ -187,7 +187,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == username {
+			if i.GetInvitee().GetLogin() == username {
 				permName, err := getInvitationPermission(i)
 
 				if err != nil {
@@ -224,7 +224,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 	return func(s *terraform.State) error {
 		opt := &github.ListOptions{PerPage: maxPerPage}
 
-		client := testAccProvider.Meta().(*Organization).client
+		client := testAccProvider.Meta().(*Organization).v3client
 		org := testAccProvider.Meta().(*Organization).name
 
 		for {
@@ -238,7 +238,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 			}
 
 			for _, i := range invitations {
-				if strings.EqualFold(*i.Invitee.Login, username) {
+				if strings.EqualFold(i.GetInvitee().GetLogin(), username) {
 					invitation = i
 					return nil
 				}
@@ -256,7 +256,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 
 func testAccGithubRepositoryCollaboratorTheSame(orig, other *github.RepositoryInvitation) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if orig.ID != other.ID {
+		if orig.GetID() != other.GetID() {
 			return errors.New("collaborators are different")
 		}
 

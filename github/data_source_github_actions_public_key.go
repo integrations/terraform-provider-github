@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
@@ -17,11 +18,11 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 			},
 			"key_id": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 			"key": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -37,7 +38,7 @@ func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface
 	owner := meta.(*Organization).name
 	log.Printf("[INFO] Refreshing GitHub Actions Public Key from: %s/%s", owner, repository)
 
-	client := meta.(*Organization).client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)
