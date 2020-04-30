@@ -182,17 +182,18 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	_, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return nil, err
 	}
 
 	sourceBranch := "master"
 	if strings.Contains(branchName, ":") {
-		_, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
+		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
 		if err != nil {
 			return nil, err
 		}
+		d.SetId(buildTwoPartID(repoName, branchName))
 	}
 
 	d.Set("source_branch", sourceBranch)
