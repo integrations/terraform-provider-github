@@ -1,14 +1,14 @@
-## 2.7.0 (Unreleased)
+## 2.7.0 (May 01, 2020)
 
 BUG FIXES:
 
-* Add Missing Acceptance Test [GH-427]
+* Add Missing Acceptance Test ([#427](https://github.com/terraform-providers/terraform-provider-github/issues/427))
 
 ENHANCEMENTS:
 
-* Add GraphQL Client [GH-331]
-* **New Data Source** `github_branch` [GH-364]
-* **New Resource** `github_branch` [GH-364]
+* Add GraphQL Client ([#331](https://github.com/terraform-providers/terraform-provider-github/issues/331))
+* **New Data Source** `github_branch` ([#364](https://github.com/terraform-providers/terraform-provider-github/issues/364))
+* **New Resource** `github_branch` ([#364](https://github.com/terraform-providers/terraform-provider-github/issues/364))
 
 
 ## 2.6.1 (April 07, 2020)
