@@ -1,4 +1,16 @@
 ## 2.7.0 (Unreleased)
+
+BUG FIXES:
+
+* Add Missing Acceptance Test [GH-427]
+
+ENHANCEMENTS:
+
+* Add GraphQL Client [GH-331]
+* **New Data Source** `github_branch` [GH-364]
+* **New Resource** `github_branch` [GH-364]
+
+
 ## 2.6.1 (April 07, 2020)
 
 BUG FIXES:
