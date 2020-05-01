@@ -44,6 +44,12 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"visibility": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "public",
+				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
+			},
 			"has_issues": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -179,6 +185,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
 		Private:             github.Bool(d.Get("private").(bool)),
+		Visibility:          github.String(d.Get("visibility").(string)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
@@ -303,6 +310,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
