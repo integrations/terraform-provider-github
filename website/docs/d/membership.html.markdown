@@ -3,9 +3,9 @@ layout: "github"
 page_title: "GitHub: github_membership"
 description: |-
   Get information on user membership in an organization.
--------------------------------------------
+---
 
-# github_membership
+# github\_membership
 
 Use this data source to find out if a user is a member of your organization, as well
 as what role they have within it.
