@@ -83,6 +83,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						DefaultBranch:       "master",
 						Archived:            false,
 					}),
+					testAccCheckGithubVulnerabilityAlerts(rn, false),
 				),
 			},
 			{
@@ -101,6 +102,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						HasProjects:      false,
 						Archived:         false,
 					}),
+					testAccCheckGithubVulnerabilityAlerts(rn, false),
 				),
 			},
 			{
@@ -523,6 +525,78 @@ func TestAccGithubRepository_createFromTemplate(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_vulnerabilityAlerts(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryVulnerabilityAlertsConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						Description:         description,
+						Homepage:            "http://example.com/",
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+					testAccCheckGithubVulnerabilityAlerts(rn, true),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryVulnerabilityAlertsUpdateConfig(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						Description:         description,
+						Homepage:            "http://example.com/",
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+					testAccCheckGithubVulnerabilityAlerts(rn, false),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init",
+				},
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -551,6 +625,33 @@ func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Re
 
 		if templateRepository := repo.GetTemplateRepository(); templateRepository.GetIsTemplate() != true {
 			return fmt.Errorf("got repo %q; want %q", templateRepository, repo)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckGithubVulnerabilityAlerts(n string, expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not Found: %s", n)
+		}
+
+		repoName := rs.Primary.ID
+		if repoName == "" {
+			return fmt.Errorf("No repository name is set")
+		}
+
+		org := testAccProvider.Meta().(*Organization)
+		conn := org.v3client
+		actual, _, err := conn.Repositories.GetVulnerabilityAlerts(context.TODO(), org.name, repoName)
+		if err != nil {
+			return err
+		}
+
+		if expected != actual {
+			return fmt.Errorf("Unexpected vulnerability alerts, got: %t", actual)
 		}
 
 		return nil
@@ -964,4 +1065,54 @@ resource "github_branch_protection" "repo_name_master" {
   branch     = "master"
 }
 `, randString)
+}
+
+func testAccGithubRepositoryVulnerabilityAlertsConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues         = true
+  has_wiki           = true
+  is_template        = false
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+  auto_init          = false
+
+	vulnerability_alerts = true
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryVulnerabilityAlertsUpdateConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues         = true
+  has_wiki           = true
+  is_template        = false
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+  auto_init          = false
+
+	vulnerability_alerts = false
+}
+`, randString, randString)
 }
