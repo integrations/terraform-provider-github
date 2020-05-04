@@ -81,7 +81,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&teamIdString, &repoName))
+	d.SetId(buildTwoPartID(teamIdString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
@@ -129,9 +129,9 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("team_id", teamIdString)
-	d.Set("repository", repo.Name)
+	d.Set("repository", repo.GetName())
 
-	permName, permErr := getRepoPermission(repo.Permissions)
+	permName, permErr := getRepoPermission(repo.GetPermissions())
 	if permErr != nil {
 		return permErr
 	}
@@ -176,7 +176,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	d.SetId(buildTwoPartID(&teamIdString, &repoName))
+	d.SetId(buildTwoPartID(teamIdString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }

@@ -3,7 +3,7 @@ layout: "github"
 page_title: "GitHub: github_membership"
 description: |-
   Get information on user membership in an organization.
--------------------------------------------
+---
 
 # github_membership
 

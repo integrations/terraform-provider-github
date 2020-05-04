@@ -38,10 +38,10 @@ func testSweepRepositories(region string) error {
 	}
 
 	for _, r := range repos {
-		if strings.HasPrefix(*r.Name, "tf-acc-") || strings.HasPrefix(*r.Name, "foo-") {
-			log.Printf("Destroying Repository %s", *r.Name)
+		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
+			log.Printf("Destroying Repository %s", name)
 
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, *r.Name); err != nil {
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, name); err != nil {
 				return err
 			}
 		}
@@ -549,8 +549,8 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *repo.TemplateRepository.IsTemplate != true {
-			return fmt.Errorf("got repo %q; want %q", *repo.TemplateRepository, repo)
+		if templateRepository := repo.GetTemplateRepository(); templateRepository.GetIsTemplate() != true {
+			return fmt.Errorf("got repo %q; want %q", templateRepository, repo)
 		}
 
 		return nil
@@ -582,41 +582,41 @@ type testAccGithubRepositoryExpectedAttributes struct {
 func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *repo.Name != want.Name {
-			return fmt.Errorf("got repo %q; want %q", *repo.Name, want.Name)
+		if name := repo.GetName(); name != want.Name {
+			return fmt.Errorf("got repo %q; want %q", name, want.Name)
 		}
-		if *repo.Description != want.Description {
-			return fmt.Errorf("got description %q; want %q", *repo.Description, want.Description)
+		if description := repo.GetDescription(); description != want.Description {
+			return fmt.Errorf("got description %q; want %q", description, want.Description)
 		}
-		if *repo.Homepage != want.Homepage {
-			return fmt.Errorf("got homepage URL %q; want %q", *repo.Homepage, want.Homepage)
+		if homepage := repo.GetHomepage(); homepage != want.Homepage {
+			return fmt.Errorf("got homepage URL %q; want %q", homepage, want.Homepage)
 		}
-		if *repo.Private != want.Private {
-			return fmt.Errorf("got private %#v; want %#v", *repo.Private, want.Private)
+		if private := repo.GetPrivate(); private != want.Private {
+			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
 		}
-		if *repo.HasIssues != want.HasIssues {
-			return fmt.Errorf("got has issues %#v; want %#v", *repo.HasIssues, want.HasIssues)
+		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
+			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
 		}
-		if *repo.HasProjects != want.HasProjects {
-			return fmt.Errorf("got has projects %#v; want %#v", *repo.HasProjects, want.HasProjects)
+		if hasProjects := repo.GetHasProjects(); hasProjects != want.HasProjects {
+			return fmt.Errorf("got has projects %#v; want %#v", hasProjects, want.HasProjects)
 		}
-		if *repo.HasWiki != want.HasWiki {
-			return fmt.Errorf("got has wiki %#v; want %#v", *repo.HasWiki, want.HasWiki)
+		if hasWiki := repo.GetHasWiki(); hasWiki != want.HasWiki {
+			return fmt.Errorf("got has wiki %#v; want %#v", hasWiki, want.HasWiki)
 		}
-		if *repo.IsTemplate != want.IsTemplate {
-			return fmt.Errorf("got has IsTemplate %#v; want %#v", *repo.IsTemplate, want.IsTemplate)
+		if isTemplate := repo.GetIsTemplate(); isTemplate != want.IsTemplate {
+			return fmt.Errorf("got has IsTemplate %#v; want %#v", isTemplate, want.IsTemplate)
 		}
-		if *repo.AllowMergeCommit != want.AllowMergeCommit {
-			return fmt.Errorf("got allow merge commit %#v; want %#v", *repo.AllowMergeCommit, want.AllowMergeCommit)
+		if allowMergeCommit := repo.GetAllowMergeCommit(); allowMergeCommit != want.AllowMergeCommit {
+			return fmt.Errorf("got allow merge commit %#v; want %#v", allowMergeCommit, want.AllowMergeCommit)
 		}
-		if *repo.AllowSquashMerge != want.AllowSquashMerge {
-			return fmt.Errorf("got allow squash merge %#v; want %#v", *repo.AllowSquashMerge, want.AllowSquashMerge)
+		if allowSquashMerge := repo.GetAllowSquashMerge(); allowSquashMerge != want.AllowSquashMerge {
+			return fmt.Errorf("got allow squash merge %#v; want %#v", allowSquashMerge, want.AllowSquashMerge)
 		}
-		if *repo.AllowRebaseMerge != want.AllowRebaseMerge {
-			return fmt.Errorf("got allow rebase merge %#v; want %#v", *repo.AllowRebaseMerge, want.AllowRebaseMerge)
+		if allowRebaseMerge := repo.GetAllowRebaseMerge(); allowRebaseMerge != want.AllowRebaseMerge {
+			return fmt.Errorf("got allow rebase merge %#v; want %#v", allowRebaseMerge, want.AllowRebaseMerge)
 		}
-		if *repo.HasDownloads != want.HasDownloads {
-			return fmt.Errorf("got has downloads %#v; want %#v", *repo.HasDownloads, want.HasDownloads)
+		if hasDownloads := repo.GetHasDownloads(); hasDownloads != want.HasDownloads {
+			return fmt.Errorf("got has downloads %#v; want %#v", hasDownloads, want.HasDownloads)
 		}
 		if len(want.Topics) != len(repo.Topics) {
 			return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
@@ -628,59 +628,59 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 				return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
 			}
 		}
-		if *repo.DefaultBranch != want.DefaultBranch {
-			return fmt.Errorf("got default branch %q; want %q", *repo.DefaultBranch, want.DefaultBranch)
+		if defaultBranch := repo.GetDefaultBranch(); defaultBranch != want.DefaultBranch {
+			return fmt.Errorf("got default branch %q; want %q", defaultBranch, want.DefaultBranch)
 		}
 
-		if repo.AutoInit != nil {
-			if *repo.AutoInit != want.AutoInit {
-				return fmt.Errorf("got auto init %t; want %t", *repo.AutoInit, want.AutoInit)
+		if autoInit := repo.GetAutoInit(); repo.AutoInit != nil {
+			if autoInit != want.AutoInit {
+				return fmt.Errorf("got auto init %t; want %t", autoInit, want.AutoInit)
 			}
 		}
 
-		if repo.GitignoreTemplate != nil {
-			if *repo.GitignoreTemplate != want.GitignoreTemplate {
-				return fmt.Errorf("got gitignore_template %q; want %q", *repo.GitignoreTemplate, want.GitignoreTemplate)
+		if gitignoreTemplate := repo.GetGitignoreTemplate(); repo.GitignoreTemplate != nil {
+			if gitignoreTemplate != want.GitignoreTemplate {
+				return fmt.Errorf("got gitignore_template %q; want %q", gitignoreTemplate, want.GitignoreTemplate)
 			}
 		}
 
-		if repo.LicenseTemplate != nil {
-			if *repo.LicenseTemplate != want.LicenseTemplate {
-				return fmt.Errorf("got license_template %q; want %q", *repo.LicenseTemplate, want.LicenseTemplate)
+		if licenseTemplate := repo.GetLicenseTemplate(); repo.LicenseTemplate != nil {
+			if licenseTemplate != want.LicenseTemplate {
+				return fmt.Errorf("got license_template %q; want %q", licenseTemplate, want.LicenseTemplate)
 			}
 		}
 
 		// For the rest of these, we just want to make sure they've been
 		// populated with something that seems somewhat reasonable.
-		if !strings.HasSuffix(*repo.FullName, "/"+want.Name) {
-			return fmt.Errorf("got full name %q; want to end with '/%s'", *repo.FullName, want.Name)
+		if fullName := repo.GetFullName(); !strings.HasSuffix(fullName, "/"+want.Name) {
+			return fmt.Errorf("got full name %q; want to end with '/%s'", fullName, want.Name)
 		}
-		if !strings.HasSuffix(*repo.CloneURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got Clone URL %q; want to end with '/%s.git'", *repo.CloneURL, want.Name)
+		if cloneURL := repo.GetCloneURL(); !strings.HasSuffix(cloneURL, "/"+want.Name+".git") {
+			return fmt.Errorf("got Clone URL %q; want to end with '/%s.git'", cloneURL, want.Name)
 		}
-		if !strings.HasPrefix(*repo.CloneURL, "https://") {
-			return fmt.Errorf("got Clone URL %q; want to start with 'https://'", *repo.CloneURL)
+		if cloneURL := repo.GetCloneURL(); !strings.HasPrefix(cloneURL, "https://") {
+			return fmt.Errorf("got Clone URL %q; want to start with 'https://'", cloneURL)
 		}
-		if !strings.HasSuffix(*repo.HTMLURL, "/"+want.Name) {
-			return fmt.Errorf("got HTML URL %q; want to end with '%s'", *repo.HTMLURL, want.Name)
+		if HTMLURL := repo.GetHTMLURL(); !strings.HasSuffix(HTMLURL, "/"+want.Name) {
+			return fmt.Errorf("got HTML URL %q; want to end with '%s'", HTMLURL, want.Name)
 		}
-		if !strings.HasSuffix(*repo.SSHURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got SSH URL %q; want to end with '/%s.git'", *repo.SSHURL, want.Name)
+		if SSHURL := repo.GetSSHURL(); !strings.HasSuffix(SSHURL, "/"+want.Name+".git") {
+			return fmt.Errorf("got SSH URL %q; want to end with '/%s.git'", SSHURL, want.Name)
 		}
-		if !strings.HasPrefix(*repo.SSHURL, "git@github.com:") {
-			return fmt.Errorf("got SSH URL %q; want to start with 'git@github.com:'", *repo.SSHURL)
+		if SSHURL := repo.GetSSHURL(); !strings.HasPrefix(SSHURL, "git@github.com:") {
+			return fmt.Errorf("got SSH URL %q; want to start with 'git@github.com:'", SSHURL)
 		}
-		if !strings.HasSuffix(*repo.GitURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got git URL %q; want to end with '/%s.git'", *repo.GitURL, want.Name)
+		if gitURL := repo.GetGitURL(); !strings.HasSuffix(gitURL, "/"+want.Name+".git") {
+			return fmt.Errorf("got git URL %q; want to end with '/%s.git'", gitURL, want.Name)
 		}
-		if !strings.HasPrefix(*repo.GitURL, "git://") {
-			return fmt.Errorf("got git URL %q; want to start with 'git://'", *repo.GitURL)
+		if gitURL := repo.GetGitURL(); !strings.HasPrefix(gitURL, "git://") {
+			return fmt.Errorf("got git URL %q; want to start with 'git://'", gitURL)
 		}
-		if !strings.HasSuffix(*repo.SVNURL, "/"+want.Name) {
-			return fmt.Errorf("got svn URL %q; want to end with '/%s'", *repo.SVNURL, want.Name)
+		if SVNURL := repo.GetSVNURL(); !strings.HasSuffix(SVNURL, "/"+want.Name) {
+			return fmt.Errorf("got svn URL %q; want to end with '/%s'", SVNURL, want.Name)
 		}
-		if !strings.HasPrefix(*repo.SVNURL, "https://") {
-			return fmt.Errorf("got svn URL %q; want to start with 'https://'", *repo.SVNURL)
+		if SVNURL := repo.GetSVNURL(); !strings.HasPrefix(SVNURL, "https://") {
+			return fmt.Errorf("got svn URL %q; want to start with 'https://'", SVNURL)
 		}
 
 		return nil
@@ -698,8 +698,8 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 
 		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
 		if err == nil {
-			if gotRepo != nil && *gotRepo.Name == rs.Primary.ID {
-				return fmt.Errorf("Repository %s/%s still exists", orgName, *gotRepo.Name)
+			if name := gotRepo.GetName(); gotRepo != nil && name == rs.Primary.ID {
+				return fmt.Errorf("Repository %s/%s still exists", orgName, name)
 			}
 		}
 		if resp.StatusCode != 404 {

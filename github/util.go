@@ -56,8 +56,8 @@ func parseTwoPartID(id, left, right string) (string, string, error) {
 }
 
 // format the strings into an id `a:b`
-func buildTwoPartID(a, b *string) string {
-	return fmt.Sprintf("%s:%s", *a, *b)
+func buildTwoPartID(a, b string) string {
+	return fmt.Sprintf("%s:%s", a, b)
 }
 
 func expandStringList(configured []interface{}) []string {

@@ -46,7 +46,7 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(*key.ID, 10))
+	d.SetId(strconv.FormatInt(key.GetID(), 10))
 
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
@@ -80,7 +80,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("key_id", key.KeyID)
+	d.Set("key_id", key.GetKeyID())
 
 	return nil
 }
