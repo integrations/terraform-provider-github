@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* Documentation Fix for `github_branch_protection` resource [GH-410]
 * Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources [GH-423]
 * Documentation Fix for `github_repository_file` import [GH-443]
 
