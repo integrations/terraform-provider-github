@@ -1,4 +1,10 @@
 ## 2.8.0 (Unreleased)
+
+BUG FIXES:
+
+* Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources [GH-423]
+* Documentation Fix for `github_repository_file` import [GH-443]
+
 ## 2.7.0 (May 01, 2020)
 
 BUG FIXES:
