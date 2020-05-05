@@ -18,6 +18,7 @@ import (
 var testUser string = os.Getenv("GITHUB_TEST_USER")
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 var testOrganization string = os.Getenv("GITHUB_ORGANIZATION")
+var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
