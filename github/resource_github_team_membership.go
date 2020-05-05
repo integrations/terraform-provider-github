@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -50,6 +50,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 
 func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).v3client
+	orgId := meta.(*Organization).id
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -62,7 +63,8 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	role := d.Get("role").(string)
 
 	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
-	_, _, err = client.Teams.AddTeamMembership(ctx,
+	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
+		orgId,
 		teamId,
 		username,
 		&github.TeamAddTeamMembershipOptions{
@@ -80,6 +82,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).v3client
+	orgId := meta.(*Organization).id
 	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 	if err != nil {
 		return err
@@ -102,8 +105,8 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
-	membership, resp, err := client.Teams.GetTeamMembership(ctx,
-		teamId, username)
+	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
+		orgId, teamId, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -127,7 +130,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).v3client
-
+	orgId := meta.(*Organization).id
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
@@ -137,7 +140,7 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
-	_, err = client.Teams.RemoveTeamMembership(ctx, teamId, username)
+	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 
 	return err
 }
