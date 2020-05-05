@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -68,7 +68,9 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 	}
 
 	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
-	d.Set("groups", groups)
+	if err := d.Set("groups", groups); err != nil {
+		return fmt.Errorf("error setting groups: %s", err)
+	}
 
 	return nil
 }

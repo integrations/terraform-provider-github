@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -64,14 +65,9 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	orgName := meta.(*Organization).name
 	slug := d.Get("team_slug").(string)
 
-	team, err := getGithubTeamBySlug(ctx, client, orgName, slug)
-	if err != nil {
-		return err
-	}
-
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Creating team-sync group mapping (Team: %s)", team.GetName())
-	_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), *idpGroupList)
+	log.Printf("[DEBUG] Creating team-sync group mapping (Team slug: %s)", slug)
+	_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
 	}
@@ -97,14 +93,21 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	team, err := getGithubTeamBySlug(ctx, client, orgName, slug)
-	if err != nil {
-		return err
-	}
+	log.Printf("[DEBUG] Reading team-sync group mapping (Team slug: %s)", slug)
+	idpGroupList, _, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 
-	log.Printf("[DEBUG] Reading team-sync group mapping (Team: %s)", team.GetName())
-	idpGroupList, _, err := client.Teams.ListIDPGroupsForTeam(ctx, team.GetName())
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing team_sync_group mapping for %s/%s from state because it no longer exists in Github",
+					orgName, slug)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -113,7 +116,9 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.Set("groups", groups)
+	if err := d.Set("groups", groups); err != nil {
+		return fmt.Errorf("error setting groups: %s", err)
+	}
 
 	return nil
 }
@@ -129,14 +134,9 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 
-	team, err := getGithubTeamBySlug(ctx, client, orgName, slug)
-	if err != nil {
-		return err
-	}
-
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Updating team-sync group mapping (Team: %s)", team.GetName())
-	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), *idpGroupList)
+	log.Printf("[DEBUG] Updating team-sync group mapping (Team slug: %s)", slug)
+	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
 	}
@@ -155,16 +155,11 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 
-	team, err := getGithubTeamBySlug(ctx, client, orgName, slug)
-	if err != nil {
-		return err
-	}
-
 	groups := make([]*github.IDPGroup, 0)
 	emptyGroupList := github.IDPGroupList{Groups: groups}
 
-	log.Printf("[DEBUG] Deleting team-sync group mapping (Team: %s)", team.GetName())
-	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnections(ctx, team.GetName(), emptyGroupList)
+	log.Printf("[DEBUG] Deleting team-sync group mapping (Team slug: %s)", slug)
+	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
 
 	return err
 }

@@ -95,18 +95,14 @@ func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
 			continue
 		}
 		slug := rs.Primary.Attributes["team_slug"]
-		team, err := getGithubTeamBySlug(ctx, conn, orgName, slug)
-		if err != nil {
-			return err
-		}
-		groupList, _, err := conn.Teams.ListIDPGroupsForTeam(ctx, team.GetName())
+		groupList, _, err := conn.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 		if err != nil {
 			return err
 		}
 
 		if groupList != nil {
 			if len(groupList.Groups) > 0 {
-				return fmt.Errorf("Team Sync Group Mapping still exists for team %s", team.GetName())
+				return fmt.Errorf("Team Sync Group Mapping still exists for team slug %s", slug)
 			}
 		}
 
