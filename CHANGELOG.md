@@ -5,6 +5,7 @@ BUG FIXES:
 * Documentation Fix for `github_branch_protection` resource [GH-410]
 * Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources [GH-423]
 * Documentation Fix for `github_repository_file` import [GH-443]
+* Update `go-github` to `v31.0.0` [GH-424]
 
 ## 2.7.0 (May 01, 2020)
 
