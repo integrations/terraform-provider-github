@@ -81,7 +81,7 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*project.ID, 10))
+	d.SetId(strconv.FormatInt(project.GetID(), 10))
 
 	return resourceGithubRepositoryProjectRead(d, meta)
 }

@@ -97,9 +97,9 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("title", key.Title)
-	d.Set("key", key.Key)
-	d.Set("url", key.URL)
+	d.Set("title", key.GetTitle())
+	d.Set("key", key.GetKey())
+	d.Set("url", key.GetURL())
 
 	return nil
 }

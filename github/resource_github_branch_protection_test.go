@@ -248,7 +248,7 @@ func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Pr
 
 func testAccCheckGithubBranchProtectionRequiredStatusChecks(protection *github.Protection, expectedStrict bool, expectedContexts []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rsc := protection.RequiredStatusChecks
+		rsc := protection.GetRequiredStatusChecks()
 		if rsc == nil {
 			return fmt.Errorf("Expected RequiredStatusChecks to be present, but was nil")
 		}
@@ -267,14 +267,14 @@ func testAccCheckGithubBranchProtectionRequiredStatusChecks(protection *github.P
 
 func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protection, expectedUserLogins []string, expectedTeamNames []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		restrictions := protection.Restrictions
+		restrictions := protection.GetRestrictions()
 		if restrictions == nil {
 			return fmt.Errorf("Expected Restrictions to be present, but was nil")
 		}
 
 		userLogins := []string{}
 		for _, u := range restrictions.Users {
-			userLogins = append(userLogins, *u.Login)
+			userLogins = append(userLogins, u.GetLogin())
 		}
 		if diff := pretty.Compare(userLogins, expectedUserLogins); diff != "" {
 			return fmt.Errorf("diff %q: (-got +want)\n%s", "restrictions.users", diff)
@@ -282,7 +282,7 @@ func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protectio
 
 		teamLogins := []string{}
 		for _, t := range restrictions.Teams {
-			teamLogins = append(teamLogins, *t.Slug)
+			teamLogins = append(teamLogins, t.GetSlug())
 		}
 		sort.Strings(teamLogins)
 		sort.Strings(expectedTeamNames)
@@ -296,7 +296,7 @@ func testAccCheckGithubBranchProtectionRestrictions(protection *github.Protectio
 
 func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Protection, expectedStale bool, expectedUsers, expectedTeams []string, expectedCodeOwners bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		reviews := protection.RequiredPullRequestReviews
+		reviews := protection.GetRequiredPullRequestReviews()
 		if reviews == nil {
 			return fmt.Errorf("Expected Pull Request Reviews to be present, but was nil")
 		}
@@ -307,12 +307,12 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 
 		var users, teams []string
 		if reviews.DismissalRestrictions != nil {
-			for _, u := range reviews.DismissalRestrictions.Users {
-				users = append(users, *u.Login)
+			for _, u := range reviews.GetDismissalRestrictions().Users {
+				users = append(users, u.GetLogin())
 			}
 
-			for _, t := range reviews.DismissalRestrictions.Teams {
-				teams = append(teams, *t.Slug)
+			for _, t := range reviews.GetDismissalRestrictions().Teams {
+				teams = append(teams, t.GetSlug())
 			}
 		}
 
@@ -336,8 +336,8 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 
 func testAccCheckGithubBranchProtectionNoRestrictionsExist(protection *github.Protection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if protection.Restrictions != nil {
-			return fmt.Errorf("Expected Restrictions to be nil, but was %v", protection.Restrictions)
+		if restrictions := protection.GetRestrictions(); restrictions != nil {
+			return fmt.Errorf("Expected Restrictions to be nil, but was %v", restrictions)
 		}
 
 		return nil
@@ -347,8 +347,8 @@ func testAccCheckGithubBranchProtectionNoRestrictionsExist(protection *github.Pr
 
 func testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(protection *github.Protection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if protection.RequiredPullRequestReviews != nil {
-			return fmt.Errorf("Expected Pull Request reviews to be nil, but was %v", protection.RequiredPullRequestReviews)
+		if requiredPullRequestReviews := protection.GetRequiredPullRequestReviews(); requiredPullRequestReviews != nil {
+			return fmt.Errorf("Expected Pull Request reviews to be nil, but was %v", requiredPullRequestReviews)
 		}
 
 		return nil

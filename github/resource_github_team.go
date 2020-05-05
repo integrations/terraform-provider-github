@@ -91,13 +91,13 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *githubTeam.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, githubTeam.GetID(), mapping)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(strconv.FormatInt(*githubTeam.ID, 10))
+	d.SetId(strconv.FormatInt(githubTeam.GetID(), 10))
 	return resourceGithubTeamRead(d, meta)
 }
 
@@ -137,9 +137,9 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("description", team.Description)
-	d.Set("name", team.Name)
-	d.Set("privacy", team.Privacy)
+	d.Set("description", team.GetDescription())
+	d.Set("name", team.GetName())
+	d.Set("privacy", team.GetPrivacy())
 	if parent := team.Parent; parent != nil {
 		d.Set("parent_team_id", parent.GetID())
 	} else {
@@ -188,13 +188,13 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		mapping := &github.TeamLDAPMapping{
 			LDAPDN: github.String(ldapDN),
 		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, *team.ID, mapping)
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {
 			return err
 		}
 	}
 
-	d.SetId(strconv.FormatInt(*team.ID, 10))
+	d.SetId(strconv.FormatInt(team.GetID(), 10))
 	return resourceGithubTeamRead(d, meta)
 }
 

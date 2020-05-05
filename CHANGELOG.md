@@ -1,4 +1,24 @@
-## 2.7.0 (Unreleased)
+## 2.8.0 (Unreleased)
+
+BUG FIXES:
+
+* Documentation Fix for `github_branch_protection` resource [GH-410]
+* Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources [GH-423]
+* Documentation Fix for `github_repository_file` import [GH-443]
+
+## 2.7.0 (May 01, 2020)
+
+BUG FIXES:
+
+* Add Missing Acceptance Test ([#427](https://github.com/terraform-providers/terraform-provider-github/issues/427))
+
+ENHANCEMENTS:
+
+* Add GraphQL Client ([#331](https://github.com/terraform-providers/terraform-provider-github/issues/331))
+* **New Data Source** `github_branch` ([#364](https://github.com/terraform-providers/terraform-provider-github/issues/364))
+* **New Resource** `github_branch` ([#364](https://github.com/terraform-providers/terraform-provider-github/issues/364))
+
+
 ## 2.6.1 (April 07, 2020)
 
 BUG FIXES:

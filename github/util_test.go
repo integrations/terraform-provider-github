@@ -69,7 +69,7 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 func TestAccGithubUtilTwoPartID(t *testing.T) {
 	partOne, partTwo := "foo", "bar"
 
-	id := buildTwoPartID(&partOne, &partTwo)
+	id := buildTwoPartID(partOne, partTwo)
 
 	if id != "foo:bar" {
 		t.Fatalf("Expected two part id to be foo:bar, actual: %s", id)

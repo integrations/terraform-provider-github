@@ -54,11 +54,11 @@ The following additional attributes are exported:
 Repository files can be imported using a combination of the `repo` and `file`, e.g.
 
 ```
-$ terraform import github_repository.gitignore example/.gitignore
+$ terraform import github_repository_file.gitignore example/.gitignore
 ```
 
 To import a file from a branch other than master, append `:` and the branch name, e.g.
 
 ```
-$ terraform import github_repository.gitignore example/.gitignore:dev
+$ terraform import github_repository_file.gitignore example/.gitignore:dev
 ```

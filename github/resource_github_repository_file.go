@@ -207,7 +207,7 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("content", content)
 	d.Set("repository", repo)
 	d.Set("file", file)
-	d.Set("sha", fc.SHA)
+	d.Set("sha", fc.GetSHA())
 
 	log.Printf("[DEBUG] Fetching commit info for repository file: %s/%s/%s", org, repo, file)
 	commit, err := getFileCommit(client, org, repo, file, branch)
@@ -215,9 +215,9 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("commit_author", commit.Commit.Committer.GetName())
-	d.Set("commit_email", commit.Commit.Committer.GetEmail())
-	d.Set("commit_message", commit.Commit.GetMessage())
+	d.Set("commit_author", commit.GetCommit().GetCommitter().GetName())
+	d.Set("commit_email", commit.GetCommit().GetCommitter().GetEmail())
+	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
 }
@@ -290,7 +290,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(client *github.Client, org, repo, branch string) error {
-	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(&repo, &branch))
+	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(repo, branch))
 	_, _, err := client.Repositories.GetBranch(ctx, org, repo, branch)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {

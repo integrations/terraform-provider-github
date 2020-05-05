@@ -169,7 +169,7 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 		gotHook, resp, err := conn.Repositories.GetHook(context.TODO(), orgName, rs.Primary.Attributes["repository"], id)
 		if err == nil {
-			if gotHook != nil && *gotHook.ID == id {
+			if gotHook != nil && gotHook.GetID() == id {
 				return fmt.Errorf("Webhook still exists")
 			}
 		}

@@ -75,7 +75,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&teamIdString, &username))
+	d.SetId(buildTwoPartID(teamIdString, username))
 
 	return resourceGithubTeamMembershipRead(d, meta)
 }
@@ -123,7 +123,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("role", membership.Role)
+	d.Set("role", membership.GetRole())
 
 	return nil
 }
