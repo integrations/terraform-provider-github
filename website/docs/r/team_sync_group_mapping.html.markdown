@@ -49,3 +49,10 @@ The `group` block consists of:
 
 * `group_description` - The description of the IdP group.
 
+## Import
+
+GitHub Team Sync Group Mappings can be imported using the GitHub team `slug` e.g.
+
+```
+$ terraform import github_team_sync_group_mapping.example some_team
+```
