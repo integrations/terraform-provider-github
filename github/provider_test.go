@@ -196,10 +196,14 @@ func TestAccProvider_insecure(t *testing.T) {
 
 func githubTLSApiMock(port, certFile, keyFile string, t *testing.T) (string, func() error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users/hashibot", testRespondJson(userResponseBody))
-	mux.HandleFunc("/users/hashibot/gpg_keys", testRespondJson(gpgKeysResponseBody))
-	mux.HandleFunc("/users/hashibot/keys", testRespondJson(keysResponseBody))
-	mux.HandleFunc("/orgs/"+testOrganization, testRespondJson(orgResponseBody(port)))
+
+	userPattern := "/v3/users/hashibot"
+	orgPattern := "/v3/orgs/" + testOrganization
+
+	mux.HandleFunc(userPattern, testRespondJson(userResponseBody))
+	mux.HandleFunc(userPattern+"/gpg_keys", testRespondJson(gpgKeysResponseBody))
+	mux.HandleFunc(userPattern+"/keys", testRespondJson(keysResponseBody))
+	mux.HandleFunc(orgPattern, testRespondJson(orgResponseBody(port)))
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -320,7 +324,7 @@ const keysResponseBody = `[
 ]`
 
 func orgResponseBody(port string) string {
-	url := fmt.Sprintf(`https://localhost:%s/orgs/%s`, port, testOrganization)
+	url := fmt.Sprintf(`https://localhost:%s/v3/orgs/%s`, port, testOrganization)
 	return fmt.Sprintf(`
 {
 	"login": "%s",
