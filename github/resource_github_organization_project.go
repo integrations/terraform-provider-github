@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -65,7 +65,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*project.ID, 10))
+	d.SetId(strconv.FormatInt(project.GetID(), 10))
 
 	return resourceGithubOrganizationProjectRead(d, meta)
 }

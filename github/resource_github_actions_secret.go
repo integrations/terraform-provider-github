@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 	"log"
@@ -80,7 +80,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&repo, &secretName))
+	d.SetId(buildTwoPartID(repo, secretName))
 	return resourceGithubActionsSecretRead(d, meta)
 }
 

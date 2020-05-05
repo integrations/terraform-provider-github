@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -300,26 +300,26 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", repoName)
-	d.Set("description", repo.Description)
-	d.Set("homepage_url", repo.Homepage)
-	d.Set("private", repo.Private)
-	d.Set("has_issues", repo.HasIssues)
-	d.Set("has_projects", repo.HasProjects)
-	d.Set("has_wiki", repo.HasWiki)
-	d.Set("is_template", repo.IsTemplate)
-	d.Set("allow_merge_commit", repo.AllowMergeCommit)
-	d.Set("allow_squash_merge", repo.AllowSquashMerge)
-	d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
-	d.Set("delete_branch_on_merge", repo.DeleteBranchOnMerge)
-	d.Set("has_downloads", repo.HasDownloads)
-	d.Set("full_name", repo.FullName)
-	d.Set("default_branch", repo.DefaultBranch)
-	d.Set("html_url", repo.HTMLURL)
-	d.Set("ssh_clone_url", repo.SSHURL)
-	d.Set("svn_url", repo.SVNURL)
-	d.Set("git_clone_url", repo.GitURL)
-	d.Set("http_clone_url", repo.CloneURL)
-	d.Set("archived", repo.Archived)
+	d.Set("description", repo.GetDescription())
+	d.Set("homepage_url", repo.GetHomepage())
+	d.Set("private", repo.GetPrivate())
+	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_projects", repo.GetHasProjects())
+	d.Set("has_wiki", repo.GetHasWiki())
+	d.Set("is_template", repo.GetIsTemplate())
+	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+	d.Set("has_downloads", repo.GetHasDownloads())
+	d.Set("full_name", repo.GetFullName())
+	d.Set("default_branch", repo.GetDefaultBranch())
+	d.Set("html_url", repo.GetHTMLURL())
+	d.Set("ssh_clone_url", repo.GetSSHURL())
+	d.Set("svn_url", repo.GetSVNURL())
+	d.Set("git_clone_url", repo.GetGitURL())
+	d.Set("http_clone_url", repo.GetCloneURL())
+	d.Set("archived", repo.GetArchived())
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 

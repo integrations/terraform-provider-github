@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -104,8 +104,8 @@ type testAccGithubProjectColumnExpectedAttributes struct {
 func testAccCheckGithubProjectColumnAttributes(column *github.ProjectColumn, want *testAccGithubProjectColumnExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *column.Name != want.Name {
-			return fmt.Errorf("got project column %q; want %q", *column.Name, want.Name)
+		if name := column.GetName(); name != want.Name {
+			return fmt.Errorf("got project column %q; want %q", name, want.Name)
 		}
 
 		return nil

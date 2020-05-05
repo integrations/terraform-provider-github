@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -79,9 +79,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	id := strconv.FormatInt(*resultKey.ID, 10)
+	id := strconv.FormatInt(resultKey.GetID(), 10)
 
-	d.SetId(buildTwoPartID(&repoName, &id))
+	d.SetId(buildTwoPartID(repoName, id))
 
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }
@@ -127,10 +127,10 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("key", key.Key)
-	d.Set("read_only", key.ReadOnly)
+	d.Set("key", key.GetKey())
+	d.Set("read_only", key.GetReadOnly())
 	d.Set("repository", repoName)
-	d.Set("title", key.Title)
+	d.Set("title", key.GetTitle())
 
 	return nil
 }

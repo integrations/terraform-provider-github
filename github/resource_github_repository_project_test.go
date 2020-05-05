@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -105,17 +105,17 @@ type testAccGithubRepositoryProjectExpectedAttributes struct {
 func testAccCheckGithubRepositoryProjectAttributes(project *github.Project, want *testAccGithubRepositoryProjectExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *project.Name != want.Name {
-			return fmt.Errorf("got project %q; want %q", *project.Name, want.Name)
+		if name := project.GetName(); name != want.Name {
+			return fmt.Errorf("got project %q; want %q", name, want.Name)
 		}
 		if got := path.Base(project.GetOwnerURL()); got != want.Repository {
 			return fmt.Errorf("got project %q; want %q", got, want.Repository)
 		}
-		if *project.Body != want.Body {
-			return fmt.Errorf("got project n%q; want %q", *project.Body, want.Body)
+		if body := project.GetBody(); body != want.Body {
+			return fmt.Errorf("got project n%q; want %q", body, want.Body)
 		}
-		if !strings.HasPrefix(*project.URL, "https://") {
-			return fmt.Errorf("got http URL %q; want to start with 'https://'", *project.URL)
+		if URL := project.GetURL(); !strings.HasPrefix(URL, "https://") {
+			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
 		}
 
 		return nil

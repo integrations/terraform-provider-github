@@ -3,7 +3,7 @@ layout: "github"
 page_title: "GitHub: github_ip_ranges"
 description: |-
   Get information on GitHub's IP addresses.
--------------------------------------------
+---
 
 # github_ip_ranges
 

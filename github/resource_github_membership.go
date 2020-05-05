@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -57,7 +57,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
-	membership, _, err := client.Organizations.EditOrgMembership(ctx,
+	_, _, err = client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
@@ -68,7 +68,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+	d.SetId(buildTwoPartID(orgName, username))
 
 	return resourceGithubMembershipRead(d, meta)
 }
@@ -110,8 +110,8 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", membership.User.Login)
-	d.Set("role", membership.Role)
+	d.Set("username", username)
+	d.Set("role", membership.GetRole())
 
 	return nil
 }
