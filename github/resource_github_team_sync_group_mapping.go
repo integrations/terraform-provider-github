@@ -17,7 +17,11 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 		Update: resourceGithubTeamSyncGroupMappingUpdate,
 		Delete: resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("team_slug", d.Id())
+				d.SetId(fmt.Sprintf("teams/%s/team-sync/group-mappings", d.Id()))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -67,15 +71,14 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 
 	idpGroupList := expandTeamSyncGroups(d)
 	log.Printf("[DEBUG] Creating team-sync group mapping (Team slug: %s)", slug)
-	_, resp, err := client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
+	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
 	d.SetId(fmt.Sprintf("teams/%s/team-sync/group-mappings", slug))
 
-	return resourceGithubTeamRead(d, meta)
+	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
 func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
@@ -94,8 +97,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Reading team-sync group mapping (Team slug: %s)", slug)
-	idpGroupList, _, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
-
+	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -116,9 +118,10 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	if err := d.Set("groups", groups); err != nil {
+	if err := d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %s", err)
 	}
+	d.Set("etag", resp.Header.Get("ETag"))
 
 	return nil
 }
@@ -141,7 +144,7 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	return resourceGithubTeamRead(d, meta)
+	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
 func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
@@ -195,9 +198,9 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
 			group := &github.IDPGroup{
-				GroupID:          &groupID,
-				GroupName:        &groupName,
-				GroupDescription: &groupDescription,
+				GroupID:          github.String(groupID),
+				GroupName:        github.String(groupName),
+				GroupDescription: github.String(groupDescription),
 			}
 			groups = append(groups, group)
 		}

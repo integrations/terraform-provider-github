@@ -21,6 +21,8 @@ func TestAccGithubOrganizationTeamSyncGroupsDataSource_existing(t *testing.T) {
 				Config: testAccCheckGithubOrganizationTeamSyncGroupsDataSourceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.#"),
+					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_id"),
+					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_name"),
 				),
 			},
 		},
