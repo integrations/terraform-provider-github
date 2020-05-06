@@ -46,6 +46,9 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 }
 
 func TestAccGithubTeamSyncGroupMapping_disappears(t *testing.T) {
+	if isEnterprise != "true" {
+		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+	}
 	teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
 	rn := "github_team_sync_group_mapping.test_mapping"
 
