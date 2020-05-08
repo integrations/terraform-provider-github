@@ -8,9 +8,10 @@ BUG FIXES:
 * Update `go-github` to `v31.0.0` [GH-424]
 
 ENHANCEMENTS:
-
 * **New Data Source** `github_organization_team_sync_groups` [GH-400]
 * **New Resource** `github_team_sync_group_mapping` [GH-400]
+* data-source/github_repository: Add `visibility` attribute [GH-441]
+* resource/github_repository: Add `visibility` attribute [GH-441]
 
 ## 2.7.0 (May 01, 2020)
 
