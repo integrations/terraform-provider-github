@@ -9,7 +9,6 @@ package github
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -11983,9 +11982,7 @@ func (r *RepositoryPermissionLevel) GetUser() *User {
 
 // GetAssertsURL returns the AssetsURL field if it's non-nil, zero value otherwise. Created to generate a deprecation warning
 func (r *RepositoryRelease) GetAssertsURL() string {
-	dataSource.DeprecationMessage = fmt.Sprintf(
-		"asserts_url is deprecated due to a typo in the name. Consider using assets_url instead",
-	)
+	// TODO: Add deprecation message
 	
 	if r == nil || r.AssetsURL == nil {
 		return ""
