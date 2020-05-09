@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -90,7 +90,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*hook.ID, 10))
+	d.SetId(strconv.FormatInt(hook.GetID(), 10))
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
@@ -139,8 +139,8 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("url", hook.URL)
-	d.Set("active", hook.Active)
+	d.Set("url", hook.GetURL())
+	d.Set("active", hook.GetActive())
 	d.Set("events", hook.Events)
 
 	// GitHub returns the secret as a string of 8 astrisks "********"

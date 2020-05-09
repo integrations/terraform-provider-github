@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -55,32 +55,32 @@ func TestAccCheckGetPermissions(t *testing.T) {
 	adminMap := map[string]bool{"pull": true, "triage": false, "push": true, "maintain": false, "admin": true}
 	errorMap := map[string]bool{"pull": false, "triage": false, "push": false, "maintain": false, "admin": false}
 
-	pull, _ := getRepoPermission(&pullMap)
+	pull, _ := getRepoPermission(pullMap)
 	if pull != "pull" {
 		t.Fatalf("Expected pull permission, actual: %s", pull)
 	}
 
-	triage, _ := getRepoPermission(&triageMap)
+	triage, _ := getRepoPermission(triageMap)
 	if triage != "triage" {
 		t.Fatalf("Expected triage permission, actual: %s", triage)
 	}
 
-	push, _ := getRepoPermission(&pushMap)
+	push, _ := getRepoPermission(pushMap)
 	if push != "push" {
 		t.Fatalf("Expected push permission, actual: %s", push)
 	}
 
-	maintain, _ := getRepoPermission(&maintainMap)
+	maintain, _ := getRepoPermission(maintainMap)
 	if maintain != "maintain" {
 		t.Fatalf("Expected maintain permission, actual: %s", maintain)
 	}
 
-	admin, _ := getRepoPermission(&adminMap)
+	admin, _ := getRepoPermission(adminMap)
 	if admin != "admin" {
 		t.Fatalf("Expected admin permission, actual: %s", admin)
 	}
 
-	errPerm, err := getRepoPermission(&errorMap)
+	errPerm, err := getRepoPermission(errorMap)
 	if err == nil {
 		t.Fatalf("Expected an error getting permissions, actual: %v", errPerm)
 	}
@@ -88,7 +88,7 @@ func TestAccCheckGetPermissions(t *testing.T) {
 
 func testAccCheckGithubTeamRepositoryRoleState(role string, repository *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		resourceRole, err := getRepoPermission(repository.Permissions)
+		resourceRole, err := getRepoPermission(repository.GetPermissions())
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if repo != nil &&
-				buildTwoPartID(&teamIdString, repo.Name) == rs.Primary.ID {
+				buildTwoPartID(teamIdString, repo.GetName()) == rs.Primary.ID {
 				return fmt.Errorf("Team repository still exists")
 			}
 		}

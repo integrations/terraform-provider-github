@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -46,7 +46,7 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(*key.ID, 10))
+	d.SetId(strconv.FormatInt(key.GetID(), 10))
 
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
@@ -80,7 +80,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("key_id", key.KeyID)
+	d.Set("key_id", key.GetKeyID())
 
 	return nil
 }

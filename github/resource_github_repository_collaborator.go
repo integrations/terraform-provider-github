@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -63,7 +63,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, orgName, repoName)
-	_, _, err = client.Repositories.AddCollaborator(ctx,
+	_, resp, err := client.Repositories.AddCollaborator(ctx,
 		orgName,
 		repoName,
 		username,
@@ -74,8 +74,11 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode == http.StatusNoContent {
+		return fmt.Errorf("User %s is already a collaborator", username)
+	}
 
-	d.SetId(buildTwoPartID(&repoName, &username))
+	d.SetId(buildTwoPartID(repoName, username))
 
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
@@ -111,7 +114,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		return err
 	}
 	if invitation != nil {
-		username = *invitation.Invitee.Login
+		username = invitation.GetInvitee().GetLogin()
 		log.Printf("[DEBUG] Found invitation for %q", username)
 
 		permissionName, err := getInvitationPermission(invitation)
@@ -140,15 +143,15 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		log.Printf("[DEBUG] Found %d collaborators, checking if any matches %q", len(collaborators), username)
 
 		for _, c := range collaborators {
-			if strings.EqualFold(*c.Login, username) {
+			if strings.EqualFold(c.GetLogin(), username) {
 				log.Printf("[DEBUG] Matching collaborator found for %q", username)
-				permissionName, err := getRepoPermission(c.Permissions)
+				permissionName, err := getRepoPermission(c.GetPermissions())
 				if err != nil {
 					return err
 				}
 
 				d.Set("repository", repoName)
-				d.Set("username", c.Login)
+				d.Set("username", c.GetLogin())
 				d.Set("permission", permissionName)
 				return nil
 			}
@@ -187,7 +190,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, *invitation.ID)
+		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, invitation.GetID())
 		return err
 	}
 
@@ -206,7 +209,7 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		}
 
 		for _, i := range invitations {
-			if strings.EqualFold(*i.Invitee.Login, collaborator) {
+			if strings.EqualFold(i.GetInvitee().GetLogin(), collaborator) {
 				return i, nil
 			}
 		}

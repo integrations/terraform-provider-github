@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -164,23 +164,23 @@ func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, er
 	for _, c := range collaborators {
 		result := make(map[string]interface{})
 
-		result["login"] = c.Login
-		result["id"] = c.ID
-		result["url"] = c.URL
-		result["html_url"] = c.HTMLURL
-		result["following_url"] = c.FollowingURL
-		result["followers_url"] = c.FollowersURL
-		result["gists_url"] = c.GistsURL
-		result["starred_url"] = c.StarredURL
-		result["subscriptions_url"] = c.SubscriptionsURL
-		result["organizations_url"] = c.OrganizationsURL
-		result["repos_url"] = c.ReposURL
-		result["events_url"] = c.EventsURL
-		result["received_events_url"] = c.ReceivedEventsURL
-		result["type"] = c.Type
-		result["site_admin"] = c.SiteAdmin
+		result["login"] = c.GetLogin()
+		result["id"] = c.GetID()
+		result["url"] = c.GetURL()
+		result["html_url"] = c.GetHTMLURL()
+		result["following_url"] = c.GetFollowingURL()
+		result["followers_url"] = c.GetFollowersURL()
+		result["gists_url"] = c.GetGistsURL()
+		result["starred_url"] = c.GetStarredURL()
+		result["subscriptions_url"] = c.GetSubscriptionsURL()
+		result["organizations_url"] = c.GetOrganizationsURL()
+		result["repos_url"] = c.GetReposURL()
+		result["events_url"] = c.GetEventsURL()
+		result["received_events_url"] = c.GetReceivedEventsURL()
+		result["type"] = c.GetType()
+		result["site_admin"] = c.GetSiteAdmin()
 
-		permissionName, err := getRepoPermission(c.Permissions)
+		permissionName, err := getRepoPermission(c.GetPermissions())
 		if err != nil {
 			return nil, err
 		}

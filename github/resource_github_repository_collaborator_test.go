@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -148,7 +148,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 
 		hasInvitation := false
 		for _, i := range invitations {
-			if *i.Invitee.Login == username {
+			if i.GetInvitee().GetLogin() == username {
 				hasInvitation = true
 				break
 			}
@@ -187,7 +187,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		}
 
 		for _, i := range invitations {
-			if *i.Invitee.Login == username {
+			if i.GetInvitee().GetLogin() == username {
 				permName, err := getInvitationPermission(i)
 
 				if err != nil {
@@ -238,7 +238,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 			}
 
 			for _, i := range invitations {
-				if strings.EqualFold(*i.Invitee.Login, username) {
+				if strings.EqualFold(i.GetInvitee().GetLogin(), username) {
 					invitation = i
 					return nil
 				}
@@ -256,7 +256,7 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 
 func testAccGithubRepositoryCollaboratorTheSame(orig, other *github.RepositoryInvitation) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if orig.ID != other.ID {
+		if orig.GetID() != other.GetID() {
 			return errors.New("collaborators are different")
 		}
 

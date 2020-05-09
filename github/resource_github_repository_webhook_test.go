@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -169,7 +169,7 @@ func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
 
 		gotHook, resp, err := conn.Repositories.GetHook(context.TODO(), orgName, rs.Primary.Attributes["repository"], id)
 		if err == nil {
-			if gotHook != nil && *gotHook.ID == id {
+			if gotHook != nil && gotHook.GetID() == id {
 				return fmt.Errorf("Webhook still exists")
 			}
 		}

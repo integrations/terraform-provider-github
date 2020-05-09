@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -97,6 +97,7 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Organization).v3client
+	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -113,8 +114,8 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		membership, resp, err := conn.Teams.GetTeamMembership(context.TODO(),
-			teamId, username)
+		membership, resp, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
+			orgId, teamId, username)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("Team membership still exists")
@@ -140,6 +141,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		}
 
 		conn := testAccProvider.Meta().(*Organization).v3client
+		orgId := testAccProvider.Meta().(*Organization).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -150,7 +152,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(), teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, username)
 
 		if err != nil {
 			return err
@@ -172,6 +174,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		}
 
 		conn := testAccProvider.Meta().(*Organization).v3client
+		orgId := testAccProvider.Meta().(*Organization).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -181,21 +184,21 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(),
-			teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
+			orgId, teamId, username)
 		if err != nil {
 			return err
 		}
 
-		resourceRole := membership.Role
-		actualRole := teamMembership.Role
+		resourceRole := membership.GetRole()
+		actualRole := teamMembership.GetRole()
 
-		if *resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", *resourceRole, expected)
+		if resourceRole != expected {
+			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
-		if *resourceRole != *actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", *resourceRole, *actualRole)
+		if resourceRole != actualRole {
+			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}

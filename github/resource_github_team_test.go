@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -200,7 +200,7 @@ func testAccCheckGithubTeamDestroy(s *terraform.State) error {
 
 		var teamID string
 		if team != nil {
-			teamID = strconv.FormatInt(*team.ID, 10)
+			teamID = strconv.FormatInt(team.GetID(), 10)
 		}
 		if teamID == rs.Primary.ID {
 			return fmt.Errorf("Team still exists")

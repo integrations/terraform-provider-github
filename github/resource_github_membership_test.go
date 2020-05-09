@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -99,7 +99,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if membership != nil &&
-				buildTwoPartID(membership.Organization.Login, membership.User.Login) == rs.Primary.ID {
+				buildTwoPartID(orgName, username) == rs.Primary.ID {
 				return fmt.Errorf("Organization membership %q still exists", rs.Primary.ID)
 			}
 		}
@@ -159,12 +159,12 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return err
 		}
 
-		resourceRole := membership.Role
-		actualRole := githubMembership.Role
+		resourceRole := membership.GetRole()
+		actualRole := githubMembership.GetRole()
 
-		if *resourceRole != *actualRole {
+		if resourceRole != actualRole {
 			return fmt.Errorf("Membership role %v in resource does match actual state of %v",
-				*resourceRole, *actualRole)
+				resourceRole, actualRole)
 		}
 		return nil
 	}
@@ -181,7 +181,7 @@ func testAccGithubMembershipConfig(username string) string {
 
 func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *orig.URL != *other.URL {
+		if orig.GetURL() != other.GetURL() {
 			return errors.New("users are different")
 		}
 

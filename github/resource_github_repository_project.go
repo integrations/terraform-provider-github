@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -81,7 +81,7 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(*project.ID, 10))
+	d.SetId(strconv.FormatInt(project.GetID(), 10))
 
 	return resourceGithubRepositoryProjectRead(d, meta)
 }
