@@ -71,7 +71,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						Name:                name,
 						Description:         description,
 						Homepage:            "http://example.com/",
-						Visibility:          "public",
 						HasIssues:           true,
 						HasWiki:             true,
 						IsTemplate:          false,
@@ -94,7 +93,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						Name:             name,
 						Description:      "Updated " + description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						AllowMergeCommit: false,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -138,7 +136,6 @@ func TestAccGithubRepository_archive(t *testing.T) {
 						Name:             name,
 						Description:      description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						HasIssues:        true,
 						HasWiki:          true,
 						AllowMergeCommit: true,
@@ -183,7 +180,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						Name:             name,
 						Description:      description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						HasIssues:        true,
 						HasWiki:          true,
 						AllowMergeCommit: true,
@@ -203,7 +199,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						Name:             name,
 						Description:      description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						HasIssues:        true,
 						HasWiki:          true,
 						AllowMergeCommit: true,
@@ -269,7 +264,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						Name:             name,
 						Description:      description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						HasIssues:        true,
 						HasWiki:          true,
 						AllowMergeCommit: true,
@@ -295,7 +289,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						Name:             name,
 						Description:      "Updated " + description,
 						Homepage:         "http://example.com/",
-						Visibility:       "public",
 						AutoInit:         true,
 						HasIssues:        true,
 						HasWiki:          true,
@@ -341,7 +334,6 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						Name:              name,
 						Description:       description,
 						Homepage:          "http://example.com/",
-						Visibility:        "public",
 						HasIssues:         true,
 						HasWiki:           true,
 						AllowMergeCommit:  true,
@@ -401,7 +393,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						Name:        name,
 						Description: description,
 						Homepage:    "http://example.com/",
-						Visibility:  "public",
 						Topics:      []string{"topic2", "topic1"},
 
 						// non-zero defaults
@@ -420,7 +411,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						Name:        name,
 						Description: description,
 						Homepage:    "http://example.com/",
-						Visibility:  "public",
 						Topics:      []string{"topic1", "topic2", "topic3"},
 
 						// non-zero defaults
@@ -439,7 +429,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 						Name:        name,
 						Description: description,
 						Homepage:    "http://example.com/",
-						Visibility:  "public",
 						Topics:      []string{},
 
 						// non-zero defaults
@@ -573,7 +562,6 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	Description         string
 	Homepage            string
 	Private             bool
-	Visibility          string
 	HasDownloads        bool
 	HasIssues           bool
 	HasProjects         bool
@@ -605,9 +593,6 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if private := repo.GetPrivate(); private != want.Private {
 			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
-		}
-		if visibility := repo.GetVisibility(); visibility != want.Visibility {
-			return fmt.Errorf("got visibility %#v; want %#v", visibility, want.Visibility)
 		}
 		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
@@ -772,8 +757,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -805,8 +789,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = false
   has_wiki           = false
@@ -828,8 +811,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -851,8 +833,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -875,8 +856,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -899,8 +879,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -933,8 +912,7 @@ resource "github_repository" "foo" {
 
 	# So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -956,8 +934,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private    = false
-  visibility = "public"
+  private = false
 
   topics = [%s]
 }
