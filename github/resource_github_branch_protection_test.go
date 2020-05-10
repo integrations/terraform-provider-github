@@ -234,8 +234,11 @@ func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
 					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{}, []string{}, true),
-					resource.TestCheckResourceAttr(rn, "dismissal_restrictions_users.%", "0"),
-					resource.TestCheckResourceAttr(rn, "dismissal_restrictions_teams.%", "0"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.#", "1"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.require_code_owner_reviews", "true"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_users.#", "0"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_teams.#", "0"),
 				),
 			},
 		},
@@ -411,28 +414,6 @@ func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccGithubBranchProtectionEmptyDismissalsConfig(repoName string) string {
-	return fmt.Sprintf(`
-
-resource "github_repository" "test" {
-	name        = "%s"
-	description = "Terraform Acceptance Test %s"
-	auto_init   = true
-}
-
-resource "github_branch_protection" "master" {
-	repository     = "${github_repository.test.name}"
-	branch         = "master"
-	enforce_admins = true
-
-	required_pull_request_reviews {
-		dismiss_stale_reviews = true
-		require_code_owner_reviews = true
-	}
-}
-`, repoName, repoName)
-}
-
 func testAccGithubBranchProtectionConfig(repoName string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
@@ -577,4 +558,26 @@ resource "github_branch_protection" "master" {
   }
 }
 `, repoName, repoName, user)
+}
+
+func testAccGithubBranchProtectionEmptyDismissalsConfig(repoName string) string {
+	return fmt.Sprintf(`
+
+resource "github_repository" "test" {
+	name        = "%s"
+	description = "Terraform Acceptance Test %s"
+	auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+	repository     = "${github_repository.test.name}"
+	branch         = "master"
+	enforce_admins = true
+
+	required_pull_request_reviews {
+		dismiss_stale_reviews = true
+		require_code_owner_reviews = true
+	}
+}
+`, repoName, repoName)
 }
