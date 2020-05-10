@@ -218,6 +218,30 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 	})
 }
 
+func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
+	var protection github.Protection
+	rn := "github_branch_protection.master"
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubBranchProtectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubBranchProtectionEmptyDismissalsConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{}, []string{}, true),
+					resource.TestCheckResourceAttr(rn, "dismissal_restrictions_users.%", "0"),
+					resource.TestCheckResourceAttr(rn, "dismissal_restrictions_teams.%", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Protection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -307,6 +331,9 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 
 		var users, teams []string
 		if reviews.DismissalRestrictions != nil {
+			if len(expectedUsers) == 0 && len(expectedTeams) == 0 {
+				return fmt.Errorf("Expected Dismissal Restrictions to be nil but was present")
+			}
 			for _, u := range reviews.GetDismissalRestrictions().Users {
 				users = append(users, u.GetLogin())
 			}
@@ -382,6 +409,28 @@ func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
 		return nil
 	}
 	return nil
+}
+
+func testAccGithubBranchProtectionEmptyDismissalsConfig(repoName string) string {
+	return fmt.Sprintf(`
+
+resource "github_repository" "test" {
+	name        = "%s"
+	description = "Terraform Acceptance Test %s"
+	auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+	repository     = "${github_repository.test.name}"
+	branch         = "master"
+	enforce_admins = true
+
+	required_pull_request_reviews {
+		dismiss_stale_reviews = true
+		require_code_owner_reviews = true
+	}
+}
+`, repoName, repoName)
 }
 
 func testAccGithubBranchProtectionConfig(repoName string) string {
