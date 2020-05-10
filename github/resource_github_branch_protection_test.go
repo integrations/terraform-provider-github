@@ -221,8 +221,7 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
 	var protection github.Protection
 	rn := "github_branch_protection.master"
-	rString := acctest.RandString(5)
-	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+	repoName := acctest.RandomWithPrefix("tf-acc-test-branch-prot-")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -240,6 +239,11 @@ func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
 					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_users.#", "0"),
 					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_teams.#", "0"),
 				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
