@@ -14,8 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-const expectedPermission string = "admin"
-
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
@@ -24,17 +22,49 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	rn := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
+	permissionAdmin := "admin"
+	permissionTriage := "triage"
+	permissionPush := "push"
+	permissionPull := "pull"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, permissionPull),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists(rn),
-					testAccCheckGithubRepositoryCollaboratorPermission(rn),
-					resource.TestCheckResourceAttr(rn, "permission", expectedPermission),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn, permissionPull),
+					resource.TestCheckResourceAttr(rn, "permission", permissionPull),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, permissionPush),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(rn),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn, permissionPush),
+					resource.TestCheckResourceAttr(rn, "permission", permissionPush),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, permissionAdmin),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(rn),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn, permissionAdmin),
+					resource.TestCheckResourceAttr(rn, "permission", permissionAdmin),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, permissionTriage),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(rn),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn, permissionTriage),
+					resource.TestCheckResourceAttr(rn, "permission", permissionTriage),
 					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
 				),
 			},
@@ -58,6 +88,8 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	var origInvitation github.RepositoryInvitation
 	var otherInvitation github.RepositoryInvitation
 
+	expectedPermission := "maintain"
+
 	otherCase := flipUsernameCase(testCollaborator)
 
 	if testCollaborator == otherCase {
@@ -70,13 +102,13 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, expectedPermission),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
 				),
 			},
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig(repoName, otherCase),
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, otherCase, expectedPermission),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorInvited(repoName, otherCase, &otherInvitation),
 					resource.TestCheckResourceAttr(rn, "username", testCollaborator),
@@ -162,7 +194,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 	}
 }
 
-func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestCheckFunc {
+func testAccCheckGithubRepositoryCollaboratorPermission(n, permission string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -194,8 +226,8 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 					return err
 				}
 
-				if permName != expectedPermission {
-					return fmt.Errorf("Expected permission %s on repository collaborator, actual permission %s", expectedPermission, permName)
+				if permName != permission {
+					return fmt.Errorf("Expected permission %s on repository collaborator, actual permission %s", permission, permName)
 				}
 
 				return nil
@@ -206,7 +238,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 	}
 }
 
-func testAccGithubRepositoryCollaboratorConfig(repoName, username string) string {
+func testAccGithubRepositoryCollaboratorConfig(repoName, username, permission string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
   name = "%s"
@@ -217,7 +249,7 @@ resource "github_repository_collaborator" "test_repo_collaborator" {
   username   = "%s"
   permission = "%s"
 }
-`, repoName, username, expectedPermission)
+`, repoName, username, permission)
 }
 
 func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, invitation *github.RepositoryInvitation) resource.TestCheckFunc {
