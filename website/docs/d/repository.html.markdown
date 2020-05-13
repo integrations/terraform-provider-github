@@ -33,6 +33,8 @@ The following arguments are supported:
 
 * `private` - Whether the repository is private.
 
+* `visibility` - Whether the repository is public, private or internal.
+
 * `has_issues` - Whether the repository has GitHub Issues enabled.
 
 * `has_projects` - Whether the repository has the GitHub Projects enabled.
