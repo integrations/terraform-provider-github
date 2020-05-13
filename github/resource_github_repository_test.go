@@ -562,6 +562,7 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	Description         string
 	Homepage            string
 	Private             bool
+	Visibility          string
 	HasDownloads        bool
 	HasIssues           bool
 	HasProjects         bool
@@ -593,6 +594,9 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if private := repo.GetPrivate(); private != want.Private {
 			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
+		}
+		if visibility := repo.GetVisibility(); visibility != want.Visibility {
+			return fmt.Errorf("got visibility %#v; want %#v", visibility, want.Visibility)
 		}
 		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
