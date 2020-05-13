@@ -41,8 +41,17 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"private": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:          schema.TypeBool,
+				Computed:      true, // is affected by "visibility"
+				Optional:      true,
+				ConflictsWith: []string{"visibility"},
+				Deprecated:    "use visibility instead",
+			},
+			"visibility": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true, // is affected by "private"
+				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
 			},
 			"has_issues": {
 				Type:     schema.TypeBool,
@@ -178,6 +187,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
 		Private:             github.Bool(d.Get("private").(bool)),
+		Visibility:          github.String(d.Get("visibility").(string)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
@@ -204,6 +214,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
+
+	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
+	// are encountered when the resources is created with the visibility parameter. As
+	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
+	repoReq.Visibility = nil
+
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -300,6 +316,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
@@ -338,6 +355,12 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
+
+	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+	if !d.HasChange("visibility") {
+		repoReq.Visibility = nil
+	}
+
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
 		branch := v.(string)
