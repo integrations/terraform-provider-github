@@ -13,7 +13,7 @@ Note that the provider `token` must have admin rights to a repository to retriev
 ## Example Usage
 
 ```hcl
-data "github_secrets_public_key" "example" {
+data "github_actions_public_key" "example" {
   repository = "example_repo"
 }
 ```
