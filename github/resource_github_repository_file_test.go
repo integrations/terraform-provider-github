@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"encoding/base64"
@@ -302,8 +303,10 @@ func TestAccGithubRepositoryFile_overwrite(t *testing.T) {
 	var commit github.RepositoryCommit
 
 	rn := "github_repository_file.foo"
+	path := ".gitignore"
+	fileContent := "**/.terraform/*"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	path := fmt.Sprintf("tf-acc-test-file-%s", randString)
+	repo := fmt.Sprintf("tf-acc-test-%s", randString)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -311,12 +314,18 @@ func TestAccGithubRepositoryFile_overwrite(t *testing.T) {
 		CheckDestroy: testAccCheckGithubRepositoryFileDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryFileOverwriteConfig(),
+				Config:      testAccGithubRepositoryFileOverwriteDisabledConfig(randString),
+				ExpectError: regexp.MustCompile(`Refusing to overwrite existing file`),
+			},
+			{
+				Config: testAccGithubRepositoryFileOverwriteEnabledConfig(randString, path, fileContent),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryFileExists(rn, path, "master", &content, &commit),
-					testAccCheckGithubRepositoryFileAttributes(&content, &testAccGithubRepositoryFileExpectedAttributes{
-						Content: base64.StdEncoding.EncodeToString([]byte("Terraform acceptance test file")) + "\n",
-					}),
+					testAccCheckGithubRepositoryFileExistsWithRepo(rn, path, "master", repo, &content, &commit),
+					testAccCheckGithubRepositoryFileAttributes(
+						&content, &testAccGithubRepositoryFileExpectedAttributes{
+							Content: base64.StdEncoding.EncodeToString([]byte(fileContent)) + "\n",
+						},
+					),
 				),
 			},
 		},
@@ -324,6 +333,11 @@ func TestAccGithubRepositoryFile_overwrite(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *github.RepositoryContent, commit *github.RepositoryCommit) resource.TestCheckFunc {
+	hardCodedRepoName := "test-repo"
+	return testAccCheckGithubRepositoryFileExistsWithRepo(n, path, branch, hardCodedRepoName, content, commit)
+}
+
+func testAccCheckGithubRepositoryFileExistsWithRepo(n, path, branch, repo string, content *github.RepositoryContent, commit *github.RepositoryCommit) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		rs, ok := s.RootModule().Resources[n]
@@ -339,7 +353,7 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 		org := testAccProvider.Meta().(*Organization).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
-		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), org, "test-repo", path, opts)
+		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), org, repo, path, opts)
 		if err != nil {
 			return err
 		}
@@ -467,11 +481,10 @@ resource "github_repository_file" "foo" {
 `, file, content)
 }
 
-func testAccGithubRepositoryFileOverwriteConfig() string {
+func testAccGithubRepositoryFileOverwriteDisabledConfig(randString string) string {
 
 	owner := os.Getenv("GITHUB_ORGANIZATION")
 	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	return fmt.Sprintf(`
 resource "github_repository" "foo" {
@@ -484,16 +497,9 @@ resource "github_repository" "foo" {
 		repository = "%s"
 	}
 
-	# So that acceptance tests can be run in a github organization
-  # with no billing
-  private = false
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
+  private            = false
+  has_issues         = false
+  has_wiki           = false
 
 }
 
@@ -506,4 +512,37 @@ resource "github_repository_file" "foo" {
   commit_email   = "terraform@example.com"
 }
 `, randString, randString, owner, repository)
+}
+
+func testAccGithubRepositoryFileOverwriteEnabledConfig(randString, path, content string) string {
+
+	owner := os.Getenv("GITHUB_ORGANIZATION")
+	templateRepository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name         = "tf-acc-test-%s"
+  description  = "Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+	template {
+		owner = "%s"
+		repository = "%s"
+	}
+
+  private            = false
+  has_issues         = false
+  has_wiki           = false
+}
+
+resource "github_repository_file" "foo" {
+  repository     = github_repository.foo.name
+  file           = "%s"
+  content        = "%s"
+  commit_message = "Managed by Terraform"
+  commit_author  = "Terraform User"
+  commit_email   = "terraform@example.com"
+  overwrite      = true
+}
+`, randString, randString, owner, templateRepository, path, content)
 }

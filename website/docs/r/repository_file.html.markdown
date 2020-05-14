@@ -41,6 +41,7 @@ The following arguments are supported:
 
 * `commit_message` - (Optional) Commit message when adding or updating the managed file.
 
+* `overwrite` - (Optional) Enable overwriting existing files
 
 ## Attributes Reference
 
