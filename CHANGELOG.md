@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* resource/github_repository_collaborator: Allow modifying permissions from `maintain` and `triage`  [GH-457]
 * Documentation Fix for `github_actions_public_key` data-source [GH-458]
 * Documentation Fix for `github_branch_protection` resource [GH-410]
 * Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources [GH-423]
