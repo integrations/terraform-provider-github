@@ -218,6 +218,37 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 	})
 }
 
+func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
+	var protection github.Protection
+	rn := "github_branch_protection.master"
+	repoName := acctest.RandomWithPrefix("tf-acc-test-branch-prot-")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubBranchProtectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubBranchProtectionEmptyDismissalsConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
+					testAccCheckGithubBranchProtectionPullRequestReviews(&protection, true, []string{}, []string{}, true),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.#", "1"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismiss_stale_reviews", "true"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.require_code_owner_reviews", "true"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_users.#", "0"),
+					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.0.dismissal_teams.#", "0"),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Protection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -307,6 +338,9 @@ func testAccCheckGithubBranchProtectionPullRequestReviews(protection *github.Pro
 
 		var users, teams []string
 		if reviews.DismissalRestrictions != nil {
+			if len(expectedUsers) == 0 && len(expectedTeams) == 0 {
+				return fmt.Errorf("Expected Dismissal Restrictions to be nil but was present")
+			}
 			for _, u := range reviews.GetDismissalRestrictions().Users {
 				users = append(users, u.GetLogin())
 			}
@@ -528,4 +562,26 @@ resource "github_branch_protection" "master" {
   }
 }
 `, repoName, repoName, user)
+}
+
+func testAccGithubBranchProtectionEmptyDismissalsConfig(repoName string) string {
+	return fmt.Sprintf(`
+
+resource "github_repository" "test" {
+	name        = "%s"
+	description = "Terraform Acceptance Test %s"
+	auto_init   = true
+}
+
+resource "github_branch_protection" "master" {
+	repository     = "${github_repository.test.name}"
+	branch         = "master"
+	enforce_admins = true
+
+	required_pull_request_reviews {
+		dismiss_stale_reviews = true
+		require_code_owner_reviews = true
+	}
+}
+`, repoName, repoName)
 }
