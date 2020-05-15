@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in Github console if `dismissal_users` and `dismissal_teams` are not set [GH-453]
 * resource/github_repository_collaborator: Allow modifying permissions from `maintain` and `triage`  [GH-457]
 * Documentation Fix for `github_actions_public_key` data-source [GH-458]
 * Documentation Fix for `github_branch_protection` resource [GH-410]
