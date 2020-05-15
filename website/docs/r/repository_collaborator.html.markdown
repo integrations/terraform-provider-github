@@ -41,7 +41,7 @@ The following arguments are supported:
 * `repository` - (Required) The GitHub repository
 * `username` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
-            Must be one of `pull`, `push`, or `admin`. Defaults to `push`.
+            Must be one of `pull`, `push`, `maintain`, `triage` or `admin`. Defaults to `push`.
 
 ## Attribute Reference
 
