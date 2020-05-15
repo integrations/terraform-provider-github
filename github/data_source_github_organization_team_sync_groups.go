@@ -61,10 +61,10 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 
 		groups = append(groups, result...)
 
-		if resp.NextPage == 0 {
+		if resp.NextPageToken == "" {
 			break
 		}
-		options.Page = string(resp.NextPage)
+		options.Page = resp.NextPageToken
 	}
 
 	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
