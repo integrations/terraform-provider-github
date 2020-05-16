@@ -483,7 +483,7 @@ resource "github_repository_file" "foo" {
 
 func testAccGithubRepositoryFileOverwriteDisabledConfig(randString string) string {
 
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := testOrganization
 	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 
 	return fmt.Sprintf(`
@@ -516,7 +516,7 @@ resource "github_repository_file" "foo" {
 
 func testAccGithubRepositoryFileOverwriteEnabledConfig(randString, path, content string) string {
 
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := testOrganization
 	templateRepository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 
 	return fmt.Sprintf(`
