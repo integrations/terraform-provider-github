@@ -438,8 +438,7 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 		repoName = parsedID[1]
 	}
 
-	log.Printf(
-		"[DEBUG] Deleting repository: %s/%s", owner, repoName)
+	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err = client.Repositories.Delete(ctx, owner, repoName)
 
 	return err
