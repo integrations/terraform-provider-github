@@ -353,7 +353,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"auto_init", "gitignore_template", "license_template",
+					"auto_init", "gitignore_template",
 				},
 			},
 		},
@@ -486,7 +486,7 @@ func TestAccGithubRepository_autoInitForceNew(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"auto_init", "license_template", "gitignore_template",
+					"auto_init", "gitignore_template",
 				},
 			},
 		},
