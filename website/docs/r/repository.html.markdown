@@ -78,6 +78,10 @@ initial repository creation and create the target branch inside of the repositor
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
+* `fork_from_repository` - (Optional) The repository to fork from in the format `OWNER/RESPOSITORY` e.g. "terraform-providers/terraform-provider-github"
+
+* `fork_into_organization` - (Optional) The Github organization to set as the owner if forked from another repository. By default, the repository will live within the authenticated user's account.  
+
 ### Template Repositories
 
 `template` supports the following arguments:

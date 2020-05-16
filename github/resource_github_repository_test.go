@@ -1049,12 +1049,12 @@ resource "github_repository" "foo" {
   description  = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
-	template {
-		owner = "%s"
-		repository = "%s"
-	}
+  template {
+    owner      = "%s"
+    repository = "%s"
+  }
 
-	# So that acceptance tests can be run in a github organization
+  # So that acceptance tests can be run in a github organization
   # with no billing
   private = false
 
@@ -1072,21 +1072,21 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryCreateFromForkForUser(name, description, homepage string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {
-	name = "tf-acc-test-%s"
-    description = "%s"
-    homepage_url = "%s"
+  name         = "tf-acc-test-%s"
+  description  = "%s"
+  homepage_url = "%s"
 
 
-	private = false
-    has_issues           = true
-    has_wiki             = true
-    is_template          = false
+  private     = false
+  has_issues  = true
+  has_wiki    = true
+  is_template = false
 
-    allow_merge_commit   = true
-    allow_squash_merge   = false
-    allow_rebase_merge   = false
-    has_downloads        = true
-    auto_init            = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads      = true
+  auto_init          = true
 
 }
 
@@ -1099,11 +1099,11 @@ resource "github_repository" "foo" {
   has_wiki             = github_repository.test.has_wiki
   is_template          = github_repository.test.is_template
 
-  allow_merge_commit   = github_repository.test.allow_merge_commit
-  allow_squash_merge   = github_repository.test.allow_squash_merge
-  allow_rebase_merge   = github_repository.test.allow_rebase_merge
-  has_downloads        = github_repository.test.has_downloads
-  auto_init            = github_repository.test.auto_init
+  allow_merge_commit = github_repository.test.allow_merge_commit
+  allow_squash_merge = github_repository.test.allow_squash_merge
+  allow_rebase_merge = github_repository.test.allow_rebase_merge
+  has_downloads      = github_repository.test.has_downloads
+  auto_init          = github_repository.test.auto_init
 
 }
 `, name, description, homepage)
@@ -1112,7 +1112,7 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryCreateFromForkForOrg() string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "repo:google/go-github"
+  query = "repo:google/go-github"
 }
 
 resource "github_repository" "foo" {
@@ -1126,7 +1126,7 @@ resource "github_repository" "foo" {
 func testAccGithubRepositoryCreateFromForkForOrgUpdate(description, homepage string) string {
 	return fmt.Sprintf(`
 data "github_repositories" "test" {
-	query = "repo:google/go-github"
+  query = "repo:google/go-github"
 }
 
 resource "github_repository" "foo" {
