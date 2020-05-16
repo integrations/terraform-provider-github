@@ -282,7 +282,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			d.SetId(*repo.Name)
 		}
 	}
-	
+
 	topics := expandStringList(d.Get("topics").(*schema.Set).List())
 	if len(topics) > 0 {
 		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
