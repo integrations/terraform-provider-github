@@ -202,6 +202,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		LicenseTemplate:     github.String(d.Get("license_template").(string)),
 		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
 		Archived:            github.Bool(d.Get("archived").(bool)),
+		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
 	}
 }
 
@@ -213,10 +214,10 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	client := meta.(*Organization).v3client
 	orgName := meta.(*Organization).name
+	repoName := d.Get("name").(string)
 	ctx := context.Background()
 
-	repoName := d.Get("name").(string)
-	topics := expandStringList(d.Get("topics").(*schema.Set).List())
+	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
 
 	if v, ok := d.GetOk("fork_from_repository"); ok {
 		parsedFork := strings.Split(v.(string), "/")
@@ -242,10 +243,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		repoReq := resourceGithubRepositoryObject(d)
-		repoReq.Topics = topics
-
-		log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
-
 		if template, ok := d.GetOk("template"); ok {
 			templateConfigBlocks := template.([]interface{})
 
@@ -285,7 +282,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			d.SetId(*repo.Name)
 		}
 	}
-
+	
+	topics := expandStringList(d.Get("topics").(*schema.Set).List())
 	if len(topics) > 0 {
 		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
 		if err != nil {
