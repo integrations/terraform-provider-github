@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -58,6 +59,15 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"has_wiki": {
 				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"fork_from_repository": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("/"), "must be in OWNER/REPOSITORY format"),
+			},
+			"fork_into_organization": {
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"is_template": {
@@ -192,7 +202,6 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		LicenseTemplate:     github.String(d.Get("license_template").(string)),
 		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
 		Archived:            github.Bool(d.Get("archived").(bool)),
-		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
 	}
 }
 
@@ -203,58 +212,80 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	client := meta.(*Organization).v3client
-
-	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
-		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
-	}
-
-	repoReq := resourceGithubRepositoryObject(d)
 	orgName := meta.(*Organization).name
-	repoName := repoReq.GetName()
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
+	repoName := d.Get("name").(string)
+	topics := expandStringList(d.Get("topics").(*schema.Set).List())
 
-	if template, ok := d.GetOk("template"); ok {
-		templateConfigBlocks := template.([]interface{})
-
-		for _, templateConfigBlock := range templateConfigBlocks {
-			templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
-			if !ok {
-				return errors.New("failed to unpack template configuration block")
+	if v, ok := d.GetOk("fork_from_repository"); ok {
+		parsedFork := strings.Split(v.(string), "/")
+		if len(parsedFork) != 2 || parsedFork[0] == "" || parsedFork[1] == "" {
+			return fmt.Errorf("Cannot create repository from fork: %s", v.(string))
+		}
+		owner := parsedFork[0]
+		repoName := parsedFork[1]
+		opts := &github.RepositoryCreateForkOptions{}
+		if org, ok := d.GetOk("fork_into_organization"); ok {
+			opts.Organization = org.(string)
+		}
+		repo, _, err := client.Repositories.CreateFork(ctx, owner, repoName, opts)
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode != http.StatusAccepted {
+				return err
 			}
+		}
+		d.SetId(repo.GetFullName())
+	} else {
+		if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
+			return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
+		}
 
-			templateRepo := templateConfigMap["repository"].(string)
-			templateRepoOwner := templateConfigMap["owner"].(string)
-			templateRepoReq := github.TemplateRepoRequest{
-				Name:        &repoName,
-				Owner:       &orgName,
-				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(d.Get("private").(bool)),
+		repoReq := resourceGithubRepositoryObject(d)
+		repoReq.Topics = topics
+
+		log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
+
+		if template, ok := d.GetOk("template"); ok {
+			templateConfigBlocks := template.([]interface{})
+
+			for _, templateConfigBlock := range templateConfigBlocks {
+				templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
+				if !ok {
+					return errors.New("failed to unpack template configuration block")
+				}
+
+				templateRepo := templateConfigMap["repository"].(string)
+				templateRepoOwner := templateConfigMap["owner"].(string)
+				templateRepoReq := github.TemplateRepoRequest{
+					Name:        &repoName,
+					Owner:       &orgName,
+					Description: github.String(d.Get("description").(string)),
+					Private:     github.Bool(d.Get("private").(bool)),
+				}
+
+				repo, _, err := client.Repositories.CreateFromTemplate(ctx,
+					templateRepoOwner,
+					templateRepo,
+					&templateRepoReq,
+				)
+
+				if err != nil {
+					return err
+				}
+
+				d.SetId(*repo.Name)
 			}
-
-			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
-				templateRepoOwner,
-				templateRepo,
-				&templateRepoReq,
-			)
-
+		} else {
+			// Create without a repository template
+			repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
 			if err != nil {
 				return err
 			}
-
 			d.SetId(*repo.Name)
 		}
-	} else {
-		// Create without a repository template
-		repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
-		if err != nil {
-			return err
-		}
-		d.SetId(*repo.Name)
 	}
 
-	topics := repoReq.Topics
 	if len(topics) > 0 {
 		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
 		if err != nil {
@@ -272,17 +303,21 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	owner := meta.(*Organization).name
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
-
+	log.Printf("[DEBUG] Reading repository: %s/%s", owner, repoName)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, err := client.Repositories.Get(ctx, orgName, repoName)
+	if parsedID := strings.Split(repoName, "/"); len(parsedID) == 2 {
+		owner = parsedID[0]
+		repoName = parsedID[1]
+	}
+
+	repo, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -290,7 +325,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
-					orgName, repoName)
+					owner, repoName)
 				d.SetId("")
 				return nil
 			}
@@ -357,6 +392,13 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoName := d.Id()
 	orgName := meta.(*Organization).name
+	isFork := false
+	if parsedID := strings.Split(repoName, "/"); len(parsedID) == 2 {
+		orgName = parsedID[0]
+		repoName = parsedID[1]
+		isFork = true
+	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
@@ -364,7 +406,12 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
-	d.SetId(*repo.Name)
+
+	if isFork {
+		d.SetId(repo.GetFullName())
+	} else {
+		d.SetId(repo.GetName())
+	}
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
@@ -385,11 +432,17 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 
 	client := meta.(*Organization).v3client
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	owner := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	_, err = client.Repositories.Delete(ctx, orgName, repoName)
+	if parsedID := strings.Split(repoName, "/"); len(parsedID) == 2 {
+		owner = parsedID[0]
+		repoName = parsedID[1]
+	}
+
+	log.Printf(
+		"[DEBUG] Deleting repository: %s/%s", owner, repoName)
+	_, err = client.Repositories.Delete(ctx, owner, repoName)
 
 	return err
 }

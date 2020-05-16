@@ -523,6 +523,145 @@ func TestAccGithubRepository_createFromTemplate(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_createFromForkForUser(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
+	updatedDescription := "Terraform acceptance tests updated"
+	homepage := "http://example.com/"
+	updatedHomepage := "http://example-new.com/"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCreateFromForkForUser(randString, description, homepage),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						Description:         description,
+						Homepage:            homepage,
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCreateFromForkForUser(randString, updatedDescription, updatedHomepage),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						Description:         updatedDescription,
+						Homepage:            updatedHomepage,
+						HasIssues:           true,
+						HasWiki:             true,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    false,
+						AllowRebaseMerge:    false,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        true,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+				),
+			},
+
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "fork_from",
+				},
+			},
+		},
+	})
+}
+func TestAccGithubRepository_createFromForkForOrg(t *testing.T) {
+	var repo github.Repository
+
+	rn := "github_repository.foo"
+	name := "go-github"
+	description := "Terraform acceptance tests updated"
+	homepage := "http://example.com/"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCreateFromForkForOrg(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						HasIssues:           false,
+						HasWiki:             false,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    true,
+						AllowRebaseMerge:    true,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        false,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCreateFromForkForOrgUpdate(description, homepage),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists(rn, &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:                name,
+						Description:         description,
+						Homepage:            homepage,
+						HasIssues:           false,
+						HasWiki:             false,
+						IsTemplate:          false,
+						AllowMergeCommit:    true,
+						AllowSquashMerge:    true,
+						AllowRebaseMerge:    true,
+						DeleteBranchOnMerge: false,
+						HasDownloads:        false,
+						HasProjects:         false,
+						DefaultBranch:       "master",
+						Archived:            false,
+					}),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"auto_init", "fork_from", "fork_into_organization",
+				},
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -536,8 +675,13 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 		}
 
 		org := testAccProvider.Meta().(*Organization)
+		owner := org.name
 		conn := org.v3client
-		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
+		if parsedID := strings.Split(repoName, "/"); len(parsedID) == 2 {
+			owner = parsedID[0]
+			repoName = parsedID[1]
+		}
+		gotRepo, _, err := conn.Repositories.Get(context.TODO(), owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -923,6 +1067,76 @@ resource "github_repository" "foo" {
 
 }
 `, randString, randString, owner, repository)
+}
+
+func testAccGithubRepositoryCreateFromForkForUser(name, description, homepage string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "tf-acc-test-%s"
+    description = "%s"
+    homepage_url = "%s"
+
+
+	private = false
+    has_issues           = true
+    has_wiki             = true
+    is_template          = false
+
+    allow_merge_commit   = true
+    allow_squash_merge   = false
+    allow_rebase_merge   = false
+    has_downloads        = true
+    auto_init            = true
+
+}
+
+resource "github_repository" "foo" {
+  name                 = github_repository.test.name
+  description          = github_repository.test.description
+  homepage_url         = github_repository.test.homepage_url
+  fork_from_repository = github_repository.test.full_name
+  has_issues           = github_repository.test.has_issues
+  has_wiki             = github_repository.test.has_wiki
+  is_template          = github_repository.test.is_template
+
+  allow_merge_commit   = github_repository.test.allow_merge_commit
+  allow_squash_merge   = github_repository.test.allow_squash_merge
+  allow_rebase_merge   = github_repository.test.allow_rebase_merge
+  has_downloads        = github_repository.test.has_downloads
+  auto_init            = github_repository.test.auto_init
+
+}
+`, name, description, homepage)
+}
+
+func testAccGithubRepositoryCreateFromForkForOrg() string {
+	return fmt.Sprintf(`
+data "github_repositories" "test" {
+	query = "repo:google/go-github"
+}
+
+resource "github_repository" "foo" {
+  name                   = data.github_repositories.test.names[0]
+  fork_from_repository   = data.github_repositories.test.full_names[0]
+  fork_into_organization = "%s"
+}
+`, testOrganization)
+}
+
+func testAccGithubRepositoryCreateFromForkForOrgUpdate(description, homepage string) string {
+	return fmt.Sprintf(`
+data "github_repositories" "test" {
+	query = "repo:google/go-github"
+}
+
+resource "github_repository" "foo" {
+  name                   = data.github_repositories.test.names[0]
+  description            = "%s"
+  homepage_url           = "%s"
+  fork_from_repository   = data.github_repositories.test.full_names[0]
+  fork_into_organization = "%s"
+}
+`, description, homepage, testOrganization)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
