@@ -29,6 +29,10 @@ func TestAccGithubReleaseDataSource_fetchByLatestNoReleaseReturnsError(t *testin
 }
 
 func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "latest"
@@ -68,6 +72,10 @@ func TestAccGithubReleaseDataSource_fetchByIdWithNoIdReturnsError(t *testing.T) 
 }
 
 func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "id"
@@ -112,6 +120,10 @@ func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
 }
 
 func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	owner := os.Getenv("GITHUB_ORGANIZATION")
 	retrieveBy := "tag"

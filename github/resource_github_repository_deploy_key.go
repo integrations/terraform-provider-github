@@ -59,13 +59,13 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	repoName := d.Get("repository").(string)
 	key := d.Get("key").(string)
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, owner, repoName)
@@ -92,9 +92,9 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
 	if err != nil {
 		return err
@@ -141,9 +141,9 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
 	if err != nil {
 		return err

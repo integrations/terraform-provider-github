@@ -15,6 +15,10 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
@@ -65,6 +69,10 @@ func TestAccGithubRepositoryWebhook_basic(t *testing.T) {
 }
 
 func TestAccGithubRepositoryWebhook_secret(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	rn := "github_repository_webhook.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var hook github.Hook
@@ -116,7 +124,7 @@ func testAccCheckGithubRepositoryWebhookExists(n string, repoName string, hook *
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
+		org := testAccProvider.Meta().(*Owner)
 		conn := org.v3client
 		getHook, _, err := conn.Repositories.GetHook(context.TODO(), org.name, repoName, hookID)
 		if err != nil {
@@ -154,8 +162,8 @@ func testAccCheckGithubRepositoryWebhookAttributes(hook *github.Hook, want *test
 }
 
 func testAccCheckGithubRepositoryWebhookDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_webhook" {

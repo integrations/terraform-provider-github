@@ -10,6 +10,10 @@ import (
 )
 
 func TestAccGithubActionsPublicKeyDataSource_noMatchReturnsError(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	repo := "non-existent"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -26,6 +30,10 @@ func TestAccGithubActionsPublicKeyDataSource_noMatchReturnsError(t *testing.T) {
 }
 
 func TestAccCheckGithubActionsPublicKeyDataSource_existing(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {

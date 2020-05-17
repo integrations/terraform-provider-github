@@ -103,9 +103,9 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
@@ -137,9 +137,9 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -195,9 +195,9 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -216,9 +216,9 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

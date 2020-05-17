@@ -201,14 +201,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
 		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -270,8 +270,8 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
@@ -342,7 +342,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
@@ -355,7 +355,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
@@ -382,9 +382,9 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)

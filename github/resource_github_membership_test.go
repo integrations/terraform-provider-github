@@ -15,9 +15,11 @@ func TestAccGithubMembership_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
 	var membership github.Membership
-
 	rn := "github_membership.test_org_membership"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -44,6 +46,9 @@ func TestAccGithubMembership_basic(t *testing.T) {
 func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var membership github.Membership
@@ -84,7 +89,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
@@ -122,7 +127,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
@@ -148,7 +153,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
 		if err != nil {
 			return err
