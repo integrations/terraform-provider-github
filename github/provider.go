@@ -89,7 +89,7 @@ func init() {
 
 		"owner": "The GitHub owner name to manage.",
 
-		"organization": "The GitHub owner name to manage.",
+		"organization": "(Deprecated) The GitHub organization name to manage.",
 
 		"base_url": "The GitHub Base API URL",
 	}
