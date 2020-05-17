@@ -69,7 +69,14 @@ func (c *Config) Clients() (interface{}, error) {
 	owner.v4client = v4client
 
 	owner.name = c.Owner
-	if owner.name != "" {
+	if owner.name == "" {
+		// Discover authenticated user
+		user, _, err := owner.v3client.Users.Get(ctx, "")
+		if err != nil {
+			return nil, err
+		}
+		owner.name = user.GetLogin()
+	} else {
 		remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
 		if err == nil {
 			if remoteOrg != nil {
