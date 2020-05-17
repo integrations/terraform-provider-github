@@ -34,7 +34,7 @@ func TestAccGithubReleaseDataSource_latestExisting(t *testing.T) {
 	}
 
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	retrieveBy := "latest"
 	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
 	expectedTarball := regexp.MustCompile(fmt.Sprintf("%s/%s/tarball", owner, repo))
@@ -77,7 +77,7 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 	}
 
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	retrieveBy := "id"
 	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
 	expectedTarball := regexp.MustCompile(fmt.Sprintf("%s/%s/tarball", owner, repo))
@@ -102,7 +102,7 @@ func TestAccGithubReleaseDataSource_fetchByIdExisting(t *testing.T) {
 
 func TestAccGithubReleaseDataSource_fetchByTagNoTagReturnsError(t *testing.T) {
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	retrieveBy := "tag"
 	id := int64(0)
 	resource.ParallelTest(t, resource.TestCase{
@@ -125,7 +125,7 @@ func TestAccGithubReleaseDataSource_fetchByTagExisting(t *testing.T) {
 	}
 
 	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	owner := os.Getenv("GITHUB_ORGANIZATION")
+	owner := os.Getenv("GITHUB_OWNER")
 	retrieveBy := "tag"
 	tag := "v1.0"
 	expectedUrl := regexp.MustCompile(fmt.Sprintf("%s/%s", owner, repo))
