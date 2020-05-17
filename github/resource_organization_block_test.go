@@ -10,6 +10,10 @@ import (
 )
 
 func TestAccOrganizationBlock_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	rn := "github_organization_block.test"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -33,8 +37,8 @@ func TestAccOrganizationBlock_basic(t *testing.T) {
 }
 
 func testAccOrganizationBlockDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_block" {
@@ -60,8 +64,8 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 
 		username := rs.Primary.ID
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgName := testAccProvider.Meta().(*Owner).name
 
 		blocked, _, err := conn.Organizations.IsBlocked(context.TODO(), orgName, username)
 		if err != nil {

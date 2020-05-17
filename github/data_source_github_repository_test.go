@@ -9,6 +9,10 @@ import (
 )
 
 func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	fullName := "klsafj_23434_doesnt_exist/not-exists"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -25,6 +29,10 @@ func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T
 }
 
 func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	name := "not-exists"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -41,7 +49,11 @@ func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
-	fullName := testOrganization + "/test-repo"
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
+	fullName := testOwner + "/test-repo"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -57,6 +69,10 @@ func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDataSource_name_existing(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	name := "test-repo"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -85,13 +101,13 @@ func testRepoCheck() resource.TestCheckFunc {
 		resource.TestCheckResourceAttr("data.github_repository.test", "allow_squash_merge", "true"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "allow_rebase_merge", "true"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "has_downloads", "true"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "full_name", testOrganization+"/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "full_name", testOwner+"/test-repo"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "default_branch", "master"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "html_url", "https://github.com/"+testOrganization+"/test-repo"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "ssh_clone_url", "git@github.com:"+testOrganization+"/test-repo.git"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "svn_url", "https://github.com/"+testOrganization+"/test-repo"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "git_clone_url", "git://github.com/"+testOrganization+"/test-repo.git"),
-		resource.TestCheckResourceAttr("data.github_repository.test", "http_clone_url", "https://github.com/"+testOrganization+"/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "html_url", "https://github.com/"+testOwner+"/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "ssh_clone_url", "git@github.com:"+testOwner+"/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "svn_url", "https://github.com/"+testOwner+"/test-repo"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "git_clone_url", "git://github.com/"+testOwner+"/test-repo.git"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "http_clone_url", "https://github.com/"+testOwner+"/test-repo.git"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "archived", "false"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "topics.#", "2"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "topics.0", "second-test-topic"),

@@ -9,6 +9,10 @@ import (
 )
 
 func TestAccGithubTeamDataSource_noMatchReturnsError(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	slug := "non-existing"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {

@@ -30,9 +30,9 @@ func testSweepRepositories(region string) error {
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Organization).name, nil)
+	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func testSweepRepositories(region string) error {
 		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
 			log.Printf("Destroying Repository %s", name)
 
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, name); err != nil {
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
 				return err
 			}
 		}
@@ -51,6 +51,10 @@ func testSweepRepositories(region string) error {
 }
 
 func TestAccGithubRepository_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -116,6 +120,10 @@ func TestAccGithubRepository_basic(t *testing.T) {
 }
 
 func TestAccGithubRepository_archive(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -160,6 +168,10 @@ func TestAccGithubRepository_archive(t *testing.T) {
 }
 
 func TestAccGithubRepository_archiveUpdate(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -220,6 +232,10 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 }
 
 func TestAccGithubRepository_hasProjects(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
@@ -244,6 +260,10 @@ func TestAccGithubRepository_hasProjects(t *testing.T) {
 }
 
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -314,6 +334,10 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 }
 
 func TestAccGithubRepository_templates(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -361,6 +385,10 @@ func TestAccGithubRepository_templates(t *testing.T) {
 }
 
 func TestAccGithubRepository_topics(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -452,6 +480,10 @@ func TestAccGithubRepository_topics(t *testing.T) {
 }
 
 func TestAccGithubRepository_createFromTemplate(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -493,7 +525,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
+		org := testAccProvider.Meta().(*Owner)
 		conn := org.v3client
 		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
 		if err != nil {
@@ -646,8 +678,8 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgName := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository" {
@@ -674,16 +706,16 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
-		BaseURL:      baseURL,
-		Token:        token,
-		Organization: org,
+		BaseURL: baseURL,
+		Token:   token,
+		Owner:   org,
 	}
 
 	c, err := config.Clients()
 	if err != nil {
 		return fmt.Errorf("Error creating github client: %s", err)
 	}
-	client := c.(*Organization).v3client
+	client := c.(*Owner).v3client
 
 	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
 	if err != nil {

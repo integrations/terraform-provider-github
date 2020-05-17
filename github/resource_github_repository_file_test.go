@@ -48,8 +48,8 @@ func testSweepRepositoryFiles(region string) error {
 }
 
 func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
 
 	_, files, _, err := client.Repositories.GetContents(
 		context.TODO(), org, "test-repo", "", &github.RepositoryContentGetOptions{Ref: branch})
@@ -77,6 +77,10 @@ func TestAccGithubRepositoryFile_basic(t *testing.T) {
 
 	if userEmail == "" {
 		t.Skip("This test requires you to set the test user's email address (set it by exporting GITHUB_TEST_USER_EMAIL)")
+	}
+
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var content github.RepositoryContent
@@ -157,6 +161,10 @@ func TestAccGithubRepositoryFile_branch(t *testing.T) {
 		t.Skip("This test requires you to set the test user's email address (set it by exporting GITHUB_TEST_USER_EMAIL)")
 	}
 
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var content github.RepositoryContent
 	var commit github.RepositoryCommit
 
@@ -228,6 +236,10 @@ func TestAccGithubRepositoryFile_branch(t *testing.T) {
 }
 
 func TestAccGithubRepositoryFile_committer(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var content github.RepositoryContent
 	var commit github.RepositoryCommit
 
@@ -309,8 +321,8 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 			return fmt.Errorf("No repository file path set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		org := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		org := testAccProvider.Meta().(*Owner).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
 		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), org, "test-repo", path, opts)
@@ -382,8 +394,8 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 }
 
 func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	org := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	org := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_file" {

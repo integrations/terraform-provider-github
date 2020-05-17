@@ -144,8 +144,8 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgName := testAccProvider.Meta().(*Owner).name
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_sync_group_mapping" {
@@ -172,8 +172,8 @@ func testAccCheckGithubTeamSyncGroupMappingDisappears(resourceName string) resou
 		if !ok {
 			return fmt.Errorf("Not found: %s", resourceName)
 		}
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgName := testAccProvider.Meta().(*Owner).name
 		slug := rs.Primary.Attributes["team_slug"]
 
 		emptyGroupList := github.IDPGroupList{Groups: []*github.IDPGroup{}}

@@ -45,7 +45,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	options := github.ProjectColumnOptions{
 		Name: d.Get("name").(string),
@@ -58,7 +58,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	}
 	ctx := context.Background()
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	log.Printf("[DEBUG] Creating project column (%s) in project %d (%s)", options.Name, projectID, orgName)
 	column, _, err := client.Projects.CreateProjectColumn(ctx,
 		projectID,
@@ -73,7 +73,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -106,7 +106,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	options := github.ProjectColumnOptions{
 		Name: d.Get("name").(string),
@@ -128,7 +128,7 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
