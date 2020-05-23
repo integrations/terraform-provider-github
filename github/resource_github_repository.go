@@ -22,7 +22,6 @@ func resourceGithubRepository() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				d.Set("auto_init", false)
-				d.Set("archive_on_destroy", false)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -114,7 +113,6 @@ func resourceGithubRepository() *schema.Resource {
 			"archive_on_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 			"topics": {
 				Type:     schema.TypeSet,
