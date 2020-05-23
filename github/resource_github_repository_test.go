@@ -274,7 +274,7 @@ func TestAccGithubRepository_archiveOnDestroyUpdate(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"auto_init",
+					"auto_init", "archive_on_destroy",
 				},
 			},
 		},
@@ -331,7 +331,7 @@ func TestAccGithubRepository_archivedAndArchiveOnDestroyUpdate(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"auto_init",
+					"auto_init", "archive_on_destroy",
 				},
 			},
 		},
