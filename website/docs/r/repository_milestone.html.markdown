@@ -7,7 +7,7 @@ description: |-
 
 # github_repository_milestone
 
-Provides a GitHub respository milestone resource.
+Provides a GitHub repository milestone resource.
 
 This resource allows you to create and manage milestones for a Github Repository within an organization or user account.
 
