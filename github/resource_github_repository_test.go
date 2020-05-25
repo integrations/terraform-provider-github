@@ -633,19 +633,9 @@ func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Re
 
 func testAccCheckGithubVulnerabilityAlerts(n string, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
-		}
-
-		repoName := rs.Primary.ID
-		if repoName == "" {
-			return fmt.Errorf("No repository name is set")
-		}
-
 		org := testAccProvider.Meta().(*Organization)
 		conn := org.v3client
-		actual, _, err := conn.Repositories.GetVulnerabilityAlerts(context.TODO(), org.name, repoName)
+		actual, _, err := conn.Repositories.GetVulnerabilityAlerts(context.TODO(), org.name, n)
 		if err != nil {
 			return err
 		}
@@ -1087,7 +1077,7 @@ resource "github_repository" "foo" {
   has_downloads      = true
   auto_init          = false
 
-	vulnerability_alerts = true
+  vulnerability_alerts = true
 }
 `, randString, randString)
 }
@@ -1112,7 +1102,7 @@ resource "github_repository" "foo" {
   has_downloads      = true
   auto_init          = false
 
-	vulnerability_alerts = false
+  vulnerability_alerts = false
 }
 `, randString, randString)
 }
