@@ -761,7 +761,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
@@ -793,7 +794,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = false
   has_wiki           = false
@@ -815,7 +817,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
@@ -837,7 +840,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
@@ -860,7 +864,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
@@ -883,7 +888,8 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
@@ -916,7 +922,8 @@ resource "github_repository" "foo" {
 
 	# So that acceptance tests can be run in a github organization
   # with no billing
-  private = false
+  private    = false
+  visibility = "public"
 
   has_issues         = true
   has_wiki           = true
