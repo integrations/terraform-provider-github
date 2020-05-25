@@ -405,7 +405,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if d.HasChange("vulnerability_alerts") {
+	if !d.IsNewResource() && d.HasChange("vulnerability_alerts") {
 		updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
 		if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
 			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
