@@ -121,7 +121,6 @@ func resourceGithubRepository() *schema.Resource {
 			"vulnerability_alerts": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 
 			"full_name": {
