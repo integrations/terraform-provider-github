@@ -36,6 +36,9 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(rn, "repository", repoName),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
 					resource.TestCheckResourceAttr(rn, "enforce_admins", "true"),
+					resource.TestCheckResourceAttr(rn, "allow_force_pushes", "true"),
+					resource.TestCheckResourceAttr(rn, "allow_deletions", "true"),
+					resource.TestCheckResourceAttr(rn, "require_linear_history", "true"),
 					resource.TestCheckResourceAttr(rn, "require_signed_commits", "true"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.strict", "true"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.contexts.#", "1"),
@@ -56,6 +59,9 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(&protection),
 					resource.TestCheckResourceAttr(rn, "repository", repoName),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
+					resource.TestCheckResourceAttr(rn, "allow_force_pushes", "false"),
+					resource.TestCheckResourceAttr(rn, "allow_deletions", "false"),
+					resource.TestCheckResourceAttr(rn, "require_linear_history", "false"),
 					resource.TestCheckResourceAttr(rn, "require_signed_commits", "false"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.strict", "false"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.contexts.#", "1"),
@@ -427,9 +433,12 @@ resource "github_repository" "test" {
 }
 
 resource "github_branch_protection" "master" {
-  repository     = "${github_repository.test.name}"
-  branch         = "master"
-  enforce_admins = true
+  repository             = "${github_repository.test.name}"
+  branch                 = "master"
+  enforce_admins         = true
+  allow_force_pushes     = true
+  allow_deletions        = true
+  require_linear_history = true
   require_signed_commits = true
 
   required_status_checks {

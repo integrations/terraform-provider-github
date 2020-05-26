@@ -145,6 +145,21 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"allow_force_pushes": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"allow_deletions": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"require_linear_history": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -238,6 +253,9 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	d.Set("repository", repoName)
 	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	d.Set("require_linear_history", githubProtection.GetRequireLinearHistory().Enabled)
+	d.Set("allow_force_pushes", githubProtection.GetAllowForcePushes().Enabled)
+	d.Set("allow_deletions", githubProtection.GetAllowDeletions().Enabled)
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
@@ -336,8 +354,15 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 }
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
+	requireLinearHistory := d.Get("require_linear_history").(bool)
+	allowForcePushes := d.Get("allow_force_pushes").(bool)
+	allowDeletions := d.Get("allow_deletions").(bool)
+
 	req := &github.ProtectionRequest{
-		EnforceAdmins: d.Get("enforce_admins").(bool),
+		EnforceAdmins:        d.Get("enforce_admins").(bool),
+		RequireLinearHistory: &requireLinearHistory,
+		AllowForcePushes:     &allowForcePushes,
+		AllowDeletions:       &allowDeletions,
 	}
 
 	rsc, err := expandRequiredStatusChecks(d)

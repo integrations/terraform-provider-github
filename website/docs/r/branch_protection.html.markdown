@@ -18,9 +18,12 @@ This resource allows you to configure branch protection for repositories in your
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
 resource "github_branch_protection" "example" {
-  repository     = "${github_repository.example.name}"
-  branch         = "master"
-  enforce_admins = true
+  repository             = "${github_repository.example.name}"
+  branch                 = "master"
+  enforce_admins         = true
+  allow_force_pushes     = true
+  allow_deletions        = true
+  require_linear_history = true
 
   required_status_checks {
     strict   = false
@@ -58,6 +61,9 @@ The following arguments are supported:
 * `repository` - (Required) The GitHub repository name.
 * `branch` - (Required) The Git branch to protect.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
+* `allow_force_pushes` - (Optional) Boolean, setting this to `true` permits everyone with write access to the protected branch to force pushes. Defaults to `false`.
+* `allow_deletions` - (Optional) Boolean, setting this to `true` permits everyone with write access to the protected branch to delete the branch. Defaults to `false`.
+* `require_linear_history` - (Optional) Boolean, setting this to `true` enforces a linear commit Git history, preventing anyone from pushing merge commits to the branch. Defaults to `false`.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
