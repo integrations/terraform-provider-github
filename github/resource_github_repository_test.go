@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -727,7 +727,8 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 	}
 	client := c.(*Organization).v3client
 
-	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
+	opts := &github.ReferenceListOptions{Ref: "heads"}
+	refs, _, err := client.Git.ListMatchingRefs(context.TODO(), org, repository, opts)
 	if err != nil {
 		return fmt.Errorf("Error getting reference commit: %s", err)
 	}
