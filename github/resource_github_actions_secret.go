@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/google/go-github/v31/github"
+	"log"
+
+	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
-	"log"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
