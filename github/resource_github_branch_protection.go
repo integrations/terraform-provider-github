@@ -354,15 +354,11 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 }
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
-	requireLinearHistory := d.Get("require_linear_history").(bool)
-	allowForcePushes := d.Get("allow_force_pushes").(bool)
-	allowDeletions := d.Get("allow_deletions").(bool)
-
 	req := &github.ProtectionRequest{
 		EnforceAdmins:        d.Get("enforce_admins").(bool),
-		RequireLinearHistory: &requireLinearHistory,
-		AllowForcePushes:     &allowForcePushes,
-		AllowDeletions:       &allowDeletions,
+		RequireLinearHistory: github.Bool(d.Get("require_linear_history").(bool)),
+		AllowForcePushes:     github.Bool(d.Get("allow_force_pushes").(bool)),
+		AllowDeletions:       github.Bool(d.Get("allow_deletions").(bool)),
 	}
 
 	rsc, err := expandRequiredStatusChecks(d)
