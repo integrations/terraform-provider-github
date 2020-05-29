@@ -54,6 +54,7 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 					testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(&protection),
 					resource.TestCheckResourceAttr(rn, "repository", repoName),
 					resource.TestCheckResourceAttr(rn, "branch", "master"),
+					resource.TestCheckResourceAttr(rn, "required_status_checks.0.strict", "false"),
 					resource.TestCheckResourceAttr(rn, "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr(rn, "required_pull_request_reviews.#", "0"),
 					resource.TestCheckResourceAttr(rn, "restrictions.#", "0"),
