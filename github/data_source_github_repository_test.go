@@ -77,6 +77,7 @@ func testRepoCheck() resource.TestCheckFunc {
 		resource.TestCheckResourceAttr("data.github_repository.test", "id", "test-repo"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "name", "test-repo"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "private", "false"),
+		resource.TestCheckResourceAttr("data.github_repository.test", "visibility", "public"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "description", "Test description, used in GitHub Terraform provider acceptance test."),
 		resource.TestCheckResourceAttr("data.github_repository.test", "homepage_url", "http://www.example.com"),
 		resource.TestCheckResourceAttr("data.github_repository.test", "has_issues", "true"),
