@@ -82,6 +82,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						HasProjects:         false,
 						DefaultBranch:       "master",
 						Archived:            false,
+						Visibility:          "public",
 					}),
 				),
 			},
@@ -100,6 +101,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						DefaultBranch:    "master",
 						HasProjects:      false,
 						Archived:         false,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -144,6 +146,7 @@ func TestAccGithubRepository_archive(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -188,6 +191,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -207,6 +211,7 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -273,6 +278,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -298,6 +304,7 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "foo",
 						Archived:         false,
+						Visibility:       "public",
 					}),
 				),
 			},
@@ -345,6 +352,7 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						LicenseTemplate:   "ms-pl",
 						GitignoreTemplate: "C++",
 						Archived:          false,
+						Visibility:        "public",
 					}),
 				),
 			},
@@ -397,6 +405,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
+						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -415,6 +424,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
+						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -433,6 +443,7 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
+						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
