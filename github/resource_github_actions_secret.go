@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 	"log"
+	"net/http"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
@@ -101,7 +102,14 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 
 	secret, _, err := client.Actions.GetSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		d.SetId("")
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 

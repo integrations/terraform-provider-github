@@ -45,6 +45,28 @@ func TestAccGithubActionsSecret_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubActionsSecret_disappears(t *testing.T) {
+	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	secretResourceName := "github_actions_secret.test_secret"
+	secretValue := "super_secret_value"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubActionsSecretDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubActionsSecretFullConfig(repo, secretValue),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubActionsSecretExists(secretResourceName, "test_secret_name", t),
+					testAccCheckGithubActionsSecretDisappears(secretResourceName),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccGithubActionsSecretFullConfig(repoName, plaintext string) string {
 
 	// Take resources from other tests to avoid manual creation of secrets / repos
@@ -85,6 +107,23 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 		}
 
 		return nil
+	}
+}
+
+func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+		conn := testAccProvider.Meta().(*Organization).v3client
+		owner := testAccProvider.Meta().(*Organization).name
+		repoName, secretName, err := parseTwoPartID(rs.Primary.ID, "repository", "secret_name")
+		if err != nil {
+			return err
+		}
+		_, err = conn.Actions.DeleteSecret(context.TODO(), owner, repoName, secretName)
+		return err
 	}
 }
 
