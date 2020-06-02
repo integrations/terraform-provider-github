@@ -14,6 +14,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"web": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"api": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"git": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -41,11 +51,17 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	if len(api.Hooks)+len(api.Git)+len(api.Pages)+len(api.Importer) > 0 {
+	if len(api.Hooks)+len(api.Web)+len(api.Api)+len(api.Git)+len(api.Pages)+len(api.Importer) > 0 {
 		d.SetId("github-ip-ranges")
 	}
 	if len(api.Hooks) > 0 {
 		d.Set("hooks", api.Hooks)
+	}
+	if len(api.Web) > 0 {
+		d.Set("web", api.Web)
+	}
+	if len(api.Api) > 0 {
+		d.Set("api", api.Api)
 	}
 	if len(api.Git) > 0 {
 		d.Set("git", api.Git)
