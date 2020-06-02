@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccGithubActionsSecret_basic(t *testing.T) {
-	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	repo := acctest.RandomWithPrefix("tf-acc-test")
 
 	secretResourceName := "github_actions_secret.test_secret"
 	secretValue := "super_secret_value"
@@ -46,11 +46,11 @@ func TestAccGithubActionsSecret_basic(t *testing.T) {
 }
 
 func TestAccGithubActionsSecret_disappears(t *testing.T) {
-	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	repo := acctest.RandomWithPrefix("tf-acc-test")
 	secretResourceName := "github_actions_secret.test_secret"
 	secretValue := "super_secret_value"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubActionsSecretDestroy,
@@ -68,22 +68,24 @@ func TestAccGithubActionsSecret_disappears(t *testing.T) {
 }
 
 func testAccGithubActionsSecretFullConfig(repoName, plaintext string) string {
-
-	// Take resources from other tests to avoid manual creation of secrets / repos
-	githubPKData := testAccCheckGithubActionsPublicKeyDataSourceConfig(repoName)
-	githubActionsSecretResource := testAccGithubActionsSecretConfig(repoName, plaintext)
-
-	return fmt.Sprintf("%s%s", githubPKData, githubActionsSecretResource)
+	// To allow tests to run in parallel and prevent re-using resources defined across the
+	// codebase, we create a repository resource and define it's actions public key here
+	// alongside the new actions secret resource
+	return fmt.Sprintf(`
+data "github_actions_public_key" "test_pk" {
+  repository = github_repository.test.name
 }
 
-func testAccGithubActionsSecretConfig(repo, plaintext string) string {
-	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name = "%s"
+}
+
 resource "github_actions_secret" "test_secret" {
-  repository       = "%s"
+  repository       = github_repository.test.name
   secret_name      = "test_secret_name"
   plaintext_value  = "%s"
 }
-`, repo, plaintext)
+`, repoName, plaintext)
 }
 
 func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *testing.T) resource.TestCheckFunc {
