@@ -144,6 +144,14 @@ type APIMeta struct {
 	// that incoming service hooks will originate from on GitHub.com.
 	Hooks []string `json:"hooks,omitempty"`
 
+	// An Array of IP addresses in CIDR format specifying the addresses
+	// of GitHub.com web servers.
+	Web []string `json:"web,omitempty"`
+
+	// An Array of IP addresses in CIDR format specifying the addresses
+	// of GitHub.com API servers.
+	Api []string `json:"api,omitempty"`
+
 	// An Array of IP addresses in CIDR format specifying the Git servers
 	// for GitHub.com.
 	Git []string `json:"git,omitempty"`
