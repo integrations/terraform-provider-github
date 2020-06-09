@@ -1,4 +1,13 @@
-## 2.9.0 (Unreleased)
+## 2.8.1 (Unreleased)
+
+BUG FIXES:
+
+* resource/github_repository_file: Reduce API requests when looping through commits ([GH-466])
+* resource/github_repository: Fix `auto_init` Destroying Repositories ([GH-317])
+* resource/github_repository_deploy_key: Fix acceptance test approach ([GH-471])
+* resource/github_actions_secret: Fix Case Where Secret Removed Outside Of Terraform ([GH-482])
+* Documentation Addition Of `examples/` Directory
+
 ## 2.8.0 (May 15, 2020)
 
 BUG FIXES:
