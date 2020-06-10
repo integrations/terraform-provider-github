@@ -702,13 +702,12 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 
 func testAccCreateRepositoryBranch(branch, repository string) error {
 	baseURL := os.Getenv("GITHUB_BASE_URL")
-	org := os.Getenv("GITHUB_ORGANIZATION")
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
 		BaseURL: baseURL,
 		Token:   token,
-		Owner:   org,
+		Owner:   testOwner,
 	}
 
 	c, err := config.Clients()
@@ -717,7 +716,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 	}
 	client := c.(*Owner).v3client
 
-	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
+	refs, _, err := client.Git.GetRefs(context.TODO(), testOwner, repository, "heads")
 	if err != nil {
 		return fmt.Errorf("Error getting reference commit: %s", err)
 	}
@@ -730,7 +729,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 		},
 	}
 
-	_, _, err = client.Git.CreateRef(context.TODO(), org, repository, newRef)
+	_, _, err = client.Git.CreateRef(context.TODO(), testOwner, repository, newRef)
 	if err != nil {
 		return fmt.Errorf("Error creating git reference: %s", err)
 	}
@@ -885,8 +884,6 @@ resource "github_repository" "foo" {
 }
 
 func testAccGithubRepositoryCreateFromTemplate(randString string) string {
-
-	owner := os.Getenv("GITHUB_ORGANIZATION")
 	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 
 	return fmt.Sprintf(`
@@ -912,7 +909,7 @@ resource "github_repository" "foo" {
   has_downloads      = true
 
 }
-`, randString, randString, owner, repository)
+`, randString, randString, testOwner, repository)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
