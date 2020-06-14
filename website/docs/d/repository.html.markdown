@@ -55,6 +55,8 @@ The following arguments are supported:
 
 * `archived` - Whether the repository is archived.
 
+* `pages` - The repository's GitHub Pages configuration. 
+
 * `topics` - The list of topics of the repository.
 
 * `html_url` - URL to the repository on the web.

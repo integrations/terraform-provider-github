@@ -77,6 +77,50 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"pages": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"source": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"branch": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"path": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"cname": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"custom_404": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"html_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"topics": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -163,6 +207,16 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("archived", repo.GetArchived())
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+
+	if repo.GetHasPages() {
+		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("pages", flattenPages(pages)); err != nil {
+			return fmt.Errorf("error setting pages: %w", err)
+		}
+	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
 	if err != nil {
