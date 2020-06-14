@@ -143,6 +143,9 @@ func TestAccGithubRepositoryFile_basic(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"commit_author", "commit_email", "commit_message",
+				},
 			},
 		},
 	})
@@ -222,6 +225,9 @@ func TestAccGithubRepositoryFile_branch(t *testing.T) {
 				ImportState:       true,
 				ImportStateId:     fmt.Sprintf("test-repo/%s:test-branch", path),
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"commit_author", "commit_email", "commit_message",
+				},
 			},
 		},
 	})
@@ -292,6 +298,9 @@ func TestAccGithubRepositoryFile_committer(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"commit_author", "commit_email", "commit_message",
+				},
 			},
 		},
 	})
