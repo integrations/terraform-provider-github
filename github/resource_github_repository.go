@@ -569,8 +569,7 @@ func expandPages(input []interface{}) *github.Pages {
 		Branch: github.String(pagesSource["branch"].(string)),
 	}
 	if v, ok := pagesSource["path"].(string); ok {
-		// Github Pages API only accepts non-root directory paths (i.e. /docs) in source.Path;
-		// to set to the root directory "/", leave source.Path unset
+		// To set to the root directory "/", leave source.Path unset
 		if v != "" && v != "/" {
 			source.Path = github.String(v)
 		}
@@ -585,9 +584,16 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 
 	pages := input[0].(map[string]interface{})
 	update := &github.PagesUpdate{}
+
+	// Only set the github.PagesUpdate CNAME field if the value is a non-empty string.
+	// Leaving the CNAME field unset will remove the custom domain.
 	if v, ok := pages["cname"].(string); ok && v != "" {
 		update.CNAME = github.String(v)
 	}
+
+	// To update the Github Pages source, the github.PagesUpdate Source field
+	// must include the branch name and optionally the subdirectory /docs.
+	// e.g. "master" or "master /docs"
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
 	source := pagesSource["branch"].(string)
 	if v, ok := pagesSource["path"].(string); ok {

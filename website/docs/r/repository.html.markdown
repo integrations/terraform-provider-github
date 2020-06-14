@@ -31,7 +31,7 @@ resource "github_repository" "example" {
 ```hcl
 resource "github_repository" "example" {
   name        = "example"
-  description = "My awesome codebase"
+  description = "My awesome web page"
 
   private = false
 
