@@ -565,9 +565,12 @@ func expandPages(input []interface{}) *github.Pages {
 	}
 	pages := input[0].(map[string]interface{})
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
-	source := &github.PagesSource{}
-	source.Branch = github.String(pagesSource["branch"].(string))
+	source := &github.PagesSource{
+		Branch: github.String(pagesSource["branch"].(string)),
+	}
 	if v, ok := pagesSource["path"].(string); ok {
+		// Github Pages API only accepts non-root directory paths (i.e. /docs) in source.Path;
+		// to set to the root directory "/", leave source.Path unset
 		if v != "" && v != "/" {
 			source.Path = github.String(v)
 		}
