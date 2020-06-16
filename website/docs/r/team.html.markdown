@@ -39,6 +39,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the created team.
+* `node_id` - The Node ID of the created team.
 * `slug` - The slug of the created team, which may or may not differ from `name`,
   depending on whether `name` contains "URL-unsafe" characters.
   Useful when referencing the team in [`github_branch_protection`](/docs/providers/github/r/branch_protection.html).

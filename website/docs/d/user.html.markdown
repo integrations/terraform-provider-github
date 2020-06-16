@@ -23,6 +23,7 @@ data "github_user" "example" {
 
 ## Attributes Reference
 
+ * `node_id` - the Node ID of the user.
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.
  * `gravatar_id` - the user's gravatar ID.
