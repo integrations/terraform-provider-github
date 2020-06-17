@@ -122,8 +122,8 @@ func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.Tes
 		if !ok {
 			return fmt.Errorf("Not found: %s", resourceName)
 		}
-		conn := testAccProvider.Meta().(*Organization).v3client
-		owner := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName, secretName, err := parseTwoPartID(rs.Primary.ID, "repository", "secret_name")
 		if err != nil {
 			return err
