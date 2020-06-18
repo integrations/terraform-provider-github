@@ -9,11 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	query := "org:hashicorp repository:terraform"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -32,9 +29,6 @@ func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
 	})
 }
 func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -63,11 +57,8 @@ func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
 }
 
 func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	query := "klsafj_23434_doesnt_exist"
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

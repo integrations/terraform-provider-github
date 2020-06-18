@@ -107,18 +107,13 @@ func dataSourceGithubRepository() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	owner := meta.(*Owner).name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
-		orgName, repoName, err = splitRepoFullName(fullName.(string))
+		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
 			return err
 		}
@@ -131,8 +126,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("One of %q or %q has to be provided", "full_name", "name")
 	}
 
-	log.Printf("[DEBUG] Reading GitHub repository %s/%s", orgName, repoName)
-	repo, _, err := client.Repositories.Get(context.TODO(), orgName, repoName)
+	log.Printf("[DEBUG] Reading GitHub repository %s/%s", owner, repoName)
+	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -170,7 +165,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 func splitRepoFullName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected full name format (%q), expected org/repo_name", fullName)
+		return "", "", fmt.Errorf("Unexpected full name format (%q), expected owner/repo_name", fullName)
 	}
 	return parts[0], parts[1], nil
 }
