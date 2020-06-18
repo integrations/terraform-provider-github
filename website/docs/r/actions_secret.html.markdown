@@ -39,9 +39,24 @@ The following arguments are supported:
 
 * `repository`      - (Required) Name of the repository
 * `secret_name`     - (Required) Name of the secret
-* `plaintext_value` - (Required) Plaintext value of the secret to be encrypted
+* `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
+* `encrypted_value` - (Optional) RSA encrypted value of the secret
+* `private_key_env` - (Optional) The environment variable to access the RSA private key pem string from 
 
 ## Attributes Reference
 
 * `created_at`      - Date of actions_secret creation.
 * `updated_at`      - Date of actions_secret update.
+
+## Generating and Using Public Key Encrypted Secrets
+
+```shell script
+# Store private key where it can be accessed at run time (e.g. Terraform Enterprise sensitive env vars)
+openssl genrsa -f4 -out private.pem 2048
+
+# Commit public key so that it is accessible
+openssl rsa -in private.pem -outform PEM -pubout -out key.pub
+
+# Users encrypt secrets against the public key and commit the value in `encrypted_value` parameter of the resource
+echo "my secret string" | openssl rsautl -encrypt -inkey key.pub -pubin | base64
+```

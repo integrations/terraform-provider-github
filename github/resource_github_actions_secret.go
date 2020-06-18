@@ -2,13 +2,18 @@ package github
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 	"log"
 	"net/http"
+	"os"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
@@ -30,8 +35,18 @@ func resourceGithubActionsSecret() *schema.Resource {
 			},
 			"plaintext_value": {
 				Type:      schema.TypeString,
-				Required:  true,
+				Optional:  true,
+				ExactlyOneOf: []string{"plaintext_value", "encrypted_value"},
 				Sensitive: true,
+			},
+			"encrypted_value": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				ExactlyOneOf: []string{"plaintext_value", "encrypted_value"},
+			},
+			"private_key_env": {
+				Type:      schema.TypeString,
+				Optional:  true,
 			},
 			"created_at": {
 				Type:     schema.TypeString,
@@ -58,6 +73,33 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 	repo := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
+	encryptedValue := d.Get("encrypted_value").(string)
+	privateKey := os.Getenv(d.Get("private_key_env").(string))
+
+	if encryptedValue != "" {
+		pemBlock, _ := pem.Decode([]byte(privateKey))
+		if pemBlock == nil {
+			log.Fatalf("bad key data: %s", "not PEM-encoded")
+		}
+		if got, want := pemBlock.Type, "RSA PRIVATE KEY"; got != want {
+			log.Fatalf("unknown key type %q, want %q", got, want)
+		}
+		privateKey, err := x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+		if err != nil {
+			log.Fatalf("bad private key: %s", err)
+		}
+		b64Decoded, err := base64.StdEncoding.DecodeString(encryptedValue)
+		if err != nil {
+			log.Fatalf("decode: %s", err)
+		}
+		unencryptedValue, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, b64Decoded)
+		if err != nil {
+			log.Fatalf("decrypt: %s", err)
+		}
+
+		plaintextValue = string(unencryptedValue)
+	}
+
 
 	keyId, publicKey, err := getPublicKeyDetails(owner, repo, meta)
 	if err != nil {
