@@ -348,10 +348,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
 		branch := v.(string)
-		// If branch is "master", and the repository hasn't been initialized yet, setting this value will fail
-		if branch != "master" {
-			repoReq.DefaultBranch = &branch
-		}
+		repoReq.DefaultBranch = &branch
 	}
 
 	repoName := d.Id()

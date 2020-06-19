@@ -322,6 +322,26 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccGithubRepositoryUpdateConfigMasterDefaultBranch(randString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
+					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
+						Name:             name,
+						Description:      "Updated " + description,
+						Homepage:         "http://example.com/",
+						AutoInit:         true,
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: true,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
+						Archived:         false,
+					}),
+				),
+			},
+			{
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -855,6 +875,29 @@ resource "github_repository" "foo" {
   has_downloads      = true
   auto_init          = true
   default_branch     = "foo"
+}
+`, randString, randString)
+}
+
+func testAccGithubRepositoryUpdateConfigMasterDefaultBranch(randString string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "foo" {
+  name = "tf-acc-test-%s"
+  description = "Updated Terraform acceptance tests %s"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = true
+  has_wiki = true
+  allow_merge_commit = true
+  allow_squash_merge = false
+  allow_rebase_merge = false
+  has_downloads = true
+  auto_init = true
+  default_branch = "master"
 }
 `, randString, randString)
 }
