@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 
+	"net/http"
+
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
-	"log"
-	"net/http"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {

@@ -685,7 +685,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 	client := c.(*Owner).v3client
 
 	opts := &github.ReferenceListOptions{Ref: "heads"}
-	refs, _, err := client.Git.ListMatchingRefs(context.TODO(), org, repository, opts)
+	refs, _, err := client.Git.ListMatchingRefs(context.TODO(), testOwner, repository, opts)
 	if err != nil {
 		return fmt.Errorf("Error getting reference commit: %s", err)
 	}

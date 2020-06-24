@@ -3,8 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -128,7 +129,7 @@ func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.Tes
 		if err != nil {
 			return err
 		}
-		_, err = conn.Actions.DeleteSecret(context.TODO(), owner, repoName, secretName)
+		_, err = conn.Actions.DeleteRepoSecret(context.TODO(), owner, repoName, secretName)
 		return err
 	}
 }
