@@ -9,6 +9,8 @@ import (
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
+	"log"
+	"net/http"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
@@ -51,8 +53,8 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	owner := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
@@ -91,8 +93,8 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	owner := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
 	ctx := context.Background()
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -102,7 +104,14 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		d.SetId("")
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -119,8 +128,8 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -135,7 +144,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetRepoPublicKey(ctx, owner, repository)

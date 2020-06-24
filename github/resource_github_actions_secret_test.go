@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,7 +11,11 @@ import (
 )
 
 func TestAccGithubActionsSecret_basic(t *testing.T) {
-	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
+	repo := acctest.RandomWithPrefix("tf-acc-test")
 
 	secretResourceName := "github_actions_secret.test_secret"
 	secretValue := "super_secret_value"
@@ -45,23 +49,47 @@ func TestAccGithubActionsSecret_basic(t *testing.T) {
 	})
 }
 
-func testAccGithubActionsSecretFullConfig(repoName, plaintext string) string {
+func TestAccGithubActionsSecret_disappears(t *testing.T) {
+	repo := acctest.RandomWithPrefix("tf-acc-test")
+	secretResourceName := "github_actions_secret.test_secret"
+	secretValue := "super_secret_value"
 
-	// Take resources from other tests to avoid manual creation of secrets / repos
-	githubPKData := testAccCheckGithubActionsPublicKeyDataSourceConfig(repoName)
-	githubActionsSecretResource := testAccGithubActionsSecretConfig(repoName, plaintext)
-
-	return fmt.Sprintf("%s%s", githubPKData, githubActionsSecretResource)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubActionsSecretDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubActionsSecretFullConfig(repo, secretValue),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubActionsSecretExists(secretResourceName, "test_secret_name", t),
+					testAccCheckGithubActionsSecretDisappears(secretResourceName),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
 }
 
-func testAccGithubActionsSecretConfig(repo, plaintext string) string {
+func testAccGithubActionsSecretFullConfig(repoName, plaintext string) string {
+	// To allow tests to run in parallel and prevent re-using resources defined across the
+	// codebase, we create a repository resource and define it's actions public key here
+	// alongside the new actions secret resource
 	return fmt.Sprintf(`
+data "github_actions_public_key" "test_pk" {
+  repository = github_repository.test.name
+}
+
+resource "github_repository" "test" {
+  name = "%s"
+}
+
 resource "github_actions_secret" "test_secret" {
-  repository       = "%s"
+  repository       = github_repository.test.name
   secret_name      = "test_secret_name"
   plaintext_value  = "%s"
 }
-`, repo, plaintext)
+`, repoName, plaintext)
 }
 
 func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *testing.T) resource.TestCheckFunc {
@@ -76,7 +104,7 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 			return fmt.Errorf("no repo name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
+		org := testAccProvider.Meta().(*Owner)
 		conn := org.v3client
 		_, _, err := conn.Actions.GetRepoSecret(context.TODO(), org.name, repoName, secretName)
 		if err != nil {
@@ -88,14 +116,31 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 	}
 }
 
+func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
+		repoName, secretName, err := parseTwoPartID(rs.Primary.ID, "repository", "secret_name")
+		if err != nil {
+			return err
+		}
+		_, err = conn.Actions.DeleteSecret(context.TODO(), owner, repoName, secretName)
+		return err
+	}
+}
+
 func testAccCheckGithubActionsSecretDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Organization).v3client
+	client := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_actions_secret" {
 			continue
 		}
-		owner := testAccProvider.Meta().(*Organization).name
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName := rs.Primary.Attributes["repository"]
 		secretName := rs.Primary.Attributes["secret_name"]
 

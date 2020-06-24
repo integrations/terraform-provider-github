@@ -70,8 +70,8 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
@@ -117,8 +117,8 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
@@ -162,8 +162,8 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err

@@ -12,6 +12,10 @@ import (
 )
 
 func TestAccGithubIssueLabel_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var label, updatedLabel github.Label
 
 	rn := "github_issue_label.test"
@@ -48,6 +52,10 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 }
 
 func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var label github.Label
 
 	rn := "github_issue_label.test"
@@ -76,6 +84,10 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 }
 
 func TestAccGithubIssueLabel_description(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var label github.Label
 
 	rn := "github_issue_label.test"
@@ -137,8 +149,8 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 			return fmt.Errorf("No issue label ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgName := testAccProvider.Meta().(*Owner).name
 		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err
@@ -179,14 +191,14 @@ func testAccCheckGithubIssueLabelIDUnchanged(label, updatedLabel *github.Label) 
 }
 
 func testAccGithubIssueLabelDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_issue_label" {
 			continue
 		}
 
-		orgName := testAccProvider.Meta().(*Organization).name
+		orgName := testAccProvider.Meta().(*Owner).name
 		repoName, name, err := parseTwoPartID(rs.Primary.ID, "repository", "name")
 		if err != nil {
 			return err

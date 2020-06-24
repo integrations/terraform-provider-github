@@ -57,14 +57,9 @@ func resourceGithubRepositoryProject() *schema.Resource {
 }
 
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	client := meta.(*Owner).v3client
 
-	client := meta.(*Organization).v3client
-
-	orgName := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -75,9 +70,9 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, orgName, repoName)
+	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, owner, repoName)
 	project, _, err := client.Repositories.CreateProject(ctx,
-		orgName, repoName, &options)
+		owner, repoName, &options)
 	if err != nil {
 		return err
 	}
@@ -87,13 +82,8 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -125,13 +115,13 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
 	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		orgName, d.Get("repository"), project.GetNumber()))
+		owner, d.Get("repository"), project.GetNumber()))
 
 	return nil
 }
 
 func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -157,7 +147,7 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

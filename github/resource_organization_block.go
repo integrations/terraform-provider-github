@@ -39,8 +39,8 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	ctx := context.Background()
 	username := d.Get("username").(string)
 
@@ -55,8 +55,8 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 
 	username := d.Id()
 
@@ -95,9 +95,9 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceOrganizationBlockDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	username := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

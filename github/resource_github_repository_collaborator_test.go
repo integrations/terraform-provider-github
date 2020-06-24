@@ -14,9 +14,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
+// TestAccGithubRepositoryCollaborator_basic adds a collaborator
+// with permissions supported by an organization-owned repository
+// i.e. admin, triage, push, or pull
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s", err.Error())
 	}
 
 	rn := "github_repository_collaborator.test_repo_collaborator"
@@ -77,9 +84,52 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	})
 }
 
+// TestAccGithubRepositoryCollaborator_basic_personal
+// adds a collaborator with permissions supported by
+// a personal repository i.e. push
+func TestAccGithubRepositoryCollaborator_basic_personal(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	rn := "github_repository_collaborator.test_repo_collaborator"
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+	permissionPush := "push"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, permissionPush),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorExists(rn),
+					testAccCheckGithubRepositoryCollaboratorPermission(rn, permissionPush),
+					resource.TestCheckResourceAttr(rn, "permission", permissionPush),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccGithubRepositoryCollaborator_caseInsensitive
+// adds a collaborator with maintain permissions;
+// only supported by an organization-owned repository
 func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	rn := "github_repository_collaborator.test_repo_collaborator"
@@ -124,15 +174,65 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	})
 }
 
+// TestAccGithubRepositoryCollaborator_caseInsensitive_personal
+// adds a collaborator with push permissions; supported by both
+// a personal and an organization-owned repository
+func TestAccGithubRepositoryCollaborator_caseInsensitive_personal(t *testing.T) {
+	if testCollaborator == "" {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+
+	rn := "github_repository_collaborator.test_repo_collaborator"
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+	var origInvitation github.RepositoryInvitation
+	var otherInvitation github.RepositoryInvitation
+
+	expectedPermission := "push"
+
+	otherCase := flipUsernameCase(testCollaborator)
+
+	if testCollaborator == otherCase {
+		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, testCollaborator, expectedPermission),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, testCollaborator, &origInvitation),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName, otherCase, expectedPermission),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubRepositoryCollaboratorInvited(repoName, otherCase, &otherInvitation),
+					resource.TestCheckResourceAttr(rn, "username", testCollaborator),
+					testAccGithubRepositoryCollaboratorTheSame(&origInvitation, &otherInvitation),
+				),
+			},
+			{
+				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
+		o := testAccProvider.Meta().(*Owner).name
 		r, u, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
@@ -165,15 +265,15 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
-			orgName, repoName, nil)
+			owner, repoName, nil)
 		if err != nil {
 			return err
 		}
@@ -205,15 +305,15 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n, permission string) re
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
 		}
 
 		invitations, _, err := conn.Repositories.ListInvitations(context.TODO(),
-			orgName, repoName, nil)
+			owner, repoName, nil)
 		if err != nil {
 			return err
 		}
@@ -256,11 +356,11 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 	return func(s *terraform.State) error {
 		opt := &github.ListOptions{PerPage: maxPerPage}
 
-		client := testAccProvider.Meta().(*Organization).v3client
-		org := testAccProvider.Meta().(*Organization).name
+		client := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 
 		for {
-			invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), org, repoName, opt)
+			invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), owner, repoName, opt)
 			if err != nil {
 				return errors.New(err.Error())
 			}
