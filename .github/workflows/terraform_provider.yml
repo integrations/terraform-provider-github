@@ -20,7 +20,6 @@ env:
   GO_VERSION: "1.13"
   GO111MODULE: on
   GOFLAGS: "-mod=vendor"
-  TERRAFORM_VERSION: "0.12.25"
 
 jobs:
   go_mod_download:
