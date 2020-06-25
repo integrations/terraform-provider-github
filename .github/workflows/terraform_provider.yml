@@ -64,6 +64,8 @@ jobs:
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-pkg-mod-${{ hashFiles('go.sum') }}
+    - name: Install tooling
+      run: make tools
     - run: make lint
     - run: make test
     - run: make website-lint
