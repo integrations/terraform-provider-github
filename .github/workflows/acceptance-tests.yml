@@ -38,7 +38,7 @@ jobs:
             -keyout github/test-fixtures/key.pem -out github/test-fixtures/cert.pem
 
       - name: Acceptance Tests
-        uses: terraformtesting/acceptance-tests@v1.3.0
+        uses: terraformtesting/acceptance-tests@v1.4.0
         with:
           RUN_FILTER: ${{ env.RUN_FILTER }}
           GITHUB_BASE_URL: "https://api.github.com/"
