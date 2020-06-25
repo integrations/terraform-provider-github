@@ -52,6 +52,9 @@ jobs:
     - name: go env
       run: |
         echo "::set-env name=GOCACHE::$(go env GOCACHE)"
+    - name: go path
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
     - uses: actions/cache@v1
       continue-on-error: true
       timeout-minutes: 2
