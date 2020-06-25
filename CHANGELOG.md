@@ -1,4 +1,10 @@
 ## 2.9.0 (Unreleased)
+
+ENHANCEMENTS:
+* Add Ability To Manage Resources For Non-Organization Accounts [GH-464]
+* resource/github_repository: Add "internal" Visibility Option [GH-454]
+
+
 ## 2.8.1 (June 09, 2020)
 
 BUG FIXES:
