@@ -1,8 +1,8 @@
-## 2.9.0 (Unreleased)
+## 2.9.0 (June 29, 2020)
 
 ENHANCEMENTS:
-* Add Ability To Manage Resources For Non-Organization Accounts [GH-464]
-* resource/github_repository: Add "internal" Visibility Option [GH-454]
+* Add Ability To Manage Resources For Non-Organization Accounts ([#464](https://github.com/terraform-providers/terraform-provider-github/issues/464))
+* resource/github_repository: Add "internal" Visibility Option ([#454](https://github.com/terraform-providers/terraform-provider-github/issues/454))
 
 
 ## 2.8.1 (June 09, 2020)
