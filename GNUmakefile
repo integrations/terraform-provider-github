@@ -13,10 +13,10 @@ build: fmtcheck
 	go install
 
 build-darwin:
- 	GOOS=darwin GOARCH=amd64 go build
+	GOOS=darwin GOARCH=amd64 go build
 
 build-linux:
- 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."
@@ -72,4 +72,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test
+.PHONY: build build-darwin build-linux test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test
