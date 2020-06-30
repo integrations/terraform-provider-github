@@ -1,0 +1,169 @@
+name: Terraform Provider Checks
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+    - 'v*'
+  pull_request:
+    paths:
+      - .github/workflows/terraform_provider.yml
+      - .golangci.yml
+      - github/**
+      - go.sum
+      - GNUmakefile
+      - main.go
+      - website/**
+
+env:
+  GO_VERSION: "1.13"
+  GO111MODULE: on
+  GOFLAGS: "-mod=vendor"
+
+jobs:
+  go_mod_download:
+    name: go mod download
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - uses: actions/cache@v1
+      continue-on-error: true
+      id: cache-go-pkg-mod
+      timeout-minutes: 2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-pkg-mod-${{ hashFiles('go.sum') }}
+    - if: steps.cache-go-pkg-mod.outputs.cache-hit != 'true' || steps.cache-go-pkg-mod.outcome == 'failure'
+      run: go mod download
+
+  lint_and_test:
+    needs: [go_mod_download]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - name: go env
+      run: |
+        echo "::set-env name=GOCACHE::$(go env GOCACHE)"
+    - name: go path
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
+    - uses: actions/cache@v1
+      continue-on-error: true
+      timeout-minutes: 2
+      with:
+        path: ${{ env.GOCACHE }}
+        key: ${{ runner.os }}-GOCACHE-${{ hashFiles('go.sum') }}-${{ hashFiles('github/**') }}
+    - uses: actions/cache@v1
+      continue-on-error: true
+      timeout-minutes: 2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-pkg-mod-${{ hashFiles('go.sum') }}
+    - name: Install tooling
+      run: make tools
+    - run: make lint
+    - run: make test
+    - run: make website-lint
+    - run: make website-test
+
+  # See https://github.com/actions/upload-release-asset
+  babbel_release:
+    name: Create release for Babbel
+    needs: [lint_and_test]
+    if: startsWith( github.event.ref, 'refs/tags/v' )
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: create release url file
+      run: echo '${{ steps.create_release.outputs.upload_url }}' > url.txt
+
+    # https://help.github.com/en/actions/configuring-and-managing-workflows/persisting-workflow-data-using-artifacts
+    - name: Upload release url
+      uses: actions/upload-artifact@v1
+      with:
+        name: release
+        path: url.txt
+
+  # See https://github.com/actions/upload-release-asset
+  babbel_artificat_upload:
+    name: Build and upload Babbel artifacts
+    needs: [babbel_release]
+    if: startsWith( github.event.ref, 'refs/tags/v' )
+    runs-on: ubuntu-latest
+
+    strategy:
+        matrix:
+          goos: [darwin, linux]
+
+    steps:
+
+    - name: set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: get dependencies
+      run: |
+        go get -v -t -d ./...
+        if [ -f Gopkg.toml ]; then
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
+        fi
+
+    - name: parse version string
+      id: parse_version
+      run: |
+        export BUILD_VERSION=$(echo $GITHUB_REF | sed -e 's/refs.tags.\(.*\)$/\1/')
+        export BUILD_NAME=terraform-provider-github_$BUILD_VERSION
+        echo "::set-output name=BUILD_NAME::$BUILD_NAME"
+        echo ::set-output name=ZIP_NAME::"$BUILD_NAME"_${{ matrix.goos }}_amd64.zip
+
+    - name: build and zip
+      run: |
+        make build-${{ matrix.goos}}
+        mv terraform-provider-github ${{ steps.parse_version.outputs.BUILD_NAME }}
+        zip --junk-paths ${{ steps.parse_version.outputs.ZIP_NAME }} ${{ steps.parse_version.outputs.BUILD_NAME }}
+        touch ${{ steps.parse_version.outputs.ZIP_NAME }}
+
+    - name: download release url file
+      uses: actions/download-artifact@v1
+      with:
+        name: release
+
+    - name: release_url
+      id: release_url
+      run: |
+        export RELEASE_URL=$(cat release/url.txt)
+        echo "::set-output name=RELEASE_URL::$RELEASE_URL"
+
+    - name: upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release_url.outputs.RELEASE_URL }}
+        asset_path: ./${{ steps.parse_version.outputs.ZIP_NAME }}
+        asset_name: ${{ steps.parse_version.outputs.ZIP_NAME }}
+        asset_content_type: application/zip
