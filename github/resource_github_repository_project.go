@@ -57,9 +57,14 @@ func resourceGithubRepositoryProject() *schema.Resource {
 }
 
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -70,9 +75,9 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, owner, repoName)
+	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, orgName, repoName)
 	project, _, err := client.Repositories.CreateProject(ctx,
-		owner, repoName, &options)
+		orgName, repoName, &options)
 	if err != nil {
 		return err
 	}
@@ -82,8 +87,13 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	orgName := meta.(*Owner).name
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -115,7 +125,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 	d.Set("name", project.GetName())
 	d.Set("body", project.GetBody())
 	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		owner, d.Get("repository"), project.GetNumber()))
+		orgName, d.Get("repository"), project.GetNumber()))
 
 	return nil
 }

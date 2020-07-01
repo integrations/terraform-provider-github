@@ -49,19 +49,19 @@ func testSweepRepositoryFiles(region string) error {
 
 func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	org := meta.(*Owner).name
 
 	_, files, _, err := client.Repositories.GetContents(
-		context.TODO(), owner, "test-repo", "", &github.RepositoryContentGetOptions{Ref: branch})
+		context.TODO(), org, "test-repo", "", &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return err
 	}
 
 	for _, f := range files {
 		if name := f.GetName(); strings.HasPrefix(name, "tf-acc-") {
-			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", name, owner, branch)
+			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", name, org, branch)
 			opts := &github.RepositoryContentFileOptions{Branch: github.String(branch)}
-			if _, _, err := client.Repositories.DeleteFile(context.TODO(), owner, "test-repo", name, opts); err != nil {
+			if _, _, err := client.Repositories.DeleteFile(context.TODO(), org, "test-repo", name, opts); err != nil {
 				return err
 			}
 		}
@@ -77,6 +77,10 @@ func TestAccGithubRepositoryFile_basic(t *testing.T) {
 
 	if userEmail == "" {
 		t.Skip("This test requires you to set the test user's email address (set it by exporting GITHUB_TEST_USER_EMAIL)")
+	}
+
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var content github.RepositoryContent
@@ -157,6 +161,10 @@ func TestAccGithubRepositoryFile_branch(t *testing.T) {
 		t.Skip("This test requires you to set the test user's email address (set it by exporting GITHUB_TEST_USER_EMAIL)")
 	}
 
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var content github.RepositoryContent
 	var commit github.RepositoryCommit
 
@@ -228,6 +236,10 @@ func TestAccGithubRepositoryFile_branch(t *testing.T) {
 }
 
 func TestAccGithubRepositoryFile_committer(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var content github.RepositoryContent
 	var commit github.RepositoryCommit
 
@@ -310,15 +322,15 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
-		owner := testAccProvider.Meta().(*Owner).name
+		org := testAccProvider.Meta().(*Owner).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
-		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), owner, "test-repo", path, opts)
+		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), org, "test-repo", path, opts)
 		if err != nil {
 			return err
 		}
 
-		gotCommit, err := getFileCommit(conn, owner, "test-repo", path, branch)
+		gotCommit, err := getFileCommit(conn, org, "test-repo", path, branch)
 		if err != nil {
 			return err
 		}
@@ -383,7 +395,7 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 
 func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Owner).v3client
-	owner := testAccProvider.Meta().(*Owner).name
+	org := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_file" {
@@ -393,10 +405,10 @@ func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
 		repo, file := splitRepoFilePath(rs.Primary.ID)
 		opts := &github.RepositoryContentGetOptions{Ref: rs.Primary.Attributes["branch"]}
 
-		fc, _, resp, err := conn.Repositories.GetContents(context.TODO(), owner, repo, file, opts)
+		fc, _, resp, err := conn.Repositories.GetContents(context.TODO(), org, repo, file, opts)
 		if err == nil {
 			if fc != nil {
-				return fmt.Errorf("Repository file %s/%s/%s still exists", owner, repo, file)
+				return fmt.Errorf("Repository file %s/%s/%s still exists", org, repo, file)
 			}
 		}
 		if resp.StatusCode != 404 {
