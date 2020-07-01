@@ -2,13 +2,16 @@
 layout: "github"
 page_title: "GitHub: github_repository"
 description: |-
-  Creates and manages repositories within GitHub organizations or personal accounts
+  Creates and manages repositories within GitHub organizations
 ---
 
 # github_repository
 
 This resource allows you to create and manage repositories within your
-GitHub organization or personal account.
+GitHub organization.
+
+This resource cannot currently be used to manage *personal* repositories,
+outside of organizations.
 
 ## Example Usage
 
