@@ -9,8 +9,11 @@ import (
 )
 
 func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T) {
-	fullName := "klsafj_23434_doesnt_exist/not-exists"
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
+	fullName := "klsafj_23434_doesnt_exist/not-exists"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -26,8 +29,11 @@ func TestAccGithubRepositoryDataSource_fullName_noMatchReturnsError(t *testing.T
 }
 
 func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
-	name := "not-exists"
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
+	name := "not-exists"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -43,8 +49,11 @@ func TestAccGithubRepositoryDataSource_name_noMatchReturnsError(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
-	fullName := testOwner + "/test-repo"
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
+	fullName := testOwner + "/test-repo"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -60,8 +69,11 @@ func TestAccGithubRepositoryDataSource_fullName_existing(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDataSource_name_existing(t *testing.T) {
-	name := "test-repo"
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
+	name := "test-repo"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
