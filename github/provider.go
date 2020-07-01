@@ -42,6 +42,7 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["anonymous"],
+				Deprecated:  "Provide a token instead",
 			},
 		},
 
