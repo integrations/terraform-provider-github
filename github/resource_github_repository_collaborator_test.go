@@ -18,9 +18,6 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
 
 	rn := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
@@ -84,9 +81,6 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
 
 	rn := "github_repository_collaborator.test_repo_collaborator"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
@@ -131,14 +125,14 @@ func TestAccGithubRepositoryCollaborator_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Owner).name
+		o := testAccProvider.Meta().(*Organization).name
 		r, u, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
@@ -171,8 +165,8 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		conn := testAccProvider.Meta().(*Organization).v3client
+		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
@@ -211,8 +205,8 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n, permission string) re
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		conn := testAccProvider.Meta().(*Organization).v3client
+		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, username, err := parseTwoPartID(rs.Primary.ID, "repository", "username")
 		if err != nil {
 			return err
@@ -262,8 +256,8 @@ func testAccCheckGithubRepositoryCollaboratorInvited(repoName, username string, 
 	return func(s *terraform.State) error {
 		opt := &github.ListOptions{PerPage: maxPerPage}
 
-		client := testAccProvider.Meta().(*Owner).v3client
-		org := testAccProvider.Meta().(*Owner).name
+		client := testAccProvider.Meta().(*Organization).v3client
+		org := testAccProvider.Meta().(*Organization).name
 
 		for {
 			invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), org, repoName, opt)

@@ -64,9 +64,9 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
+	orgName := meta.(*Organization).name
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
@@ -87,8 +87,8 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+	orgName := meta.(*Organization).name
 	slug := d.Get("team_slug").(string)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -132,8 +132,8 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 
@@ -153,8 +153,8 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 

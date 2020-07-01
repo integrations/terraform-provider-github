@@ -17,9 +17,6 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
 
 	var membership github.Membership
 
@@ -57,9 +54,6 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var membership github.Membership
@@ -102,8 +96,8 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
+	conn := testAccProvider.Meta().(*Organization).v3client
+	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -146,8 +140,8 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
+		conn := testAccProvider.Meta().(*Organization).v3client
+		orgId := testAccProvider.Meta().(*Organization).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -179,8 +173,8 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
+		conn := testAccProvider.Meta().(*Organization).v3client
+		orgId := testAccProvider.Meta().(*Organization).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err

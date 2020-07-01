@@ -53,10 +53,6 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	testUserEmail := os.Getenv("GITHUB_TEST_USER_EMAIL")
 	if testUserEmail == "" {
 		t.Skip("Skipping because `GITHUB_TEST_USER_EMAIL` is not set")
@@ -96,14 +92,14 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		orgName := testAccProvider.Meta().(*Owner).name
+		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -136,8 +132,8 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		conn := testAccProvider.Meta().(*Organization).v3client
+		orgName := testAccProvider.Meta().(*Organization).name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err

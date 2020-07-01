@@ -9,10 +9,6 @@ import (
 )
 
 func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	dsn := "data.github_collaborators.test"
 	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
 
@@ -43,5 +39,5 @@ data "github_collaborators" "test" {
   owner      = "%s"
   repository = "${github_repository.test.name}"
 }
-`, repo, testOwner)
+`, repo, testOrganization)
 }

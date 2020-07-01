@@ -102,7 +102,7 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	repository := d.Get("repository").(string)
 	owner := d.Get("owner").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	var err error

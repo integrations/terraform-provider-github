@@ -35,10 +35,10 @@ func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface
 	}
 
 	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+	owner := meta.(*Organization).name
 	log.Printf("[INFO] Refreshing GitHub Actions Public Key from: %s/%s", owner, repository)
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)

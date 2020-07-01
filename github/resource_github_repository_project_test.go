@@ -15,10 +15,6 @@ import (
 )
 
 func TestAccGithubRepositoryProject_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	var project github.Project
 
@@ -51,7 +47,7 @@ func TestAccGithubRepositoryProject_basic(t *testing.T) {
 }
 
 func testAccGithubRepositoryProjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_project" {
@@ -90,7 +86,7 @@ func testAccCheckGithubRepositoryProjectExists(n string, project *github.Project
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		gotProject, _, err := conn.Projects.GetProject(context.TODO(), projectID)
 		if err != nil {
 			return err
