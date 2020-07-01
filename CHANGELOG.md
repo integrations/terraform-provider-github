@@ -1,4 +1,3 @@
-## 2.10.0 (Unreleased)
 ## 2.9.0 (June 29, 2020)
 
 ENHANCEMENTS:
