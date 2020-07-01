@@ -1,6 +1,9 @@
 ## 2.10.0 (Unreleased)
 ## 2.9.0 (June 29, 2020)
 
+**NOTE**: This release introduced a provider-level breaking change around `anonymous` use.  
+See [here](https://github.com/terraform-providers/terraform-provider-github/pull/464#discussion_r427961161) for details and [here](https://github.com/terraform-providers/terraform-provider-github/issues/502#issuecomment-652379322) to discuss a fix.
+
 ENHANCEMENTS:
 * Add Ability To Manage Resources For Non-Organization Accounts ([#464](https://github.com/terraform-providers/terraform-provider-github/issues/464))
 * resource/github_repository: Add "internal" Visibility Option ([#454](https://github.com/terraform-providers/terraform-provider-github/issues/454))
