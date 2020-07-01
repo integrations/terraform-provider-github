@@ -82,7 +82,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						HasProjects:         false,
 						DefaultBranch:       "master",
 						Archived:            false,
-						Visibility:          "public",
 					}),
 				),
 			},
@@ -101,7 +100,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						DefaultBranch:    "master",
 						HasProjects:      false,
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -146,7 +144,6 @@ func TestAccGithubRepository_archive(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -191,7 +188,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -211,7 +207,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -278,7 +273,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -304,7 +298,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "foo",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -352,7 +345,6 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						LicenseTemplate:   "ms-pl",
 						GitignoreTemplate: "C++",
 						Archived:          false,
-						Visibility:        "public",
 					}),
 				),
 			},
@@ -405,7 +397,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -424,7 +415,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -443,7 +433,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -531,7 +520,6 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	Description         string
 	Homepage            string
 	Private             bool
-	Visibility          string
 	HasDownloads        bool
 	HasIssues           bool
 	HasProjects         bool
@@ -563,9 +551,6 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if private := repo.GetPrivate(); private != want.Private {
 			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
-		}
-		if visibility := repo.GetVisibility(); visibility != want.Visibility {
-			return fmt.Errorf("got visibility %#v; want %#v", visibility, want.Visibility)
 		}
 		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
@@ -729,7 +714,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -761,7 +746,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = false
   has_wiki           = false
@@ -783,7 +768,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -805,7 +790,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -828,7 +813,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -851,7 +836,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -882,7 +867,7 @@ resource "github_repository" "foo" {
 
 	# So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
