@@ -11,10 +11,6 @@ import (
 )
 
 func TestAccGithubActionsSecret_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	repo := acctest.RandomWithPrefix("tf-acc-test")
 
 	secretResourceName := "github_actions_secret.test_secret"
@@ -104,7 +100,7 @@ func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *t
 			return fmt.Errorf("no repo name is set")
 		}
 
-		org := testAccProvider.Meta().(*Owner)
+		org := testAccProvider.Meta().(*Organization)
 		conn := org.v3client
 		_, _, err := conn.Actions.GetSecret(context.TODO(), org.name, repoName, secretName)
 		if err != nil {
@@ -122,8 +118,8 @@ func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.Tes
 		if !ok {
 			return fmt.Errorf("Not found: %s", resourceName)
 		}
-		conn := testAccProvider.Meta().(*Owner).v3client
-		owner := testAccProvider.Meta().(*Owner).name
+		conn := testAccProvider.Meta().(*Organization).v3client
+		owner := testAccProvider.Meta().(*Organization).name
 		repoName, secretName, err := parseTwoPartID(rs.Primary.ID, "repository", "secret_name")
 		if err != nil {
 			return err
@@ -134,13 +130,13 @@ func testAccCheckGithubActionsSecretDisappears(resourceName string) resource.Tes
 }
 
 func testAccCheckGithubActionsSecretDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Owner).v3client
+	client := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_actions_secret" {
 			continue
 		}
-		owner := testAccProvider.Meta().(*Owner).name
+		owner := testAccProvider.Meta().(*Organization).name
 		repoName := rs.Primary.Attributes["repository"]
 		secretName := rs.Primary.Attributes["secret_name"]
 

@@ -49,17 +49,22 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	owner := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+
+	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
-		username, owner, repoName)
+		username, orgName, repoName)
 	_, resp, err := client.Repositories.AddCollaborator(ctx,
-		owner,
+		orgName,
 		repoName,
 		username,
 		&github.RepositoryAddCollaboratorOptions{
@@ -79,9 +84,14 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	owner := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+
+	orgName := meta.(*Organization).name
 	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
 	if err != nil {
 		return err
@@ -89,14 +99,14 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, ctx, owner, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				// this short circuits the rest of the code because if the
 				// repo is 404, no reason to try to list existing collaborators
 				log.Printf("[WARN] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
-					owner, repoName, username)
+					orgName, repoName, username)
 				d.SetId("")
 				return nil
 			}
@@ -126,7 +136,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
-			owner, repoName, opt)
+			orgName, repoName, opt)
 		if err != nil {
 			return err
 		}
@@ -155,33 +165,38 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	// The user is neither invited nor a collaborator
 	log.Printf("[WARN] Removing repository collaborator %s (%s/%s) from state because it no longer exists in GitHub",
-		username, owner, repoName)
+		username, orgName, repoName)
 	d.SetId("")
 
 	return nil
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
 
-	owner := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+
+	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, ctx, owner, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, orgName, repoName, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(ctx, owner, repoName, invitation.GetID())
+		_, err = client.Repositories.DeleteInvitation(ctx, orgName, repoName, invitation.GetID())
 		return err
 	}
 
 	log.Printf("[DEBUG] Deleting repository collaborator: %s (%s/%s)",
-		username, owner, repoName)
-	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoName, username)
+		username, orgName, repoName)
+	_, err = client.Repositories.RemoveCollaborator(ctx, orgName, repoName, username)
 	return err
 }
 

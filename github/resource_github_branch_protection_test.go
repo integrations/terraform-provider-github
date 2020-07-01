@@ -15,10 +15,6 @@ import (
 )
 
 func TestAccGithubBranchProtection_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var protection github.Protection
 
 	rn := "github_branch_protection.master"
@@ -77,10 +73,6 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 }
 
 func TestAccGithubBranchProtection_users(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	rn := "github_branch_protection.master"
 	rString := acctest.RandString(5)
 	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
@@ -113,10 +105,6 @@ func TestAccGithubBranchProtection_users(t *testing.T) {
 }
 
 func TestAccGithubBranchProtection_teams(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var firstP, secondP, thirdP github.Protection
 
 	rn := "github_branch_protection.master"
@@ -197,10 +185,6 @@ func TestAccGithubBranchProtection_teams(t *testing.T) {
 
 // See https://github.com/terraform-providers/terraform-provider-github/issues/8
 func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var protection github.Protection
 
 	rn := "github_branch_protection.master"
@@ -235,10 +219,6 @@ func TestAccGithubBranchProtection_emptyItems(t *testing.T) {
 }
 
 func TestAccGithubBranchProtection_emptyDismissalRestrictions(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var protection github.Protection
 	rn := "github_branch_protection.master"
 	repoName := acctest.RandomWithPrefix("tf-acc-test-branch-prot-")
@@ -280,8 +260,8 @@ func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Pr
 			return fmt.Errorf("Expected ID to be %v, got %v", id, rs.Primary.ID)
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		o := testAccProvider.Meta().(*Owner).name
+		conn := testAccProvider.Meta().(*Organization).v3client
+		o := testAccProvider.Meta().(*Organization).name
 		r, b, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
 			return err
@@ -410,14 +390,14 @@ func testAccCheckGithubBranchProtectionNoPullRequestReviewsExist(protection *git
 }
 
 func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	conn := testAccProvider.Meta().(*Organization).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_branch_protection" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Owner).name
+		o := testAccProvider.Meta().(*Organization).name
 		r, b, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
 			return err

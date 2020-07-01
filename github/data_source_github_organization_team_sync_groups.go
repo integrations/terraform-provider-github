@@ -41,10 +41,10 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
 	log.Print("[INFO] Refreshing GitHub Organization Team-Sync Groups")
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 	ctx := context.Background()
 
-	orgName := meta.(*Owner).name
+	orgName := meta.(*Organization).name
 	options := &github.ListCursorOptions{PerPage: maxPerPage}
 
 	groups := make([]interface{}, 0)

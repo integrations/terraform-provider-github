@@ -30,9 +30,9 @@ func testSweepRepositories(region string) error {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
+	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Organization).name, nil)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func testSweepRepositories(region string) error {
 		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
 			log.Printf("Destroying Repository %s", name)
 
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, name); err != nil {
 				return err
 			}
 		}
@@ -82,7 +82,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						HasProjects:         false,
 						DefaultBranch:       "master",
 						Archived:            false,
-						Visibility:          "public",
 					}),
 				),
 			},
@@ -101,7 +100,6 @@ func TestAccGithubRepository_basic(t *testing.T) {
 						DefaultBranch:    "master",
 						HasProjects:      false,
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -146,7 +144,6 @@ func TestAccGithubRepository_archive(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -191,7 +188,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -211,7 +207,6 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         true,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -278,7 +273,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "master",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -304,7 +298,6 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 						HasDownloads:     true,
 						DefaultBranch:    "foo",
 						Archived:         false,
-						Visibility:       "public",
 					}),
 				),
 			},
@@ -352,7 +345,6 @@ func TestAccGithubRepository_templates(t *testing.T) {
 						LicenseTemplate:   "ms-pl",
 						GitignoreTemplate: "C++",
 						Archived:          false,
-						Visibility:        "public",
 					}),
 				),
 			},
@@ -405,7 +397,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -424,7 +415,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -443,7 +433,6 @@ func TestAccGithubRepository_topics(t *testing.T) {
 
 						// non-zero defaults
 						DefaultBranch:    "master",
-						Visibility:       "public",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
@@ -504,7 +493,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Owner)
+		org := testAccProvider.Meta().(*Organization)
 		conn := org.v3client
 		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
 		if err != nil {
@@ -531,7 +520,6 @@ type testAccGithubRepositoryExpectedAttributes struct {
 	Description         string
 	Homepage            string
 	Private             bool
-	Visibility          string
 	HasDownloads        bool
 	HasIssues           bool
 	HasProjects         bool
@@ -563,9 +551,6 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if private := repo.GetPrivate(); private != want.Private {
 			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
-		}
-		if visibility := repo.GetVisibility(); visibility != want.Visibility {
-			return fmt.Errorf("got visibility %#v; want %#v", visibility, want.Visibility)
 		}
 		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
 			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
@@ -661,8 +646,8 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgName := testAccProvider.Meta().(*Owner).name
+	conn := testAccProvider.Meta().(*Organization).v3client
+	orgName := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository" {
@@ -685,21 +670,22 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 
 func testAccCreateRepositoryBranch(branch, repository string) error {
 	baseURL := os.Getenv("GITHUB_BASE_URL")
+	org := os.Getenv("GITHUB_ORGANIZATION")
 	token := os.Getenv("GITHUB_TOKEN")
 
 	config := Config{
-		BaseURL: baseURL,
-		Token:   token,
-		Owner:   testOwner,
+		BaseURL:      baseURL,
+		Token:        token,
+		Organization: org,
 	}
 
 	c, err := config.Clients()
 	if err != nil {
 		return fmt.Errorf("Error creating github client: %s", err)
 	}
-	client := c.(*Owner).v3client
+	client := c.(*Organization).v3client
 
-	refs, _, err := client.Git.GetRefs(context.TODO(), testOwner, repository, "heads")
+	refs, _, err := client.Git.GetRefs(context.TODO(), org, repository, "heads")
 	if err != nil {
 		return fmt.Errorf("Error getting reference commit: %s", err)
 	}
@@ -712,7 +698,7 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 		},
 	}
 
-	_, _, err = client.Git.CreateRef(context.TODO(), testOwner, repository, newRef)
+	_, _, err = client.Git.CreateRef(context.TODO(), org, repository, newRef)
 	if err != nil {
 		return fmt.Errorf("Error creating git reference: %s", err)
 	}
@@ -729,7 +715,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -761,7 +747,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = false
   has_wiki           = false
@@ -783,7 +769,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -805,7 +791,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -828,7 +814,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -851,7 +837,7 @@ resource "github_repository" "foo" {
 
   # So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -867,6 +853,8 @@ resource "github_repository" "foo" {
 }
 
 func testAccGithubRepositoryCreateFromTemplate(randString string) string {
+
+	owner := os.Getenv("GITHUB_ORGANIZATION")
 	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 
 	return fmt.Sprintf(`
@@ -882,7 +870,7 @@ resource "github_repository" "foo" {
 
 	# So that acceptance tests can be run in a github organization
   # with no billing
-  visibility = "public"
+  private = false
 
   has_issues         = true
   has_wiki           = true
@@ -892,7 +880,7 @@ resource "github_repository" "foo" {
   has_downloads      = true
 
 }
-`, randString, randString, testOwner, repository)
+`, randString, randString, owner, repository)
 }
 
 func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {

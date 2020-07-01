@@ -10,7 +10,6 @@ import (
 
 func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
 	query := "org:hashicorp repository:terraform"
-
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -29,7 +28,6 @@ func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
 	})
 }
 func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
-
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -58,7 +56,6 @@ func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
 
 func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
 	query := "klsafj_23434_doesnt_exist"
-
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

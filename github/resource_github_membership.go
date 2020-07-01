@@ -46,9 +46,9 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.(*Organization).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
 	ctx := context.Background()
@@ -79,9 +79,9 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.(*Organization).v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.(*Organization).name
 	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
 	if err != nil {
 		return err
@@ -122,8 +122,8 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.(*Organization).v3client
+	orgName := meta.(*Organization).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting membership: %s", d.Id())

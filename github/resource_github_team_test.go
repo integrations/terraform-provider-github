@@ -13,10 +13,6 @@ import (
 )
 
 func TestAccGithubTeam_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var team github.Team
 
 	rn := "github_team.foo"
@@ -67,10 +63,6 @@ func TestAccGithubTeam_basic(t *testing.T) {
 }
 
 func TestAccGithubTeam_slug(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var team github.Team
 
 	rn := "github_team.foo"
@@ -107,10 +99,6 @@ func TestAccGithubTeam_slug(t *testing.T) {
 }
 
 func TestAccGithubTeam_hierarchical(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var parent, child github.Team
 
 	rn := "github_team.parent"
@@ -152,13 +140,13 @@ func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestChec
 			return fmt.Errorf("No Team ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
+		conn := testAccProvider.Meta().(*Organization).v3client
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Owner).id, id)
+		githubTeam, _, err := conn.Teams.GetTeamByID(context.TODO(), testAccProvider.Meta().(*Organization).id, id)
 		if err != nil {
 			return err
 		}
@@ -190,8 +178,8 @@ func testAccCheckGithubTeamAttributes(team *github.Team, name, description strin
 }
 
 func testAccCheckGithubTeamDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
+	conn := testAccProvider.Meta().(*Organization).v3client
+	orgId := testAccProvider.Meta().(*Organization).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team" {
