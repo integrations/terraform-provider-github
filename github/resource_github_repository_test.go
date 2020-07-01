@@ -51,6 +51,10 @@ func testSweepRepositories(region string) error {
 }
 
 func TestAccGithubRepository_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -116,6 +120,10 @@ func TestAccGithubRepository_basic(t *testing.T) {
 }
 
 func TestAccGithubRepository_archive(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -160,6 +168,10 @@ func TestAccGithubRepository_archive(t *testing.T) {
 }
 
 func TestAccGithubRepository_archiveUpdate(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -220,6 +232,10 @@ func TestAccGithubRepository_archiveUpdate(t *testing.T) {
 }
 
 func TestAccGithubRepository_hasProjects(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	rn := "github_repository.foo"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
@@ -244,6 +260,10 @@ func TestAccGithubRepository_hasProjects(t *testing.T) {
 }
 
 func TestAccGithubRepository_defaultBranch(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -314,6 +334,10 @@ func TestAccGithubRepository_defaultBranch(t *testing.T) {
 }
 
 func TestAccGithubRepository_templates(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -361,6 +385,10 @@ func TestAccGithubRepository_templates(t *testing.T) {
 }
 
 func TestAccGithubRepository_topics(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
@@ -452,6 +480,10 @@ func TestAccGithubRepository_topics(t *testing.T) {
 }
 
 func TestAccGithubRepository_createFromTemplate(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repo github.Repository
 
 	rn := "github_repository.foo"
