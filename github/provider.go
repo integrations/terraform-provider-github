@@ -42,7 +42,7 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["anonymous"],
-				Deprecated:  "For versions later than 3.0.0, absense of a token enables this mode",
+				Deprecated:  "For versions later than 3.0.0, absence of a token enables this mode",
 			},
 		},
 
