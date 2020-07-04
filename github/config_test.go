@@ -1,7 +1,6 @@
 package github
 
 import (
-	"os"
 	"testing"
 )
 
@@ -9,7 +8,7 @@ func TestConfigClients(t *testing.T) {
 
 	t.Run("returns a client for the v3 REST API", func(t *testing.T) {
 		config := Config{
-			Token:      os.Getenv("GITHUB_TOKEN"),
+			Token:      "token",
 			Individual: true,
 		}
 
@@ -25,7 +24,7 @@ func TestConfigClients(t *testing.T) {
 
 	t.Run("returns a client for the v4 GraphQL API", func(t *testing.T) {
 		config := Config{
-			Token:      os.Getenv("GITHUB_TOKEN"),
+			Token:      "token",
 			Individual: true,
 		}
 
