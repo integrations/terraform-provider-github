@@ -1,3 +1,4 @@
+## 2.10.0 (Unreleased)
 ## 2.9.2 (July 14, 2020)
 
 - Adds deprecation of `anonymous` flag for provider configuration ahead of next major release ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
