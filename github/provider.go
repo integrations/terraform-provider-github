@@ -33,10 +33,10 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["insecure"],
 			},
 			"individual": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: descriptions["individual"],
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				Deprecated: "For versions later than 3.0.0, absence of an organization enables this mode",
 			},
 			"anonymous": {
 				Type:        schema.TypeBool,
@@ -124,12 +124,17 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			anonymous = false
 		}
 
+		individual := true
+		if d.Get("organization").(string) != "" {
+			individual = false
+		}
+
 		config := Config{
 			Token:        d.Get("token").(string),
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
-			Individual:   d.Get("individual").(bool),
+			Individual:   individual,
 			Anonymous:    anonymous,
 		}
 
