@@ -1,10 +1,13 @@
-## 2.10.0 (Unreleased)
+## 2.9.2 (Unreleased)
+
+- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release
+- Adds deprecation of `individual` flag for provider configuration ahead of next major release
+
 ## 2.9.1 (July 01, 2020)
 
 BUG FIXES:
 
 - Reverts changes introduced in v2.9.0, deferring to the next major release
-- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release
 
 ## 2.9.0 (June 29, 2020)
 
