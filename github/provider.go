@@ -42,6 +42,7 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["anonymous"],
+				Deprecated:  "For versions later than 3.0.0, absence of a token enables this mode",
 			},
 		},
 
@@ -117,13 +118,19 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
+
+		anonymous := true
+		if d.Get("token").(string) != "" {
+			anonymous = false
+		}
+
 		config := Config{
 			Token:        d.Get("token").(string),
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
 			Individual:   d.Get("individual").(bool),
-			Anonymous:    d.Get("anonymous").(bool),
+			Anonymous:    anonymous,
 		}
 
 		meta, err := config.Clients()
