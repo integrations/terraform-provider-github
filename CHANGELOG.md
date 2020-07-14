@@ -1,7 +1,7 @@
-## 2.9.2 (Unreleased)
+## 2.9.2 (July 14, 2020)
 
-- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release (GH-506)
-- Adds deprecation of `individual` flag for provider configuration ahead of next major release (GH-512)
+- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
+- Adds deprecation of `individual` flag for provider configuration ahead of next major release ([#512](https://github.com/terraform-providers/terraform-provider-github/issues/512))
 
 ## 2.9.1 (July 01, 2020)
 
