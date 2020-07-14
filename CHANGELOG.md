@@ -1,7 +1,7 @@
 ## 2.9.2 (Unreleased)
 
-- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release
-- Adds deprecation of `individual` flag for provider configuration ahead of next major release
+- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release (GH-506)
+- Adds deprecation of `individual` flag for provider configuration ahead of next major release (GH-512)
 
 ## 2.9.1 (July 01, 2020)
 
