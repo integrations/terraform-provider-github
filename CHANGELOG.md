@@ -1,4 +1,5 @@
-## 2.9.1 (Unreleased)
+## 2.10.0 (Unreleased)
+## 2.9.1 (July 01, 2020)
 
 BUG FIXES:
 
