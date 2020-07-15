@@ -2,16 +2,13 @@
 layout: "github"
 page_title: "GitHub: github_repository"
 description: |-
-  Creates and manages repositories within GitHub organizations
+  Creates and manages repositories within GitHub organizations or personal accounts
 ---
 
 # github_repository
 
 This resource allows you to create and manage repositories within your
-GitHub organization.
-
-This resource cannot currently be used to manage *personal* repositories,
-outside of organizations.
+GitHub organization or personal account.
 
 ## Example Usage
 
@@ -41,6 +38,8 @@ The following arguments are supported:
 
 * `private` - (Optional) Set to `true` to create a private repository.
   Repositories are created as public (e.g. open source) by default.
+  
+* `visibility` - (Optional) Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The `visibility` parameter overrides the `private` parameter.
 
 * `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features
   on the repository.

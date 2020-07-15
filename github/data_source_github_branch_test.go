@@ -8,6 +8,9 @@ import (
 )
 
 func TestAccGithubBranchDataSource_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
 	var (
 		name = "main"

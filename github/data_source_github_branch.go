@@ -45,8 +45,8 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName

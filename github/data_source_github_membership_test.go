@@ -28,6 +28,10 @@ func TestAccGithubMembershipDataSource_existing(t *testing.T) {
 	if testUser == "" {
 		t.Skip("This test requires you to set the test user (set it by exporting GITHUB_TEST_USER)")
 	}
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

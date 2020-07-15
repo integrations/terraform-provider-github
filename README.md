@@ -87,7 +87,7 @@ Once the token has been created, it must be exported in your environment as `GIT
 
 ### GitHub organization
 If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the
-organization must then be exported in your environment as `GITHUB_ORGANIZATION`. If you are interested in using and/or testing Github's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, you will need to have an organization that uses Github Enterprise Cloud in addition to the requirements defined in the Github docs and set the environment variable `ENTERPRISE_ACCOUNT` to `true`. 
+organization must then be exported in your environment as `GITHUB_OWNER`. If you are interested in using and/or testing Github's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, you will need to have an organization that uses Github Enterprise Cloud in addition to the requirements defined in the Github docs and set the environment variable `ENTERPRISE_ACCOUNT` to `true`. 
 
 ### Test repositories
 In the organization you are using above, create the following test repositories:

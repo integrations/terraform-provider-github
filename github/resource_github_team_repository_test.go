@@ -13,6 +13,10 @@ import (
 )
 
 func TestAccGithubTeamRepository_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var repository github.Repository
 
 	rn := "github_team_repository.test_team_test_repo"
@@ -111,7 +115,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 			return fmt.Errorf("No team repository ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 
 		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID, "team_id", "repository")
 		if err != nil {
@@ -123,9 +127,9 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		}
 
 		repo, _, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			testAccProvider.Meta().(*Organization).id,
+			testAccProvider.Meta().(*Owner).id,
 			teamId,
-			testAccProvider.Meta().(*Organization).name,
+			testAccProvider.Meta().(*Owner).name,
 			repoName)
 
 		if err != nil {
@@ -137,8 +141,8 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 }
 
 func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	orgId := testAccProvider.Meta().(*Organization).id
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgId := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_repository" {
@@ -157,7 +161,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 		repo, resp, err := conn.Teams.IsTeamRepoByID(context.TODO(),
 			orgId,
 			teamId,
-			testAccProvider.Meta().(*Organization).name,
+			testAccProvider.Meta().(*Owner).name,
 			repoName)
 
 		if err == nil {

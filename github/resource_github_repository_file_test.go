@@ -48,20 +48,20 @@ func testSweepRepositoryFiles(region string) error {
 }
 
 func testSweepDeleteRepositoryFiles(meta interface{}, branch string) error {
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
 
 	_, files, _, err := client.Repositories.GetContents(
-		context.TODO(), org, "test-repo", "", &github.RepositoryContentGetOptions{Ref: branch})
+		context.TODO(), owner, "test-repo", "", &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return err
 	}
 
 	for _, f := range files {
 		if name := f.GetName(); strings.HasPrefix(name, "tf-acc-") {
-			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", name, org, branch)
+			log.Printf("Deleting repository file: %s, repo: %s/test-repo, branch: %s", name, owner, branch)
 			opts := &github.RepositoryContentFileOptions{Branch: github.String(branch)}
-			if _, _, err := client.Repositories.DeleteFile(context.TODO(), org, "test-repo", name, opts); err != nil {
+			if _, _, err := client.Repositories.DeleteFile(context.TODO(), owner, "test-repo", name, opts); err != nil {
 				return err
 			}
 		}
@@ -309,16 +309,16 @@ func testAccCheckGithubRepositoryFileExists(n, path, branch string, content *git
 			return fmt.Errorf("No repository file path set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		org := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 
 		opts := &github.RepositoryContentGetOptions{Ref: branch}
-		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), org, "test-repo", path, opts)
+		gotContent, _, _, err := conn.Repositories.GetContents(context.TODO(), owner, "test-repo", path, opts)
 		if err != nil {
 			return err
 		}
 
-		gotCommit, err := getFileCommit(conn, org, "test-repo", path, branch)
+		gotCommit, err := getFileCommit(conn, owner, "test-repo", path, branch)
 		if err != nil {
 			return err
 		}
@@ -382,8 +382,8 @@ func testAccCheckGithubRepositoryFileCommitAttributes(commit *github.RepositoryC
 }
 
 func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
-	org := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Owner).v3client
+	owner := testAccProvider.Meta().(*Owner).name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_file" {
@@ -393,10 +393,10 @@ func testAccCheckGithubRepositoryFileDestroy(s *terraform.State) error {
 		repo, file := splitRepoFilePath(rs.Primary.ID)
 		opts := &github.RepositoryContentGetOptions{Ref: rs.Primary.Attributes["branch"]}
 
-		fc, _, resp, err := conn.Repositories.GetContents(context.TODO(), org, repo, file, opts)
+		fc, _, resp, err := conn.Repositories.GetContents(context.TODO(), owner, repo, file, opts)
 		if err == nil {
 			if fc != nil {
-				return fmt.Errorf("Repository file %s/%s/%s still exists", org, repo, file)
+				return fmt.Errorf("Repository file %s/%s/%s still exists", owner, repo, file)
 			}
 		}
 		if resp.StatusCode != 404 {
