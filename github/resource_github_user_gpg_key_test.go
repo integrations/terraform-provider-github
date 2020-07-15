@@ -49,7 +49,7 @@ func testAccCheckGithubUserGpgKeyExists(n string, key *github.GPGKey) resource.T
 			return unconvertibleIdErr(rs.Primary.ID, err)
 		}
 
-		org := testAccProvider.Meta().(*Organization)
+		org := testAccProvider.Meta().(*Owner)
 		receivedKey, _, err := org.v3client.Users.GetGPGKey(context.TODO(), id)
 		if err != nil {
 			return err
@@ -60,7 +60,7 @@ func testAccCheckGithubUserGpgKeyExists(n string, key *github.GPGKey) resource.T
 }
 
 func testAccCheckGithubUserGpgKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_user_gpg_key" {

@@ -92,14 +92,14 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		orgName := testAccProvider.Meta().(*Organization).name
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -110,7 +110,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(idString, err)
 		}
 
-		_, resp, err := conn.Repositories.GetKey(context.TODO(), orgName, repoName, id)
+		_, resp, err := conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
 
 		if err != nil && resp.Response.StatusCode != 404 {
 			return err
@@ -132,8 +132,8 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		owner := testAccProvider.Meta().(*Owner).name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -144,7 +144,7 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return unconvertibleIdErr(idString, err)
 		}
 
-		_, _, err = conn.Repositories.GetKey(context.TODO(), orgName, repoName, id)
+		_, _, err = conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
 		if err != nil {
 			return err
 		}

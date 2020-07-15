@@ -10,15 +10,22 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
+			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
+				Description: descriptions["owner"],
 			},
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 				Description: descriptions["organization"],
+				Deprecated:  "Use owner field (or GITHUB_OWNER ENV variable)",
 			},
 			"base_url": {
 				Type:        schema.TypeString,
@@ -98,21 +105,11 @@ func init() {
 		"token": "The OAuth token used to connect to GitHub. " +
 			"If `anonymous` is false, `token` is required.",
 
-		"organization": "The GitHub organization name to manage. " +
-			"If `individual` is false, `organization` is required.",
+		"owner": "The GitHub owner name to manage.",
+
+		"organization": "(Deprecated) The GitHub organization name to manage.",
 
 		"base_url": "The GitHub Base API URL",
-
-		"insecure": "Whether server should be accessed " +
-			"without verifying the TLS certificate.",
-
-		"individual": "Run outside an organization.  When `individual`" +
-			"is true, the provider will run outside the scope of an" +
-			"organization.",
-
-		"anonymous": "Authenticate without a token.  When `anonymous`" +
-			"is true, the provider will not be able to access resources" +
-			"that require authentication.",
 	}
 }
 
@@ -129,8 +126,14 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			individual = false
 		}
 
+		owner := d.Get("organization").(string)
+		if owner == "" {
+			owner = d.Get("owner").(string)
+		}
+
 		config := Config{
 			Token:        d.Get("token").(string),
+			Owner:        owner,
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
@@ -143,7 +146,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			return nil, err
 		}
 
-		meta.(*Organization).StopContext = p.StopContext()
+		meta.(*Owner).StopContext = p.StopContext()
 
 		return meta, nil
 	}

@@ -65,8 +65,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
@@ -153,13 +153,13 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -199,9 +199,9 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

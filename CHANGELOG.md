@@ -12,7 +12,7 @@ BUG FIXES:
 
 ## 2.9.0 (June 29, 2020)
 
-**NOTE**: This release introduced a provider-level breaking change around `anonymous` use.  
+**NOTE**: This release introduced a provider-level breaking change around `anonymous` use.
 See [here](https://github.com/terraform-providers/terraform-provider-github/pull/464#discussion_r427961161) for details and [here](https://github.com/terraform-providers/terraform-provider-github/issues/502#issuecomment-652379322) to discuss a fix.
 
 ENHANCEMENTS:
@@ -158,7 +158,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
-* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)] 
+* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)]
 
 BUG FIXES:
 
@@ -166,7 +166,7 @@ BUG FIXES:
 * `resource/github_repository`: `has_projects` can now be imported ([#237](https://github.com/terraform-providers/terraform-provider-github/issues/237))
 * `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_team_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
- 
+
 
 ## 2.1.0 (May 15, 2019)
 
@@ -280,7 +280,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-* `resource/github_branch_protection`: The `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user. 
+* `resource/github_branch_protection`: The `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user.
 
 IMPROVEMENTS:
 
@@ -290,7 +290,7 @@ IMPROVEMENTS:
 * `resource/github_branch_protection`: Support enforce_admins ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 * `resource/github_team`: Supports managing a team's LDAP DN in GitHub Enterprise ([#39](https://github.com/terraform-providers/terraform-provider-github/issues/39))
 
-BUG FIXES: 
+BUG FIXES:
 
 * `resource/github_branch_protection`: Fix crash on nil values ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 

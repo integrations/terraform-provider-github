@@ -52,15 +52,15 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
@@ -92,8 +92,8 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
@@ -104,7 +104,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -147,15 +147,15 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -187,8 +187,8 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
 
@@ -196,7 +196,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

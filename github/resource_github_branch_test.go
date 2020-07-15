@@ -12,6 +12,9 @@ import (
 )
 
 func TestAccGithubBranch_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
 	var (
 		reference github.Reference
@@ -68,6 +71,9 @@ func TestAccGithubBranch_basic(t *testing.T) {
 	})
 }
 func TestAccGithubBranch_withSourceBranch(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
 
 	var (
 		reference github.Reference
@@ -150,8 +156,8 @@ func testAccCheckGithubBranchDestroy(s *terraform.State) error {
 			continue
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgName := testAccProvider.Meta().(*Owner).name
 		repoName, branchName, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
 			return err
@@ -184,8 +190,8 @@ func testAccCheckGithubBranchExists(n, id string, reference *github.Reference) r
 			return fmt.Errorf("Expected ID to be %v, got %v", id, rs.Primary.ID)
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
-		orgName := testAccProvider.Meta().(*Organization).name
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgName := testAccProvider.Meta().(*Owner).name
 		repoName, branchName, err := parseTwoPartID(rs.Primary.ID, "repository", "branch")
 		if err != nil {
 			return err

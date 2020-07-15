@@ -43,12 +43,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 }
 
 func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	query := d.Get("query").(string)
 	opt := &github.SearchOptions{

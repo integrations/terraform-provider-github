@@ -49,8 +49,8 @@ func resourceGithubTeamMembership() *schema.Resource {
 }
 
 func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -81,8 +81,8 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 	if err != nil {
 		return err
@@ -129,8 +129,8 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {

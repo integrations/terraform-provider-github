@@ -41,8 +41,17 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"private": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:          schema.TypeBool,
+				Computed:      true, // is affected by "visibility"
+				Optional:      true,
+				ConflictsWith: []string{"visibility"},
+				Deprecated:    "use visibility instead",
+			},
+			"visibility": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true, // is affected by "private"
+				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
 			},
 			"has_issues": {
 				Type:     schema.TypeBool,
@@ -178,6 +187,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
 		Private:             github.Bool(d.Get("private").(bool)),
+		Visibility:          github.String(d.Get("visibility").(string)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
@@ -196,23 +206,24 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
 		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	orgName := meta.(*Organization).name
+	owner := meta.(*Owner).name
+
+	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
+	// are encountered when the resources is created with the visibility parameter. As
+	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
+	repoReq.Visibility = nil
+
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", orgName, repoName)
+	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoName)
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
@@ -227,7 +238,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			templateRepoOwner := templateConfigMap["owner"].(string)
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
-				Owner:       &orgName,
+				Owner:       &owner,
 				Description: github.String(d.Get("description").(string)),
 				Private:     github.Bool(d.Get("private").(bool)),
 			}
@@ -246,16 +257,24 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	} else {
 		// Create without a repository template
-		repo, _, err := client.Repositories.Create(ctx, orgName, repoReq)
+		var repo *github.Repository
+		var err error
+		if meta.(*Owner).IsOrganization {
+			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+		} else {
+			// Create repository within authenticated user's account
+			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
+
+		}
 		if err != nil {
 			return err
 		}
-		d.SetId(*repo.Name)
+		d.SetId(repo.GetName())
 	}
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, repoName, topics)
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
 		if err != nil {
 			return err
 		}
@@ -265,23 +284,18 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] Reading repository: %s/%s", orgName, repoName)
+	log.Printf("[DEBUG] Reading repository: %s/%s", owner, repoName)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, err := client.Repositories.Get(ctx, orgName, repoName)
+	repo, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -289,7 +303,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
-					orgName, repoName)
+					owner, repoName)
 				d.SetId("")
 				return nil
 			}
@@ -302,6 +316,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
@@ -337,14 +352,15 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
+
+	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+	if !d.HasChange("visibility") {
+		repoReq.Visibility = nil
+	}
+
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
 		branch := v.(string)
@@ -355,11 +371,11 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating repository: %s/%s", orgName, repoName)
-	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
+	log.Printf("[DEBUG] Updating repository: %s/%s", owner, repoName)
+	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -367,7 +383,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, orgName, *repo.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
 		if err != nil {
 			return err
 		}
@@ -377,18 +393,13 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	repoName := d.Id()
-	orgName := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	_, err = client.Repositories.Delete(ctx, orgName, repoName)
+	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
+	_, err := client.Repositories.Delete(ctx, owner, repoName)
 
 	return err
 }

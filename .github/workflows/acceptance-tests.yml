@@ -42,7 +42,7 @@ jobs:
         with:
           RUN_FILTER: ${{ env.RUN_FILTER }}
           GITHUB_BASE_URL: "https://api.github.com/"
-          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_OWNER: terraformtesting
           GITHUB_TEST_USER: github-terraform-test-user
           GITHUB_TEST_USER_NAME: "Test User"
           GITHUB_TEST_USER_EMAIL: 60107403+github-terraform-test-user@users.noreply.github.com
