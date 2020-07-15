@@ -13,9 +13,13 @@ import (
 )
 
 type Config struct {
-	Token   string
-	Owner   string
-	BaseURL string
+	Token        string
+	Owner        string
+	Organization string
+	BaseURL      string
+	Insecure     bool
+	Individual   bool
+	Anonymous    bool
 }
 
 type Owner struct {

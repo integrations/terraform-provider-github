@@ -17,7 +17,7 @@ func TestConfigClients(t *testing.T) {
 			t.Fatalf("failed to return clients without error: %s", err.Error())
 		}
 
-		if client := meta.(*Organization).v3client; client == nil {
+		if client := meta.(*Owner).v3client; client == nil {
 			t.Fatalf("failed to return a v3 client")
 		}
 	})
@@ -33,7 +33,7 @@ func TestConfigClients(t *testing.T) {
 			t.Fatalf("failed to return clients without error: %s", err.Error())
 		}
 
-		if client := meta.(*Organization).v4client; client == nil {
+		if client := meta.(*Owner).v4client; client == nil {
 			t.Fatalf("failed to return a v4 client")
 		}
 	})
@@ -50,11 +50,11 @@ func TestConfigClients(t *testing.T) {
 			t.Fatalf("failed to return clients without error: %s", err.Error())
 		}
 
-		if client := meta.(*Organization).v4client; client == nil {
+		if client := meta.(*Owner).v4client; client == nil {
 			t.Fatalf("failed to return a v4 client")
 		}
 
-		if client := meta.(*Organization).v3client; client == nil {
+		if client := meta.(*Owner).v3client; client == nil {
 			t.Fatalf("failed to return a v3 client")
 		}
 	})
@@ -71,11 +71,11 @@ func TestConfigClients(t *testing.T) {
 			t.Fatalf("failed to return clients without error: %s", err.Error())
 		}
 
-		if client := meta.(*Organization).v4client; client == nil {
+		if client := meta.(*Owner).v4client; client == nil {
 			t.Fatalf("failed to return a v4 client")
 		}
 
-		if client := meta.(*Organization).v3client; client == nil {
+		if client := meta.(*Owner).v3client; client == nil {
 			t.Fatalf("failed to return a v3 client")
 		}
 	})
