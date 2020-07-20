@@ -60,11 +60,6 @@ func resourceGithubBranch() *schema.Resource {
 }
 
 func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -92,7 +87,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Creating GitHub branch reference %s/%s (%s)",
 		orgName, repoName, branchRefName)
-	_, _, err = client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
+	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
 		Ref:    &branchRefName,
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
@@ -107,11 +102,6 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -155,11 +145,6 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	client := meta.(*Owner).v3client
