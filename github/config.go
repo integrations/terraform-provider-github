@@ -41,13 +41,14 @@ func RateLimitedHTTPClient(client *http.Client) *http.Client {
 
 }
 
-func (c *Config) AuthenticatedHTTPClient() *http.Client {
+func (c *Config) AuthenticatedHTTPClient(client *http.Client) *http.Client {
 
 	ctx := context.Background()
-	tokenSource := oauth2.StaticTokenSource(
+	var ts oauth2.TokenSource
+	ts = oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
-	client := oauth2.NewClient(ctx, tokenSource)
+	client = oauth2.NewClient(ctx, ts)
 
 	return RateLimitedHTTPClient(client)
 
@@ -78,7 +79,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 	}
 
 	if uv3.String() != "https://api.github.com/" {
-		uv3.Path = uv3.Path + "api/v3/"
+		uv3.Path = uv3.Path + "v3/"
 	}
 
 	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
@@ -93,7 +94,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
-
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
@@ -120,11 +120,11 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
 func (c *Config) Meta() (interface{}, error) {
 
-	var client *http.Client
+	client := &http.Client{}
 	if c.Anonymous {
 		client = c.AnonymousHTTPClient()
 	} else {
-		client = c.AuthenticatedHTTPClient()
+		client = c.AuthenticatedHTTPClient(client)
 	}
 
 	v3client, err := c.NewRESTClient(client)
