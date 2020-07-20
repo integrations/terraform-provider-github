@@ -12,10 +12,6 @@ import (
 )
 
 func TestAccGithubIssueLabel_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var label, updatedLabel github.Label
 
 	rn := "github_issue_label.test"
@@ -52,10 +48,6 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 }
 
 func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var label github.Label
 
 	rn := "github_issue_label.test"
@@ -84,10 +76,6 @@ func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
 }
 
 func TestAccGithubIssueLabel_description(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var label github.Label
 
 	rn := "github_issue_label.test"
