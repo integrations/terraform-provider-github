@@ -31,6 +31,124 @@ type Owner struct {
 	IsOrganization bool
 }
 
+func RateLimitedHTTPClient(client *http.Client) *http.Client {
+
+	client.Transport = NewEtagTransport(client.Transport)
+	client.Transport = NewRateLimitTransport(client.Transport)
+	client.Transport = logging.NewTransport("Github", client.Transport)
+
+	return client
+
+}
+
+func (c *Config) AuthenticatedHTTPClient(client *http.Client) *http.Client {
+
+	ctx := context.Background()
+	var ts oauth2.TokenSource
+	ts = oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: c.Token},
+	)
+	client = oauth2.NewClient(ctx, ts)
+
+	return RateLimitedHTTPClient(client)
+
+}
+
+func (c *Config) AnonymousHTTPClient() *http.Client {
+	client := &http.Client{Transport: &http.Transport{}}
+	return RateLimitedHTTPClient(client)
+}
+
+func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
+
+	uv4, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+	uv4.Path = path.Join(uv4.Path, "graphql")
+
+	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
+
+}
+
+func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
+
+	uv3, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if uv3.String() != "https://api.github.com/" {
+		uv3.Path = uv3.Path + "v3/"
+	}
+
+	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
+	if err != nil {
+		return nil, err
+	}
+
+	v3client.BaseURL = uv3
+
+	return v3client, nil
+
+}
+
+func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
+	ctx := context.Background()
+	owner.name = c.Owner
+	if owner.name == "" {
+		// Discover authenticated user
+		user, _, err := owner.v3client.Users.Get(ctx, "")
+		if err != nil {
+			return nil, err
+		}
+		owner.name = user.GetLogin()
+	} else {
+		remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
+		if err == nil {
+			if remoteOrg != nil {
+				owner.id = remoteOrg.GetID()
+				owner.IsOrganization = true
+			}
+		}
+	}
+
+	return owner, nil
+}
+
+// Meta returns the meta parameter that is passed into subsequent resources
+// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
+func (c *Config) Meta() (interface{}, error) {
+
+	client := &http.Client{}
+	if c.Anonymous {
+		client = c.AnonymousHTTPClient()
+	} else {
+		client = c.AuthenticatedHTTPClient(client)
+	}
+
+	v3client, err := c.NewRESTClient(client)
+	if err != nil {
+		return nil, err
+	}
+
+	v4client, err := c.NewGraphQLClient(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var owner Owner
+	owner.v4client = v4client
+	owner.v3client = v3client
+
+	if c.Anonymous {
+		return &owner, nil
+	} else {
+		return c.ConfigureOwner(&owner)
+	}
+
+}
+
 // Clients configures and returns a fully initialized GithubClient and Githubv4Client
 func (c *Config) Clients() (interface{}, error) {
 	var owner Owner
