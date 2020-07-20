@@ -12,10 +12,6 @@ import (
 )
 
 func TestAccGithubBranch_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var (
 		reference github.Reference
 
@@ -71,10 +67,6 @@ func TestAccGithubBranch_basic(t *testing.T) {
 	})
 }
 func TestAccGithubBranch_withSourceBranch(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	var (
 		reference github.Reference
 

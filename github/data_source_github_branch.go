@@ -40,11 +40,6 @@ func dataSourceGithubBranch() *schema.Resource {
 }
 
 func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
