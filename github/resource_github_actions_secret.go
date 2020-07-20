@@ -46,11 +46,6 @@ func resourceGithubActionsSecret() *schema.Resource {
 }
 
 func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -86,11 +81,6 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 }
 
 func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -121,11 +111,6 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

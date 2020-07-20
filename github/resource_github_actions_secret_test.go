@@ -11,10 +11,6 @@ import (
 )
 
 func TestAccGithubActionsSecret_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
 	repo := acctest.RandomWithPrefix("tf-acc-test")
 
 	secretResourceName := "github_actions_secret.test_secret"
