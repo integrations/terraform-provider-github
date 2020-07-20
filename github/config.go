@@ -41,14 +41,13 @@ func RateLimitedHTTPClient(client *http.Client) *http.Client {
 
 }
 
-func (c *Config) AuthenticatedHTTPClient(client *http.Client) *http.Client {
+func (c *Config) AuthenticatedHTTPClient() *http.Client {
 
 	ctx := context.Background()
-	var ts oauth2.TokenSource
-	ts = oauth2.StaticTokenSource(
+	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
-	client = oauth2.NewClient(ctx, ts)
+	client := oauth2.NewClient(ctx, tokenSource)
 
 	return RateLimitedHTTPClient(client)
 
@@ -120,11 +119,11 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
 func (c *Config) Meta() (interface{}, error) {
 
-	client := &http.Client{}
+	var client *http.Client
 	if c.Anonymous {
 		client = c.AnonymousHTTPClient()
 	} else {
-		client = c.AuthenticatedHTTPClient(client)
+		client = c.AuthenticatedHTTPClient()
 	}
 
 	v3client, err := c.NewRESTClient(client)
