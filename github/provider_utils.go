@@ -94,16 +94,6 @@ func testRespondJson(responseBody string) func(http.ResponseWriter, *http.Reques
 	}
 }
 
-func configProviderOwner(owner string) string {
-	return fmt.Sprintf(`
-provider "github" {
-    owner = "%s"
-}
-`, owner)
-}
-
-var configProviderOwnerEmpty = `provider "github" {}`
-
 const userResponseBody = `{
   "login": "hashibot",
   "id": 1,
