@@ -9,10 +9,6 @@ import (
 
 func TestAccConfigMeta(t *testing.T) {
 
-	if testToken == "" {
-		return
-	}
-
 	t.Run("returns an anonymous client for the v3 REST API", func(t *testing.T) {
 
 		config := Config{Anonymous: true, BaseURL: "https://api.github.com/"}
@@ -135,31 +131,6 @@ func TestAccConfigMeta(t *testing.T) {
 
 		if query.Organization.ViewerCanAdminister != true {
 			t.Fatalf("unexpected response when validating client")
-		}
-
-	})
-
-	t.Run("manages individual resources for a GHES deployment", func(t *testing.T) {
-
-		if testBaseURLGHES == "" {
-			t.Skip("test case requires `GHES_BASE_URL` set in environment")
-		}
-
-		config := Config{
-			Token:     testTokenGHES,
-			BaseURL:   testBaseURLGHES,
-			Anonymous: false,
-		}
-		meta, err := config.Meta()
-		if err != nil {
-			t.Fatalf("failed to return meta without error: %s", err.Error())
-		}
-
-		ctx := context.Background()
-		client := meta.(*Owner).v3client
-		_, _, err = client.APIMeta(ctx)
-		if err != nil {
-			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
 
 	})
