@@ -693,11 +693,11 @@ func testAccCreateRepositoryBranch(branch, repository string) error {
 		Owner:   testOwner,
 	}
 
-	c, err := config.Clients()
+	meta, err := config.Meta()
 	if err != nil {
 		return fmt.Errorf("Error creating github client: %s", err)
 	}
-	client := c.(*Owner).v3client
+	client := meta.(*Owner).v3client
 
 	refs, _, err := client.Git.GetRefs(context.TODO(), testOwner, repository, "heads")
 	if err != nil {
