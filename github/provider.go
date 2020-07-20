@@ -133,7 +133,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Anonymous:    anonymous,
 		}
 
-		meta, err := config.Clients()
+		meta, err := config.Meta()
 		if err != nil {
 			return nil, err
 		}

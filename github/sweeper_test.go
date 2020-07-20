@@ -27,10 +27,10 @@ func sharedConfigForRegion(region string) (interface{}, error) {
 		BaseURL: "",
 	}
 
-	client, err := config.Clients()
+	meta, err := config.Meta()
 	if err != nil {
-		return nil, fmt.Errorf("error getting Github client")
+		return nil, fmt.Errorf("error getting Github meta parameter")
 	}
 
-	return client, nil
+	return meta, nil
 }

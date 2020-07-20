@@ -53,12 +53,12 @@ func testAccCheckOrganization() error {
 		Owner:   testOwner,
 	}
 
-	c, err := config.Clients()
+	meta, err := config.Meta()
 	if err != nil {
 		return err
 	}
-	if !c.(*Owner).IsOrganization {
-		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", c.(*Owner).name)
+	if !meta.(*Owner).IsOrganization {
+		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
 }
