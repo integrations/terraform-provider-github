@@ -1,0 +1,29 @@
+name: GHES Acceptance Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  acceptance-tests:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Acceptance Tests
+        uses: terraformtesting/acceptance-tests@v2.0.0
+        with:
+          GITHUB_BASE_URL: "https://api.github.com/"
+          GITHUB_OWNER: terraformtesting
+          GITHUB_TEST_USER: github-terraform-test-user
+          GITHUB_TEST_USER_NAME: "Test User"
+          GITHUB_TEST_USER_EMAIL: 60107403+github-terraform-test-user@users.noreply.github.com
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GITHUB_TEST_USER_TOKEN }}
+          GITHUB_TEST_COLLABORATOR: github-terraform-test-collaborator
+          GITHUB_TEST_COLLABORATOR_TOKEN: ${{ secrets.GITHUB_TEST_COLLABORATOR_TOKEN }}
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 23826477
