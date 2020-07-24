@@ -17,6 +17,7 @@ jobs:
       - name: Acceptance Tests
         uses: terraformtesting/acceptance-tests@v2.0.0
         with:
+          RUN_ALL: true
           GITHUB_BASE_URL: "https://api.github.com/"
           GITHUB_OWNER: terraformtesting
           GITHUB_TEST_USER: github-terraform-test-user
