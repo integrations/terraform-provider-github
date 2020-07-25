@@ -1,9 +1,8 @@
 name: GHES Acceptance Tests
 
-on: workflow_dispatch
-# on:
-#   pull_request:
-#     types: [opened, synchronize, reopened]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   acceptance-tests:
@@ -13,8 +12,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
 
       - name: Acceptance Tests
         uses: terraformtesting/acceptance-tests@v2.0.0

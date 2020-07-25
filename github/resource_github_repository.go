@@ -403,5 +403,3 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 
 	return err
 }
-
-// Trigger Test Run

@@ -196,5 +196,3 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 		orgName, repoName, name)
 	return err
 }
-
-// Trigger Test Run
