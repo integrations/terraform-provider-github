@@ -1,8 +1,9 @@
 name: Dotcom Acceptance Tests
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+on: workflow_dispatch
+# on:
+#   pull_request:
+#     types: [opened, synchronize, reopened]
 
 jobs:
   acceptance-tests:
