@@ -32,5 +32,3 @@ func TestAccGithubOrganizationTeamSyncGroupsDataSource_existing(t *testing.T) {
 func testAccCheckGithubOrganizationTeamSyncGroupsDataSourceConfig() string {
 	return `data "github_organization_team_sync_groups" "test" {}`
 }
-
-// Trigger Test Run
