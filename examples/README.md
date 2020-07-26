@@ -17,5 +17,3 @@ $ terraform plan
 $ terraform apply
 ...
 ```
-
-Trigger Test Run
