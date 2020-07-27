@@ -139,4 +139,25 @@ func TestAccConfigMeta(t *testing.T) {
 
 	})
 
+	t.Run("manages individual resources for a GHES deployment", func(t *testing.T) {
+
+		config := Config{
+			Token:     testTokenGHES,
+			BaseURL:   testBaseURLGHES,
+			Anonymous: false,
+		}
+		meta, err := config.Meta()
+		if err != nil {
+			t.Fatalf("failed to return meta without error: %s", err.Error())
+		}
+
+		ctx := context.Background()
+		client := meta.(*Owner).v3client
+		_, _, err = client.APIMeta(ctx)
+		if err != nil {
+			t.Fatalf("failed to validate returned client without error: %s", err.Error())
+		}
+
+	})
+
 }

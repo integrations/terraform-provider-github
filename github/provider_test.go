@@ -83,9 +83,6 @@ func TestAccProviderConfigure(t *testing.T) {
 
 		username := "hashibot"
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				testAccPreCheck(t)
-			},
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
@@ -126,14 +123,16 @@ func TestAccProviderConfigure(t *testing.T) {
 
 		individualConfiguration := fmt.Sprintf(`
 			provider "github" {
-				owner = "%s"
 				token = "%s"
 			}
 			data "github_user" "test" { username = "%s" }
-		`, testOwner, testToken, testOwner)
+		`,
+			os.Getenv("GITHUB_TOKEN"),
+			os.Getenv("GITHUB_ORGANIZATION"),
+		)
 
 		individualCheck := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+			resource.TestCheckResourceAttrSet("data.github_user.test", "username"),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -142,11 +141,7 @@ func TestAccProviderConfigure(t *testing.T) {
 					"GITHUB_TOKEN",
 					"GITHUB_OWNER",
 				}
-				for _, variable := range requiredEnvironmentVariables {
-					if v := os.Getenv(variable); v == "" {
-						t.Fatal(variable + " must be set for acceptance tests")
-					}
-				}
+				testAccPreCheckEnvironment(t, requiredEnvironmentVariables)
 			},
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
@@ -167,7 +162,11 @@ func TestAccProviderConfigure(t *testing.T) {
 				token = "%s"
 			}
 			data "github_organization" "test" { name = "%s" }
-		`, testOrganization, testToken, testOrganization)
+		`,
+			os.Getenv("GITHUB_ORGANIZATION"),
+			os.Getenv("GITHUB_TOKEN"),
+			os.Getenv("GITHUB_ORGANIZATION"),
+		)
 
 		organizationCheck := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
@@ -176,8 +175,45 @@ func TestAccProviderConfigure(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
 				requiredEnvironmentVariables := []string{
-					"GITHUB_TOKEN",
 					"GITHUB_ORGANIZATION",
+					"GITHUB_TOKEN",
+				}
+				testAccPreCheckEnvironment(t, requiredEnvironmentVariables)
+			},
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: organizationConfiguration,
+					Check:  organizationCheck,
+				},
+			},
+		})
+	})
+
+	t.Run("can be configured with a GHES deployment", func(t *testing.T) {
+
+		organizationConfiguration := fmt.Sprintf(`
+				provider "github" {
+					base_url = "%s"
+					token = "%s"
+				}
+				data "github_organization" "test" { name = "%s" }
+			`,
+			os.Getenv("GHES_BASE_URL"),
+			os.Getenv("GHES_TOKEN"),
+			os.Getenv("GHES_ORGANIZATION"),
+		)
+
+		organizationCheck := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				requiredEnvironmentVariables := []string{
+					"GHES_TOKEN",
+					"GHES_BASE_URL",
+					"GHES_ORGANIZATION",
 				}
 				testAccPreCheckEnvironment(t, requiredEnvironmentVariables)
 			},

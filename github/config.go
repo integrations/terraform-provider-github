@@ -78,7 +78,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 	}
 
 	if uv3.String() != "https://api.github.com/" {
-		uv3.Path = uv3.Path + "v3/"
+		uv3.Path = uv3.Path + "api/v3/"
 	}
 
 	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
@@ -93,6 +93,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
+
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
