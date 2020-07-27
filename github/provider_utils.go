@@ -14,6 +14,9 @@ var testOrganization string = os.Getenv("GITHUB_ORGANIZATION")
 var testOwner string = os.Getenv("GITHUB_OWNER")
 var testToken string = os.Getenv("GITHUB_TOKEN")
 
+var testTokenGHES string = os.Getenv("GHES_TOKEN")
+var testBaseURLGHES string = os.Getenv("GHES_BASE_URL")
+
 func testAccPreCheckEnvironment(t *testing.T, requiredEnvironmentVariables []string) {
 	for _, variable := range requiredEnvironmentVariables {
 		if v := os.Getenv(variable); v == "" {
