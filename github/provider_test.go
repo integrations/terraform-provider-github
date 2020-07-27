@@ -128,7 +128,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			data "github_user" "test" { username = "%s" }
 		`,
 			os.Getenv("GITHUB_TOKEN"),
-			os.Getenv("GITHUB_OWNER"),
+			os.Getenv("GITHUB_ORGANIZATION"),
 		)
 
 		individualCheck := resource.ComposeTestCheckFunc(
@@ -158,13 +158,14 @@ func TestAccProviderConfigure(t *testing.T) {
 
 		organizationConfiguration := fmt.Sprintf(`
 			provider "github" {
-				organization = "%[1]s"
-				token = "%[2]s"
+				organization = "%s"
+				token = "%s"
 			}
-			data "github_organization" "test" { name = "%[1]s" }
+			data "github_organization" "test" { name = "%s" }
 		`,
 			os.Getenv("GITHUB_ORGANIZATION"),
 			os.Getenv("GITHUB_TOKEN"),
+			os.Getenv("GITHUB_ORGANIZATION"),
 		)
 
 		organizationCheck := resource.ComposeTestCheckFunc(
