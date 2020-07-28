@@ -141,6 +141,10 @@ func TestAccConfigMeta(t *testing.T) {
 
 	t.Run("manages individual resources for a GHES deployment", func(t *testing.T) {
 
+		if testBaseURLGHES == "" {
+			t.Skip("test case requires `GHES_BASE_URL` set in environment")
+		}
+
 		config := Config{
 			Token:     testTokenGHES,
 			BaseURL:   testBaseURLGHES,
