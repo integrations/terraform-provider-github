@@ -158,14 +158,13 @@ func TestAccProviderConfigure(t *testing.T) {
 
 		organizationConfiguration := fmt.Sprintf(`
 			provider "github" {
-				organization = "%s"
-				token = "%s"
+				organization = "%[1]s"
+				token = "%[2]s"
 			}
-			data "github_organization" "test" { name = "%s" }
+			data "github_organization" "test" { name = "%[1]s" }
 		`,
 			os.Getenv("GITHUB_ORGANIZATION"),
 			os.Getenv("GITHUB_TOKEN"),
-			os.Getenv("GITHUB_ORGANIZATION"),
 		)
 
 		organizationCheck := resource.ComposeTestCheckFunc(
