@@ -33,17 +33,10 @@ resource "github_membership" "membership_for_user_x" {
 
 The following arguments are supported in the `provider` block:
 
-* `token` - (Required) This is the GitHub personal access token. It must be provided, but
-  it can also be sourced from the `GITHUB_TOKEN` environment variable.
+* `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider can only access resources available anonymously.
 
-* `owner` - (Optional) This is the target GitHub organization or a user to manage. The account
-  corresponding to the token will need "owner" privileges for this organization. It must be provided, but
-  it can also be sourced from the `GITHUB_OWNER` environment variable.
+* `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise.  It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable.  The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/`
 
-* `organization` - (DEPRECATED) This is the target GitHub organization or a user to manage. The account
-  corresponding to the token will need "organization" privileges for this organization. It must be provided, but
-  it can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
+* `owner` - (Optional) This is the target GitHub individual account to manage.  It is optional to provide this value and it can also be sourced from the `GITHUB_OWNER` environment variable. For example, `torvalds` is a valid owner. When not provided and a `token` is available, the individual account owning the `token` will be used. When not provided and no `token` is available, the provider may not function correctly. Conflicts with `organization`.
 
-* `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a
-  requirement when working with GitHub Enterprise.  It is optional to provide this value and
-  it can also be sourced from the `GITHUB_BASE_URL` environment variable.  The value must end with a slash.
+* `organization` - (Optional) This is the target GitHub organization account to manage. It is optional to provide this value and it can also be sourced from the `GITHUB_ORGANIZATION` environment variable. For example, `github` is a valid organization. Conflicts with `owner`and requires `token`, as the individual account corresponding to provided `token` will need "owner" privileges for this organization.
