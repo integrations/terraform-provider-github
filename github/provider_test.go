@@ -128,7 +128,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			data "github_user" "test" { username = "%s" }
 		`,
 			os.Getenv("GITHUB_TOKEN"),
-			os.Getenv("GITHUB_ORGANIZATION"),
+			os.Getenv("GITHUB_OWNER"),
 		)
 
 		individualCheck := resource.ComposeTestCheckFunc(
