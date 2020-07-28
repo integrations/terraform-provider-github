@@ -47,13 +47,23 @@ func testAccPreCheck(t *testing.T) {
 }
 
 func testAccCheckOrganization() error {
+
 	baseURL := os.Getenv("GITHUB_BASE_URL")
 	token := os.Getenv("GITHUB_TOKEN")
+
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		organization := os.Getenv("GITHUB_ORGANIZATION")
+		if organization == "" {
+			return fmt.Errorf("Neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
+		}
+		owner = organization
+	}
 
 	config := Config{
 		BaseURL: baseURL,
 		Token:   token,
-		Owner:   testOwner,
+		Owner:   owner,
 	}
 
 	meta, err := config.Meta()
