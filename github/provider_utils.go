@@ -197,3 +197,10 @@ func orgResponseBody(port string) string {
 }
 `, testOwner, url, url)
 }
+
+func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
+	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
+		return os.Getenv("GITHUB_ORGANIZATION"), nil
+	}
+	return os.Getenv("GITHUB_OWNER"), nil
+}
