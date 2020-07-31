@@ -58,7 +58,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
 		username, owner, repoName)
-	_, resp, err := client.Repositories.AddCollaborator(ctx,
+	_, _, err := client.Repositories.AddCollaborator(ctx,
 		owner,
 		repoName,
 		username,
@@ -68,9 +68,6 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 	if err != nil {
 		return err
-	}
-	if resp.StatusCode == http.StatusNoContent {
-		return fmt.Errorf("User %s is already a collaborator", username)
 	}
 
 	d.SetId(buildTwoPartID(repoName, username))
