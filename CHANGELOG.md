@@ -81,6 +81,10 @@ BUG FIXES:
 
 ## 2.5.0 (March 30, 2020)
 
+BREAKING CHANGES:
+
+* `go-github` `v29.03` is incompatible with all currently known versions of GitHub Enterprise Server ([[#404](https://github.com/terraform-providers/terraform-provider-github/issues/404)])
+
 ENHANCEMENTS:
 
 * Add `apps` To `github_branch_protection` Restrictions
