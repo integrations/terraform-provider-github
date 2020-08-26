@@ -44,6 +44,11 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"repos": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -71,6 +76,16 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		members = append(members, v.GetLogin())
 	}
 
+	repos, _, err := client.Teams.ListTeamReposBySlug(ctx, meta.(*Owner).name, slug, nil)
+	if err != nil {
+		return err
+	}
+
+	repo_names := []string{}
+	for _, v := range repos {
+		repo_names = append(repo_names, *v.Name)
+	}
+
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 	d.Set("name", team.GetName())
 	d.Set("members", members)
@@ -78,6 +93,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("privacy", team.GetPrivacy())
 	d.Set("permission", team.GetPermission())
 	d.Set("node_id", team.GetNodeID())
+	d.Set("repos", repo_names)
 
 	return nil
 }
