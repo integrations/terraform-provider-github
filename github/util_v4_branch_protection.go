@@ -173,7 +173,7 @@ func setActorIDs(actors []ActorTypes) []string {
 }
 
 func setApprovingReviews(protection BranchProtectionRule) interface{} {
-	if protection.RequiresApprovingReviews == false {
+	if !protection.RequiresApprovingReviews {
 		return nil
 	}
 
@@ -192,7 +192,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 }
 
 func setStatusChecks(protection BranchProtectionRule) interface{} {
-	if protection.RequiresStatusChecks == false {
+	if !protection.RequiresStatusChecks {
 		return nil
 	}
 
@@ -207,7 +207,7 @@ func setStatusChecks(protection BranchProtectionRule) interface{} {
 }
 
 func setPushes(protection BranchProtectionRule) []string {
-	if protection.RestrictsPushes == false {
+	if !protection.RestrictsPushes {
 		return nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
