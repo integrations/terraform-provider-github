@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/shurcooL/githubv4"
 	"log"
 	"strings"
