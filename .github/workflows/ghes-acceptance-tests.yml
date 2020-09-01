@@ -1,0 +1,50 @@
+name: GHES Acceptance Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+
+  acceptance-tests-anonymous:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
+      - name: Acceptance Tests (Anonymous)
+        uses: terraformtesting/acceptance-tests@v2.0.0
+        with:
+          GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
+
+  acceptance-tests-individual:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
+      - name: Acceptance Tests (Individual)
+        uses: terraformtesting/acceptance-tests@v2.0.0
+        with:
+          GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
+          GITHUB_OWNER: administrator
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
+
+  acceptance-tests-organization:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
+      - name: Acceptance Tests (Organization)
+        uses: terraformtesting/acceptance-tests@v2.0.0
+        with:
+          GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
+          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
