@@ -16,6 +16,10 @@ func dataSourceGithubMembership() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"organization": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"role": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -33,7 +37,11 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[INFO] Refreshing GitHub membership: %s", username)
 
 	client := meta.(*Owner).v3client
+
 	orgName := meta.(*Owner).name
+	if configuredOrg := d.Get("organization").(string); configuredOrg != "" {
+		orgName = configuredOrg
+	}
 
 	ctx := context.Background()
 
