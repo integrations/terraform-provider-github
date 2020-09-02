@@ -1,150 +1,65 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"path"
-	"strconv"
-	"strings"
+	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubRepositoryProject_basic(t *testing.T) {
-	randRepoName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	var project github.Project
+func TestAccGithubRepositoryProject(t *testing.T) {
 
-	rn := "github_repository_project.test"
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubRepositoryProjectDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryProjectConfig(randRepoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryProjectExists(rn, &project),
-					testAccCheckGithubRepositoryProjectAttributes(&project, &testAccGithubRepositoryProjectExpectedAttributes{
-						Name:       "test-project",
-						Repository: randRepoName,
-						Body:       "this is a test project",
-					}),
-				),
-			},
-			{
-				ResourceName:        rn,
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: randRepoName + `/`,
-			},
-		},
-	})
-}
+	t.Run("creates a repository project", func(t *testing.T) {
 
-func testAccGithubRepositoryProjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+		config := fmt.Sprintf(`
 
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_repository_project" {
-			continue
-		}
-
-		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return err
-		}
-
-		project, res, err := conn.Projects.GetProject(context.TODO(), projectID)
-		if err == nil {
-			if project != nil &&
-				project.GetID() == projectID {
-				return fmt.Errorf("Repository project still exists")
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+				has_projects = true
 			}
-		}
-		if res.StatusCode != 404 {
-			return err
-		}
-		return nil
-	}
-	return nil
-}
 
-func testAccCheckGithubRepositoryProjectExists(n string, project *github.Project) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
-		}
+			resource "github_repository_project" "test" {
+			  name       = "test"
+			  repository = github_repository.test.id
+			  body       = "this is a test project"
+			}
+		`, randomID)
 
-		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return err
-		}
+		check := resource.ComposeTestCheckFunc(
+			resource.TestMatchResourceAttr(
+				"github_repository_project.test", "url",
+				regexp.MustCompile(randomID+"/projects/1"),
+			),
+		)
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		gotProject, _, err := conn.Projects.GetProject(context.TODO(), projectID)
-		if err != nil {
-			return err
-		}
-		*project = *gotProject
-		return nil
-	}
-}
-
-type testAccGithubRepositoryProjectExpectedAttributes struct {
-	Name       string
-	Repository string
-	Body       string
-}
-
-func testAccCheckGithubRepositoryProjectAttributes(project *github.Project, want *testAccGithubRepositoryProjectExpectedAttributes) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if name := project.GetName(); name != want.Name {
-			return fmt.Errorf("got project %q; want %q", name, want.Name)
-		}
-		if got := path.Base(project.GetOwnerURL()); got != want.Repository {
-			return fmt.Errorf("got project %q; want %q", got, want.Repository)
-		}
-		if body := project.GetBody(); body != want.Body {
-			return fmt.Errorf("got project n%q; want %q", body, want.Body)
-		}
-		if URL := project.GetURL(); !strings.HasPrefix(URL, "https://") {
-			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
 		}
 
-		return nil
-	}
-}
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
 
-func testAccGithubRepositoryProjectConfig(repoName string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "%[1]s"
-  description  = "Terraform acceptance tests"
-  homepage_url = "http://example.com/"
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
 
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  private = false
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 
-  has_projects  = true
-  has_issues    = true
-  has_wiki      = true
-  has_downloads = true
-}
-
-resource "github_repository_project" "test" {
-  depends_on = ["github_repository.foo"]
-
-  name       = "test-project"
-  repository = "%[1]s"
-  body       = "this is a test project"
-}
-`, repoName)
+	})
 }
