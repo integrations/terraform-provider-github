@@ -4,22 +4,432 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"regexp"
-	"sort"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func init() {
-	resource.AddTestSweepers("github_repository", &resource.Sweeper{
-		Name: "github_repository",
-		F:    testSweepRepositories,
+func TestAccGithubRepositories(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("creates and updates repositories without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+
+			  name         = "tf-acc-test-%[1]s"
+			  description  = "Terraform acceptance tests %[1]s"
+
+			  has_issues         = true
+			  has_wiki           = true
+			  has_downloads      = true
+			  allow_merge_commit = true
+			  allow_squash_merge = false
+			  allow_rebase_merge = false
+			  auto_init          = false
+
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_issues",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("imports repositories without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name         = "tf-acc-test-%[1]s"
+			  description  = "Terraform acceptance tests %[1]s"
+				auto_init 	 = false
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("github_repository.test", "name"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:      "github_repository.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("archives repositories without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name         = "tf-acc-test-%[1]s"
+			  description  = "Terraform acceptance tests %[1]s"
+				archived     = false
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "archived",
+					"false",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "archived",
+					"true",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							`archived     = false`,
+							`archived     = true`, 1),
+						Check: checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("manages the project feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name         = "tf-acc-test-%[1]s"
+			  description  = "Terraform acceptance tests %[1]s"
+				has_projects = false
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "has_projects",
+					"false",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "has_projects",
+					"true",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							`has_projects = false`,
+							`has_projects = true`, 1),
+						Check: checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name           = "tf-acc-test-%[1]s"
+			  description    = "Terraform acceptance tests %[1]s"
+				default_branch = "master"
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "default_branch",
+					"master",
+				),
+			),
+			// FIXME: Deferred until https://github.com/terraform-providers/terraform-provider-github/issues/513
+			// > Cannot update default branch for an empty repository. Please init the repository and push first
+			// "after": resource.ComposeTestCheckFunc(
+			// 	resource.TestCheckResourceAttr(
+			// 		"github_repository.test", "default_branch",
+			// 		"default",
+			// 	),
+			// ),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					// {
+					// 	Config: strings.Replace(config,
+					// 		`default_branch = "master"`,
+					// 		`default_branch = "default"`, 1),
+					// 	Check: checks["after"],
+					// },
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name           = "tf-acc-test-%[1]s"
+				description    = "Terraform acceptance tests %[1]s"
+				license_template   = "ms-pl"
+				gitignore_template = "C++"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "license_template",
+				"ms-pl",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "gitignore_template",
+				"C++",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("configures topics for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics			= ["terraform", "testing"]
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "topics.#",
+				"2",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("creates a repository using a template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-%s"
+				description = "Terraform acceptance tests %[1]s"
+
+				template {
+					owner = "%s"
+					repository = "%s"
+				}
+
+			}
+		`, randomID, testOrganization, "terraform-template-module")
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "is_template",
+				"false",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
 
 }
@@ -50,863 +460,9 @@ func testSweepRepositories(region string) error {
 	return nil
 }
 
-func TestAccGithubRepository_basic(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryConfig(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:                name,
-						Description:         description,
-						Homepage:            "http://example.com/",
-						HasIssues:           true,
-						HasWiki:             true,
-						IsTemplate:          false,
-						AllowMergeCommit:    true,
-						AllowSquashMerge:    false,
-						AllowRebaseMerge:    false,
-						DeleteBranchOnMerge: false,
-						HasDownloads:        true,
-						HasProjects:         false,
-						DefaultBranch:       "master",
-						Archived:            false,
-						Visibility:          "public",
-					}),
-				),
-			},
-			{
-				Config: testAccGithubRepositoryUpdateConfig(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      "Updated " + description,
-						Homepage:         "http://example.com/",
-						AllowMergeCommit: false,
-						AllowSquashMerge: true,
-						AllowRebaseMerge: true,
-						IsTemplate:       true,
-						DefaultBranch:    "master",
-						HasProjects:      false,
-						Archived:         false,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
+func init() {
+	resource.AddTestSweepers("github_repository", &resource.Sweeper{
+		Name: "github_repository",
+		F:    testSweepRepositories,
 	})
-}
-
-func TestAccGithubRepository_archive(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryArchivedConfig(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						DefaultBranch:    "master",
-						Archived:         true,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_archiveUpdate(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryConfig(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						DefaultBranch:    "master",
-						Archived:         false,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				Config: testAccGithubRepositoryArchivedConfig(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						DefaultBranch:    "master",
-						Archived:         true,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_hasProjects(t *testing.T) {
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryConfigHasProjects(randString),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_defaultBranch(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryConfigDefaultBranch(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      description,
-						Homepage:         "http://example.com/",
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AutoInit:         true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						DefaultBranch:    "master",
-						Archived:         false,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				PreConfig: func() {
-					if err := testAccCreateRepositoryBranch("foo", *repo.Name); err != nil {
-						panic(err.Error())
-					}
-				},
-				Config: testAccGithubRepositoryUpdateConfigDefaultBranch(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:             name,
-						Description:      "Updated " + description,
-						Homepage:         "http://example.com/",
-						AutoInit:         true,
-						HasIssues:        true,
-						HasWiki:          true,
-						AllowMergeCommit: true,
-						AllowSquashMerge: false,
-						AllowRebaseMerge: false,
-						HasDownloads:     true,
-						DefaultBranch:    "foo",
-						Archived:         false,
-						Visibility:       "public",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_templates(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryConfigTemplates(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:              name,
-						Description:       description,
-						Homepage:          "http://example.com/",
-						HasIssues:         true,
-						HasWiki:           true,
-						AllowMergeCommit:  true,
-						AutoInit:          true,
-						AllowSquashMerge:  false,
-						AllowRebaseMerge:  false,
-						HasDownloads:      true,
-						DefaultBranch:     "master",
-						LicenseTemplate:   "ms-pl",
-						GitignoreTemplate: "C++",
-						Archived:          false,
-						Visibility:        "public",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init", "gitignore_template", "license_template",
-				},
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_topics(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	name := fmt.Sprintf("tf-acc-test-%s", randString)
-	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccGithubRepositoryConfigTopics(randString, `"TOPIC"`),
-				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
-			},
-			{
-				Config:      testAccGithubRepositoryConfigTopics(randString, `"-topic"`),
-				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
-			},
-			{
-				Config:      testAccGithubRepositoryConfigTopics(randString, `"töpic"`),
-				ExpectError: regexp.MustCompile(`must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen`),
-			},
-			{
-				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2"`),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:        name,
-						Description: description,
-						Homepage:    "http://example.com/",
-						Topics:      []string{"topic2", "topic1"},
-
-						// non-zero defaults
-						DefaultBranch:    "master",
-						Visibility:       "public",
-						AllowMergeCommit: true,
-						AllowSquashMerge: true,
-						AllowRebaseMerge: true,
-					}),
-				),
-			},
-			{
-				Config: testAccGithubRepositoryConfigTopics(randString, `"topic1", "topic2", "topic3"`),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:        name,
-						Description: description,
-						Homepage:    "http://example.com/",
-						Topics:      []string{"topic1", "topic2", "topic3"},
-
-						// non-zero defaults
-						DefaultBranch:    "master",
-						Visibility:       "public",
-						AllowMergeCommit: true,
-						AllowSquashMerge: true,
-						AllowRebaseMerge: true,
-					}),
-				),
-			},
-			{
-				Config: testAccGithubRepositoryConfigTopics(randString, ``),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:        name,
-						Description: description,
-						Homepage:    "http://example.com/",
-						Topics:      []string{},
-
-						// non-zero defaults
-						DefaultBranch:    "master",
-						Visibility:       "public",
-						AllowMergeCommit: true,
-						AllowSquashMerge: true,
-						AllowRebaseMerge: true,
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
-	})
-}
-
-func TestAccGithubRepository_createFromTemplate(t *testing.T) {
-	var repo github.Repository
-
-	rn := "github_repository.foo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryCreateFromTemplate(randString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryExists(rn, &repo),
-					testAccCheckGithubRepositoryTemplateRepoAttribute(rn, &repo),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"auto_init",
-				},
-			},
-		},
-	})
-}
-
-func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
-		}
-
-		repoName := rs.Primary.ID
-		if repoName == "" {
-			return fmt.Errorf("No repository name is set")
-		}
-
-		org := testAccProvider.Meta().(*Owner)
-		conn := org.v3client
-		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
-		if err != nil {
-			return err
-		}
-		*repo = *gotRepo
-		return nil
-	}
-}
-
-func testAccCheckGithubRepositoryTemplateRepoAttribute(n string, repo *github.Repository) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if templateRepository := repo.GetTemplateRepository(); templateRepository.GetIsTemplate() != true {
-			return fmt.Errorf("got repo %q; want %q", templateRepository, repo)
-		}
-
-		return nil
-	}
-}
-
-type testAccGithubRepositoryExpectedAttributes struct {
-	Name                string
-	Description         string
-	Homepage            string
-	Private             bool
-	Visibility          string
-	HasDownloads        bool
-	HasIssues           bool
-	HasProjects         bool
-	HasWiki             bool
-	IsTemplate          bool
-	AllowMergeCommit    bool
-	AllowSquashMerge    bool
-	AllowRebaseMerge    bool
-	DeleteBranchOnMerge bool
-	AutoInit            bool
-	DefaultBranch       string
-	LicenseTemplate     string
-	GitignoreTemplate   string
-	Archived            bool
-	Topics              []string
-}
-
-func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testAccGithubRepositoryExpectedAttributes) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if name := repo.GetName(); name != want.Name {
-			return fmt.Errorf("got repo %q; want %q", name, want.Name)
-		}
-		if description := repo.GetDescription(); description != want.Description {
-			return fmt.Errorf("got description %q; want %q", description, want.Description)
-		}
-		if homepage := repo.GetHomepage(); homepage != want.Homepage {
-			return fmt.Errorf("got homepage URL %q; want %q", homepage, want.Homepage)
-		}
-		if private := repo.GetPrivate(); private != want.Private {
-			return fmt.Errorf("got private %#v; want %#v", private, want.Private)
-		}
-		if visibility := repo.GetVisibility(); visibility != want.Visibility {
-			return fmt.Errorf("got visibility %#v; want %#v", visibility, want.Visibility)
-		}
-		if hasIssues := repo.GetHasIssues(); hasIssues != want.HasIssues {
-			return fmt.Errorf("got has issues %#v; want %#v", hasIssues, want.HasIssues)
-		}
-		if hasProjects := repo.GetHasProjects(); hasProjects != want.HasProjects {
-			return fmt.Errorf("got has projects %#v; want %#v", hasProjects, want.HasProjects)
-		}
-		if hasWiki := repo.GetHasWiki(); hasWiki != want.HasWiki {
-			return fmt.Errorf("got has wiki %#v; want %#v", hasWiki, want.HasWiki)
-		}
-		if isTemplate := repo.GetIsTemplate(); isTemplate != want.IsTemplate {
-			return fmt.Errorf("got has IsTemplate %#v; want %#v", isTemplate, want.IsTemplate)
-		}
-		if allowMergeCommit := repo.GetAllowMergeCommit(); allowMergeCommit != want.AllowMergeCommit {
-			return fmt.Errorf("got allow merge commit %#v; want %#v", allowMergeCommit, want.AllowMergeCommit)
-		}
-		if allowSquashMerge := repo.GetAllowSquashMerge(); allowSquashMerge != want.AllowSquashMerge {
-			return fmt.Errorf("got allow squash merge %#v; want %#v", allowSquashMerge, want.AllowSquashMerge)
-		}
-		if allowRebaseMerge := repo.GetAllowRebaseMerge(); allowRebaseMerge != want.AllowRebaseMerge {
-			return fmt.Errorf("got allow rebase merge %#v; want %#v", allowRebaseMerge, want.AllowRebaseMerge)
-		}
-		if hasDownloads := repo.GetHasDownloads(); hasDownloads != want.HasDownloads {
-			return fmt.Errorf("got has downloads %#v; want %#v", hasDownloads, want.HasDownloads)
-		}
-		if len(want.Topics) != len(repo.Topics) {
-			return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
-		}
-		sort.Strings(repo.Topics)
-		sort.Strings(want.Topics)
-		for i := range want.Topics {
-			if repo.Topics[i] != want.Topics[i] {
-				return fmt.Errorf("got topics %#v; want %#v", repo.Topics, want.Topics)
-			}
-		}
-		if defaultBranch := repo.GetDefaultBranch(); defaultBranch != want.DefaultBranch {
-			return fmt.Errorf("got default branch %q; want %q", defaultBranch, want.DefaultBranch)
-		}
-
-		if autoInit := repo.GetAutoInit(); repo.AutoInit != nil {
-			if autoInit != want.AutoInit {
-				return fmt.Errorf("got auto init %t; want %t", autoInit, want.AutoInit)
-			}
-		}
-
-		if gitignoreTemplate := repo.GetGitignoreTemplate(); repo.GitignoreTemplate != nil {
-			if gitignoreTemplate != want.GitignoreTemplate {
-				return fmt.Errorf("got gitignore_template %q; want %q", gitignoreTemplate, want.GitignoreTemplate)
-			}
-		}
-
-		if licenseTemplate := repo.GetLicenseTemplate(); repo.LicenseTemplate != nil {
-			if licenseTemplate != want.LicenseTemplate {
-				return fmt.Errorf("got license_template %q; want %q", licenseTemplate, want.LicenseTemplate)
-			}
-		}
-
-		// For the rest of these, we just want to make sure they've been
-		// populated with something that seems somewhat reasonable.
-		if fullName := repo.GetFullName(); !strings.HasSuffix(fullName, "/"+want.Name) {
-			return fmt.Errorf("got full name %q; want to end with '/%s'", fullName, want.Name)
-		}
-		if cloneURL := repo.GetCloneURL(); !strings.HasSuffix(cloneURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got Clone URL %q; want to end with '/%s.git'", cloneURL, want.Name)
-		}
-		if cloneURL := repo.GetCloneURL(); !strings.HasPrefix(cloneURL, "https://") {
-			return fmt.Errorf("got Clone URL %q; want to start with 'https://'", cloneURL)
-		}
-		if HTMLURL := repo.GetHTMLURL(); !strings.HasSuffix(HTMLURL, "/"+want.Name) {
-			return fmt.Errorf("got HTML URL %q; want to end with '%s'", HTMLURL, want.Name)
-		}
-		if SSHURL := repo.GetSSHURL(); !strings.HasSuffix(SSHURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got SSH URL %q; want to end with '/%s.git'", SSHURL, want.Name)
-		}
-		if SSHURL := repo.GetSSHURL(); !strings.HasPrefix(SSHURL, "git@github.com:") {
-			return fmt.Errorf("got SSH URL %q; want to start with 'git@github.com:'", SSHURL)
-		}
-		if gitURL := repo.GetGitURL(); !strings.HasSuffix(gitURL, "/"+want.Name+".git") {
-			return fmt.Errorf("got git URL %q; want to end with '/%s.git'", gitURL, want.Name)
-		}
-		if gitURL := repo.GetGitURL(); !strings.HasPrefix(gitURL, "git://") {
-			return fmt.Errorf("got git URL %q; want to start with 'git://'", gitURL)
-		}
-		if SVNURL := repo.GetSVNURL(); !strings.HasSuffix(SVNURL, "/"+want.Name) {
-			return fmt.Errorf("got svn URL %q; want to end with '/%s'", SVNURL, want.Name)
-		}
-		if SVNURL := repo.GetSVNURL(); !strings.HasPrefix(SVNURL, "https://") {
-			return fmt.Errorf("got svn URL %q; want to start with 'https://'", SVNURL)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgName := testAccProvider.Meta().(*Owner).name
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_repository" {
-			continue
-		}
-
-		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
-		if err == nil {
-			if name := gotRepo.GetName(); gotRepo != nil && name == rs.Primary.ID {
-				return fmt.Errorf("Repository %s/%s still exists", orgName, name)
-			}
-		}
-		if resp.StatusCode != 404 {
-			return err
-		}
-		return nil
-	}
-	return nil
-}
-
-func testAccCreateRepositoryBranch(branch, repository string) error {
-	baseURL := os.Getenv("GITHUB_BASE_URL")
-	token := os.Getenv("GITHUB_TOKEN")
-
-	config := Config{
-		BaseURL: baseURL,
-		Token:   token,
-		Owner:   testOwner,
-	}
-
-	meta, err := config.Meta()
-	if err != nil {
-		return fmt.Errorf("Error creating github client: %s", err)
-	}
-	client := meta.(*Owner).v3client
-
-	refs, _, err := client.Git.GetRefs(context.TODO(), testOwner, repository, "heads")
-	if err != nil {
-		return fmt.Errorf("Error getting reference commit: %s", err)
-	}
-	ref := refs[0]
-
-	newRef := &github.Reference{
-		Ref: github.String(fmt.Sprintf("refs/heads/%s", branch)),
-		Object: &github.GitObject{
-			SHA: ref.Object.SHA,
-		},
-	}
-
-	_, _, err = client.Git.CreateRef(context.TODO(), testOwner, repository, newRef)
-	if err != nil {
-		return fmt.Errorf("Error creating git reference: %s", err)
-	}
-
-	return nil
-}
-
-func testAccGithubRepositoryConfig(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  is_template        = false
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-  auto_init          = false
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryConfigHasProjects(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  has_projects = true
-}
-`, randString)
-}
-
-func testAccGithubRepositoryUpdateConfig(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Updated Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = false
-  has_wiki           = false
-  is_template        = true
-  allow_merge_commit = false
-  allow_squash_merge = true
-  allow_rebase_merge = true
-  has_downloads      = false
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryArchivedConfig(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-  archived           = true
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryConfigDefaultBranch(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-  auto_init          = true
-  default_branch     = "master"
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryUpdateConfigDefaultBranch(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Updated Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-  auto_init          = true
-  default_branch     = "foo"
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryConfigTemplates(randString string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-
-  license_template   = "ms-pl"
-  gitignore_template = "C++"
-}
-`, randString, randString)
-}
-
-func testAccGithubRepositoryCreateFromTemplate(randString string) string {
-	repository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name         = "tf-acc-test-%s"
-  description  = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-	template {
-		owner = "%s"
-		repository = "%s"
-	}
-
-	# So that acceptance tests can be run in a github organization
-  # with no billing
-  visibility = "public"
-
-  has_issues         = true
-  has_wiki           = true
-  allow_merge_commit = true
-  allow_squash_merge = false
-  allow_rebase_merge = false
-  has_downloads      = true
-
-}
-`, randString, randString, testOwner, repository)
-}
-
-func testAccGithubRepositoryConfigTopics(randString string, topicList string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name = "tf-acc-test-%s"
-  description = "Terraform acceptance tests %s"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  private = false
-
-  topics = [%s]
-}
-`, randString, randString, topicList)
 }
