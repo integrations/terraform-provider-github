@@ -2,72 +2,61 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubBranchDataSource_basic(t *testing.T) {
-	var (
-		name = "main"
-		repo = "test-repo"
-		rn   = "data.github_branch." + name
-	)
+func TestAccGithubBranchDataSource(t *testing.T) {
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "master"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "repository", repo),
-					resource.TestCheckResourceAttr(rn, "branch", "master"),
-					resource.TestCheckResourceAttrSet(rn, "etag"),
-					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
-				),
-			},
-			{
-				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "master"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "repository", repo),
-					resource.TestCheckResourceAttr(rn, "branch", "master"),
-					resource.TestCheckResourceAttrSet(rn, "etag"),
-					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
-				),
-			},
-			{
-				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "test-branch"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "repository", repo),
-					resource.TestCheckResourceAttr(rn, "branch", "test-branch"),
-					resource.TestCheckResourceAttrSet(rn, "etag"),
-					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
-				),
-			},
-			{
-				Config: testAccCheckGithubBranchDataSourceConfig(name, repo, "test-branch"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "repository", repo),
-					resource.TestCheckResourceAttr(rn, "branch", "test-branch"),
-					resource.TestCheckResourceAttrSet(rn, "etag"),
-					resource.TestCheckResourceAttrSet(rn, "ref"),
-					resource.TestCheckResourceAttrSet(rn, "sha"),
-				),
-			},
-		},
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("queries an existing branch without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
+			}
+
+			data "github_branch" "test" {
+				repository = github_repository.test.id
+				branch = "master"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestMatchResourceAttr(
+				"data.github_branch.test", "id", regexp.MustCompile(randomID),
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-
-}
-
-func testAccCheckGithubBranchDataSourceConfig(name, repo, branch string) string {
-	return fmt.Sprintf(`
-data "github_branch" "%s" {
-  repository = "%s"
-  branch = "%s"
-}
-`, name, repo, branch)
 }

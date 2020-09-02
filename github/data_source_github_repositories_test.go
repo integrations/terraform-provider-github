@@ -8,87 +8,106 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubRepositoriesDataSource_basic(t *testing.T) {
-	query := "org:hashicorp repository:terraform"
+func TestAccGithubRepositoriesDataSource(t *testing.T) {
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubRepositoriesDataSourceConfig(query),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("data.github_repositories.test", "full_names.0", regexp.MustCompile(`^hashicorp`)),
-					resource.TestMatchResourceAttr("data.github_repositories.test", "names.0", regexp.MustCompile(`^terraform`)),
-					resource.TestCheckResourceAttr("data.github_repositories.test", "sort", "updated"),
-				),
-			},
-		},
+	// FIXME: Find a way to reduce amount of `GET /search/repositories`
+	t.Skip("Skipping due to API rate limits exceeding")
+
+	t.Run("queries a list of repositories without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			data "github_repositories" "test" {
+				query = "org:%s"
+			}
+		`, testOrganization)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestMatchResourceAttr(
+				"data.github_repositories.test", "full_names.0",
+				regexp.MustCompile(`^`+testOrganization),
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repositories.test", "names.0",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repositories.test", "sort",
+				"updated",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
-func TestAccGithubRepositoriesDataSource_Sort(t *testing.T) {
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubRepositoriesDataSourceConfigWithSort("org:hashicorp repository:terraform", "updated"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("data.github_repositories.test", "full_names.0", regexp.MustCompile(`^hashicorp`)),
-					resource.TestMatchResourceAttr("data.github_repositories.test", "names.0", regexp.MustCompile(`^terraform`)),
-					resource.TestCheckResourceAttr("data.github_repositories.test", "sort", "updated"),
-				),
-			},
-			{
-				Config: testAccCheckGithubRepositoriesDataSourceConfigWithSort("org:hashicorp language:go", "stars"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.github_repositories.test", "full_names.0", "hashicorp/terraform"),
-					resource.TestCheckResourceAttr("data.github_repositories.test", "names.0", "terraform"),
-					resource.TestCheckResourceAttr("data.github_repositories.test", "sort", "stars"),
-				),
-			},
-		},
+	t.Run("returns an empty list given an invalid query", func(t *testing.T) {
+
+		// FIXME: Find a way to reduce amount of `GET /search/repositories`
+		t.Skip("Skipping due to API rate limits exceeding")
+
+		config := `
+			data "github_repositories" "test" {
+				query = "klsafj_23434_doesnt_exist"
+			}
+		`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repositories.test", "full_names.#",
+				"0",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repositories.test", "names.#",
+				"0",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
-
-func TestAccGithubRepositoriesDataSource_noMatch(t *testing.T) {
-	query := "klsafj_23434_doesnt_exist"
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubRepositoriesDataSourceConfig(query),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.github_repositories.test", "full_names.#", "0"),
-					resource.TestCheckResourceAttr("data.github_repositories.test", "names.#", "0"),
-				),
-			},
-		},
-	})
-}
-
-func testAccCheckGithubRepositoriesDataSourceConfig(query string) string {
-	return fmt.Sprintf(`
-data "github_repositories" "test" {
-  query = "%s"
-}
-`, query)
-}
-
-func testAccCheckGithubRepositoriesDataSourceConfigWithSort(query, sort string) string {
-	return fmt.Sprintf(`
-data "github_repositories" "test" {
-  query = "%s"
-  sort  = "%s"
-}
-`, query, sort)
 }

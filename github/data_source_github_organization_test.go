@@ -11,36 +11,42 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 
 	t.Run("queries for an organization without error", func(t *testing.T) {
 
-		organizationConfiguration := fmt.Sprintf(`
-			provider "github" {
-				organization = "%s"
-				token = "%s"
+		config := fmt.Sprintf(`
+			data "github_organization" "test" {
+				name = "%s"
 			}
-			data "github_organization" "test" { name = "%s" }
-		`, testOrganization, testToken, testOrganization)
+		`, testOrganization)
 
-		organizationCheck := resource.ComposeTestCheckFunc(
+		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "login"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "description"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
 		)
 
-		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				requiredEnvironmentVariables := []string{
-					"GITHUB_TOKEN",
-					"GITHUB_ORGANIZATION",
-				}
-				testAccPreCheckEnvironment(t, requiredEnvironmentVariables)
-			},
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config: organizationConfiguration,
-					Check:  organizationCheck,
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
 				},
-			},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
 		})
 
 	})
