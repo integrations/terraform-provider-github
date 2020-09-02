@@ -2,52 +2,59 @@ package github
 
 import (
 	"fmt"
-	"os"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform/helper/acctest"
 )
 
-func TestAccGithubActionsPublicKeyDataSource_noMatchReturnsError(t *testing.T) {
-	repo := "non-existent"
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccCheckGithubActionsPublicKeyDataSourceConfig(repo),
-				ExpectError: regexp.MustCompile(`Not Found`),
-			},
-		},
-	})
-}
+func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
 
-func TestAccCheckGithubActionsPublicKeyDataSource_existing(t *testing.T) {
-	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubActionsPublicKeyDataSourceConfig(repo),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_actions_public_key.test_pk", "key"),
-					resource.TestCheckResourceAttrSet("data.github_actions_public_key.test_pk", "key_id"),
-				),
-			},
-		},
-	})
-}
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-func testAccCheckGithubActionsPublicKeyDataSourceConfig(repo string) string {
-	return fmt.Sprintf(`
-data "github_actions_public_key" "test_pk" {
-  repository = "%s"
-}
-`, repo)
+	t.Run("queries a repository public key without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
+			}
+
+			data "github_actions_public_key" "test" {
+				repository = github_repository.test.id
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet(
+				"data.github_actions_public_key.test", "key",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }

@@ -8,46 +8,80 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubUserDataSource_noMatchReturnsError(t *testing.T) {
-	username := "admin"
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccCheckGithubUserDataSourceConfig(username),
-				ExpectError: regexp.MustCompile(`Not Found`),
-			},
-		},
-	})
-}
+func TestAccGithubUserDataSource(t *testing.T) {
 
-func TestAccGithubUserDataSource_existing(t *testing.T) {
-	username := "raphink"
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubUserDataSourceConfig(username),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
-					resource.TestCheckResourceAttr("data.github_user.test", "id", "650430"),
-					resource.TestCheckResourceAttr("data.github_user.test", "name", "Raphaël Pinson"),
-				),
-			},
-		},
-	})
-}
+	t.Run("queries an existing individual account without error", func(t *testing.T) {
 
-func testAccCheckGithubUserDataSourceConfig(username string) string {
-	return fmt.Sprintf(`
-data "github_user" "test" {
-  username = "%s"
-}
-`, username)
+		config := fmt.Sprintf(`
+			data "github_user" "test" {
+				username = "%s"
+			}
+		`, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+			resource.TestCheckResourceAttrSet("data.github_user.test", "id"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("errors when querying a non-existing individual account", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+				data "github_user" "test" {
+					username = "!%s"
+				}
+			`, testOwnerFunc())
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile(`Not Found`),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }
