@@ -1,4 +1,23 @@
-## 2.10.0 (Unreleased)
+## 3.0.0 (Unreleased)
+
+BREAKING CHANGES:
+
+- `token` becomes optional
+- `organization` no longer deprecated
+- `individual` and `anonymous` removed
+- `owner` inferred from `organization`
+
+BUG FIXES:
+
+- `terraform validate` fails because of missing token (GH-503)
+- organization support for various resources (GH-501)
+
+ENHANCEMENTS:
+
+* **New Data Source** `github_organization` (GH-521)
+
+
+
 ## 2.9.2 (July 14, 2020)
 
 - Adds deprecation of `anonymous` flag for provider configuration ahead of next major release ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
