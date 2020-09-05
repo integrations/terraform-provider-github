@@ -9,6 +9,11 @@ import (
 
 func TestAccConfigMeta(t *testing.T) {
 
+	// FIXME: Skip test runs during travis lint checking
+	if testToken == "" {
+		return
+	}
+
 	t.Run("returns an anonymous client for the v3 REST API", func(t *testing.T) {
 
 		config := Config{Anonymous: true, BaseURL: "https://api.github.com/"}
