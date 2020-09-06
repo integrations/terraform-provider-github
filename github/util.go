@@ -1,13 +1,10 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -112,50 +109,4 @@ func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []er
 func splitRepoFilePath(path string) (string, string) {
 	parts := strings.Split(path, "/")
 	return parts[0], strings.Join(parts[1:], "/")
-}
-
-// getFileCommit will return the commit in which the file specified was last updated.
-func getFileCommit(client *github.Client, org, repo, file, branch string) (*github.RepositoryCommit, error) {
-	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
-	opts := &github.CommitsListOptions{
-		SHA: branch,
-	}
-	allCommits := []*github.RepositoryCommit{}
-	for {
-		commits, resp, err := client.Repositories.ListCommits(ctx, org, repo, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		allCommits = append(allCommits, commits...)
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		opts.Page = resp.NextPage
-	}
-
-	for _, c := range allCommits {
-		sha := c.GetSHA()
-
-		// Skip merge commits
-		if strings.Contains(c.Commit.GetMessage(), "Merge branch") {
-			continue
-		}
-
-		rc, _, err := client.Repositories.GetCommit(ctx, org, repo, sha)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, f := range rc.Files {
-			if f.GetFilename() == file && f.GetStatus() != "removed" {
-				log.Printf("[DEBUG] Found file: %s in commit: %s", file, sha)
-				return rc, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("Cannot find file %s in repo %s/%s", file, org, repo)
 }
