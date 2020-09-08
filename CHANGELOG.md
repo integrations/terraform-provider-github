@@ -1,4 +1,4 @@
-## 3.0.0 (Unreleased)
+## 3.0.0 (September 08, 2020)
 
 BREAKING CHANGES:
 
@@ -9,12 +9,12 @@ BREAKING CHANGES:
 
 BUG FIXES:
 
-- `terraform validate` fails because of missing token (GH-503)
-- organization support for various resources (GH-501)
+- `terraform validate` fails because of missing token ([#503](https://github.com/terraform-providers/terraform-provider-github/issues/503))
+- organization support for various resources ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
 
 ENHANCEMENTS:
 
-* **New Data Source** `github_organization` (GH-521)
+* **New Data Source** `github_organization` ([#521](https://github.com/terraform-providers/terraform-provider-github/issues/521))
 
 
 
@@ -177,7 +177,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
-* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)]
+* `resource/github_branch_protection`: Added `require_signed_commits` property ([#214](https://github.com/terraform-providers/terraform-provider-github/issues/214))
 
 BUG FIXES:
 
