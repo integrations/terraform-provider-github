@@ -1,4 +1,6 @@
-## 3.0.0 (Unreleased)
+## (Unreleased)
+
+## 3.0.0 (September 08, 2020)
 
 BREAKING CHANGES:
 
