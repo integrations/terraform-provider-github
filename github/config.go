@@ -64,7 +64,12 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 	if err != nil {
 		return nil, err
 	}
-	uv4.Path = path.Join(uv4.Path, "graphql")
+
+	if uv4.String() != "https://api.github.com/" {
+		uv4.Path = path.Join(uv4.Path, "api/graphql/")
+	} else {
+		uv4.Path = path.Join(uv4.Path, "graphql")
+	}
 
 	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
 
