@@ -356,6 +356,14 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	// Can only update a repository if it is not archived or the update is to
+	// archive the repository (unarchiving is not supported by the Github API)
+	if d.Get("archived").(bool) && !d.HasChange("archived") {
+		log.Printf("[DEBUG] Skipping update of archived repository")
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -377,11 +385,6 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	repoName := d.Id()
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	// // Can only update a repository if it is not archived
-	// // or the update is to archive the repository (unarchiving is not supported by the Github API)
-	// if !d.Get("archived").(bool) || d.HasChange("archived") {
-	// 	repo, _, err := client.Repositories.Edit(ctx, orgName, repoName, repoReq)
 
 	log.Printf("[DEBUG] Updating repository: %s/%s", owner, repoName)
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
@@ -416,23 +419,21 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
+	if archiveOnDestroy {
+		if d.Get("archived").(bool) {
+			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
+			return nil
+		} else {
+			d.Set("archived", true)
+			repoReq := resourceGithubRepositoryObject(d)
+			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+			return err
+		}
+	}
+
 	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
-
-	// archiveOnDestroy := d.Get("archive_on_destroy").(bool)
-	// if archiveOnDestroy {
-	// 	if d.Get("archived").(bool) {
-	// 		log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", orgName, repoName)
-	// 	} else {
-	// 		d.Set("archived", true)
-	// 		repoReq := resourceGithubRepositoryObject(d)
-	// 		log.Printf("[DEBUG] Archiving repository on delete: %s/%s", orgName, repoName)
-	// 		_, _, err = client.Repositories.Edit(ctx, orgName, repoName, repoReq)
-	// 	}
-	// } else {
-	// 	log.Printf("[DEBUG] Deleting repository: %s/%s", orgName, repoName)
-	// 	_, err = client.Repositories.Delete(ctx, orgName, repoName)
-	// }
-
 	return err
 }
