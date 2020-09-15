@@ -73,6 +73,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. **NOTE** Currently, the API does not support unarchiving.
 
+* `archive_on_destroy` - (Optional) Set to `true` to archive the repository instead of deleting on destroy. Defaults to `false`.
+
 * `topics` - (Optional) The list of topics of the repository.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
