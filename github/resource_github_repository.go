@@ -130,6 +130,10 @@ func resourceGithubRepository() *schema.Resource {
 					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
 				},
 			},
+			"vulnerability_alerts": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 
 			"full_name": {
 				Type:     schema.TypeString,
@@ -284,6 +288,26 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	var alerts, private bool
+	if a, ok := d.GetOk("vulnerability_alerts"); ok {
+		alerts = a.(bool)
+	}
+	if p, ok := d.GetOk("private"); ok {
+		private = p.(bool)
+	}
+	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
+	if private && alerts {
+		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+	} else if !private && !alerts {
+		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
+	}
+	if createVulnerabilityAlerts != nil {
+		_, err = createVulnerabilityAlerts(ctx, orgName, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -352,6 +376,12 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("template", []interface{}{})
 	}
 
+	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, orgName, repoName)
+	if err != nil {
+		return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+	}
+	d.Set("vulnerability_alerts", vulnerabilityAlerts)
+
 	return nil
 }
 
@@ -407,6 +437,18 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if !d.IsNewResource() && d.HasChange("vulnerability_alerts") {
+		updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
+		if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
+			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+		}
+
+		_, err = updateVulnerabilityAlerts(ctx, orgName, repoName)
+		if err != nil {
+			return err
 		}
 	}
 
