@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -52,15 +52,16 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	slug := d.Get("slug").(string)
 	log.Printf("[INFO] Refreshing GitHub Team: %s", slug)
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 	ctx := context.Background()
 
-	team, err := getGithubTeamBySlug(ctx, client, meta.(*Organization).name, slug)
+	team, err := getGithubTeamBySlug(ctx, client, meta.(*Owner).name, slug)
 	if err != nil {
 		return err
 	}
 
-	member, _, err := client.Teams.ListTeamMembers(ctx, team.GetID(), nil)
+	member, _, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), nil)
 	if err != nil {
 		return err
 	}

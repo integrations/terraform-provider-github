@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -60,18 +60,13 @@ func resourceGithubBranch() *schema.Resource {
 }
 
 func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
@@ -92,7 +87,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Creating GitHub branch reference %s/%s (%s)",
 		orgName, repoName, branchRefName)
-	_, _, err = client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
+	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
 		Ref:    &branchRefName,
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
@@ -107,18 +102,13 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err
@@ -155,15 +145,10 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return err

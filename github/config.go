@@ -2,13 +2,11 @@ package github
 
 import (
 	"context"
-	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -16,6 +14,7 @@ import (
 
 type Config struct {
 	Token        string
+	Owner        string
 	Organization string
 	BaseURL      string
 	Insecure     bool
@@ -23,57 +22,151 @@ type Config struct {
 	Anonymous    bool
 }
 
-type Organization struct {
-	name        string
-	id          int64
-	v3client    *github.Client
-	v4client    *githubv4.Client
-	StopContext context.Context
+type Owner struct {
+	name           string
+	id             int64
+	v3client       *github.Client
+	v4client       *githubv4.Client
+	StopContext    context.Context
+	IsOrganization bool
+}
+
+func RateLimitedHTTPClient(client *http.Client) *http.Client {
+
+	client.Transport = NewEtagTransport(client.Transport)
+	client.Transport = NewRateLimitTransport(client.Transport)
+	client.Transport = logging.NewTransport("Github", client.Transport)
+
+	return client
+
+}
+
+func (c *Config) AuthenticatedHTTPClient() *http.Client {
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: c.Token},
+	)
+	client := oauth2.NewClient(ctx, ts)
+
+	return RateLimitedHTTPClient(client)
+
+}
+
+func (c *Config) AnonymousHTTPClient() *http.Client {
+	client := &http.Client{Transport: &http.Transport{}}
+	return RateLimitedHTTPClient(client)
+}
+
+func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
+
+	uv4, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if uv4.String() != "https://api.github.com/" {
+		uv4.Path = path.Join(uv4.Path, "api/graphql/")
+	} else {
+		uv4.Path = path.Join(uv4.Path, "graphql")
+	}
+
+	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
+
+}
+
+func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
+
+	uv3, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if uv3.String() != "https://api.github.com/" {
+		uv3.Path = uv3.Path + "api/v3/"
+	}
+
+	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
+	if err != nil {
+		return nil, err
+	}
+
+	v3client.BaseURL = uv3
+
+	return v3client, nil
+
+}
+
+func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
+
+	ctx := context.Background()
+	owner.name = c.Owner
+	if owner.name == "" {
+		// Discover authenticated user
+		user, _, err := owner.v3client.Users.Get(ctx, "")
+		if err != nil {
+			return nil, err
+		}
+		owner.name = user.GetLogin()
+	} else {
+		remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
+		if err == nil {
+			if remoteOrg != nil {
+				owner.id = remoteOrg.GetID()
+				owner.IsOrganization = true
+			}
+		}
+	}
+
+	return owner, nil
+}
+
+// Meta returns the meta parameter that is passed into subsequent resources
+// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
+func (c *Config) Meta() (interface{}, error) {
+
+	var client *http.Client
+	if c.Anonymous {
+		client = c.AnonymousHTTPClient()
+	} else {
+		client = c.AuthenticatedHTTPClient()
+	}
+
+	v3client, err := c.NewRESTClient(client)
+	if err != nil {
+		return nil, err
+	}
+
+	v4client, err := c.NewGraphQLClient(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var owner Owner
+	owner.v4client = v4client
+	owner.v3client = v3client
+
+	if c.Anonymous {
+		return &owner, nil
+	} else {
+		return c.ConfigureOwner(&owner)
+	}
+
 }
 
 // Clients configures and returns a fully initialized GithubClient and Githubv4Client
 func (c *Config) Clients() (interface{}, error) {
-	var org Organization
+	var owner Owner
 	var ts oauth2.TokenSource
 	var tc *http.Client
 
 	ctx := context.Background()
 
-	if c.Insecure {
-		insecureClient := insecureHttpClient()
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, insecureClient)
-	}
-
-	// Either Organization needs to be set, or Individual needs to be true
-	if c.Organization != "" && c.Individual {
-		return nil, fmt.Errorf("If `individual` is true, `organization` cannot be set.")
-	}
-	if c.Organization == "" && !c.Individual {
-		return nil, fmt.Errorf("If `individual` is false, `organization` is required.")
-	}
-
-	// Either run as anonymous, or run with a Token
-	if c.Token != "" && c.Anonymous {
-		return nil, fmt.Errorf("If `anonymous` is true, `token` cannot be set.")
-	}
-	if c.Token == "" && !c.Anonymous {
-		return nil, fmt.Errorf("If `anonymous` is false, `token` is required.")
-	}
-
-	if !c.Anonymous {
-		ts = oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: c.Token},
-		)
-	}
-
+	ts = oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: c.Token},
+	)
 	tc = oauth2.NewClient(ctx, ts)
-
-	if c.Anonymous {
-		tc.Transport = http.DefaultTransport
-	} else {
-		tc.Transport = NewEtagTransport(tc.Transport)
-	}
-
+	tc.Transport = NewEtagTransport(tc.Transport)
 	tc.Transport = NewRateLimitTransport(tc.Transport)
 	tc.Transport = logging.NewTransport("Github", tc.Transport)
 
@@ -99,30 +192,25 @@ func (c *Config) Clients() (interface{}, error) {
 	}
 	v3client.BaseURL = uv3
 
-	org.v3client = v3client
-	org.v4client = v4client
+	owner.v3client = v3client
+	owner.v4client = v4client
 
-	if c.Individual {
-		org.name = ""
-	} else {
-		org.name = c.Organization
-
-		remoteOrg, _, err := org.v3client.Organizations.Get(ctx, org.name)
+	owner.name = c.Owner
+	if owner.name == "" {
+		// Discover authenticated user
+		user, _, err := owner.v3client.Users.Get(ctx, "")
 		if err != nil {
 			return nil, err
 		}
-		org.id = remoteOrg.GetID()
+		owner.name = user.GetLogin()
+	} else {
+		remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
+		if err == nil {
+			if remoteOrg != nil {
+				owner.id = remoteOrg.GetID()
+				owner.IsOrganization = true
+			}
+		}
 	}
-
-	return &org, nil
-}
-
-func insecureHttpClient() *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
+	return &owner, nil
 }

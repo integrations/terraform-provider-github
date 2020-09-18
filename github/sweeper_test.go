@@ -17,20 +17,20 @@ func sharedConfigForRegion(region string) (interface{}, error) {
 		return nil, fmt.Errorf("empty GITHUB_TOKEN")
 	}
 
-	if os.Getenv("GITHUB_ORGANIZATION") == "" {
-		return nil, fmt.Errorf("empty GITHUB_ORGANIZATION")
+	if os.Getenv("GITHUB_OWNER") == "" {
+		return nil, fmt.Errorf("empty GITHUB_OWNER")
 	}
 
 	config := Config{
-		Token:        os.Getenv("GITHUB_TOKEN"),
-		Organization: os.Getenv("GITHUB_ORGANIZATION"),
-		BaseURL:      "",
+		Token:   os.Getenv("GITHUB_TOKEN"),
+		Owner:   os.Getenv("GITHUB_OWNER"),
+		BaseURL: "",
 	}
 
-	client, err := config.Clients()
+	meta, err := config.Meta()
 	if err != nil {
-		return nil, fmt.Errorf("error getting Github client")
+		return nil, fmt.Errorf("error getting Github meta parameter")
 	}
 
-	return client, nil
+	return meta, nil
 }

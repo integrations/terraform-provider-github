@@ -6,12 +6,16 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubProjectColumn_basic(t *testing.T) {
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
+	}
+
 	var column github.ProjectColumn
 
 	rn := "github_project_column.column"
@@ -49,7 +53,7 @@ func TestAccGithubProjectColumn_basic(t *testing.T) {
 }
 
 func testAccGithubProjectColumnDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_project_column" {
@@ -87,7 +91,7 @@ func testAccCheckGithubProjectColumnExists(n string, project *github.ProjectColu
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		gotColumn, _, err := conn.Projects.GetProjectColumn(context.TODO(), columnID)
 		if err != nil {
 			return err

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -16,6 +16,9 @@ import (
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var membership github.Membership
@@ -54,6 +57,9 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
+	}
+	if err := testAccCheckOrganization(); err != nil {
+		t.Skipf("Skipping because %s.", err.Error())
 	}
 
 	var membership github.Membership
@@ -96,7 +102,8 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
+	orgId := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -113,8 +120,8 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		membership, resp, err := conn.Teams.GetTeamMembership(context.TODO(),
-			teamId, username)
+		membership, resp, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
+			orgId, teamId, username)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("Team membership still exists")
@@ -139,7 +146,8 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgId := testAccProvider.Meta().(*Owner).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -150,7 +158,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(), teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, username)
 
 		if err != nil {
 			return err
@@ -171,7 +179,8 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
+		orgId := testAccProvider.Meta().(*Owner).id
 		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -181,8 +190,8 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return unconvertibleIdErr(teamIdString, err)
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembership(context.TODO(),
-			teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
+			orgId, teamId, username)
 		if err != nil {
 			return err
 		}

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -102,7 +102,7 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	repository := d.Get("repository").(string)
 	owner := d.Get("owner").(string)
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	var err error

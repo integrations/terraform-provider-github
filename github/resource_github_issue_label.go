@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -60,13 +60,8 @@ func resourceGithubIssueLabel() *schema.Resource {
 // same function for two schema funcs.
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
-	orgName := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
@@ -148,18 +143,13 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -194,20 +184,15 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	client := meta.(*Owner).v3client
 
-	client := meta.(*Organization).v3client
-
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting label: %s (%s/%s)", name, orgName, repoName)
-	_, err = client.Issues.DeleteLabel(ctx,
+	_, err := client.Issues.DeleteLabel(ctx,
 		orgName, repoName, name)
 	return err
 }

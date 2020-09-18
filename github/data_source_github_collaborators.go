@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -110,7 +110,7 @@ func dataSourceGithubCollaborators() *schema.Resource {
 
 func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	owner := d.Get("owner").(string)

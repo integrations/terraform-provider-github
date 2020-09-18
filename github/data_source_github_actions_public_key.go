@@ -29,16 +29,11 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 }
 
 func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	repository := d.Get("repository").(string)
-	owner := meta.(*Organization).name
+	owner := meta.(*Owner).name
 	log.Printf("[INFO] Refreshing GitHub Actions Public Key from: %s/%s", owner, repository)
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)

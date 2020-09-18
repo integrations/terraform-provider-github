@@ -3,7 +3,7 @@ layout: "github"
 page_title: "GitHub: github_membership"
 description: |-
   Get information on user membership in an organization.
--------------------------------------------
+---
 
 # github_membership
 
@@ -23,6 +23,8 @@ data "github_membership" "membership_for_some_user" {
 ## Argument Reference
 
  * `username` - (Required) The username to lookup in the organization.
+
+ * `organization` - (Optional) The organization to check for the above username.
 
 ## Attributes Reference
 

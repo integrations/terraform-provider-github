@@ -1,112 +1,187 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"os"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubActionsSecret_basic(t *testing.T) {
-	repo := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+func TestAccGithubActionsSecret(t *testing.T) {
 
-	secretResourceName := "github_actions_secret.test_secret"
-	secretValue := "super_secret_value"
-	updatedSecretValue := "updated_super_secret_value"
-	t.Log(testAccGithubActionsSecretFullConfig(repo, secretValue))
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubActionsSecretDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubActionsSecretFullConfig(repo, secretValue),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubActionsSecretExists(secretResourceName, "test_secret_name", t),
-					resource.TestCheckResourceAttr("github_actions_secret.test_secret", "plaintext_value", secretValue),
-					resource.TestCheckResourceAttrSet("github_actions_secret.test_secret", "created_at"),
-					resource.TestCheckResourceAttrSet("github_actions_secret.test_secret", "updated_at"),
-				),
-			},
-			{
-				Config: testAccGithubActionsSecretFullConfig(repo, updatedSecretValue),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubActionsSecretExists(secretResourceName, "test_secret_name", t),
-					resource.TestCheckResourceAttr("github_actions_secret.test_secret", "plaintext_value", updatedSecretValue),
-					resource.TestCheckResourceAttrSet("github_actions_secret.test_secret", "created_at"),
-					resource.TestCheckResourceAttrSet("github_actions_secret.test_secret", "updated_at"),
-				),
-			},
-		},
+	t.Run("reads a repository public key without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
+
+			data "github_actions_public_key" "test_pk" {
+			  repository = github_repository.test.name
+			}
+
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet(
+				"data.github_actions_public_key.test_pk", "key_id",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_actions_public_key.test_pk", "key",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
 
-func testAccGithubActionsSecretFullConfig(repoName, plaintext string) string {
+	t.Run("creates and updates secrets without error", func(t *testing.T) {
 
-	// Take resources from other tests to avoid manual creation of secrets / repos
-	githubPKData := testAccCheckGithubActionsPublicKeyDataSourceConfig(repoName)
-	githubActionsSecretResource := testAccGithubActionsSecretConfig(repoName, plaintext)
+		secretValue := "super_secret_value"
+		updatedSecretValue := "updated_super_secret_value"
 
-	return fmt.Sprintf("%s%s", githubPKData, githubActionsSecretResource)
-}
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
 
-func testAccGithubActionsSecretConfig(repo, plaintext string) string {
-	return fmt.Sprintf(`
-resource "github_actions_secret" "test_secret" {
-  repository       = "%s"
-  secret_name      = "test_secret_name"
-  plaintext_value  = "%s"
-}
-`, repo, plaintext)
-}
+			resource "github_actions_secret" "test_secret" {
+			  repository       = github_repository.test.name
+			  secret_name      = "test_secret_name"
+			  plaintext_value  = "%s"
+			}
+		`, randomID, secretValue)
 
-func testAccCheckGithubActionsSecretExists(resourceName, secretName string, t *testing.T) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		actualResource, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("not Found: %s", resourceName)
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_actions_secret.test_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.test_secret", "created_at",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.test_secret", "updated_at",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_actions_secret.test_secret", "plaintext_value",
+					updatedSecretValue,
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.test_secret", "created_at",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.test_secret", "updated_at",
+				),
+			),
 		}
 
-		repoName := actualResource.Primary.Attributes["repository"]
-		if repoName == "" {
-			return fmt.Errorf("no repo name is set")
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							secretValue,
+							updatedSecretValue, 1),
+						Check: checks["after"],
+					},
+				},
+			})
 		}
 
-		org := testAccProvider.Meta().(*Organization)
-		conn := org.v3client
-		_, _, err := conn.Actions.GetSecret(context.TODO(), org.name, repoName, secretName)
-		if err != nil {
-			t.Log("Failed to get secret")
-			return err
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("deletes secrets without error", func(t *testing.T) {
+
+		secretValue := "super_secret_value"
+
+		config := fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-test-%s"
+				}
+
+				resource "github_actions_secret" "test_secret" {
+					repository       = github_repository.test.name
+					secret_name      = "test_secret_name"
+					plaintext_value  = "%s"
+				}
+			`, randomID, secretValue)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:  config,
+						Destroy: true,
+					},
+				},
+			})
 		}
 
-		return nil
-	}
-}
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
 
-func testAccCheckGithubActionsSecretDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Organization).v3client
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
 
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_actions_secret" {
-			continue
-		}
-		owner := testAccProvider.Meta().(*Organization).name
-		repoName := rs.Primary.Attributes["repository"]
-		secretName := rs.Primary.Attributes["secret_name"]
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 
-		gotSecret, resp, err := client.Actions.GetSecret(context.TODO(), owner, repoName, secretName)
-		if err == nil && gotSecret != nil && gotSecret.Name == secretName {
-			return fmt.Errorf("secret %s still exists", rs.Primary.ID)
-		}
-		if resp != nil && resp.StatusCode != 404 {
-			return err
-		}
-		return nil
-	}
-	return nil
+	})
+
 }

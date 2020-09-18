@@ -14,10 +14,16 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
+				Description: descriptions["owner"],
+			},
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
+				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
 				Description: descriptions["organization"],
 			},
 			"base_url": {
@@ -31,17 +37,6 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
-			},
-			"individual": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: descriptions["individual"],
-			},
-			"anonymous": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: descriptions["anonymous"],
 			},
 		},
 
@@ -63,6 +58,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository":               resourceGithubRepository(),
 			"github_team_membership":          resourceGithubTeamMembership(),
 			"github_team_repository":          resourceGithubTeamRepository(),
+			"github_team_sync_group_mapping":  resourceGithubTeamSyncGroupMapping(),
 			"github_team":                     resourceGithubTeam(),
 			"github_user_gpg_key":             resourceGithubUserGpgKey(),
 			"github_user_invitation_accepter": resourceGithubUserInvitationAccepter(),
@@ -70,16 +66,18 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_actions_public_key": dataSourceGithubActionsPublicKey(),
-			"github_branch":             dataSourceGithubBranch(),
-			"github_collaborators":      dataSourceGithubCollaborators(),
-			"github_ip_ranges":          dataSourceGithubIpRanges(),
-			"github_membership":         dataSourceGithubMembership(),
-			"github_release":            dataSourceGithubRelease(),
-			"github_repositories":       dataSourceGithubRepositories(),
-			"github_repository":         dataSourceGithubRepository(),
-			"github_team":               dataSourceGithubTeam(),
-			"github_user":               dataSourceGithubUser(),
+			"github_actions_public_key":            dataSourceGithubActionsPublicKey(),
+			"github_branch":                        dataSourceGithubBranch(),
+			"github_collaborators":                 dataSourceGithubCollaborators(),
+			"github_ip_ranges":                     dataSourceGithubIpRanges(),
+			"github_membership":                    dataSourceGithubMembership(),
+			"github_organization":                  dataSourceGithubOrganization(),
+			"github_organization_team_sync_groups": dataSourceGithubOrganizationTeamSyncGroups(),
+			"github_release":                       dataSourceGithubRelease(),
+			"github_repositories":                  dataSourceGithubRepositories(),
+			"github_repository":                    dataSourceGithubRepository(),
+			"github_team":                          dataSourceGithubTeam(),
+			"github_user":                          dataSourceGithubUser(),
 		},
 	}
 
@@ -93,43 +91,54 @@ var descriptions map[string]string
 func init() {
 	descriptions = map[string]string{
 		"token": "The OAuth token used to connect to GitHub. " +
-			"If `anonymous` is false, `token` is required.",
-
-		"organization": "The GitHub organization name to manage. " +
-			"If `individual` is false, `organization` is required.",
+			"`anonymous` mode is enabled if `token` is not configured.",
 
 		"base_url": "The GitHub Base API URL",
 
-		"insecure": "Whether server should be accessed " +
-			"without verifying the TLS certificate.",
+		"insecure": "Enable `insecure` mode for testing purposes",
 
-		"individual": "Run outside an organization.  When `individual`" +
-			"is true, the provider will run outside the scope of an" +
-			"organization.",
+		"owner": "The GitHub owner name to manage. " +
+			"Use this field instead of `organization` when managing individual accounts.",
 
-		"anonymous": "Authenticate without a token.  When `anonymous`" +
-			"is true, the provider will not be able to access resources" +
-			"that require authentication.",
+		"organization": "The GitHub organization name to manage. " +
+			"Use this field instead of `owner` when managing organization accounts.",
 	}
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
+
+		anonymous := true
+		if d.Get("token").(string) != "" {
+			anonymous = false
+		}
+
+		individual := true
+		if d.Get("organization").(string) != "" {
+			individual = false
+		}
+
+		owner := d.Get("owner").(string)
+		if !individual {
+			owner = d.Get("organization").(string)
+		}
+
 		config := Config{
 			Token:        d.Get("token").(string),
 			Organization: d.Get("organization").(string),
 			BaseURL:      d.Get("base_url").(string),
 			Insecure:     d.Get("insecure").(bool),
-			Individual:   d.Get("individual").(bool),
-			Anonymous:    d.Get("anonymous").(bool),
+			Owner:        owner,
+			Individual:   individual,
+			Anonymous:    anonymous,
 		}
 
-		meta, err := config.Clients()
+		meta, err := config.Meta()
 		if err != nil {
 			return nil, err
 		}
 
-		meta.(*Organization).StopContext = p.StopContext()
+		meta.(*Owner).StopContext = p.StopContext()
 
 		return meta, nil
 	}

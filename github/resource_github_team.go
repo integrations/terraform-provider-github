@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -65,9 +65,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).v3client
+	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Organization).name
+	orgName := meta.(*Owner).name
 	name := d.Get("name").(string)
 	newTeam := github.NewTeam{
 		Name:        name,
@@ -107,8 +107,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -158,8 +158,8 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -204,8 +204,8 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	orgId := meta.(*Organization).id
+	client := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

@@ -1,4 +1,69 @@
-## 2.8.0 (Unreleased)
+## 3.0.0 (Unreleased)
+
+BREAKING CHANGES:
+
+- `token` becomes optional
+- `organization` no longer deprecated
+- `individual` and `anonymous` removed
+- `owner` inferred from `organization`
+
+BUG FIXES:
+
+- `terraform validate` fails because of missing token (GH-503)
+- organization support for various resources (GH-501)
+
+ENHANCEMENTS:
+
+* **New Data Source** `github_organization` (GH-521)
+
+
+
+## 2.9.2 (July 14, 2020)
+
+- Adds deprecation of `anonymous` flag for provider configuration ahead of next major release ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
+- Adds deprecation of `individual` flag for provider configuration ahead of next major release ([#512](https://github.com/terraform-providers/terraform-provider-github/issues/512))
+
+## 2.9.1 (July 01, 2020)
+
+BUG FIXES:
+
+- Reverts changes introduced in v2.9.0, deferring to the next major release
+
+## 2.9.0 (June 29, 2020)
+
+**NOTE**: This release introduced a provider-level breaking change around `anonymous` use.
+See [here](https://github.com/terraform-providers/terraform-provider-github/pull/464#discussion_r427961161) for details and [here](https://github.com/terraform-providers/terraform-provider-github/issues/502#issuecomment-652379322) to discuss a fix.
+
+ENHANCEMENTS:
+* Add Ability To Manage Resources For Non-Organization Accounts ([#464](https://github.com/terraform-providers/terraform-provider-github/issues/464))
+* resource/github_repository: Add "internal" Visibility Option ([#454](https://github.com/terraform-providers/terraform-provider-github/issues/454))
+
+## 2.8.1 (June 09, 2020)
+
+BUG FIXES:
+
+* resource/github_repository_file: Reduce API requests when looping through commits ([[#466](https://github.com/terraform-providers/terraform-provider-github/issues/466)])
+* resource/github_repository: Fix `auto_init` Destroying Repositories ([[#317](https://github.com/terraform-providers/terraform-provider-github/issues/317)])
+* resource/github_repository_deploy_key: Fix acceptance test approach ([[#471](https://github.com/terraform-providers/terraform-provider-github/issues/471)])
+* resource/github_actions_secret: Fix Case Where Secret Removed Outside Of Terraform ([[#482](https://github.com/terraform-providers/terraform-provider-github/issues/482)])
+* Documentation Addition Of `examples/` Directory
+
+## 2.8.0 (May 15, 2020)
+
+BUG FIXES:
+
+* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in Github console if `dismissal_users` and `dismissal_teams` are not set ([#453](https://github.com/terraform-providers/terraform-provider-github/issues/453))
+* resource/github_repository_collaborator: Allow modifying permissions from `maintain` and `triage`  ([#457](https://github.com/terraform-providers/terraform-provider-github/issues/457))
+* Documentation Fix for `github_actions_public_key` data-source ([#458](https://github.com/terraform-providers/terraform-provider-github/issues/458))
+* Documentation Fix for `github_branch_protection` resource ([#410](https://github.com/terraform-providers/terraform-provider-github/issues/410))
+* Documentation Layout Fix for `github_ip_ranges` and `github_membership` data sources ([#423](https://github.com/terraform-providers/terraform-provider-github/issues/423))
+* Documentation Fix for `github_repository_file` import ([#443](https://github.com/terraform-providers/terraform-provider-github/issues/443))
+* Update `go-github` to `v31.0.0` ([#424](https://github.com/terraform-providers/terraform-provider-github/issues/424))
+
+ENHANCEMENTS:
+* **New Data Source** `github_organization_team_sync_groups` ([#400](https://github.com/terraform-providers/terraform-provider-github/issues/400))
+* **New Resource** `github_team_sync_group_mapping` ([#400](https://github.com/terraform-providers/terraform-provider-github/issues/400))
+
 ## 2.7.0 (May 01, 2020)
 
 BUG FIXES:
@@ -112,7 +177,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
-* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)] 
+* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)]
 
 BUG FIXES:
 
@@ -120,7 +185,7 @@ BUG FIXES:
 * `resource/github_repository`: `has_projects` can now be imported ([#237](https://github.com/terraform-providers/terraform-provider-github/issues/237))
 * `resource/github_repository_collaborator`: `username` property is now case insensitive [[#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
 * `resource/github_team_membership`: `username` property is now case insensitive ([#241](https://github.com/terraform-providers/terraform-provider-github/issues/241))
- 
+
 
 ## 2.1.0 (May 15, 2019)
 
@@ -234,7 +299,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-* `resource/github_branch_protection`: The `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user. 
+* `resource/github_branch_protection`: The `include_admin` attributes haven't been working for quite some time due to upstream API changes. These attributes are now deprecated in favor of the new top-level `enforce_admins` attribute. The `include_admin` attributes currently have no affect on the resource, and will yield a `DEPRECATED` notice to the user.
 
 IMPROVEMENTS:
 
@@ -244,7 +309,7 @@ IMPROVEMENTS:
 * `resource/github_branch_protection`: Support enforce_admins ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 * `resource/github_team`: Supports managing a team's LDAP DN in GitHub Enterprise ([#39](https://github.com/terraform-providers/terraform-provider-github/issues/39))
 
-BUG FIXES: 
+BUG FIXES:
 
 * `resource/github_branch_protection`: Fix crash on nil values ([#26](https://github.com/terraform-providers/terraform-provider-github/issues/26))
 

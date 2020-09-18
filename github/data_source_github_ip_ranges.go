@@ -34,9 +34,9 @@ func dataSourceGithubIpRanges() *schema.Resource {
 }
 
 func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) error {
-	org := meta.(*Organization)
+	owner := meta.(*Owner)
 
-	api, _, err := org.v3client.APIMeta(org.StopContext)
+	api, _, err := owner.v3client.APIMeta(owner.StopContext)
 	if err != nil {
 		return err
 	}
