@@ -46,7 +46,6 @@ func resourceGithubBranchProtection() *schema.Resource {
 						PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							Default:      1,
 							ValidateFunc: validation.IntBetween(1, 6),
 						},
 						PROTECTION_REQUIRES_CODE_OWNER_REVIEWS: {
