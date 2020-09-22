@@ -491,6 +491,130 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
+	t.Run("configures vulnerability alerts", func(t *testing.T) {
+
+		t.Run("for a public repository", func(t *testing.T) {
+
+			config := fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name       = "tf-acc-test-pub-vuln-%s"
+					visibility = "public"
+				}
+			`, randomID)
+
+			checks := map[string]resource.TestCheckFunc{
+				"before": resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "vulnerability_alerts",
+						"false",
+					),
+				),
+				"after": resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "vulnerability_alerts",
+						"true",
+					),
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "visibility",
+						"public",
+					),
+				),
+			}
+
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  checks["before"],
+						},
+						{
+							Config: strings.Replace(config,
+								`}`,
+								"vulnerability_alerts = true\n}", 1),
+							Check: checks["after"],
+						},
+					},
+				})
+			}
+
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
+		})
+
+		t.Run("for a private repository", func(t *testing.T) {
+
+			config := fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name       = "tf-acc-test-prv-vuln-%s"
+					visibility = "private"
+				}
+			`, randomID)
+
+			checks := map[string]resource.TestCheckFunc{
+				"before": resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "vulnerability_alerts",
+						"false",
+					),
+				),
+				"after": resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "vulnerability_alerts",
+						"true",
+					),
+					resource.TestCheckResourceAttr(
+						"github_repository.test", "visibility",
+						"private",
+					),
+				),
+			}
+
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  checks["before"],
+						},
+						{
+							Config: strings.Replace(config,
+								`}`,
+								"vulnerability_alerts = true\n}", 1),
+							Check: checks["after"],
+						},
+					},
+				})
+			}
+
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
+		})
+
+	})
+
 }
 
 func testSweepRepositories(region string) error {

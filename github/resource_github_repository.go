@@ -302,7 +302,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
 	}
 	if createVulnerabilityAlerts != nil {
-		_, err = createVulnerabilityAlerts(ctx, orgName, repoName)
+		_, err := createVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("template", []interface{}{})
 	}
 
-	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, orgName, repoName)
+	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 	if err != nil {
 		return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
 	}
@@ -446,7 +446,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
 		}
 
-		_, err = updateVulnerabilityAlerts(ctx, orgName, repoName)
+		_, err = updateVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
