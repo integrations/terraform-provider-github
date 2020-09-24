@@ -32,7 +32,7 @@ jobs:
         with:
           TF_LOG: INFO
           GITHUB_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.GITHUB_TEST_USER_TOKEN }}
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_ORGANIZATION: terraformtesting
 
   acceptance-tests-organization:
@@ -48,5 +48,5 @@ jobs:
         with:
           TF_LOG: INFO
           GITHUB_ORGANIZATION: terraformtesting
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.GITHUB_TEST_USER_TOKEN }}
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
