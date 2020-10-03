@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -74,7 +75,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 			  name      = "tf-acc-test-%s"
 			  auto_init = true
@@ -83,35 +83,22 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource "github_repository_file" "test" {
 			  repository     = github_repository.test.name
 			  branch         = "main"
-			  file           = "foo"
-			  content        = "bar"
+			  file           = "README.md"
+			  content        = "overwrite"
 			  overwrite      = false
 			}
 		`, randomID)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_file.test", "content",
-					"bar",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_file.test", "sha",
-					"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-				),
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				"bar",
 			),
-
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_file.test", "content",
-					"bar",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_file.test", "sha",
-					"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-				),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "sha",
+				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
 			),
-		}
+		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -119,14 +106,14 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  checks["before"],
+						Config:      config,
+						ExpectError: regexp.MustCompile(`Not Found`),
 					},
 					{
 						Config: strings.Replace(config,
 							"overwrite      = false",
 							"overwrite      = true", 1),
-						Check: checks["after"],
+						Check: check,
 					},
 				},
 			})
