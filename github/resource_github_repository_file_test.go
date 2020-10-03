@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -84,20 +85,33 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			  branch         = "main"
 			  file           = "foo"
 			  content        = "bar"
-			  overwrite      = true
+			  overwrite      = false
 			}
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "content",
-				"bar",
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_file.test", "content",
+					"bar",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_file.test", "sha",
+					"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+				),
 			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_file.test", "content",
+					"bar",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_file.test", "sha",
+					"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+				),
 			),
-		)
+		}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -106,7 +120,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						Check:  check,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							"overwrite      = false",
+							"overwrite      = true", 1),
+						Check: checks["after"],
 					},
 				},
 			})
