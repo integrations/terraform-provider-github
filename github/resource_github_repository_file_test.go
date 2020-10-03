@@ -25,8 +25,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource "github_repository_file" "foo" {
 			  repository     = github_repository.foo.name
 			  branch         = "master"
-			  file           = "%s"
-			  content        = "%s"
+			  file           = "foo"
+			  content        = "bar"
 			  commit_message = "Managed by Terraform"
 			  commit_author  = "Terraform User"
 			  commit_email   = "terraform@example.com"
