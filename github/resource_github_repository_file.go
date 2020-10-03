@@ -142,9 +142,6 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 }
 
 func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := checkOrganization(meta); err != nil {
-		return err
-	}
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
@@ -207,10 +204,6 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
@@ -257,9 +250,6 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) error {
-	if err := checkOrganization(meta); err != nil {
-		return err
-	}
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
@@ -293,9 +283,6 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}) error {
-	if err := checkOrganization(meta); err != nil {
-		return err
-	}
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
