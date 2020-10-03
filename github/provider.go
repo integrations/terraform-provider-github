@@ -10,28 +10,33 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
 			"owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
+				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
 				Description: descriptions["owner"],
 			},
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
+				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
 				Description: descriptions["organization"],
-				Deprecated:  "Use owner field (or GITHUB_OWNER ENV variable)",
 			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_BASE_URL", "https://api.github.com/"),
 				Description: descriptions["base_url"],
+			},
+			"insecure": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["insecure"],
 			},
 		},
 
@@ -66,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"github_collaborators":                 dataSourceGithubCollaborators(),
 			"github_ip_ranges":                     dataSourceGithubIpRanges(),
 			"github_membership":                    dataSourceGithubMembership(),
+			"github_organization":                  dataSourceGithubOrganization(),
 			"github_organization_team_sync_groups": dataSourceGithubOrganizationTeamSyncGroups(),
 			"github_release":                       dataSourceGithubRelease(),
 			"github_repositories":                  dataSourceGithubRepositories(),
@@ -85,30 +91,49 @@ var descriptions map[string]string
 func init() {
 	descriptions = map[string]string{
 		"token": "The OAuth token used to connect to GitHub. " +
-			"If `anonymous` is false, `token` is required.",
-
-		"owner": "The GitHub owner name to manage.",
-
-		"organization": "(Deprecated) The GitHub organization name to manage.",
+			"`anonymous` mode is enabled if `token` is not configured.",
 
 		"base_url": "The GitHub Base API URL",
+
+		"insecure": "Enable `insecure` mode for testing purposes",
+
+		"owner": "The GitHub owner name to manage. " +
+			"Use this field instead of `organization` when managing individual accounts.",
+
+		"organization": "The GitHub organization name to manage. " +
+			"Use this field instead of `owner` when managing organization accounts.",
 	}
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-		owner := d.Get("organization").(string)
-		if owner == "" {
-			owner = d.Get("owner").(string)
-		}
-		// If owner is still blank, defaults to authenticated user
-		config := Config{
-			Token:   d.Get("token").(string),
-			Owner:   owner,
-			BaseURL: d.Get("base_url").(string),
+
+		anonymous := true
+		if d.Get("token").(string) != "" {
+			anonymous = false
 		}
 
-		meta, err := config.Clients()
+		individual := true
+		if d.Get("organization").(string) != "" {
+			individual = false
+		}
+
+		owner := d.Get("owner").(string)
+		if !individual {
+			owner = d.Get("organization").(string)
+		}
+
+		config := Config{
+			Token:        d.Get("token").(string),
+			Organization: d.Get("organization").(string),
+			BaseURL:      d.Get("base_url").(string),
+			Insecure:     d.Get("insecure").(bool),
+			Owner:        owner,
+			Individual:   individual,
+			Anonymous:    anonymous,
+		}
+
+		meta, err := config.Meta()
 		if err != nil {
 			return nil, err
 		}

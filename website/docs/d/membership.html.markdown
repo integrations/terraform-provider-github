@@ -24,6 +24,8 @@ data "github_membership" "membership_for_some_user" {
 
  * `username` - (Required) The username to lookup in the organization.
 
+ * `organization` - (Optional) The organization to check for the above username.
+
 ## Attributes Reference
 
  * `username` - The username.

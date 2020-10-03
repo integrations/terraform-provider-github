@@ -8,52 +8,84 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubMembershipDataSource_noMatchReturnsError(t *testing.T) {
-	username := "admin"
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccCheckGithubMembershipDatasourceConfig(username),
-				ExpectError: regexp.MustCompile(`Not Found`),
-			},
-		},
+func TestAccGithubMembershipDataSource(t *testing.T) {
+
+	t.Run("queries the membership for a user in a specified organization", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			data "github_membership" "test" {
+				username = "%s"
+				organization = "%s"
+			}
+		`, testOwner, testOrganization)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwner),
+			resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
+			resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
 
-func TestAccGithubMembershipDataSource_existing(t *testing.T) {
-	if testUser == "" {
-		t.Skip("This test requires you to set the test user (set it by exporting GITHUB_TEST_USER)")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("errors when querying with non-existent user", func(t *testing.T) {
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubMembershipDatasourceConfig(testUser),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.github_membership.test", "username", testUser),
-					resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
-					resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
-				),
-			},
-		},
+		config := fmt.Sprintf(`
+			data "github_membership" "test" {
+				username = "%s"
+				organization = "%s"
+			}
+		`, "!"+testOwner, testOrganization)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile(`Not Found`),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
 
-func testAccCheckGithubMembershipDatasourceConfig(username string) string {
-	return fmt.Sprintf(`
-data "github_membership" "test" {
-  username = "%s"
-}
-`, username)
 }

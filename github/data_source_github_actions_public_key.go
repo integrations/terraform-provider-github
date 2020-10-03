@@ -29,11 +29,6 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 }
 
 func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 	log.Printf("[INFO] Refreshing GitHub Actions Public Key from: %s/%s", owner, repository)

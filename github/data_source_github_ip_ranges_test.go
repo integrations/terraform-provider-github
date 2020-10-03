@@ -6,24 +6,43 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubIpRangesDataSource_existing(t *testing.T) {
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: `
-				data "github_ip_ranges" "test" {}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "hooks.#"),
-					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git.#"),
-					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages.#"),
-					resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer.#"),
-				),
-			},
-		},
+func TestAccGithubIpRangesDataSource(t *testing.T) {
+
+	t.Run("reads IP ranges without error", func(t *testing.T) {
+
+		config := `data "github_ip_ranges" "test" {}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "hooks.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer.#"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
 }

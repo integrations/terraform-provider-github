@@ -41,8 +41,17 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"private": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:          schema.TypeBool,
+				Computed:      true, // is affected by "visibility"
+				Optional:      true,
+				ConflictsWith: []string{"visibility"},
+				Deprecated:    "use visibility instead",
+			},
+			"visibility": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true, // is affected by "private"
+				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
 			},
 			"has_issues": {
 				Type:     schema.TypeBool,
@@ -109,6 +118,10 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"archive_on_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"topics": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -116,6 +129,10 @@ func resourceGithubRepository() *schema.Resource {
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
 				},
+			},
+			"vulnerability_alerts": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 
 			"full_name": {
@@ -178,6 +195,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
 		Private:             github.Bool(d.Get("private").(bool)),
+		Visibility:          github.String(d.Get("visibility").(string)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
@@ -204,6 +222,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
+
+	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
+	// are encountered when the resources is created with the visibility parameter. As
+	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
+	repoReq.Visibility = nil
+
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -264,6 +288,26 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	var alerts, private bool
+	if a, ok := d.GetOk("vulnerability_alerts"); ok {
+		alerts = a.(bool)
+	}
+	if p, ok := d.GetOk("private"); ok {
+		private = p.(bool)
+	}
+	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
+	if private && alerts {
+		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+	} else if !private && !alerts {
+		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
+	}
+	if createVulnerabilityAlerts != nil {
+		_, err := createVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -300,6 +344,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
@@ -331,13 +376,33 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("template", []interface{}{})
 	}
 
+	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+	}
+	d.Set("vulnerability_alerts", vulnerabilityAlerts)
+
 	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	// Can only update a repository if it is not archived or the update is to
+	// archive the repository (unarchiving is not supported by the Github API)
+	if d.Get("archived").(bool) && !d.HasChange("archived") {
+		log.Printf("[DEBUG] Skipping update of archived repository")
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
+
+	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+	if !d.HasChange("visibility") {
+		repoReq.Visibility = nil
+	}
+
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
 		branch := v.(string)
@@ -364,6 +429,27 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		if err != nil {
 			return err
 		}
+		d.SetId(*repo.Name)
+
+		if d.HasChange("topics") {
+			topics := repoReq.Topics
+			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if !d.IsNewResource() && d.HasChange("vulnerability_alerts") {
+		updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
+		if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
+			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+		}
+
+		_, err = updateVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceGithubRepositoryRead(d, meta)
@@ -375,8 +461,21 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
+	if archiveOnDestroy {
+		if d.Get("archived").(bool) {
+			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
+			return nil
+		} else {
+			d.Set("archived", true)
+			repoReq := resourceGithubRepositoryObject(d)
+			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+			return err
+		}
+	}
+
 	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
-
 	return err
 }

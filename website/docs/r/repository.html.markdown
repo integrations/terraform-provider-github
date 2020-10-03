@@ -38,6 +38,8 @@ The following arguments are supported:
 
 * `private` - (Optional) Set to `true` to create a private repository.
   Repositories are created as public (e.g. open source) by default.
+  
+* `visibility` - (Optional) Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The `visibility` parameter overrides the `private` parameter.
 
 * `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features
   on the repository.
@@ -71,9 +73,13 @@ initial repository creation and create the target branch inside of the repositor
 
 * `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. **NOTE** Currently, the API does not support unarchiving.
 
+* `archive_on_destroy` - (Optional) Set to `true` to archive the repository instead of deleting on destroy.
+
 * `topics` - (Optional) The list of topics of the repository.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
+
+* `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. 
 
 ### Template Repositories
 
