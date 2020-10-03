@@ -12,7 +12,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("create and manage files", func(t *testing.T) {
+	t.Run("creates and manages files", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 
@@ -29,7 +29,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_message = "Managed by Terraform"
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
-				overwrite      = true
 			}
 		`, randomID)
 
@@ -37,6 +36,10 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
 				"bar",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "sha",
+				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
 			),
 		)
 
