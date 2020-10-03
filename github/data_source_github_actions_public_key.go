@@ -36,7 +36,7 @@ func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)
+	publicKey, _, err := client.Actions.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {
 		return err
 	}
