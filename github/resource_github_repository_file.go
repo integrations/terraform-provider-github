@@ -31,8 +31,8 @@ func resourceGithubRepositoryFile() *schema.Resource {
 					branch = parts[1]
 				}
 
-				client := meta.(*Organization).v3client
-				org := meta.(*Organization).name
+				client := meta.(*Owner).v3client
+				org := meta.(*Owner).name
 				repo, file := splitRepoFilePath(parts[0])
 				if err := checkRepositoryFileExists(client, org, repo, file, branch); err != nil {
 					return nil, err
@@ -146,8 +146,8 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
@@ -212,8 +212,8 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repo, file := splitRepoFilePath(d.Id())
@@ -261,8 +261,8 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
@@ -297,8 +297,8 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	client := meta.(*Organization).v3client
-	org := meta.(*Organization).name
+	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
