@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -17,20 +16,14 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 		config := fmt.Sprintf(`
 
-
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
 				auto_init = true
 			}
 
-			resource "github_branch" "test" {
-				repository = github_repository.test.id
-				branch     = "tf-acc-test-%[1]s"
-			}
-
 			resource "github_repository_file" "test" {
 				repository     = github_repository.test.name
-				branch         = github_branch.test.branch
+				branch         = "main"
 				file           = "test"
 				content        = "bar"
 				commit_message = "Managed by Terraform"
@@ -38,18 +31,12 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email   = "terraform@example.com"
 				overwrite      = true
 			}
-
-			resource "github_repository_file" "gitignore" {
-				repository = github_repository.test.name
-				file       = ".gitignore"
-				content    = "**/*.tfstate"
-			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestMatchResourceAttr(
-				"github_repository_file.test", "url",
-				regexp.MustCompile(randomID+"/projects/1"),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				"bar",
 			),
 		)
 
