@@ -96,7 +96,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+				"67c1a95c2d9bb138aefeaebb319cca82e531736b",
 			),
 		)
 
