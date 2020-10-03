@@ -14,11 +14,23 @@ GitHub repository.
 ## Example Usage
 
 ```hcl
-resource "github_repository_file" "gitignore" {
-  repository = "example"
-  file       = ".gitignore"
-  content    = "**/*.tfstate"
+
+resource "github_repository" "foo" {
+  name      = "tf-acc-test-%s"
+  auto_init = true
 }
+
+resource "github_repository_file" "foo" {
+  repository          = github_repository.foo.name
+  branch              = "main"
+  file                = ".gitignore"
+  content             = "**/*.tfstate"
+  commit_message      = "Managed by Terraform"
+  commit_author       = "Terraform User"
+  commit_email        = "terraform@example.com"
+  overwrite_on_create = true
+}
+
 ```
 
 
@@ -41,6 +53,7 @@ The following arguments are supported:
 
 * `commit_message` - (Optional) Commit message when adding or updating the managed file.
 
+* `overwrite_on_create` - (Optional) Enable overwriting existing files
 
 ## Attributes Reference
 

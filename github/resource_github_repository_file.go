@@ -40,6 +40,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 				d.SetId(fmt.Sprintf("%s/%s", repo, file))
 				d.Set("branch", branch)
+				d.Set("overwrite_on_create", false)
 
 				return []*schema.ResourceData{d}, nil
 			},
@@ -93,6 +94,12 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Computed:    true,
 				Description: "The blob SHA of the file",
 			},
+			"overwrite_on_create": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable overwriting existing files, defaults to \"false\"",
+				Default:     false,
+			},
 		},
 	}
 }
@@ -135,6 +142,7 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 }
 
 func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -157,21 +165,46 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 		opts.Message = &m
 	}
 
+	log.Printf("[DEBUG] Checking if overwriting a repository file: %s/%s/%s in branch: %s", owner, repo, file, branch)
+	checkOpt := github.RepositoryContentGetOptions{Ref: branch}
+	fileContent, _, resp, err := client.Repositories.GetContents(ctx, owner, repo, file, &checkOpt)
+	if err != nil {
+		if resp != nil {
+			if resp.StatusCode != 404 {
+				// 404 is a valid response if the file does not exist
+				return err
+			}
+		} else {
+			// Response should be non-nil
+			return err
+		}
+	}
+
+	if fileContent != nil {
+		if d.Get("overwrite_on_create").(bool) {
+			// Overwrite existing file if requested by configuring the options for
+			// `client.Repositories.CreateFile` to match the existing file's SHA
+			opts.SHA = fileContent.SHA
+		} else {
+			// Error if overwriting a file is not requested
+			return fmt.Errorf("[ERROR] Refusing to overwrite existing file. Configure `overwrite_on_create` to `true` to override.")
+		}
+	}
+
+	// Create a new or overwritten file
 	log.Printf("[DEBUG] Creating repository file: %s/%s/%s in branch: %s", owner, repo, file, branch)
-	resp, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+	_, _, err = client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
 	}
 
-	d.Set("commit_author", resp.GetCommitter().GetName())
-	d.Set("commit_email", resp.GetCommitter().GetEmail())
-	d.Set("commit_message", resp.GetMessage())
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
 func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -203,10 +236,21 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("file", file)
 	d.Set("sha", fc.GetSHA())
 
+	log.Printf("[DEBUG] Fetching commit info for repository file: %s/%s/%s", owner, repo, file)
+	commit, err := getFileCommit(client, owner, repo, file, branch)
+	if err != nil {
+		return err
+	}
+
+	d.Set("commit_author", commit.GetCommit().GetCommitter().GetName())
+	d.Set("commit_email", commit.GetCommit().GetCommitter().GetEmail())
+	d.Set("commit_message", commit.GetCommit().GetMessage())
+
 	return nil
 }
 
 func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -230,19 +274,16 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 	}
 
 	log.Printf("[DEBUG] Updating content in repository file: %s/%s/%s", owner, repo, file)
-	resp, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+	_, _, err = client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
 	}
-
-	d.Set("commit_author", resp.GetCommitter().GetName())
-	d.Set("commit_email", resp.GetCommitter().GetEmail())
-	d.Set("commit_message", resp.GetMessage())
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
 func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -296,4 +337,49 @@ func checkRepositoryFileExists(client *github.Client, owner, repo, file, branch 
 	}
 
 	return nil
+}
+
+func getFileCommit(client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
+	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
+	opts := &github.CommitsListOptions{
+		SHA: branch,
+	}
+	allCommits := []*github.RepositoryCommit{}
+	for {
+		commits, resp, err := client.Repositories.ListCommits(ctx, owner, repo, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		allCommits = append(allCommits, commits...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opts.Page = resp.NextPage
+	}
+
+	for _, c := range allCommits {
+		sha := c.GetSHA()
+
+		// Skip merge commits
+		if strings.Contains(c.Commit.GetMessage(), "Merge branch") {
+			continue
+		}
+
+		rc, _, err := client.Repositories.GetCommit(ctx, owner, repo, sha)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range rc.Files {
+			if f.GetFilename() == file && f.GetStatus() != "removed" {
+				log.Printf("[DEBUG] Found file: %s in commit: %s", file, sha)
+				return rc, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("Cannot find file %s in repo %s/%s", file, owner, repo)
 }
