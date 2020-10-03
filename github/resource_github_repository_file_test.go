@@ -107,7 +107,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
-						ExpectError: regexp.MustCompile(`Not Found`),
+						ExpectError: regexp.MustCompile(`Refusing to overwrite existing file`),
 					},
 					{
 						Config: strings.Replace(config,
