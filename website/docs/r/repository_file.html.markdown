@@ -14,6 +14,22 @@ GitHub repository.
 ## Example Usage
 
 ```hcl
+resource "github_repository" "foo" {
+  name      = "tf-acc-test-%s"
+  auto_init = true
+}
+
+resource "github_repository_file" "foo" {
+  repository     = github_repository.foo.name
+  branch         = "master"
+  file           = "%s"
+  content        = "%s"
+  commit_message = "Managed by Terraform"
+  commit_author  = "Terraform User"
+  commit_email   = "terraform@example.com"
+  overwrite      = true
+}
+
 resource "github_repository_file" "gitignore" {
   repository = "example"
   file       = ".gitignore"
