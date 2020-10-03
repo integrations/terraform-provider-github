@@ -84,7 +84,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			  repository     = github_repository.test.name
 			  branch         = "main"
 			  file           = "README.md"
-			  content        = "overwrite"
+			  content        = "overwritten"
 			  overwrite      = false
 			}
 		`, randomID)
@@ -92,7 +92,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
-				"bar",
+				"overwritten",
 			),
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "sha",
