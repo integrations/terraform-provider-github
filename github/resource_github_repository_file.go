@@ -40,7 +40,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 				d.SetId(fmt.Sprintf("%s/%s", repo, file))
 				d.Set("branch", branch)
-				d.Set("overwrite", false)
+				d.Set("overwrite_on_create", false)
 
 				return []*schema.ResourceData{d}, nil
 			},
@@ -94,7 +94,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Computed:    true,
 				Description: "The blob SHA of the file",
 			},
-			"overwrite": {
+			"overwrite_on_create": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Enable overwriting existing files, defaults to \"false\"",
@@ -181,13 +181,13 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	if fileContent != nil {
-		if d.Get("overwrite").(bool) {
+		if d.Get("overwrite_on_create").(bool) {
 			// Overwrite existing file if requested by configuring the options for
 			// `client.Repositories.CreateFile` to match the existing file's SHA
 			opts.SHA = fileContent.SHA
 		} else {
 			// Error if overwriting a file is not requested
-			return fmt.Errorf("[ERROR] Refusing to overwrite existing file. Configure `overwrite` to `true` to override.")
+			return fmt.Errorf("[ERROR] Refusing to overwrite existing file. Configure `overwrite_on_create` to `true` to override.")
 		}
 	}
 

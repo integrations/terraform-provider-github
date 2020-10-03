@@ -81,12 +81,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			}
 
 			resource "github_repository_file" "test" {
-			  repository     = github_repository.test.name
-			  branch         = "main"
-			  file           = "README.md"
-			  content        = "overwritten"
-			  overwrite      = false
+				repository          = github_repository.test.name
+				branch              = "main"
+				file                = "README.md"
+				content             = "overwritten"
+				overwrite_on_create = false
 			}
+
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
@@ -111,8 +112,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					},
 					{
 						Config: strings.Replace(config,
-							"overwrite      = false",
-							"overwrite      = true", 1),
+							"overwrite_on_create = false",
+							"overwrite_on_create = true", 1),
 						Check: check,
 					},
 				},
