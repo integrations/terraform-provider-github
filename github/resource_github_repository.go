@@ -216,8 +216,8 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "master") {
-		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'master'.")
+	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
+		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'main'.")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -406,8 +406,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
 		branch := v.(string)
-		// If branch is "master", and the repository hasn't been initialized yet, setting this value will fail
-		if branch != "master" {
+		// If branch is "main", and the repository hasn't been initialized yet, setting this value will fail
+		if branch != "main" {
 			repoReq.DefaultBranch = &branch
 		}
 	}

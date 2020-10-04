@@ -24,7 +24,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		resource "github_branch_protection" "test" {
 
 		  repository_id  = github_repository.test.node_id
-		  pattern        = "master"
+		  pattern        = "main"
 
 		}
 
@@ -32,7 +32,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "pattern", "master",
+				"github_branch_protection.test", "pattern", "main",
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "require_signed_commits", "false",
@@ -87,7 +87,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			resource "github_branch_protection" "test" {
 
 			  repository_id  = github_repository.test.node_id
-			  pattern        = "master"
+			  pattern        = "main"
 
 				required_status_checks {
 			    strict   = true
@@ -143,7 +143,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			resource "github_branch_protection" "test" {
 
 			  repository_id  = github_repository.test.node_id
-			  pattern        = "master"
+			  pattern        = "main"
 
 				required_pull_request_reviews {
 						dismiss_stale_reviews      = true
@@ -211,7 +211,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			resource "github_branch_protection" "test" {
 
 			  repository_id = github_repository.test.node_id
-			  pattern       = "master"
+			  pattern       = "main"
 
 			  push_restrictions = [
 			    data.github_user.test.node_id,
