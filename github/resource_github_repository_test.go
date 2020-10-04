@@ -236,7 +236,7 @@ func TestAccGithubRepositories(t *testing.T) {
 			resource "github_repository" "test" {
 			  name           = "tf-acc-test-%[1]s"
 			  description    = "Terraform acceptance tests %[1]s"
-				default_branch = "master"
+				default_branch = "main"
 			}
 		`, randomID)
 
@@ -244,7 +244,7 @@ func TestAccGithubRepositories(t *testing.T) {
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_repository.test", "default_branch",
-					"master",
+					"main",
 				),
 			),
 			// FIXME: Deferred until https://github.com/terraform-providers/terraform-provider-github/issues/513
@@ -268,7 +268,7 @@ func TestAccGithubRepositories(t *testing.T) {
 					},
 					// {
 					// 	Config: strings.Replace(config,
-					// 		`default_branch = "master"`,
+					// 		`default_branch = "main"`,
 					// 		`default_branch = "default"`, 1),
 					// 	Check: checks["after"],
 					// },
