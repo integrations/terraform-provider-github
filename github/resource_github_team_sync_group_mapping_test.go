@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v32/github"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"

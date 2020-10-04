@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/google/go-github/v31/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"golang.org/x/crypto/nacl/box"
 	"log"
 	"net/http"
+
+	"github.com/google/go-github/v32/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"golang.org/x/crypto/nacl/box"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
@@ -71,7 +72,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 		EncryptedValue: base64.StdEncoding.EncodeToString(encryptedText),
 	}
 
-	_, err = client.Actions.CreateOrUpdateSecret(ctx, owner, repo, eSecret)
+	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repo, eSecret)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	secret, _, err := client.Actions.GetSecret(ctx, owner, repoName, secretName)
+	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -121,7 +122,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
-	_, err = client.Actions.DeleteSecret(ctx, orgName, repoName, secretName)
+	_, err = client.Actions.DeleteRepoSecret(ctx, orgName, repoName, secretName)
 
 	return err
 }
@@ -130,7 +131,7 @@ func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkV
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	publicKey, _, err := client.Actions.GetPublicKey(ctx, owner, repository)
+	publicKey, _, err := client.Actions.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {
 		return keyId, pkValue, err
 	}
