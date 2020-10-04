@@ -21,7 +21,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")
-				branch := "master"
+				branch := "main"
 
 				if len(parts) > 2 {
 					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"master\") or <repository>/<file path>:<branch>")
@@ -69,7 +69,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 				Description: "The branch name, defaults to \"master\"",
-				Default:     "master",
+				Default:     "main",
 			},
 			"commit_message": {
 				Type:        schema.TypeString,

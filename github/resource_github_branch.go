@@ -33,7 +33,7 @@ func resourceGithubBranch() *schema.Resource {
 			},
 			"source_branch": {
 				Type:     schema.TypeString,
-				Default:  "master",
+				Default:  "main",
 				Optional: true,
 				ForceNew: true,
 			},
@@ -172,7 +172,7 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 		return nil, err
 	}
 
-	sourceBranch := "master"
+	sourceBranch := "main"
 	if strings.Contains(branchName, ":") {
 		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
 		if err != nil {

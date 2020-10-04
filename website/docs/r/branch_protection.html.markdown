@@ -19,7 +19,7 @@ This resource allows you to configure branch protection for repositories in your
 # to the branch.
 resource "github_branch_protection" "example" {
   repository_id  = github_repository.example.node_id
-  pattern        = "master"
+  pattern        = "main"
   enforce_admins = true
 
   required_status_checks {
