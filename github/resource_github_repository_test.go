@@ -20,7 +20,7 @@ func TestAccGithubRepositories(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 
-			  name         = "tf-acc-test-%[1]s"
+			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 
 			  has_issues         = true
@@ -72,7 +72,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-%[1]s"
+			  name         = "tf-acc-test-import-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 				auto_init 	 = false
 			}
@@ -118,7 +118,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-%[1]s"
+			  name         = "tf-acc-test-archive-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 				archived     = false
 			}
@@ -176,7 +176,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-%[1]s"
+			  name         = "tf-acc-test-project-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 				has_projects = false
 			}
@@ -234,7 +234,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name           = "tf-acc-test-%[1]s"
+			  name           = "tf-acc-test-branch-%[1]s"
 			  description    = "Terraform acceptance tests %[1]s"
 				default_branch = "main"
 			}
@@ -294,7 +294,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name           = "tf-acc-test-%[1]s"
+				name           = "tf-acc-test-license-%[1]s"
 				description    = "Terraform acceptance tests %[1]s"
 				license_template   = "ms-pl"
 				gitignore_template = "C++"
@@ -343,7 +343,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-%[1]s"
+				name        = "tf-acc-test-topic-%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics			= ["terraform", "testing"]
 			}
@@ -387,7 +387,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-%s"
+				name        = "tf-acc-test-template-%s"
 				description = "Terraform acceptance tests %[1]s"
 
 				template {
@@ -436,7 +436,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name               = "tf-acc-test-%[1]s"
+				name               = "tf-acc-test-destroy-%[1]s"
 				auto_init          = true
 				archive_on_destroy = true
 				archived           = false
