@@ -21,12 +21,12 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
-				"resource.github_user_gpg_key.test",
+				"github_user_gpg_key.test",
 				"armored_public_key",
 				regexp.MustCompile("^-----BEGIN PGP PUBLIC KEY BLOCK-----"),
 			),
 			resource.TestCheckResourceAttr(
-				"resource.github_user_gpg_key.test",
+				"github_user_gpg_key.test",
 				"key_id",
 				"AC541D2D1709CD33",
 			),
