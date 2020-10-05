@@ -1,6 +1,7 @@
 name: Dotcom Acceptance Tests
 
 on:
+  push:
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -20,20 +21,33 @@ jobs:
           TF_LOG: INFO
 
   acceptance-tests-individual:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 2
-      - name: Acceptance Tests (Individual)
-        uses: terraformtesting/acceptance-tests@v2.1.0
-        with:
-          TF_LOG: INFO
-          GITHUB_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
-          GITHUB_TEST_ORGANIZATION: terraformtesting
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+          with:
+            ref: ${{ github.event.pull_request.head.ref }}
+            fetch-depth: 2
+
+        - name: Acceptance Tests (Individual)
+          id: acceptance-tests-individual
+          uses: terraformtesting/acceptance-tests@v2.1.0
+          with:
+            TF_LOG: INFO
+            RUN_ALL: true
+            GITHUB_OWNER: github-terraform-test-user
+            GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+            GITHUB_TEST_ORGANIZATION: terraformtesting
+
+        - name: Failed Acceptance Tests (Individual)
+          if: ${{ failure() }}
+          uses: terraformtesting/acceptance-tests@v2.1.0
+          with:
+            TF_LOG: DEBUG
+            RUN_ALLOWED: ${{ steps.acceptance-tests-individual.outputs.failed }}
+            GITHUB_OWNER: github-terraform-test-user
+            GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+            GITHUB_TEST_ORGANIZATION: terraformtesting
 
   acceptance-tests-organization:
     runs-on: ubuntu-latest
