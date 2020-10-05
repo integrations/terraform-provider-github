@@ -21,7 +21,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
       - name: Acceptance Tests (Anonymous)
-        uses: terraformtesting/acceptance-tests@v2.0.0
+        uses: terraformtesting/acceptance-tests@v2.1.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
 
@@ -33,9 +33,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
+
       - name: Acceptance Tests (Individual)
-        uses: terraformtesting/acceptance-tests@v2.0.0
+        id: acceptance-tests-individual
+        uses: terraformtesting/acceptance-tests@v2.1.0
         with:
+          TF_LOG: INFO
+          RUN_ALL: true
+          GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
+          GITHUB_OWNER: administrator
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
+
+      - name: Failed Acceptance Tests (Individual)
+        if: ${{ failure() }}
+        uses: terraformtesting/acceptance-tests@v2.1.0
+        with:
+          TF_LOG: DEBUG
+          RUN_ALLOWED: ${{ steps.acceptance-tests-individual.outputs.failed }}
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_OWNER: administrator
           GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
@@ -48,9 +62,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
+
       - name: Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.0.0
+        id: acceptance-tests-organization
+        uses: terraformtesting/acceptance-tests@v2.1.0
         with:
+          TF_LOG: INFO
+          RUN_ALL: true
+          GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
+          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
+
+      - name: Failed Acceptance Tests (Organization)
+        uses: terraformtesting/acceptance-tests@v2.1.0
+        if: ${{ failure() }}
+        with:
+          TF_LOG: DEBUG
+          RUN_ALLOWED: ${{ steps.acceptance-tests-organization.outputs.failed }}
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.GHES_TEST_USER_TOKEN }}
