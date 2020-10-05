@@ -1,4 +1,24 @@
-## 3.0.0 (Unreleased)
+## 3.1.0 (Unreleased)
+
+BREAKING CHANGES:
+
+- Deprecate `anonymous` Flag For Provider Configuration (GH-506)
+
+BUG FIXES:
+
+- re-instante resources unavailable in the context of an organization (GH-501)
+- allow overwrite-on-create behaviour for `github_repository_file` resource (GH-459)
+
+
+ENHANCEMENTS:
+
+- update `go-github` to `v32.1.0` (GH-475)
+- add `vulnerability_alerts` to `github_repository` (GH-444)
+- add `archive_on_destroy` to `github_repository` (GH-432)
+- uplift `branch_protection` to GraphQL (GH-337)
+
+
+## 3.0.0 (September 08, 2020)
 
 BREAKING CHANGES:
 
@@ -9,13 +29,12 @@ BREAKING CHANGES:
 
 BUG FIXES:
 
-- `terraform validate` fails because of missing token (GH-503)
-- organization support for various resources (GH-501)
+- `terraform validate` fails because of missing token ([#503](https://github.com/terraform-providers/terraform-provider-github/issues/503))
+- organization support for various resources ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
 
 ENHANCEMENTS:
 
-* **New Data Source** `github_organization` (GH-521)
-
+* **New Data Source** `github_organization` ([#521](https://github.com/terraform-providers/terraform-provider-github/issues/521))
 
 
 ## 2.9.2 (July 14, 2020)
