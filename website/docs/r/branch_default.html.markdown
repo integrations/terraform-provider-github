@@ -14,10 +14,26 @@ This resource allows you to set the default branch for a given repository.
 ## Example Usage
 
 ```hcl
-# Add a collaborator to a repository
-resource "github_repository_collaborator" "a_repo_collaborator" {
-  repository = "our-cool-repo"
-  branch     = "my-default-branch"
+resource "github_repository" "example" {
+  name        = "example"
+  description = "My awesome codebase"
+
+  private = true
+
+  template {
+    owner = "github"
+    repository = "terraform-module-template"
+  }
+}
+
+resource "github_branch" "development" {
+  repository = github_repository.example.name
+  branch     = "development"
+}
+
+resource "github_branch_default" "default"{
+  repository = github_repository.example.name
+  branch     = github_branch.development.branch
 }
 ```
 
