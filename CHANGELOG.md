@@ -1,21 +1,21 @@
-## 3.1.0 (Unreleased)
+## 3.1.0 (October 12, 2020)
 
 BREAKING CHANGES:
 
-- Deprecate `anonymous` Flag For Provider Configuration (GH-506)
+- Deprecate `anonymous` Flag For Provider Configuration ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
 
 BUG FIXES:
 
-- re-instante resources unavailable in the context of an organization (GH-501)
-- allow overwrite-on-create behaviour for `github_repository_file` resource (GH-459)
+- re-instante resources unavailable in the context of an organization ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
+- allow overwrite-on-create behaviour for `github_repository_file` resource ([#459](https://github.com/terraform-providers/terraform-provider-github/issues/459))
 
 
 ENHANCEMENTS:
 
-- update `go-github` to `v32.1.0` (GH-475)
-- add `vulnerability_alerts` to `github_repository` (GH-444)
-- add `archive_on_destroy` to `github_repository` (GH-432)
-- uplift `branch_protection` to GraphQL (GH-337)
+- update `go-github` to `v32.1.0` ([#475](https://github.com/terraform-providers/terraform-provider-github/issues/475))
+- add `vulnerability_alerts` to `github_repository` ([#444](https://github.com/terraform-providers/terraform-provider-github/issues/444))
+- add `archive_on_destroy` to `github_repository` ([#432](https://github.com/terraform-providers/terraform-provider-github/issues/432))
+- uplift `branch_protection` to GraphQL ([#337](https://github.com/terraform-providers/terraform-provider-github/issues/337))
 
 
 ## 3.0.0 (September 08, 2020)
@@ -196,7 +196,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
-* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)]
+* `resource/github_branch_protection`: Added `require_signed_commits` property ([#214](https://github.com/terraform-providers/terraform-provider-github/issues/214))
 
 BUG FIXES:
 
