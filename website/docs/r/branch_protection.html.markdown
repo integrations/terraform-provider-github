@@ -18,8 +18,8 @@ This resource allows you to configure branch protection for repositories in your
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
 resource "github_branch_protection" "example" {
-  repository_id  = github_repository.example.node_id
-  pattern        = "main"
+  repository     = github_repository.example.name
+  branch         = "main"
   enforce_admins = true
 
   required_status_checks {
@@ -60,8 +60,8 @@ resource "github_team_repository" "example" {
 
 The following arguments are supported:
 
-* `repository_id` - (Required) The repository associated with this branch protection rule.
-* `pattern` - (Required) Identifies the protection rule pattern.
+* `repository` - (Required) The repository associated with this branch protection rule.
+* `branch` - (Deprecated) Identifies the protection rule pattern.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.

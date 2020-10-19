@@ -4,6 +4,7 @@ const (
 	PROTECTION_DISMISSES_STALE_REVIEWS         = "dismiss_stale_reviews"
 	PROTECTION_IS_ADMIN_ENFORCED               = "enforce_admins"
 	PROTECTION_PATTERN                         = "pattern"
+	PROTECTION_BRANCH                          = "branch"
 	PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT = "required_approving_review_count"
 	PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS  = "contexts"
 	PROTECTION_REQUIRES_APPROVING_REVIEWS      = "required_pull_request_reviews"
@@ -14,5 +15,6 @@ const (
 	PROTECTION_RESTRICTS_PUSHES                = "push_restrictions"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSALS     = "dismissal_restrictions"
 
+	REPOSITORY    = "repository"
 	REPOSITORY_ID = "repository_id"
 )

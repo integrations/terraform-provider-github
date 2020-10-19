@@ -17,16 +17,26 @@ func resourceGithubBranchProtection() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// Input
+			REPOSITORY: {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			REPOSITORY_ID: {
 				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "GraphQL `node_id` of a repository",
+			},
+			PROTECTION_BRANCH: {
+				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "",
+				Description: "`pattern` for a `BranchProtectionRule`",
+				Deprecated:  "use `pattern` after v4.0.0 instead",
 			},
 			PROTECTION_PATTERN: {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "",
+				Computed:    true,
+				Description: "`pattern` for a `BranchProtectionRule`",
 			},
 			PROTECTION_IS_ADMIN_ENFORCED: {
 				Type:     schema.TypeBool,
@@ -178,6 +188,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
 		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	// FIXME: Remove in favour of PROTECTION_PATTERN on next major release
+	err = d.Set(PROTECTION_BRANCH, protection.Pattern)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_BRANCH, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)

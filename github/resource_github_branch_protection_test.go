@@ -15,22 +15,21 @@ func TestAccGithubBranchProtection(t *testing.T) {
 	t.Run("configures default settings when empty", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
 		resource "github_repository" "test" {
 		  name      = "tf-acc-test-%s"
 		  auto_init = true
 		}
 
 		resource "github_branch_protection" "test" {
-
-		  repository_id  = github_repository.test.node_id
-		  pattern        = "main"
-
+		  repository = github_repository.test.name
+		  branch     = "main"
 		}
-
 	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "branch", "main",
+			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "pattern", "main",
 			),
@@ -78,7 +77,6 @@ func TestAccGithubBranchProtection(t *testing.T) {
 	t.Run("configures required status checks", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 			  name      = "tf-acc-test-%s"
 			  auto_init = true
@@ -86,16 +84,15 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id  = github_repository.test.node_id
-			  pattern        = "main"
+			  repository = github_repository.test.name
+			  branch     = "main"
 
-				required_status_checks {
+			  required_status_checks {
 			    strict   = true
 			    contexts = ["github/foo"]
 			  }
 
 			}
-
 	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
@@ -134,7 +131,6 @@ func TestAccGithubBranchProtection(t *testing.T) {
 	t.Run("configures required pull request reviews", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 			  name      = "tf-acc-test-%s"
 			  auto_init = true
@@ -142,16 +138,15 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id  = github_repository.test.node_id
-			  pattern        = "main"
+			  repository = github_repository.test.name
+			  branch     = "main"
 
-				required_pull_request_reviews {
-						dismiss_stale_reviews      = true
-						require_code_owner_reviews = true
-				}
+			  required_pull_request_reviews {
+			    dismiss_stale_reviews      = true
+			    require_code_owner_reviews = true
+			  }
 
 			}
-
 	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
@@ -210,8 +205,8 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
+			  repository = github_repository.test.name
+			  branch       = "main"
 
 			  push_restrictions = [
 			    data.github_user.test.node_id,

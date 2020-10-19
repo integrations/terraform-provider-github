@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -67,11 +68,16 @@ type BranchProtectionResourceData struct {
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
 	data := BranchProtectionResourceData{}
 
-	if v, ok := d.GetOk(REPOSITORY_ID); ok {
-		data.RepositoryID = v.(string)
+	if v, ok := d.GetOk(REPOSITORY); ok {
+		repoID, err := getRepositoryID(v.(string), meta)
+		if err != nil {
+			return data, err
+		}
+		data.RepositoryID = repoID.(string)
 	}
 
-	if v, ok := d.GetOk(PROTECTION_PATTERN); ok {
+	// FIXME: Re-instate to PROTECTION_PATTERN on next major release
+	if v, ok := d.GetOk(PROTECTION_BRANCH); ok {
 		data.Pattern = v.(string)
 	}
 
