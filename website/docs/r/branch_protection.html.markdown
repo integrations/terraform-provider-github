@@ -61,7 +61,7 @@ resource "github_team_repository" "example" {
 The following arguments are supported:
 
 * `repository` - (Required) The repository associated with this branch protection rule.
-* `branch` - (Deprecated) Identifies the protection rule pattern.
+* `branch` - (Deprecated) Identifies the protection rule pattern. In v4.0.0, will become `pattern`.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
