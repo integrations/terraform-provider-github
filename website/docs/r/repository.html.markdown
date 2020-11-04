@@ -92,6 +92,8 @@ initial repository creation and create the target branch inside of the repositor
 
 The following additional attributes are exported:
 
+* `node_id` - the Node ID of the Repository.
+
 * `full_name` - A string of the form "orgname/reponame".
 
 * `html_url` - URL to the repository on the web.

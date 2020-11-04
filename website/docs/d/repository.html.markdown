@@ -27,6 +27,8 @@ The following arguments are supported:
 
 ## Attributes Reference
 
+* `node_id` - the Node ID of the repository.
+
 * `description` - A description of the repository.
 
 * `homepage_url` - URL of a page describing the project.
