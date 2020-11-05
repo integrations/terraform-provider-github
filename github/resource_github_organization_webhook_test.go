@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v32/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -19,7 +20,7 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 	}
 
 	var hook github.Hook
-
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	rn := "github_organization_webhook.foo"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -57,6 +58,12 @@ func TestAccGithubOrganizationWebhook_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:        rn,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
+			},
 		},
 	})
 }
@@ -67,6 +74,7 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 	}
 
 	rn := "github_organization_webhook.foo"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -78,6 +86,12 @@ func TestAccGithubOrganizationWebhook_secret(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubOrganizationWebhookSecret(rn, "VerySecret"),
 				),
+			},
+			{
+				ResourceName:        rn,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("foo-%s/", randString),
 			},
 		},
 	})
