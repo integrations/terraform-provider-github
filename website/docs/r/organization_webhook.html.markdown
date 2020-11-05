@@ -44,3 +44,14 @@ The following arguments are supported:
 The following additional attributes are exported:
 
 * `url` - URL of the webhook
+
+## Import
+
+Organization webhooks can be imported using the `id` of the webhook.
+The `id` of the webhook can be found in the URL of the webhook. For example, `"https://github.com/organizations/foo-org/settings/hooks/123456789"`.
+
+```
+$ terraform import github_organization_webhook.terraform 123456789
+```
+
+If secret is populated in the webhook's configuration, the value will be imported as "********".
