@@ -343,6 +343,7 @@ func getFileCommit(client *github.Client, owner, repo, file, branch string) (*gi
 	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
 	opts := &github.CommitsListOptions{
 		SHA: branch,
+		Path: file,
 	}
 	allCommits := []*github.RepositoryCommit{}
 	for {
