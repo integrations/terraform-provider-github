@@ -83,7 +83,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* `go-github` `v29.03` is incompatible with all currently known versions of GitHub Enterprise Server ([[#404](https://github.com/terraform-providers/terraform-provider-github/issues/404)])
+* `go-github` `v29.03` is incompatible with versions of GitHub Enterprise Server prior to `v2.21.5`. ([[#404](https://github.com/terraform-providers/terraform-provider-github/issues/404)])
 
 ENHANCEMENTS:
 
