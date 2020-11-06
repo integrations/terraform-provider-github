@@ -121,7 +121,7 @@ func resourceGithubRepositoryPageRead(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[DEBUG] Reading repository Page: %s", d.Id())
 
-	pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
+	_, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 	if err != nil {
 		return err
 	}
