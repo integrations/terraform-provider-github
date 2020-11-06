@@ -21,7 +21,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "",
+				Description: "Node ID or name of repository",
 			},
 			PROTECTION_PATTERN: {
 				Type:        schema.TypeString,
