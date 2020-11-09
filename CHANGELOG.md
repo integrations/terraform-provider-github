@@ -1,4 +1,28 @@
+## 4.0.0 (November 9, 2020)
+
+BREAKING CHANGES:
+
+- `pattern` replaces `branch` in changes to `github_branch_protection` introduced in `v3.1.0` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- `dismissal_restrictions` documented for `github_branch_protection` ([#569](https://github.com/terraform-providers/terraform-provider-github/pull/569))
+- project license changes from MPL2 to MIT ([#591](https://github.com/terraform-providers/terraform-provider-github/pull/591))
+
+BUG FIXES:
+
+- `repository_id` for `github_branch_protection` accepts repository name as well as node ID([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
+
+ENHANCEMENTS:
+
+- Add support to get currently authenticated user to `data_source_github_user`([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add importing to `github_organization_webhook` ([#487](https://github.com/terraform-providers/terraform-provider-github/pull/487)
+
+
 ## 3.1.0 (October 12, 2020)
+
+REGRESSIONS:
+
+- undocumented, breaking configuration changes to `github_branch_protection` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- slowed performance of `github_branch_protection` ([$567](https://github.com/terraform-providers/terraform-provider-github/issues/567))
+- change to default branch breaks refresh of existing `github_repository_file` resources ([#564](https://github.com/terraform-providers/terraform-provider-github/issues/564))
 
 BREAKING CHANGES:
 
