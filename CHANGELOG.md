@@ -8,7 +8,7 @@ BREAKING CHANGES:
 
 BUG FIXES:
 
-- `repository` re-instated alongside `repository_id` for `github_branch_protection` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- `repository_id` for `github_branch_protection` accepts repository name as well as node ID([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
 
 ENHANCEMENTS:
 
