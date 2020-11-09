@@ -17,8 +17,13 @@ This resource allows you to configure branch protection for repositories in your
 # Protect the master branch of the foo repository. Additionally, require that
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
+
 resource "github_branch_protection" "example" {
-  repository_id  = github_repository.example.node_id
+
+  repository_id = github_repository.example.node_id
+  # also accepts repository name
+  # repository_id  = github_repository.example.name
+
   pattern        = "main"
   enforce_admins = true
 
@@ -37,8 +42,10 @@ resource "github_branch_protection" "example" {
 
   push_restrictions = [
     data.github_user.example.node_id,
-    github_team.example.node_id,
+    # limited to a list of one type of restriction (user, team, app)
+    # github_team.example.node_id
   ]
+
 }
 
 resource "github_user" "example" {
@@ -60,7 +67,7 @@ resource "github_team_repository" "example" {
 
 The following arguments are supported:
 
-* `repository_id` - (Required) The repository associated with this branch protection rule.
+* `repository_id` - (Required) The name or node ID of the repository associated with this branch protection rule.
 * `pattern` - (Required) Identifies the protection rule pattern.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.

@@ -210,8 +210,8 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
+			  repository_id   = github_repository.test.name
+			  pattern       	= "main"
 
 			  push_restrictions = [
 			    data.github_user.test.node_id,
