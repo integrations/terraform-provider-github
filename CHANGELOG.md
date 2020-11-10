@@ -1,4 +1,4 @@
-## 4.0.0 (November 9, 2020)
+## 4.0.0 (Unreleased)
 
 BREAKING CHANGES:
 
