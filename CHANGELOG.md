@@ -8,12 +8,12 @@ BREAKING CHANGES:
 
 BUG FIXES:
 
-- `repository_id` for `github_branch_protection` accepts repository name as well as node ID([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
+- `repository_id` for `github_branch_protection` accepts repository name as well as node ID ([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
 
 ENHANCEMENTS:
 
-- Add support to get currently authenticated user to `data_source_github_user`([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
-- Add importing to `github_organization_webhook` ([#487](https://github.com/terraform-providers/terraform-provider-github/pull/487)
+- Add support to get currently authenticated user to `data_source_github_user` ([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add importing to `github_organization_webhook` ([#487](https://github.com/terraform-providers/terraform-provider-github/pull/487))
 
 
 ## 3.1.0 (October 12, 2020)
