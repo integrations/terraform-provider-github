@@ -1,6 +1,7 @@
 name: Dotcom Acceptance Tests
 
 on:
+  push:
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -30,7 +31,7 @@ jobs:
       - name: Acceptance Tests (Individual)
         uses: terraformtesting/acceptance-tests@v2.1.0
         with:
-          TF_LOG: INFO
+          TF_LOG: DEBUG
           GITHUB_OWNER: github-terraform-test-user
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_ORGANIZATION: terraformtesting
@@ -46,7 +47,7 @@ jobs:
       - name: Acceptance Tests (Organization)
         uses: terraformtesting/acceptance-tests@v2.1.0
         with:
-          TF_LOG: INFO
+          TF_LOG: DEBUG
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
