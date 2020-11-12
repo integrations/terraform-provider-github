@@ -32,7 +32,7 @@ The following arguments are supported:
 * `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`.
                Defaults to `secret`.
 * `parent_team_id` - (Optional) The ID of the parent team, if this is a nested team.
-* `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise.
+* `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.
 
 ## Attributes Reference
 
