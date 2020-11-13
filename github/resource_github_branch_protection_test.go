@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubBranchProtection(t *testing.T) {
@@ -56,6 +57,14 @@ func TestAccGithubBranchProtection(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+					{
+						ResourceName:      "github_branch_protection.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateIdFunc: branchProtectionImportStateIdFunc(
+							fmt.Sprintf("tf-acc-test-%s", randomID), "main",
+						),
 					},
 				},
 			})
@@ -252,4 +261,10 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 	})
+}
+
+func branchProtectionImportStateIdFunc(repo, pattern string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		return fmt.Sprintf("%s:%s", repo, pattern), nil
+	}
 }

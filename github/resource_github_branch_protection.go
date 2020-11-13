@@ -95,7 +95,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 		Delete: resourceGithubBranchProtectionDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubBranchProtectionImport,
 		},
 
 		StateUpgraders: []schema.StateUpgrader{
@@ -268,4 +268,25 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 	err := client.Mutate(ctx, &mutate, input, nil)
 
 	return err
+}
+
+func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	repoName, pattern, err := parseTwoPartID(d.Id(), "repository", "pattern")
+	if err != nil {
+		return nil, err
+	}
+
+	repoID, err := getRepositoryID(repoName, meta)
+	if err != nil {
+		return nil, err
+	}
+	d.Set("repository_id", repoID)
+
+	id, err := getBranchProtectionID(repoName, pattern, meta)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(fmt.Sprintf("%s", id))
+
+	return []*schema.ResourceData{d}, resourceGithubBranchProtectionRead(d, meta)
 }
