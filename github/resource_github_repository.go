@@ -223,11 +223,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
 
-	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
-	// are encountered when the resources is created with the visibility parameter. As
-	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
-	repoReq.Visibility = nil
-
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
