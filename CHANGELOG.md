@@ -1,4 +1,17 @@
+## 4.0.1 (Unreleased)
+
+BUG FIXES:
+
+- `github_team` data source query no longer iterates through a list of teams ([#579](https://github.com/terraform-providers/terraform-provider-github/pull/579))
+- `github_repository_file` resource no longer iterates through all commits ([#589](https://github.com/terraform-providers/terraform-provider-github/pull/589))
+- fix parsing of `repo:pattern` format during `github_branch_protection` import ([#599](https://github.com/terraform-providers/terraform-provider-github/pull/599))
+
+
 ## 4.0.0 (November 10, 2020)
+
+REGRESSIONS:
+
+- fails parsing of `repo:pattern` format during `github_branch_protection` import ([#597](https://github.com/terraform-providers/terraform-provider-github/issues/597))
 
 BREAKING CHANGES:
 
