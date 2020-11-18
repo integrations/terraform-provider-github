@@ -1,4 +1,4 @@
-## 4.0.1 (Unreleased)
+## 4.0.1 (November 18, 2020)
 
 BUG FIXES:
 
