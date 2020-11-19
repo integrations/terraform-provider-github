@@ -105,13 +105,11 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"license_template": {
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Optional: true
 			},
 			"gitignore_template": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"archived": {
 				Type:     schema.TypeBool,
@@ -166,7 +164,6 @@ func resourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
