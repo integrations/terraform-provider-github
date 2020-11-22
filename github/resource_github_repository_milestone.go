@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v31/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/go-github/v32/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubRepositoryMilestone() *schema.Resource {
@@ -81,7 +82,7 @@ const (
 )
 
 func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*Organization).v3client
+	conn := meta.(*Owner).v3client
 	ctx := context.Background()
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
@@ -117,7 +118,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*Organization).v3client
+	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	owner := d.Get("owner").(string)
@@ -156,7 +157,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*Organization).v3client
+	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
@@ -201,7 +202,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*Organization).v3client
+	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
