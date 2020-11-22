@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -185,7 +185,7 @@ func testAccCheckGithubRepositoryMilestoneExists(rn string, milestone *github.Mi
 			return fmt.Errorf("no Milestone ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		number, err := parseMilestoneNumber(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -209,7 +209,7 @@ func testAccCheckGithubRepositoryMilestoneDisappears(rn string) resource.TestChe
 		if !ok {
 			return fmt.Errorf("Not found: %s", rn)
 		}
-		conn := testAccProvider.Meta().(*Organization).v3client
+		conn := testAccProvider.Meta().(*Owner).v3client
 		number, err := parseMilestoneNumber(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -224,7 +224,7 @@ func testAccCheckGithubRepositoryMilestoneDisappears(rn string) resource.TestChe
 }
 
 func testAccCheckGithubRepositoryMilestoneDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).v3client
+	conn := testAccProvider.Meta().(*Owner).v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_milestone" {
