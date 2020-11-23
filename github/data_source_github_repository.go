@@ -106,6 +106,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"repo_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -158,6 +162,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("http_clone_url", repo.GetCloneURL())
 	d.Set("archived", repo.GetArchived())
 	d.Set("node_id", repo.GetNodeID())
+	d.Set("repo_id", repo.GetID())
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
 	if err != nil {

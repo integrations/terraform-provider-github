@@ -105,8 +105,8 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("updated_at", secret.UpdatedAt.Format("default"))
-	d.Set("created_at", secret.CreatedAt.Format("default"))
+	d.Set("updated_at", secret.UpdatedAt.String())
+	d.Set("created_at", secret.CreatedAt.String())
 
 	return nil
 }
