@@ -99,7 +99,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 		if err != nil {
 			return err
 		}
-		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 7, 0, 0, 0, time.UTC)
+		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 39, 0, 0, time.UTC)
 		milestone.DueOn = &date
 	}
 	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
