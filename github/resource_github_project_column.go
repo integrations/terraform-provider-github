@@ -31,6 +31,10 @@ func resourceGithubProjectColumn() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"column_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -67,7 +71,9 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
+
 	d.SetId(strconv.FormatInt(column.GetID(), 10))
+	d.Set("column_id", column.GetID())
 
 	return resourceGithubProjectColumnRead(d, meta)
 }
@@ -102,6 +108,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("name", column.GetName())
 	d.Set("project_id", projectID)
+	d.Set("column_id", column.GetID())
 	return nil
 }
 
