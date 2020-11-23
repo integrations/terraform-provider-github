@@ -106,6 +106,9 @@ The following additional attributes are exported:
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out the repository via GitHub's Subversion protocol emulation.
 
+* `node_id` - GraphQL global node id for use with v4 API
+
+* `repo_id` - Github ID for the repository
 
 ## Import
 
