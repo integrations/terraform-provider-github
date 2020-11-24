@@ -38,11 +38,6 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 }
 
 func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {
-	// Quick check for node ID length
-	if len(name) != 32 {
-		return false, nil
-	}
-
 	// API check if node ID exists
 	var query struct {
 		Node struct {
