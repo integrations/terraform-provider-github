@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 
 	"github.com/shurcooL/githubv4"
 )
@@ -38,6 +39,12 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 }
 
 func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {
+	// Check if the name is a base 64 encoded node ID
+	_, err := base64.StdEncoding.DecodeString(name)
+	if err != nil {
+		return false, nil
+	}
+
 	// API check if node ID exists
 	var query struct {
 		Node struct {
@@ -49,7 +56,7 @@ func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {
 	}
 	ctx := context.Background()
 	client := meta.(*Owner).v4client
-	err := client.Query(ctx, &query, variables)
+	err = client.Query(ctx, &query, variables)
 	if err != nil {
 		return false, err
 	}
