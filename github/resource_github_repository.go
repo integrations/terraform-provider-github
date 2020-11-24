@@ -102,6 +102,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Can only be set after initial repository creation, and only if the target branch exists",
+				Deprecated:  "Use the github_branch_default resource instead",
 			},
 			"license_template": {
 				Type:     schema.TypeString,

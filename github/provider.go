@@ -66,6 +66,7 @@ func Provider() terraform.ResourceProvider {
 			"github_user_gpg_key":                resourceGithubUserGpgKey(),
 			"github_user_invitation_accepter":    resourceGithubUserInvitationAccepter(),
 			"github_user_ssh_key":                resourceGithubUserSshKey(),
+			"github_branch_default":              resourceGithubBranchDefault(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
