@@ -56,7 +56,7 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
-* `url` - URL of the webhook
+* `url` - URL of the webhook.  This is a sensitive attribute because it may include basic auth credentials.
 
 ## Import
 

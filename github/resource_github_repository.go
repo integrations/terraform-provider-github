@@ -186,6 +186,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"repo_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -257,7 +261,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				templateRepo,
 				&templateRepoReq,
 			)
-
 			if err != nil {
 				return err
 			}
@@ -273,7 +276,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// Create repository within authenticated user's account
 			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
-
 		}
 		if err != nil {
 			return err
@@ -365,6 +367,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("archived", repo.GetArchived())
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
+	d.Set("repo_id", repo.GetID())
 
 	if repo.TemplateRepository != nil {
 		d.Set("template", []interface{}{
@@ -387,7 +390,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-
 	// Can only update a repository if it is not archived or the update is to
 	// archive the repository (unarchiving is not supported by the Github API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {

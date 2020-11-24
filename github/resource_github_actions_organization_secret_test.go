@@ -5,46 +5,45 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubOrganizationWebhook(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("creates and updates webhooks without error", func(t *testing.T) {
+func TestAccGithubActionsOrganizationSecret(t *testing.T) {
+	t.Run("creates and updates secrets without error", func(t *testing.T) {
+		secretValue := "super_secret_value"
+		updatedSecretValue := "updated_super_secret_value"
 
 		config := fmt.Sprintf(`
-
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-				auto_init = true
+			resource "github_actions_organization_secret" "test_secret" {
+			  secret_name      = "test_secret_name"
+			  plaintext_value  = "%s"
+			  visibility       = "private"
 			}
-
-			resource "github_organization_webhook" "test" {
-			  configuration {
-			    url = "https://google.de/webhook"
-			    content_type = "json"
-			    insecure_ssl = true
-			  }
-
-			  events = ["pull_request"]
-			}
-
-		`, randomID)
+		`, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_organization_webhook.test", "configuration.0.url",
-					"https://google.de/webhook",
+					"github_actions_organization_secret.test_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_organization_secret.test_secret", "created_at",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_organization_secret.test_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_organization_webhook.test", "configuration.0.url",
-					"https://google.de/updated",
+					"github_actions_organization_secret.test_secret", "plaintext_value",
+					updatedSecretValue,
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_organization_secret.test_secret", "created_at",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_organization_secret.test_secret", "updated_at",
 				),
 			),
 		}
@@ -60,8 +59,8 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 					},
 					{
 						Config: strings.Replace(config,
-							"https://google.de/webhook",
-							"https://google.de/updated", 1),
+							secretValue,
+							updatedSecretValue, 1),
 						Check: checks["after"],
 					},
 				},
@@ -81,33 +80,16 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 		})
 	})
 
-	t.Run("imports webhooks without error", func(t *testing.T) {
+	t.Run("deletes secrets without error", func(t *testing.T) {
+		secretValue := "super_secret_value"
 
 		config := fmt.Sprintf(`
-
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-				auto_init = true
-			}
-
-			resource "github_organization_webhook" "test" {
-			  configuration {
-			    url = "https://google.de/import"
-			    content_type = "json"
-			    insecure_ssl = true
-			  }
-
-			  events = ["issues"]
-			}
-
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_organization_webhook.test", "events.#",
-				"1",
-			),
-		)
+				resource "github_actions_organization_secret" "test_secret" {
+					secret_name      = "test_secret_name"
+					plaintext_value  = "%s"
+					visibility       = "private"
+				}
+			`, secretValue)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -115,13 +97,8 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_organization_webhook.test",
-						ImportState:       true,
-						ImportStateVerify: true,
+						Config:  config,
+						Destroy: true,
 					},
 				},
 			})
@@ -139,5 +116,4 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-
 }

@@ -12,17 +12,29 @@ Use this data source to retrieve information about a GitHub user.
 ## Example Usage
 
 ```hcl
+# Retrieve information about a GitHub user.
 data "github_user" "example" {
   username = "example"
 }
+
+# Retrieve information about the currently authenticated user.
+data "github_user" "current" {
+  username = ""
+}
+
+output "current_github_login" {
+  value = "${data.github_user.current.login}"
+}
+
 ```
 
 ## Argument Reference
 
- * `username` - (Required) The username.
+ * `username` - (Required) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
 
 ## Attributes Reference
 
+ * `node_id` - the Node ID of the user.
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.
  * `gravatar_id` - the user's gravatar ID.
@@ -41,4 +53,3 @@ data "github_user" "example" {
  * `following` - the number of following users.
  * `created_at` - the creation date.
  * `updated_at` - the update date.
-

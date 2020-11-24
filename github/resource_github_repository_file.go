@@ -342,7 +342,8 @@ func checkRepositoryFileExists(client *github.Client, owner, repo, file, branch 
 func getFileCommit(client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
 	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
 	opts := &github.CommitsListOptions{
-		SHA: branch,
+		SHA:  branch,
+		Path: file,
 	}
 	allCommits := []*github.RepositoryCommit{}
 	for {

@@ -41,29 +41,32 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"github_actions_secret":           resourceGithubActionsSecret(),
-			"github_branch":                   resourceGithubBranch(),
-			"github_branch_protection":        resourceGithubBranchProtection(),
-			"github_issue_label":              resourceGithubIssueLabel(),
-			"github_membership":               resourceGithubMembership(),
-			"github_organization_block":       resourceOrganizationBlock(),
-			"github_organization_project":     resourceGithubOrganizationProject(),
-			"github_organization_webhook":     resourceGithubOrganizationWebhook(),
-			"github_project_column":           resourceGithubProjectColumn(),
-			"github_repository_collaborator":  resourceGithubRepositoryCollaborator(),
-			"github_repository_deploy_key":    resourceGithubRepositoryDeployKey(),
-			"github_repository_file":          resourceGithubRepositoryFile(),
-			"github_repository_project":       resourceGithubRepositoryProject(),
-			"github_repository_webhook":       resourceGithubRepositoryWebhook(),
-			"github_repository":               resourceGithubRepository(),
-			"github_team_membership":          resourceGithubTeamMembership(),
-			"github_team_repository":          resourceGithubTeamRepository(),
-			"github_team_sync_group_mapping":  resourceGithubTeamSyncGroupMapping(),
-			"github_team":                     resourceGithubTeam(),
-			"github_user_gpg_key":             resourceGithubUserGpgKey(),
-			"github_user_invitation_accepter": resourceGithubUserInvitationAccepter(),
-			"github_user_ssh_key":             resourceGithubUserSshKey(),
-			"github_branch_default":           resourceGithubBranchDefault(),
+			"github_actions_organization_secret": resourceGithubActionsOrganizationSecret(),
+			"github_actions_secret":              resourceGithubActionsSecret(),
+			"github_branch":                      resourceGithubBranch(),
+			"github_branch_protection":           resourceGithubBranchProtection(),
+			"github_issue_label":                 resourceGithubIssueLabel(),
+			"github_membership":                  resourceGithubMembership(),
+			"github_organization_block":          resourceOrganizationBlock(),
+			"github_organization_project":        resourceGithubOrganizationProject(),
+			"github_organization_webhook":        resourceGithubOrganizationWebhook(),
+			"github_project_card":                resourceGithubProjectCard(),
+			"github_project_column":              resourceGithubProjectColumn(),
+			"github_repository_collaborator":     resourceGithubRepositoryCollaborator(),
+			"github_repository_deploy_key":       resourceGithubRepositoryDeployKey(),
+			"github_repository_file":             resourceGithubRepositoryFile(),
+			"github_repository_milestone":        resourceGithubRepositoryMilestone(),
+			"github_repository_project":          resourceGithubRepositoryProject(),
+			"github_repository_webhook":          resourceGithubRepositoryWebhook(),
+			"github_repository":                  resourceGithubRepository(),
+			"github_team_membership":             resourceGithubTeamMembership(),
+			"github_team_repository":             resourceGithubTeamRepository(),
+			"github_team_sync_group_mapping":     resourceGithubTeamSyncGroupMapping(),
+			"github_team":                        resourceGithubTeam(),
+			"github_user_gpg_key":                resourceGithubUserGpgKey(),
+			"github_user_invitation_accepter":    resourceGithubUserInvitationAccepter(),
+			"github_user_ssh_key":                resourceGithubUserSshKey(),
+			"github_branch_default":              resourceGithubBranchDefault(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -77,6 +80,7 @@ func Provider() terraform.ResourceProvider {
 			"github_release":                       dataSourceGithubRelease(),
 			"github_repositories":                  dataSourceGithubRepositories(),
 			"github_repository":                    dataSourceGithubRepository(),
+			"github_repository_milestone":          dataSourceGithubRepositoryMilestone(),
 			"github_team":                          dataSourceGithubTeam(),
 			"github_user":                          dataSourceGithubUser(),
 		},
@@ -108,7 +112,6 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-
 		anonymous := true
 		if d.Get("token").(string) != "" {
 			anonymous = false

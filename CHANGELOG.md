@@ -1,21 +1,58 @@
-## 3.1.0 (Unreleased)
-
-BREAKING CHANGES:
-
-- Deprecate `anonymous` Flag For Provider Configuration (GH-506)
+## 4.0.1 (November 18, 2020)
 
 BUG FIXES:
 
-- re-instante resources unavailable in the context of an organization (GH-501)
-- allow overwrite-on-create behaviour for `github_repository_file` resource (GH-459)
+- `github_team` data source query no longer iterates through a list of teams ([#579](https://github.com/terraform-providers/terraform-provider-github/pull/579))
+- `github_repository_file` resource no longer iterates through all commits ([#589](https://github.com/terraform-providers/terraform-provider-github/pull/589))
+- fix parsing of `repo:pattern` format during `github_branch_protection` import ([#599](https://github.com/terraform-providers/terraform-provider-github/pull/599))
+
+
+## 4.0.0 (November 10, 2020)
+
+REGRESSIONS:
+
+- fails parsing of `repo:pattern` format during `github_branch_protection` import ([#597](https://github.com/terraform-providers/terraform-provider-github/issues/597))
+
+BREAKING CHANGES:
+
+- `pattern` replaces `branch` in changes to `github_branch_protection` introduced in `v3.1.0` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- `dismissal_restrictions` documented for `github_branch_protection` ([#569](https://github.com/terraform-providers/terraform-provider-github/pull/569))
+- project license changes from MPL2 to MIT ([#591](https://github.com/terraform-providers/terraform-provider-github/pull/591))
+
+BUG FIXES:
+
+- `repository_id` for `github_branch_protection` accepts repository name as well as node ID ([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
+
+ENHANCEMENTS:
+
+- Add support to get currently authenticated user to `data_source_github_user` ([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add importing to `github_organization_webhook` ([#487](https://github.com/terraform-providers/terraform-provider-github/pull/487))
+
+
+## 3.1.0 (October 12, 2020)
+
+REGRESSIONS:
+
+- undocumented, breaking configuration changes to `github_branch_protection` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- slowed performance of `github_branch_protection` ([$567](https://github.com/terraform-providers/terraform-provider-github/issues/567))
+- change to default branch breaks refresh of existing `github_repository_file` resources ([#564](https://github.com/terraform-providers/terraform-provider-github/issues/564))
+
+BREAKING CHANGES:
+
+- Deprecate `anonymous` Flag For Provider Configuration ([#506](https://github.com/terraform-providers/terraform-provider-github/issues/506))
+
+BUG FIXES:
+
+- re-instante resources unavailable in the context of an organization ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
+- allow overwrite-on-create behaviour for `github_repository_file` resource ([#459](https://github.com/terraform-providers/terraform-provider-github/issues/459))
 
 
 ENHANCEMENTS:
 
-- update `go-github` to `v32.1.0` (GH-475)
-- add `vulnerability_alerts` to `github_repository` (GH-444)
-- add `archive_on_destroy` to `github_repository` (GH-432)
-- uplift `branch_protection` to GraphQL (GH-337)
+- update `go-github` to `v32.1.0` ([#475](https://github.com/terraform-providers/terraform-provider-github/issues/475))
+- add `vulnerability_alerts` to `github_repository` ([#444](https://github.com/terraform-providers/terraform-provider-github/issues/444))
+- add `archive_on_destroy` to `github_repository` ([#432](https://github.com/terraform-providers/terraform-provider-github/issues/432))
+- uplift `branch_protection` to GraphQL ([#337](https://github.com/terraform-providers/terraform-provider-github/issues/337))
 
 
 ## 3.0.0 (September 08, 2020)
@@ -119,6 +156,10 @@ BUG FIXES:
 
 ## 2.5.0 (March 30, 2020)
 
+REGRESSION:
+
+* `go-github` `v29.03` is incompatible with versions of GitHub Enterprise Server prior to `v2.21.5`. ([[#404](https://github.com/terraform-providers/terraform-provider-github/issues/404)])
+
 ENHANCEMENTS:
 
 * Add `apps` To `github_branch_protection` Restrictions
@@ -196,7 +237,7 @@ FEATURES:
 ENHANCEMENTS:
 
 * `provider`: Added optional `individual` attribute, and made `organization` optional ([#242](https://github.com/terraform-providers/terraform-provider-github/issues/242))
-* `resource/github_branch_protection`: Added `require_signed_commits` property [[#214](https://github.com/terraform-providers/terraform-provider-github/issues/214)]
+* `resource/github_branch_protection`: Added `require_signed_commits` property ([#214](https://github.com/terraform-providers/terraform-provider-github/issues/214))
 
 BUG FIXES:
 

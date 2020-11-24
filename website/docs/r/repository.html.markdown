@@ -17,7 +17,7 @@ resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  private = true
+  visibility  = "public"
 
   template {
     owner = "github"
@@ -92,6 +92,8 @@ initial repository creation and create the target branch inside of the repositor
 
 The following additional attributes are exported:
 
+* `node_id` - the Node ID of the Repository.
+
 * `full_name` - A string of the form "orgname/reponame".
 
 * `html_url` - URL to the repository on the web.
@@ -104,6 +106,9 @@ The following additional attributes are exported:
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out the repository via GitHub's Subversion protocol emulation.
 
+* `node_id` - GraphQL global node id for use with v4 API
+
+* `repo_id` - Github ID for the repository
 
 ## Import
 
