@@ -1,3 +1,14 @@
+## 4.1.0 (Unreleased)
+
+ENHANCEMENTS:
+
+- Add `github_actions_organization_secret` resource ([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add `github_repository_milestone` resource ([#470](https://github.com/terraform-providers/terraform-provider-github/pull/470))
+- Add `github_repository_milestone` data source ([#470](https://github.com/terraform-providers/terraform-provider-github/pull/470))
+- Add `github_project_card` resource ([#460](https://github.com/terraform-providers/terraform-provider-github/pull/460))
+- Add `github_branch_default` resource ([#194](https://github.com/terraform-providers/terraform-provider-github/pull/194))
+
+
 ## 4.0.1 (November 18, 2020)
 
 BUG FIXES:
