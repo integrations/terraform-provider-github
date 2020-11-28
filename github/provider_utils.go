@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+const (
+	PROVIDER_BASE_URL            = "base_url"
+	PROVIDER_INSECURE 			 = "insecure"
+	PROVIDER_ORGANIZATION        = "organization"
+	PROVIDER_OWNER				 = "owner"
+	PROVIDER_TOKEN               = "token"
+	PROVIDER_APP                 = "app"
+	PROVIDER_APP_PEM             = "pem"
+	PROVIDER_APP_ID              = "id"
+	PROVIDER_APP_INSTALLATION_ID = "installation_id"
+)
+
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
 var testOrganization string = testOrganizationFunc()

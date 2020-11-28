@@ -8,35 +8,64 @@ import (
 func Provider() terraform.ResourceProvider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description: descriptions["token"],
+			PROVIDER_TOKEN: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{PROVIDER_TOKEN, PROVIDER_APP},
+				DefaultFunc:  schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description:  descriptions["token"],
 			},
-			"owner": {
+			PROVIDER_OWNER: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
 				Description: descriptions["owner"],
 			},
-			"organization": {
+			PROVIDER_ORGANIZATION: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
 				Description: descriptions["organization"],
 			},
-			"base_url": {
+			PROVIDER_BASE_URL: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_BASE_URL", "https://api.github.com/"),
 				Description: descriptions["base_url"],
 			},
-			"insecure": {
+			PROVIDER_INSECURE: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
+			},
+			PROVIDER_APP: {
+				Type:         schema.TypeList,
+				Optional:     true,
+				ExactlyOneOf: []string{PROVIDER_TOKEN, PROVIDER_APP},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						PROVIDER_APP_ID: {
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+							Description: "The GitHub App ID.",
+						},
+						PROVIDER_APP_INSTALLATION_ID: {
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+							Description: "The GitHub App installation instance ID.",
+						},
+						PROVIDER_APP_PEM: {
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM", nil),
+							Description: "The GitHub App PEM string.",
+							Sensitive:   true,
+						},
+					},
+				},
 			},
 		},
 
