@@ -274,3 +274,28 @@ func getBranchProtectionID(name string, pattern string, meta interface{}) (githu
 
 	return id, nil
 }
+
+func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
+	data := BranchProtectionResourceData{}
+	checks := false
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
+		vL := v.([]interface{})
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
+			m := v.(map[string]interface{})
+			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
+			if len(data.RequiredStatusCheckContexts) > 0 {
+				checks = true
+			}
+		}
+	}
+
+	if old == "0" && new == "1" && !checks {
+		return true
+	}
+	return false
+}
