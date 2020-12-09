@@ -11980,16 +11980,6 @@ func (r *RepositoryPermissionLevel) GetUser() *User {
 	return r.User
 }
 
-// GetAssertsURL returns the AssetsURL field if it's non-nil, zero value otherwise. Created to generate a deprecation warning
-func (r *RepositoryRelease) GetAssertsURL() string {
-	// TODO: Add deprecation message
-	
-	if r == nil || r.AssetsURL == nil {
-		return ""
-	}
-	return *r.AssetsURL
-}
-
 // GetAssetsURL returns the AssetsURL field if it's non-nil, zero value otherwise.
 func (r *RepositoryRelease) GetAssetsURL() string {
 	if r == nil || r.AssetsURL == nil {
