@@ -1,8 +1,9 @@
 name: GHES Acceptance Tests
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - test/**
 
 jobs:
 
