@@ -13,8 +13,16 @@ type Actor struct {
 	Name githubv4.String
 }
 
-type ActorTypes struct {
+type DismissalActorTypes struct {
 	Actor struct {
+		Team Actor `graphql:"... on Team"`
+		User Actor `graphql:"... on User"`
+	}
+}
+
+type PushActorTypes struct {
+	Actor struct {
+		App Actor `graphql:"... on App"`
 		Team Actor `graphql:"... on Team"`
 		User Actor `graphql:"... on User"`
 	}
@@ -26,10 +34,10 @@ type BranchProtectionRule struct {
 		Name githubv4.String
 	}
 	PushAllowances struct {
-		Nodes []ActorTypes
+		Nodes []PushActorTypes
 	} `graphql:"pushAllowances(first: 100)"`
 	ReviewDismissalAllowances struct {
-		Nodes []ActorTypes
+		Nodes []DismissalActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
 	DismissesStaleReviews        githubv4.Boolean
 	ID                           githubv4.ID
@@ -163,7 +171,21 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	return data, nil
 }
 
-func setActorIDs(actors []ActorTypes) []string {
+func setDismissalActorIDs(actors []DismissalActorTypes) []string {
+	pushActors := make([]string, 0, len(actors))
+	for _, a := range actors {
+		if a.Actor.Team != (Actor{}) {
+			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		}
+		if a.Actor.User != (Actor{}) {
+			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		}
+	}
+
+	return pushActors
+}
+
+func setPushActorIDs(actors []PushActorTypes) []string {
 	pushActors := make([]string, 0, len(actors))
 	for _, a := range actors {
 		if a.Actor.Team != (Actor{}) {
@@ -183,7 +205,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 	}
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
-	dismissalActors := setActorIDs(dismissalAllowances)
+	dismissalActors := setDismissalActorIDs(dismissalAllowances)
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -216,7 +238,7 @@ func setPushes(protection BranchProtectionRule) []string {
 		return nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
-	pushActors := setActorIDs(pushAllowances)
+	pushActors := setPushActorIDs(pushAllowances)
 
 	return pushActors
 }
