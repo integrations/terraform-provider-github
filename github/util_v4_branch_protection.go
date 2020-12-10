@@ -31,6 +31,8 @@ type BranchProtectionRule struct {
 	ReviewDismissalAllowances struct {
 		Nodes []ActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
+	AllowsDeletions              githubv4.Boolean
+	AllowsForcePushes            githubv4.Boolean
 	DismissesStaleReviews        githubv4.Boolean
 	ID                           githubv4.ID
 	IsAdminEnforced              githubv4.Boolean
@@ -47,6 +49,8 @@ type BranchProtectionRule struct {
 }
 
 type BranchProtectionResourceData struct {
+	AllowsDeletions              bool
+	AllowsForcePushes            bool
 	BranchProtectionRuleID       string
 	DismissesStaleReviews        bool
 	IsAdminEnforced              bool
@@ -78,6 +82,14 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 
 	if v, ok := d.GetOk(PROTECTION_PATTERN); ok {
 		data.Pattern = v.(string)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_ALLOWS_DELETIONS); ok {
+		data.AllowsDeletions = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_ALLOWS_FORCE_PUSHES); ok {
+		data.AllowsForcePushes = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {
