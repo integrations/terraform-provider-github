@@ -1,3 +1,17 @@
+## 4.1.1 (Unreleased)
+
+ENHANCEMENTS:
+
+- Add `allowDeletions` and `allowsForcePushes` to `github_branch_protection` ([#623](https://github.com/terraform-providers/terraform-provider-github/pull/623))
+- Add GitHub App actor support to `github_branch_protection` ([#615](https://github.com/terraform-providers/terraform-provider-github/pull/615))
+
+BUG FIXES:
+
+- Allow `required_status_checks` `strict` to be `false` for `github_branch_protection` ([#614](https://github.com/terraform-providers/terraform-provider-github/pull/614))
+- Remove `ForceNew` on template-related options for `github_repository` ([#609](https://github.com/terraform-providers/terraform-provider-github/pull/609))
+- Fix parsing of input during imports of `github_branch_protection` ([#610](https://github.com/terraform-providers/terraform-provider-github/pull/610))
+
+
 ## 4.1.0 (December 01, 2020)
 
 ENHANCEMENTS:
