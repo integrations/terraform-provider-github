@@ -106,7 +106,7 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"license_template": {
 				Type:     schema.TypeString,
-				Optional: true
+				Optional: true,
 			},
 			"gitignore_template": {
 				Type:     schema.TypeString,
