@@ -24,7 +24,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				branch := "main"
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"master\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				if len(parts) == 2 {
@@ -68,7 +68,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "The branch name, defaults to \"master\"",
+				Description: "The branch name, defaults to \"main\"",
 				Default:     "main",
 			},
 			"commit_message": {
