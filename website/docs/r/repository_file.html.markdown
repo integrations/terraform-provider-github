@@ -59,6 +59,8 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
+* `commit_sha` - The SHA of the commit that modified the file.
+
 * `sha` - The SHA blob of the file.
 
 
