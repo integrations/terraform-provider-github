@@ -22,7 +22,7 @@ type DismissalActorTypes struct {
 
 type PushActorTypes struct {
 	Actor struct {
-		App Actor `graphql:"... on App"`
+		App  Actor `graphql:"... on App"`
 		Team Actor `graphql:"... on Team"`
 		User Actor `graphql:"... on User"`
 	}
