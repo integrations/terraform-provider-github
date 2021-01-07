@@ -10,7 +10,7 @@ BUG FIXES:
 - Allow `required_status_checks` `strict` to be `false` for `github_branch_protection` ([#614](https://github.com/terraform-providers/terraform-provider-github/pull/614))
 - Remove `ForceNew` on template-related options for `github_repository` ([#609](https://github.com/terraform-providers/terraform-provider-github/pull/609))
 - Fix parsing of input during imports of `github_branch_protection` ([#610](https://github.com/terraform-providers/terraform-provider-github/pull/610))
-
+- `github_repository_file` resource no longer iterates through all commits ([#644](https://github.com/terraform-providers/terraform-provider-github/pull/644))
 
 ## 4.1.0 (December 01, 2020)
 
@@ -94,7 +94,6 @@ BUG FIXES:
 
 - `terraform validate` fails because of missing token ([#503](https://github.com/terraform-providers/terraform-provider-github/issues/503))
 - organization support for various resources ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
-- `github_repository_file` resource no longer iterates through all commits ([#644](https://github.com/terraform-providers/terraform-provider-github/pull/644))
 
 ENHANCEMENTS:
 
