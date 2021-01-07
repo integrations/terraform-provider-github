@@ -23,9 +23,9 @@ in your code. See below for an example of this abstraction.
 
 ```hcl
 resource "github_actions_organization_secret" "example_secret" {
-  secret_name      = "example_secret_name"
-  visiblity        = "private"
-  plaintext_value  = var.some_secret_string
+  secret_name     = "example_secret_name"
+  visibility      = "private"
+  plaintext_value = var.some_secret_string
 }
 ```
 
@@ -36,7 +36,7 @@ data "github_repository" "repo" {
 
 resource "github_actions_organization_secret" "example_secret" {
   secret_name             = "example_secret_name"
-  visiblity               = "selected"
+  visibility              = "selected"
   plaintext_value         = var.some_secret_string
   selected_repository_ids = [data.github_repository.repo.repo_id]
 }
