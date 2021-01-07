@@ -43,6 +43,18 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				"github_repository_file.test", "sha",
 				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
 			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_author",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_email",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_message",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -98,6 +110,18 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "sha",
 				"67c1a95c2d9bb138aefeaebb319cca82e531736b",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_author",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_email",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_message",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
 			),
 		)
 

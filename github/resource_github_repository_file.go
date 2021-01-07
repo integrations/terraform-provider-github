@@ -24,7 +24,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				branch := "main"
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"master\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				if len(parts) == 2 {
@@ -68,8 +68,13 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "The branch name, defaults to \"master\"",
+				Description: "The branch name, defaults to \"main\"",
 				Default:     "main",
+			},
+			"commit_sha": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The SHA of the commit that modified the file",
 			},
 			"commit_message": {
 				Type:        schema.TypeString,
@@ -193,12 +198,13 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 
 	// Create a new or overwritten file
 	log.Printf("[DEBUG] Creating repository file: %s/%s/%s in branch: %s", owner, repo, file, branch)
-	_, _, err = client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	d.Set("commit", create.Commit.GetSHA())
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
@@ -237,13 +243,24 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("sha", fc.GetSHA())
 
 	log.Printf("[DEBUG] Fetching commit info for repository file: %s/%s/%s", owner, repo, file)
-	commit, err := getFileCommit(client, owner, repo, file, branch)
+	var commit *github.RepositoryCommit
+
+	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
+	if sha, ok := d.GetOk("commit_sha"); ok {
+		log.Printf("[DEBUG] Using known commit SHA: %s", sha.(string))
+		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string))
+	} else {
+		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
+		commit, err = getFileCommit(client, owner, repo, file, branch)
+		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+	}
 	if err != nil {
 		return err
 	}
 
-	d.Set("commit_author", commit.GetCommit().GetCommitter().GetName())
-	d.Set("commit_email", commit.GetCommit().GetCommitter().GetEmail())
+	d.Set("commit_sha", commit.GetSHA())
+	d.Set("commit_author", commit.GetCommitter().GetName())
+	d.Set("commit_email", commit.GetCommitter().GetEmail())
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
@@ -274,10 +291,12 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 	}
 
 	log.Printf("[DEBUG] Updating content in repository file: %s/%s/%s", owner, repo, file)
-	_, _, err = client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
 	}
+
+	d.Set("commit_sha", create.GetSHA())
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
