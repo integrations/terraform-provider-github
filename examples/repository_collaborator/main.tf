@@ -1,6 +1,6 @@
 resource "github_repository" "collaboration" {
   name        = "collaboration"
-  private     = true
+  visibility  = "private"
   description = "A collaborative repository"
 }
 
