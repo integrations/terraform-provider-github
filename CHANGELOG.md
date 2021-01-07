@@ -94,6 +94,7 @@ BUG FIXES:
 
 - `terraform validate` fails because of missing token ([#503](https://github.com/terraform-providers/terraform-provider-github/issues/503))
 - organization support for various resources ([#501](https://github.com/terraform-providers/terraform-provider-github/issues/501))
+- `github_repository_file` resource no longer iterates through all commits ([#644](https://github.com/terraform-providers/terraform-provider-github/pull/644))
 
 ENHANCEMENTS:
 
