@@ -88,6 +88,7 @@ BREAKING CHANGES:
 - `organization` no longer deprecated
 - `individual` and `anonymous` removed
 - `owner` inferred from `organization`
+- `base_url` provider parameter no longer requires `/api/v3` suffix
 
 BUG FIXES:
 
