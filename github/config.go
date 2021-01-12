@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
@@ -29,6 +30,7 @@ type Owner struct {
 	v4client       *githubv4.Client
 	StopContext    context.Context
 	IsOrganization bool
+	IsEnterprise bool
 }
 
 func RateLimitedHTTPClient(client *http.Client) *http.Client {
@@ -209,6 +211,7 @@ func (c *Config) Clients() (interface{}, error) {
 			if remoteOrg != nil {
 				owner.id = remoteOrg.GetID()
 				owner.IsOrganization = true
+				owner.IsEnterprise = strings.EqualFold(remoteOrg.GetPlan().GetName(), "enterprise")
 			}
 		}
 	}
