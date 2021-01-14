@@ -99,7 +99,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		
+
 		config := fmt.Sprintf(`
 		
 			resource "github_repository" "test" {
@@ -119,7 +119,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"data.github_repository.test", "pages.0.source.0.branch", 
+				"data.github_repository.test", "pages.0.source.0.branch",
 				"main",
 			),
 		)

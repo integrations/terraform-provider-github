@@ -419,7 +419,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
-	
+
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
@@ -429,7 +429,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("error setting pages: %w", err)
 		}
 	}
-	
+
 	if repo.TemplateRepository != nil {
 		d.Set("template", []interface{}{
 			map[string]interface{}{

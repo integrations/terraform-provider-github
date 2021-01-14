@@ -618,7 +618,7 @@ func TestAccGithubRepositories(t *testing.T) {
 func TestAccGithubRepositoryPages(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	
+
 	t.Run("manages the pages feature for a repository", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
