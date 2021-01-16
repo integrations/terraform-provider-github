@@ -1,5 +1,7 @@
 # go-mnd - Magic number detector for Golang
 
+<img align="right" width="250px" src="https://github.com/tommy-muehle/go-mnd/blob/master/images/logo.png">
+
 A vet analyzer to detect magic numbers.
 
 > **What is a magic number?**  
@@ -7,22 +9,64 @@ A vet analyzer to detect magic numbers.
 
 ## Project status
 
-[![Build Status](https://travis-ci.org/tommy-muehle/go-mnd.svg?branch=master)](https://travis-ci.org/tommy-muehle/go-mnd)
+![CI](https://github.com/tommy-muehle/go-mnd/workflows/CI/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tommy-muehle/go-mnd)](https://goreportcard.com/report/github.com/tommy-muehle/go-mnd)
+[![codecov](https://codecov.io/gh/tommy-muehle/go-mnd/branch/master/graph/badge.svg)](https://codecov.io/gh/tommy-muehle/go-mnd)
 
 ## Install
+
+### Local
 
 This analyzer requires Golang in version >= 1.12 because it's depends on the **go/analysis** API.
 
 ```
-go get github.com/tommy-muehle/go-mnd/cmd/mnd
+go get -u github.com/tommy-muehle/go-mnd/cmd/mnd
 ```
+
+### Github action
+
+You can run go-mnd as a GitHub action as follows:
+
+```
+name: Example workflow
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v2
+      - name: Run go-mnd
+        uses: tommy-muehle/go-mnd@master
+        with:
+          args: ./...
+```
+
+### Homebrew
 
 To install with [Homebrew](https://brew.sh/), run:
 
 ```
 brew tap tommy-muehle/tap && brew install tommy-muehle/tap/mnd
 ```
+
+### Docker
+
+To get the latest available Docker image:
+
+```
+docker pull tommymuehle/go-mnd
+```
+
+### Windows
 
 On Windows download the [latest release](https://github.com/tommy-muehle/go-mnd/releases).
 
@@ -40,11 +84,24 @@ or directly
 mnd ./...
 ```
 
+or via Docker
+
+```
+docker run --rm -v "$PWD":/app -w /app tommymuehle/go-mnd:latest ./...
+```
+
+## Options
+
 The ```-checks``` option let's you define a comma separated list of checks.
 
-The ```-ignored-numbers``` option let's you define a comma separated list of numbers to ignore.
+The ```-ignored-numbers``` option let's you define a comma separated list of numbers to ignore.  
+For example: `-ignored-numbers=1000,10_000,3.14159264`
 
-The ```-excludes``` option let's you define a comma separated list of regexp patterns to exclude.
+The ```-ignored-functions``` option let's you define a comma separated list of function name regexp patterns to exclude.  
+For example: `-ignored-functions=math.*,http.StatusText`
+
+The ```-ignored-files``` option let's you define a comma separated list of filename regexp patterns to exclude.  
+For example: `-ignored-files=magic_.*.go,.*_numbers.go`
 
 ## Checks
 
@@ -105,6 +162,48 @@ t := time.Date(2017, time.September, 26, 12, 13, 14, 0, time.UTC)
 ```
 
 Additional custom excludes can be defined via option flag.
+
+## Development
+
+### Build
+
+You can build the binary with:
+
+```
+make
+```
+
+### Tests
+
+You can run all unit tests using:
+
+```
+make test
+```
+
+And with coverage report:
+
+```
+make test-coverage
+```
+
+### Docker image
+
+You can also build locally the docker image by using the command:
+
+```
+make image
+```
+
+## Stickers
+
+<p style="float: left;">
+    <img alt="Stickers image" width="200px" src="https://github.com/tommy-muehle/go-mnd/blob/master/images/stickers.jpg" />
+    <img alt="Sticker image" width="200px" src="https://github.com/tommy-muehle/go-mnd/blob/master/images/sticker.jpg" />
+</p>
+
+Just drop me a message via Twitter DM or email if you want some go-mnd stickers
+for you or your Gopher usergroup.
 
 ## License
 

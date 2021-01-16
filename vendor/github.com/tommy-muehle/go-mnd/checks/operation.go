@@ -26,28 +26,32 @@ func NewOperationAnalyzer(pass *analysis.Pass, config *config.Config) *Operation
 func (a *OperationAnalyzer) NodeFilter() []ast.Node {
 	return []ast.Node{
 		(*ast.AssignStmt)(nil),
+		(*ast.ParenExpr)(nil),
 	}
 }
 
 func (a *OperationAnalyzer) Check(n ast.Node) {
-	stmt, ok := n.(*ast.AssignStmt)
-	if !ok {
-		return
-	}
-
-	for _, expr := range stmt.Rhs {
-		switch x := expr.(type) {
+	switch expr := n.(type) {
+	case *ast.ParenExpr:
+		switch x := expr.X.(type) {
 		case *ast.BinaryExpr:
-			switch xExpr := x.X.(type) {
-			case *ast.BinaryExpr:
-				a.checkBinaryExpr(xExpr)
-			}
-			switch yExpr := x.Y.(type) {
-			case *ast.BinaryExpr:
-				a.checkBinaryExpr(yExpr)
-			}
-
 			a.checkBinaryExpr(x)
+		}
+	case *ast.AssignStmt:
+		for _, y := range expr.Rhs {
+			switch x := y.(type) {
+			case *ast.BinaryExpr:
+				switch xExpr := x.X.(type) {
+				case *ast.BinaryExpr:
+					a.checkBinaryExpr(xExpr)
+				}
+				switch yExpr := x.Y.(type) {
+				case *ast.BinaryExpr:
+					a.checkBinaryExpr(yExpr)
+				}
+
+				a.checkBinaryExpr(x)
+			}
 		}
 	}
 }

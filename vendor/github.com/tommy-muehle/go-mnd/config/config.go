@@ -6,9 +6,10 @@ import (
 )
 
 type Config struct {
-	Checks         map[string]bool
-	IgnoredNumbers map[string]struct{}
-	Excludes       []*regexp.Regexp
+	Checks           map[string]bool
+	IgnoredNumbers   map[string]struct{}
+	IgnoredFunctions []*regexp.Regexp
+	IgnoredFiles     []*regexp.Regexp
 }
 
 type Option func(config *Config)
@@ -20,28 +21,45 @@ func DefaultConfig() *Config {
 			"0": {},
 			"1": {},
 		},
-		Excludes: []*regexp.Regexp{
+		IgnoredFiles: []*regexp.Regexp{
 			regexp.MustCompile(`_test.go`),
+		},
+		IgnoredFunctions: []*regexp.Regexp{
+			regexp.MustCompile(`time.Date`),
 		},
 	}
 }
 
 func WithOptions(options ...Option) *Config {
 	c := DefaultConfig()
+
 	for _, option := range options {
 		option(c)
 	}
+
 	return c
 }
 
-func WithExcludes(excludes string) Option {
+func WithIgnoredFunctions(excludes string) Option {
 	return func(config *Config) {
 		if excludes == "" {
 			return
 		}
 
 		for _, exclude := range strings.Split(excludes, ",") {
-			config.Excludes = append(config.Excludes, regexp.MustCompile(exclude))
+			config.IgnoredFunctions = append(config.IgnoredFunctions, regexp.MustCompile(exclude))
+		}
+	}
+}
+
+func WithIgnoredFiles(excludes string) Option {
+	return func(config *Config) {
+		if excludes == "" {
+			return
+		}
+
+		for _, exclude := range strings.Split(excludes, ",") {
+			config.IgnoredFiles = append(config.IgnoredFiles, regexp.MustCompile(exclude))
 		}
 	}
 }
@@ -53,7 +71,7 @@ func WithIgnoredNumbers(numbers string) Option {
 		}
 
 		for _, number := range strings.Split(numbers, ",") {
-			config.IgnoredNumbers[number] = struct{}{}
+			config.IgnoredNumbers[config.removeDigitSeparator(number)] = struct{}{}
 		}
 	}
 }
@@ -79,6 +97,20 @@ func (c *Config) IsCheckEnabled(name string) bool {
 }
 
 func (c *Config) IsIgnoredNumber(number string) bool {
-	_, ok := c.IgnoredNumbers[number]
+	_, ok := c.IgnoredNumbers[c.removeDigitSeparator(number)]
 	return ok
+}
+
+func (c *Config) IsIgnoredFunction(f string) bool {
+	for _, pattern := range c.IgnoredFunctions {
+		if pattern.MatchString(f) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *Config) removeDigitSeparator(number string) string {
+	return strings.Replace(number, "_", "", -1)
 }
