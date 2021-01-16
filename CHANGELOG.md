@@ -1,4 +1,17 @@
-## 4.2.0 (Unreleased)
+## 4.3.0 (January 14, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource** `github_branch_protection_v3` ([#642](https://github.com/terraform-providers/terraform-provider-github/issues/642))
+* Add `pages` feature to `github_repository` ([#490](https://github.com/terraform-providers/terraform-provider-github/issues/490))
+
+
+## 4.2.0 (January 07, 2021)
+
+BREAKING CHANGES:
+
+- Project transfer from `terraform-providers` organization to `integrations`
+    - See [#652](https://github.com/integrations/terraform-provider-github/issues/652) for migration steps and [#656](https://github.com/integrations/terraform-provider-github/issues/656) for discussion
 
 ENHANCEMENTS:
 
