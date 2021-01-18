@@ -1,4 +1,14 @@
-## 4.3.0 (January 14, 2021)
+## 4.3.1 (January 17, 2021)
+
+BUG FIXES:
+
+- Add `create_default_maintainer` option to `github_team`
+    - ([#527](https://github.com/integrations/terraform-provider-github/pull/527))
+    - ([#104](https://github.com/integrations/terraform-provider-github/pull/104))
+    - ([#130](https://github.com/integrations/terraform-provider-github/pull/130))
+
+
+## 4.3.0 (January 16, 2021)
 
 ENHANCEMENTS:
 
