@@ -24,7 +24,7 @@ Detailed documentation for contributing to the GitHub provider can be found [her
 
 ## Roadmap
 
-This project leverages [Milestones](https://github.com/terraform-providers/terraform-provider-github/milestones) to scope upcoming features and bug fixes. Issues that receive the most recent discussion or the most reactions will be more likely to be included in an upcoming release.
+This project leverages [Milestones](https://github.com/integrations/terraform-provider-github/milestones) to scope upcoming features and bug fixes. Issues that receive the most recent discussion or the most reactions will be more likely to be included in an upcoming release.
 
 ## Support
 
