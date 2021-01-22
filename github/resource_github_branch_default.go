@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -38,14 +39,11 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{})
 	repoName := d.Get("repository").(string)
 	defaultBranch := d.Get("branch").(string)
 
-	ctx := context.Background()
-
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
+	repository := &github.Repository{
+		DefaultBranch: &defaultBranch,
 	}
 
-	repository.DefaultBranch = &defaultBranch
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating branch default: %s (%s/%s)", defaultBranch, owner, repoName)
 	if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
@@ -87,17 +85,14 @@ func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta interface{})
 	repoName := d.Id()
 	defaultBranch := d.Get("branch").(string)
 
-	ctx := context.Background()
-
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
+	repository := &github.Repository{
+		DefaultBranch: nil,
 	}
 
-	repository.DefaultBranch = nil
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Removing branch default: %s (%s/%s)", defaultBranch, owner, repoName)
-	_, _, err = client.Repositories.Edit(ctx, owner, repoName, repository)
+	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
 	return err
 }
 
@@ -108,14 +103,11 @@ func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta interface{})
 	repoName := d.Id()
 	defaultBranch := d.Get("branch").(string)
 
-	ctx := context.Background()
-
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
+	repository := &github.Repository{
+		DefaultBranch: &defaultBranch,
 	}
 
-	repository.DefaultBranch = &defaultBranch
+	ctx := context.Background()
 
 	log.Printf("[DEBUG] Updating branch default: %s (%s/%s)", defaultBranch, owner, repoName)
 	if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
