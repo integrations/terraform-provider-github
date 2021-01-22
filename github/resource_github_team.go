@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -101,7 +100,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	create_default_maintainer := d.Get("create_default_maintainer").(bool)
-	if create_default_maintainer == false {
+	if !create_default_maintainer {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
 		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
 			return err
@@ -271,7 +270,7 @@ func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
 
 	for _, user := range query.Organization.Team.Members.Nodes {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s", user.Login)
-		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, teamSlug, fmt.Sprintf("%s", user.Login))
+		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, teamSlug, string(user.Login))
 		if err != nil {
 			return err
 		}
