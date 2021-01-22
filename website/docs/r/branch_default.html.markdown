@@ -11,19 +11,15 @@ Provides a GitHub branch default resource.
 
 This resource allows you to set the default branch for a given repository. 
 
+Note that use of this resource is incompatible with the `default_branch` option of the `github_repository` resource.  Using both will result in plans always showing a diff.
+
 ## Example Usage
 
 ```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
-
-  visibility = "private"
-
-  template {
-    owner = "github"
-    repository = "terraform-module-template"
-  }
+  auto_init   = true
 }
 
 resource "github_branch" "development" {

@@ -65,18 +65,22 @@ func TestAccGithubBranchDefault(t *testing.T) {
 
 	})
 
-	t.Run("can be configured to override the default_branch of the repository", func(t *testing.T) {
+	t.Run("replaces the default_branch of a repository", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
-				default_branch = "main"
 				auto_init = true
 			}
-
-			resource "github_branch_default" "test" {
-				repository     = github_repository.test.name
-				branch         = "override"
+			
+			resource "github_branch" "test" {
+				repository = github_repository.test.name
+				branch     = "test"
+			}
+			  
+			resource "github_branch_default" "test"{
+				repository = github_repository.test.name
+				branch     = github_branch.test.branch
 			}
 
 		`, randomID)
@@ -84,11 +88,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_branch_default.test", "branch",
-				"override",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_default.test", "repository",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
+				"test",
 			),
 		)
 
