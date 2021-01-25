@@ -35,7 +35,7 @@ In line with Terraform Provider testing best practices, these tests exercise aga
 
 Clone the provider
 ```sh
-$ git clone git@github.com:terraform-providers/terraform-provider-github.git
+$ git clone git@github.com:integrations/terraform-provider-github.git
 ```
 
 Enter the provider directory and build the provider

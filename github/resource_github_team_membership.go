@@ -95,7 +95,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
-	// See https://github.com/terraform-providers/terraform-provider-github/issues/323
+	// See https://github.com/integrations/terraform-provider-github/issues/323
 	d.Set("team_id", teamIdString)
 	d.Set("username", username)
 

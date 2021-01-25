@@ -247,7 +247,7 @@ func TestAccGithubRepositories(t *testing.T) {
 					"main",
 				),
 			),
-			// FIXME: Deferred until https://github.com/terraform-providers/terraform-provider-github/issues/513
+			// FIXME: Deferred until https://github.com/integrations/terraform-provider-github/issues/513
 			// > Cannot update default branch for an empty repository. Please init the repository and push first
 			// "after": resource.ComposeTestCheckFunc(
 			// 	resource.TestCheckResourceAttr(
