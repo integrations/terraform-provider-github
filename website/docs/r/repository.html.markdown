@@ -17,11 +17,29 @@ resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  private = true
+  visibility  = "public"
 
   template {
     owner = "github"
     repository = "terraform-module-template"
+  }
+}
+```
+
+## Example Usage with Github Pages Enabled
+
+```hcl
+resource "github_repository" "example" {
+  name        = "example"
+  description = "My awesome web page"
+
+  private = false
+
+  pages {
+    source {
+      branch = "master"
+      path   = "/docs"
+    }
   }
 }
 ```
@@ -67,7 +85,7 @@ The following arguments are supported:
 
 * `license_template` - (Optional) Use the [name of the template](https://github.com/github/choosealicense.com/tree/gh-pages/_licenses) without the extension. For example, "mit" or "mpl-2.0".
 
-* `default_branch` - (Optional) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created,
+* `default_branch` - (Optional) (Deprecated: Use `github_branch_default` resource instead) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created,
 and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
 initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
@@ -75,11 +93,29 @@ initial repository creation and create the target branch inside of the repositor
 
 * `archive_on_destroy` - (Optional) Set to `true` to archive the repository instead of deleting on destroy.
 
+* `pages` - (Optional) The repository's Github Pages configuration. See [Github Pages Configuration](#github-pages-configuration) below for details.
+
 * `topics` - (Optional) The list of topics of the repository.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
 * `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. 
+
+### Github Pages Configuration 
+
+The `pages` block supports the following:
+
+* `source` - (Required) The source branch and directory for the rendered Pages site. See [Github Pages Source](#github-pages-source) below for details.
+
+* `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
+
+#### Github Pages Source ####
+
+The `source` block supports the following:
+
+* `branch` - (Required) The repository branch used to publish the site's source files. (i.e. `main` or `gh-pages`.
+
+* `path` - (Optional) The repository directory from which the site publishes (Default: `/`).
 
 ### Template Repositories
 
@@ -91,6 +127,8 @@ initial repository creation and create the target branch inside of the repositor
 ## Attributes Reference
 
 The following additional attributes are exported:
+
+* `node_id` - the Node ID of the Repository.
 
 * `full_name` - A string of the form "orgname/reponame".
 
@@ -104,6 +142,14 @@ The following additional attributes are exported:
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out the repository via GitHub's Subversion protocol emulation.
 
+* `node_id` - GraphQL global node id for use with v4 API
+
+* `repo_id` - Github ID for the repository
+
+* `pages` - The block consisting of the repository's Github Pages configuration with the following additional attributes:
+ * `custom_404` - Whether the rendered Github Pages site has a custom 404 page.
+ * `html_url` - The absolute URL (including scheme) of the rendered Github Pages site e.g. `https://username.github.io`.
+ * `status` - The Github Pages site's build status e.g. `building` or `built`.
 
 ## Import
 

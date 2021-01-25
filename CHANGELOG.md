@@ -1,4 +1,86 @@
+## 4.3.1 (January 22, 2021)
+
+BUG FIXES:
+
+* Send valid payload when editing a repository resource with `github_branch_default` ([#666](https://github.com/terraform-providers/terraform-provider-github/issues/666))
+* Add handling to surface errors in provider configuration ([#668](https://github.com/terraform-providers/terraform-provider-github/issues/668))
+
+## 4.3.0 (January 14, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource** `github_branch_protection_v3` ([#642](https://github.com/terraform-providers/terraform-provider-github/issues/642))
+* Add `pages` feature to `github_repository` ([#490](https://github.com/terraform-providers/terraform-provider-github/issues/490))
+
+
+## 4.2.0 (January 07, 2021)
+
+BREAKING CHANGES:
+
+- Project transfer from `terraform-providers` organization to `integrations`
+    - See [#652](https://github.com/integrations/terraform-provider-github/issues/652) for migration steps and [#656](https://github.com/integrations/terraform-provider-github/issues/656) for discussion
+
+ENHANCEMENTS:
+
+- Add `allowDeletions` and `allowsForcePushes` to `github_branch_protection` ([#623](https://github.com/terraform-providers/terraform-provider-github/pull/623))
+- Add GitHub App actor support to `github_branch_protection` ([#615](https://github.com/terraform-providers/terraform-provider-github/pull/615))
+
+BUG FIXES:
+
+- Allow `required_status_checks` `strict` to be `false` for `github_branch_protection` ([#614](https://github.com/terraform-providers/terraform-provider-github/pull/614))
+- Remove `ForceNew` on template-related options for `github_repository` ([#609](https://github.com/terraform-providers/terraform-provider-github/pull/609))
+- Fix parsing of input during imports of `github_branch_protection` ([#610](https://github.com/terraform-providers/terraform-provider-github/pull/610))
+- `github_repository_file` resource no longer iterates through all commits ([#644](https://github.com/terraform-providers/terraform-provider-github/pull/644))
+
+## 4.1.0 (December 01, 2020)
+
+ENHANCEMENTS:
+
+- Add `github_actions_organization_secret` resource ([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add `github_repository_milestone` resource ([#470](https://github.com/terraform-providers/terraform-provider-github/pull/470))
+- Add `github_repository_milestone` data source ([#470](https://github.com/terraform-providers/terraform-provider-github/pull/470))
+- Add `github_project_card` resource ([#460](https://github.com/terraform-providers/terraform-provider-github/pull/460))
+- Add `github_branch_default` resource ([#194](https://github.com/terraform-providers/terraform-provider-github/pull/194))
+
+
+## 4.0.1 (November 18, 2020)
+
+BUG FIXES:
+
+- `github_team` data source query no longer iterates through a list of teams ([#579](https://github.com/terraform-providers/terraform-provider-github/pull/579))
+- `github_repository_file` resource no longer iterates through all commits ([#589](https://github.com/terraform-providers/terraform-provider-github/pull/589))
+- fix parsing of `repo:pattern` format during `github_branch_protection` import ([#599](https://github.com/terraform-providers/terraform-provider-github/pull/599))
+
+
+## 4.0.0 (November 10, 2020)
+
+REGRESSIONS:
+
+- fails parsing of `repo:pattern` format during `github_branch_protection` import ([#597](https://github.com/terraform-providers/terraform-provider-github/issues/597))
+
+BREAKING CHANGES:
+
+- `pattern` replaces `branch` in changes to `github_branch_protection` introduced in `v3.1.0` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- `dismissal_restrictions` documented for `github_branch_protection` ([#569](https://github.com/terraform-providers/terraform-provider-github/pull/569))
+- project license changes from MPL2 to MIT ([#591](https://github.com/terraform-providers/terraform-provider-github/pull/591))
+
+BUG FIXES:
+
+- `repository_id` for `github_branch_protection` accepts repository name as well as node ID ([#593](https://github.com/terraform-providers/terraform-provider-github/issues/593))
+
+ENHANCEMENTS:
+
+- Add support to get currently authenticated user to `data_source_github_user` ([#261](https://github.com/terraform-providers/terraform-provider-github/pull/261))
+- Add importing to `github_organization_webhook` ([#487](https://github.com/terraform-providers/terraform-provider-github/pull/487))
+
+
 ## 3.1.0 (October 12, 2020)
+
+REGRESSIONS:
+
+- undocumented, breaking configuration changes to `github_branch_protection` ([#566](https://github.com/terraform-providers/terraform-provider-github/issues/566))
+- slowed performance of `github_branch_protection` ([$567](https://github.com/terraform-providers/terraform-provider-github/issues/567))
+- change to default branch breaks refresh of existing `github_repository_file` resources ([#564](https://github.com/terraform-providers/terraform-provider-github/issues/564))
 
 BREAKING CHANGES:
 
@@ -26,6 +108,7 @@ BREAKING CHANGES:
 - `organization` no longer deprecated
 - `individual` and `anonymous` removed
 - `owner` inferred from `organization`
+- `base_url` provider parameter no longer requires `/api/v3` suffix
 
 BUG FIXES:
 
@@ -118,6 +201,10 @@ BUG FIXES:
 * Fix Broken Link For `github_actions_secret` Documentation ([#405](https://github.com/terraform-providers/terraform-provider-github/issues/405))
 
 ## 2.5.0 (March 30, 2020)
+
+REGRESSION:
+
+* `go-github` `v29.03` is incompatible with versions of GitHub Enterprise Server prior to `v2.21.5`. ([[#404](https://github.com/terraform-providers/terraform-provider-github/issues/404)])
 
 ENHANCEMENTS:
 

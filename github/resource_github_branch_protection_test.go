@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccGithubBranchProtection(t *testing.T) {
@@ -56,6 +57,14 @@ func TestAccGithubBranchProtection(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+					{
+						ResourceName:      "github_branch_protection.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateIdFunc: branchProtectionImportStateIdFunc(
+							fmt.Sprintf("tf-acc-test-%s", randomID), "main",
+						),
 					},
 				},
 			})
@@ -210,8 +219,8 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
+			  repository_id   = github_repository.test.name
+			  pattern       	= "main"
 
 			  push_restrictions = [
 			    data.github_user.test.node_id,
@@ -252,4 +261,69 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 	})
+
+	t.Run("configures force pushes and deletions", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			data "github_user" "test" {
+			  username = "%s"
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id   = github_repository.test.name
+			  pattern       	= "main"
+				allows_deletions = true
+				allows_force_pushes = true
+
+			}
+	`, randomID, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "allows_deletions", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "allows_force_pushes", "true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+}
+
+func branchProtectionImportStateIdFunc(repo, pattern string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		return fmt.Sprintf("%s:%s", repo, pattern), nil
+	}
 }

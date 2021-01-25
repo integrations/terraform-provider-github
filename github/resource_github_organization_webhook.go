@@ -17,6 +17,9 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		Read:   resourceGithubOrganizationWebhookRead,
 		Update: resourceGithubOrganizationWebhookUpdate,
 		Delete: resourceGithubOrganizationWebhookDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceGithubWebhookMigrateState,
@@ -154,6 +157,8 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 			hook.Config["secret"] = currentSecret
 		}
 	}
+
+	hook.Config = insecureSslStringToBool(hook.Config)
 
 	d.Set("configuration", []interface{}{hook.Config})
 

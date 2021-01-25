@@ -235,8 +235,6 @@ github.com/hashicorp/hcl/v2/hclwrite
 github.com/hashicorp/hcl/v2/json
 # github.com/hashicorp/logutils v1.0.0
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform v0.12.24
-github.com/hashicorp/terraform/helper/acctest
 # github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/terraform-json v0.4.0
@@ -364,7 +362,7 @@ github.com/ryancurrah/gomodguard
 # github.com/securego/gosec v0.0.0-20200316084457-7da9f46445fd
 github.com/securego/gosec
 github.com/securego/gosec/rules
-# github.com/shurcooL/githubv4 v0.0.0-20191127044304-8f68eb5628d0
+# github.com/shurcooL/githubv4 v0.0.0-20201206200315-234843c633fa
 github.com/shurcooL/githubv4
 # github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
 github.com/shurcooL/graphql

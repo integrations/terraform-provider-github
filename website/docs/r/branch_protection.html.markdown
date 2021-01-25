@@ -17,10 +17,16 @@ This resource allows you to configure branch protection for repositories in your
 # Protect the master branch of the foo repository. Additionally, require that
 # the "ci/travis" context to be passing and only allow the engineers team merge
 # to the branch.
+
 resource "github_branch_protection" "example" {
-  repository_id  = github_repository.example.node_id
-  pattern        = "main"
-  enforce_admins = true
+
+  repository_id = github_repository.example.node_id
+  # also accepts repository name
+  # repository_id  = github_repository.example.name
+
+  pattern          = "main"
+  enforce_admins   = true
+  allows_deletions = true
 
   required_status_checks {
     strict   = false
@@ -37,8 +43,10 @@ resource "github_branch_protection" "example" {
 
   push_restrictions = [
     data.github_user.example.node_id,
-    github_team.example.node_id,
+    # limited to a list of one type of restriction (user, team, app)
+    # github_team.example.node_id
   ]
+
 }
 
 resource "github_user" "example" {
@@ -60,13 +68,15 @@ resource "github_team_repository" "example" {
 
 The following arguments are supported:
 
-* `repository_id` - (Required) The repository associated with this branch protection rule.
+* `repository_id` - (Required) The name or node ID of the repository associated with this branch protection rule.
 * `pattern` - (Required) Identifies the protection rule pattern.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
 * `push_restrictions` - (Optional) The list of actor IDs that may push to the branch.
+* `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
+* `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
 
 ### Required Status Checks
 
@@ -80,15 +90,15 @@ The following arguments are supported:
 `required_pull_request_reviews` supports the following arguments:
 
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
-* `dismissal_actors`: (Optional) The list of actor IDs with dismissal access.
+* `dismissal_restrictions`: (Optional) The list of actor IDs with dismissal access.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 1-6. This requirement matches Github's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
 
 
 ## Import
 
-GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
+GitHub Branch Protection can be imported using an ID made up of `repository:pattern`, e.g.
 
 ```
-$ terraform import github_branch_protection.terraform terraform:master
+$ terraform import github_branch_protection.terraform terraform:main
 ```

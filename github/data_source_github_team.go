@@ -2,11 +2,9 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -56,7 +54,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	orgId := meta.(*Owner).id
 	ctx := context.Background()
 
-	team, err := getGithubTeamBySlug(ctx, client, meta.(*Owner).name, slug)
+	team, _, err := client.Teams.GetTeamBySlug(ctx, meta.(*Owner).name, slug)
 	if err != nil {
 		return err
 	}
@@ -80,27 +78,4 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("node_id", team.GetNodeID())
 
 	return nil
-}
-
-func getGithubTeamBySlug(ctx context.Context, client *github.Client, org string, slug string) (team *github.Team, err error) {
-	opt := &github.ListOptions{PerPage: 10}
-	for {
-		teams, resp, err := client.Teams.ListTeams(ctx, org, opt)
-		if err != nil {
-			return team, err
-		}
-
-		for _, t := range teams {
-			if *t.Slug == slug {
-				return t, nil
-			}
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-
-	return team, fmt.Errorf("Could not find team with slug: %s", slug)
 }

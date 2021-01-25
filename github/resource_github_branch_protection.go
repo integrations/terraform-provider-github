@@ -21,12 +21,22 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "",
+				Description: "Node ID or name of repository",
 			},
 			PROTECTION_PATTERN: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "",
+			},
+			PROTECTION_ALLOWS_DELETIONS: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			PROTECTION_ALLOWS_FORCE_PUSHES: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			PROTECTION_IS_ADMIN_ENFORCED: {
 				Type:     schema.TypeBool,
@@ -66,8 +76,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 				},
 			},
 			PROTECTION_REQUIRES_STATUS_CHECKS: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: statusChecksDiffSuppression,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRES_STRICT_STATUS_CHECKS: {
@@ -95,7 +106,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 		Delete: resourceGithubBranchProtectionDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubBranchProtectionImport,
 		},
 
 		StateUpgraders: []schema.StateUpgrader{
@@ -121,6 +132,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 	input := githubv4.CreateBranchProtectionRuleInput{
+		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                      githubv4.String(data.Pattern),
@@ -180,6 +193,16 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
+	err = d.Set(PROTECTION_ALLOWS_DELETIONS, protection.AllowsDeletions)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
 	if err != nil {
 		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_IS_ADMIN_ENFORCED, protection.Repository.Name, protection.Pattern, d.Id())
@@ -225,6 +248,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	}
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:       d.Id(),
+		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                      githubv4.NewString(githubv4.String(data.Pattern)),
@@ -268,4 +293,25 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 	err := client.Mutate(ctx, &mutate, input, nil)
 
 	return err
+}
+
+func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	repoName, pattern, err := parseTwoPartID(d.Id(), "repository", "pattern")
+	if err != nil {
+		return nil, err
+	}
+
+	repoID, err := getRepositoryID(repoName, meta)
+	if err != nil {
+		return nil, err
+	}
+	d.Set("repository_id", repoID)
+
+	id, err := getBranchProtectionID(repoName, pattern, meta)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(fmt.Sprintf("%s", id))
+
+	return []*schema.ResourceData{d}, resourceGithubBranchProtectionRead(d, meta)
 }

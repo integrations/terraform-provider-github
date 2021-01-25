@@ -102,16 +102,15 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Can only be set after initial repository creation, and only if the target branch exists",
+				Deprecated:  "Use the github_branch_default resource instead",
 			},
 			"license_template": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"gitignore_template": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"archived": {
 				Type:     schema.TypeBool,
@@ -121,6 +120,53 @@ func resourceGithubRepository() *schema.Resource {
 			"archive_on_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
+			},
+			"pages": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"source": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"branch": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"path": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "/",
+									},
+								},
+							},
+						},
+						"cname": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"custom_404": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"html_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"status": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"topics": {
 				Type:     schema.TypeSet,
@@ -134,7 +180,6 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-
 			"full_name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -166,7 +211,6 @@ func resourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -183,6 +227,10 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"node_id": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"repo_id": {
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 		},
@@ -256,7 +304,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				templateRepo,
 				&templateRepoReq,
 			)
-
 			if err != nil {
 				return err
 			}
@@ -272,7 +319,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// Create repository within authenticated user's account
 			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
-
 		}
 		if err != nil {
 			return err
@@ -303,6 +349,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	if createVulnerabilityAlerts != nil {
 		_, err := createVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
+	pages := expandPages(d.Get("pages").([]interface{}))
+	if pages != nil {
+		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
 		if err != nil {
 			return err
 		}
@@ -364,6 +418,17 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("archived", repo.GetArchived())
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
+	d.Set("repo_id", repo.GetID())
+
+	if repo.GetHasPages() {
+		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("pages", flattenPages(pages)); err != nil {
+			return fmt.Errorf("error setting pages: %w", err)
+		}
+	}
 
 	if repo.TemplateRepository != nil {
 		d.Set("template", []interface{}{
@@ -386,7 +451,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-
 	// Can only update a repository if it is not archived or the update is to
 	// archive the repository (unarchiving is not supported by the Github API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
@@ -422,6 +486,21 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	d.SetId(*repo.Name)
+
+	if d.HasChange("pages") && !d.IsNewResource() {
+		opts := expandPagesUpdate(d.Get("pages").([]interface{}))
+		if opts != nil {
+			_, err := client.Repositories.UpdatePages(ctx, owner, repoName, opts)
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err := client.Repositories.DisablePages(ctx, owner, repoName)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
@@ -478,4 +557,71 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
 	return err
+}
+
+func expandPages(input []interface{}) *github.Pages {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+	pages := input[0].(map[string]interface{})
+	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
+	source := &github.PagesSource{
+		Branch: github.String(pagesSource["branch"].(string)),
+	}
+	if v, ok := pagesSource["path"].(string); ok {
+		// To set to the root directory "/", leave source.Path unset
+		if v != "" && v != "/" {
+			source.Path = github.String(v)
+		}
+	}
+	return &github.Pages{Source: source}
+}
+
+func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+
+	pages := input[0].(map[string]interface{})
+	update := &github.PagesUpdate{}
+
+	// Only set the github.PagesUpdate CNAME field if the value is a non-empty string.
+	// Leaving the CNAME field unset will remove the custom domain.
+	if v, ok := pages["cname"].(string); ok && v != "" {
+		update.CNAME = github.String(v)
+	}
+
+	// To update the Github Pages source, the github.PagesUpdate Source field
+	// must include the branch name and optionally the subdirectory /docs.
+	// e.g. "master" or "master /docs"
+	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
+	source := pagesSource["branch"].(string)
+	if v, ok := pagesSource["path"].(string); ok {
+		if v != "" && v != "/" {
+			source += fmt.Sprintf(" %s", v)
+		}
+	}
+	update.Source = github.String(source)
+
+	return update
+}
+
+func flattenPages(pages *github.Pages) []interface{} {
+	if pages == nil {
+		return []interface{}{}
+	}
+
+	sourceMap := make(map[string]interface{})
+	sourceMap["branch"] = pages.GetSource().GetBranch()
+	sourceMap["path"] = pages.GetSource().GetPath()
+
+	pagesMap := make(map[string]interface{})
+	pagesMap["source"] = []interface{}{sourceMap}
+	pagesMap["url"] = pages.GetURL()
+	pagesMap["status"] = pages.GetStatus()
+	pagesMap["cname"] = pages.GetCNAME()
+	pagesMap["custom_404"] = pages.GetCustom404()
+	pagesMap["html_url"] = pages.GetHTMLURL()
+
+	return []interface{}{pagesMap}
 }

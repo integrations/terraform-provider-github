@@ -12,8 +12,9 @@ func webhookConfigurationSchema() *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"url": {
-					Type:     schema.TypeString,
-					Required: true,
+					Type:      schema.TypeString,
+					Required:  true,
+					Sensitive: true,
 				},
 				"content_type": {
 					Type:     schema.TypeString,

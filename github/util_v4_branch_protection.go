@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -12,8 +13,16 @@ type Actor struct {
 	Name githubv4.String
 }
 
-type ActorTypes struct {
+type DismissalActorTypes struct {
 	Actor struct {
+		Team Actor `graphql:"... on Team"`
+		User Actor `graphql:"... on User"`
+	}
+}
+
+type PushActorTypes struct {
+	Actor struct {
+		App  Actor `graphql:"... on App"`
 		Team Actor `graphql:"... on Team"`
 		User Actor `graphql:"... on User"`
 	}
@@ -25,11 +34,13 @@ type BranchProtectionRule struct {
 		Name githubv4.String
 	}
 	PushAllowances struct {
-		Nodes []ActorTypes
+		Nodes []PushActorTypes
 	} `graphql:"pushAllowances(first: 100)"`
 	ReviewDismissalAllowances struct {
-		Nodes []ActorTypes
+		Nodes []DismissalActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
+	AllowsDeletions              githubv4.Boolean
+	AllowsForcePushes            githubv4.Boolean
 	DismissesStaleReviews        githubv4.Boolean
 	ID                           githubv4.ID
 	IsAdminEnforced              githubv4.Boolean
@@ -46,6 +57,8 @@ type BranchProtectionRule struct {
 }
 
 type BranchProtectionResourceData struct {
+	AllowsDeletions              bool
+	AllowsForcePushes            bool
 	BranchProtectionRuleID       string
 	DismissesStaleReviews        bool
 	IsAdminEnforced              bool
@@ -68,11 +81,23 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	data := BranchProtectionResourceData{}
 
 	if v, ok := d.GetOk(REPOSITORY_ID); ok {
-		data.RepositoryID = v.(string)
+		repoID, err := getRepositoryID(v.(string), meta)
+		if err != nil {
+			return data, err
+		}
+		data.RepositoryID = repoID.(string)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_PATTERN); ok {
 		data.Pattern = v.(string)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_ALLOWS_DELETIONS); ok {
+		data.AllowsDeletions = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_ALLOWS_FORCE_PUSHES); ok {
+		data.AllowsForcePushes = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {
@@ -158,7 +183,21 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	return data, nil
 }
 
-func setActorIDs(actors []ActorTypes) []string {
+func setDismissalActorIDs(actors []DismissalActorTypes) []string {
+	pushActors := make([]string, 0, len(actors))
+	for _, a := range actors {
+		if a.Actor.Team != (Actor{}) {
+			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		}
+		if a.Actor.User != (Actor{}) {
+			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		}
+	}
+
+	return pushActors
+}
+
+func setPushActorIDs(actors []PushActorTypes) []string {
 	pushActors := make([]string, 0, len(actors))
 	for _, a := range actors {
 		if a.Actor.Team != (Actor{}) {
@@ -178,7 +217,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 	}
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
-	dismissalActors := setActorIDs(dismissalAllowances)
+	dismissalActors := setDismissalActorIDs(dismissalAllowances)
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -211,7 +250,7 @@ func setPushes(protection BranchProtectionRule) []string {
 		return nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
-	pushActors := setActorIDs(pushAllowances)
+	pushActors := setPushActorIDs(pushAllowances)
 
 	return pushActors
 }
@@ -268,4 +307,29 @@ func getBranchProtectionID(name string, pattern string, meta interface{}) (githu
 	}
 
 	return id, nil
+}
+
+func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
+	data := BranchProtectionResourceData{}
+	checks := false
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
+		vL := v.([]interface{})
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
+			m := v.(map[string]interface{})
+			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
+			if len(data.RequiredStatusCheckContexts) > 0 {
+				checks = true
+			}
+		}
+	}
+
+	if old == "0" && new == "1" && !checks {
+		return true
+	}
+	return false
 }
