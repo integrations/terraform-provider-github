@@ -2,15 +2,15 @@
 
 BUG FIXES:
 
-* Send valid payload when editing a repository resource with `github_branch_default` ([#666](https://github.com/terraform-providers/terraform-provider-github/issues/666))
-* Add handling to surface errors in provider configuration ([#668](https://github.com/terraform-providers/terraform-provider-github/issues/668))
+* Send valid payload when editing a repository resource with `github_branch_default` ([#666](https://github.com/integrations/terraform-provider-github/issues/666))
+* Add handling to surface errors in provider configuration ([#668](https://github.com/integrations/terraform-provider-github/issues/668))
 
 ## 4.3.0 (January 14, 2021)
 
 ENHANCEMENTS:
 
-* **New Resource** `github_branch_protection_v3` ([#642](https://github.com/terraform-providers/terraform-provider-github/issues/642))
-* Add `pages` feature to `github_repository` ([#490](https://github.com/terraform-providers/terraform-provider-github/issues/490))
+* **New Resource** `github_branch_protection_v3` ([#642](https://github.com/integrations/terraform-provider-github/issues/642))
+* Add `pages` feature to `github_repository` ([#490](https://github.com/integrations/terraform-provider-github/issues/490))
 
 
 ## 4.2.0 (January 07, 2021)
