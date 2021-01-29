@@ -1,4 +1,4 @@
-## Contributing
+# Contributing
 
 Hi there! We're thrilled that you'd like to contribute to this project. Your help is essential for keeping it great.
 
@@ -21,6 +21,29 @@ Here are a few things you can do that will increase the likelihood of your pull 
 - Write tests.
 - Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, consider submitting them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+
+## Quick End-To-End Example
+
+This section describes a typical sequence performed when developing locally. Full details of available tooling are available in the next section on [Automated And Manual Testing](#automated-and-manual-testing).
+
+1.  Export necessary configuration for authenticating your provider with GitHub
+  ```sh
+  export GITHUB_TOKEN=<token of a user with an organization account>
+  export GITHUB_ORGANIZATION=<name of an organization>
+  ```
+1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.  
+1. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
+```sh
+TF_LOG=DEBUG TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
+```
+1. Align the resource's implementation to your test case and observe it pass:
+```sh
+TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
+```
+
+Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests are rewritten to the latest format.
+
+Also note that there is no build / `terraform init` / `terraform plan` sequence here.  It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
 
 ## Automated And Manual Testing
 
