@@ -7,7 +7,7 @@ This example will also create a repository in the specified `owner` organization
 Alternatively, you may use variables passed via command line:
 
 ```console
-export GITHUB_ORG=
+export GITHUB_ORGANIZATION=
 export GITHUB_TOKEN=
 export COLLABORATOR_USERNAME=
 export COLLABORATOR_PERMISSION=
@@ -15,7 +15,7 @@ export COLLABORATOR_PERMISSION=
 
 ```console
 terraform apply \
-  -var "organization=${GITHUB_ORG}" \
+  -var "organization=${GITHUB_ORGANIZATION}" \
   -var "github_token=${GITHUB_TOKEN}" \
   -var "username=${COLLABORATOR_USERNAME}" \
   -var "permission=${COLLABORATOR_PERMISSION}"
