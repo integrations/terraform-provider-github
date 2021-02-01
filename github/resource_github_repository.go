@@ -457,9 +457,17 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 
-	// The visibility of a repo can not be changed once created
-	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
-	repoReq.Visibility = nil
+	if d.HasChange("visibility") {
+		// The endpoint will throw an error if this repo is being created and the old value is ""
+		o, n := d.GetChange("visibility")
+		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
+		if o.(string) == "" {
+			repoReq.Visibility = nil
+		}
+	} else {
+		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+		repoReq.Visibility = nil
+	}
 
 	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
 	if v, ok := d.GetOk("default_branch"); ok {
