@@ -115,8 +115,6 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 				owner.id = remoteOrg.GetID()
 				owner.IsOrganization = true
 			}
-		} else {
-			return nil, err
 		}
 	}
 
