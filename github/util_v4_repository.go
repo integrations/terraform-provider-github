@@ -3,22 +3,20 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 
 	"github.com/shurcooL/githubv4"
 )
 
 func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 
-	// Interperet `name` as a node ID and return
-	exists, err := repositoryNodeIDExists(name, meta)
+	// Interpret `name` as a node ID
+	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
 	if exists {
 		return githubv4.ID(name), nil
 	}
-	if err != nil {
-		return nil, err
-	}
 
-	// Resolve `name` to a node ID and return
+	// Could not find repo by node ID, interpret `name` as repo name
 	var query struct {
 		Repository struct {
 			ID githubv4.ID
@@ -30,9 +28,13 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 	}
 	ctx := context.Background()
 	client := meta.(*Owner).v4client
-	err = client.Query(ctx, &query, variables)
-	if err != nil {
-		return nil, err
+	nameErr := client.Query(ctx, &query, variables)
+	if nameErr != nil {
+		if nodeIDerr != nil {
+			// Could not find repo by node ID or repo name, return both errors
+			return nil, errors.New(nodeIDerr.Error() + nameErr.Error())
+		}
+		return nil, nameErr
 	}
 
 	return query.Repository.ID, nil
