@@ -1,4 +1,15 @@
+## 4.3.2 (February 2, 2021)
+
+BUG FIXES:
+
+* Improved detection of repository name for `github_branch_protection` ([#684](https://github.com/integrations/terraform-provider-github/issues/684))
+* Reverts error handling in provider configuration ([#685](https://github.com/integrations/terraform-provider-github/issues/685))
+
 ## 4.3.1 (January 22, 2021)
+
+REGRESSIONS:
+
+- provider configuration breaks for individual accounts ([#678](https://github.com/integrations/terraform-provider-github/issues/678))
 
 BUG FIXES:
 
