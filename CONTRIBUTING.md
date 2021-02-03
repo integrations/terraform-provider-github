@@ -62,13 +62,41 @@ Clone the provider
 $ git clone git@github.com:integrations/terraform-provider-github.git
 ```
 
-Enter the provider directory and build the provider while specifying the output directory:
+Enter the provider directory and build the provider while specifying an output directory:
 
 ```sh
-$ go build -o ~/.terraform.d/plugins/terraform-provider-github
+$ go build -o ~/go/bin/
 ```
 
-This enables verifying your locally built provider using examples available in the `examples/` directory. Just ensure you are not specifying a provider version so that `terraform init` falls back to using the build found under `~/.terraform.d/plugins/terraform-provider-github`.  If your example directory already has a `.terraform` directory from a previous run, remove that directory and `terraform init` again to consume the local build.
+This enables verifying your locally built provider using examples available in the `examples/` directory. 
+Note that you will first need to configure your shell to map our provider to the local build:
+
+```sh
+export TF_CLI_CONFIG_FILE=path/to/project/examples/dev.tfrc
+```
+
+An example file is available in our `examples` directory and resembles:
+
+```hcl
+provider_installation {
+  dev_overrides {
+    "integrations/github" = "~/go/bin/"
+  }
+
+  direct {}
+}
+```
+
+See https://www.terraform.io/docs/cli/config/config-file.html for more details.
+
+When running examples, you should spot the following warning to confirm you are using a local build:
+
+```console
+Warning: Provider development overrides are in effect
+
+The following provider development overrides are set in the CLI configuration:
+ - integrations/github in /Users/jcudit/go/bin
+```
 
 ### Developing The Provider
 
