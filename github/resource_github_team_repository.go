@@ -25,7 +25,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateTeamIDFunc,
+				Description:  "ID or slug of team",
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -55,18 +55,17 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
-	}
+	// The given team id could be an id or a slug
+	givenTeamId := d.Get("team_id").(string)
+	teamId, err := getTeamID(givenTeamId, meta)
+
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
-		teamIdString, permission, orgName, repoName)
+		givenTeamId, permission, orgName, repoName)
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -81,7 +80,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.SetId(buildTwoPartID(teamIdString, repoName))
+	d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
@@ -99,7 +98,6 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
@@ -150,13 +148,15 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
+	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	if err != nil {
+		return err
+	}
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
 	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -190,14 +190,15 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
-
+	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	if err != nil {
+		return err
+	}
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(teamIdString, err)
 	}
 	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
