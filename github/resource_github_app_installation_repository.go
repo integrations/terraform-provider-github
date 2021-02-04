@@ -54,6 +54,9 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta 
 	ctx := context.Background()
 	repoName := d.Get("repository").(string)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
 	repoID := repo.GetID()
 
 	log.Printf("[DEBUG] Creating app installation repository association: %s:%s",
@@ -136,5 +139,8 @@ func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, meta 
 		installationIDString, repoName)
 
 	_, err = client.Apps.RemoveRepository(ctx, installationID, int64(repoID))
+	if err != nil {
+		return err
+	}
 	return nil
 }
