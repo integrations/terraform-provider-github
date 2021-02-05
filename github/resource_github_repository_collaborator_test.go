@@ -10,6 +10,8 @@ import (
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
+	t.Skip("update <username> below to unskip this test run")
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates invitations without error", func(t *testing.T) {
@@ -22,7 +24,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 			resource "github_repository_collaborator" "test_repo_collaborator" {
 				repository = "${github_repository.test.name}"
-				username   = "notjcudit"
+				username   = "<username>"
 				permission = "triage"
 			}
 		`, randomID)
