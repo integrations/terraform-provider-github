@@ -23,31 +23,41 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists(rn, &repository),
-					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
-				),
+	testCase := func(t *testing.T, teamIdentifier string) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubTeamRepositoryConfig(randString, repoName, teamIdentifier),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubTeamRepositoryExists(rn, &repository),
+						testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
+					),
+				},
+				{
+					Config: testAccGithubTeamRepositoryUpdateConfig(randString, repoName, teamIdentifier),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubTeamRepositoryExists(rn, &repository),
+						testAccCheckGithubTeamRepositoryRoleState("push", &repository),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				Config: testAccGithubTeamRepositoryUpdateConfig(randString, repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists(rn, &repository),
-					testAccCheckGithubTeamRepositoryRoleState("push", &repository),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
+	}
+
+	t.Run("with a team id identifier", func(t *testing.T) {
+		testCase(t, "id")
+	})
+
+	t.Run("with a team slug identifier", func(t *testing.T) {
+		testCase(t, "slug")
 	})
 }
 
@@ -178,7 +188,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccGithubTeamRepositoryConfig(randString, repoName string) string {
+func testAccGithubTeamRepositoryConfig(randString, repoName string, teamIdentifier string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
   name        = "tf-acc-test-team-repo-%s"
@@ -190,14 +200,14 @@ resource "github_repository" "test" {
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-  team_id    = "${github_team.test_team.id}"
+  team_id    = "${github_team.test_team.%s}"
   repository = "${github_repository.test.name}"
   permission = "pull"
 }
-`, randString, repoName)
+`, randString, repoName, teamIdentifier)
 }
 
-func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string) string {
+func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string, teamIdentifier string) string {
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
   name        = "tf-acc-test-team-repo-%s"
@@ -209,9 +219,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_team_repository" "test_team_test_repo" {
-  team_id    = "${github_team.test_team.id}"
+  team_id    = "${github_team.test_team.%s}"
   repository = "${github_repository.test.name}"
   permission = "push"
 }
-`, randString, repoName)
+`, randString, repoName, teamIdentifier)
 }
