@@ -13,18 +13,19 @@ in your GitHub organization.
 Creating this resource installs a particular app on a particular repository.
 
 The app installation and the repository must both belong to the same
-organization on GitHub.
+organization on GitHub. Note: you can review your organization's installations
+at the following [link](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/reviewing-your-organizations-installed-integrations).
 
 ## Example Usage
 
 ```hcl
-# Create a repository
+# Create a repository.
 resource "github_repository" "some_repo" {
   name = "some-repo"
 }
 
 resource "github_app_installation_repository" "some_app_repo" {
-  # The installation id of the app.
+  # The installation id of the app (in the organization).
   installation_id    = "1234567"
   repository         = "${github_repository.some_repo.name}"
 }
@@ -35,7 +36,7 @@ resource "github_app_installation_repository" "some_app_repo" {
 The following arguments are supported:
 
 * `installation_id` - (Required) The GitHub app installation id.
-* `repository`      - (Required) The repository to install the app on
+* `repository`      - (Required) The repository to install the app on.
 
 ## Import
 
