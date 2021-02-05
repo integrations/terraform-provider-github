@@ -3,6 +3,7 @@
 BUG FIXES:
 
 - Add `create_default_maintainer` option to `github_team` ([#527](https://github.com/integrations/terraform-provider-github/pull/527)), ([#104](https://github.com/integrations/terraform-provider-github/pull/104)), ([#130](https://github.com/integrations/terraform-provider-github/pull/130))
+- Add diff-suppression option to `repository_collaborator` ([#683](https://github.com/integrations/terraform-provider-github/pull/683))
 
 
 ## 4.3.2 (February 2, 2021)
