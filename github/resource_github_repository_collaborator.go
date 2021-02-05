@@ -15,6 +15,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubRepositoryCollaboratorCreate,
 		Read:   resourceGithubRepositoryCollaboratorRead,
+		Update: resourceGithubRepositoryCollaboratorUpdate,
 		Delete: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -39,6 +40,19 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				ForceNew:     true,
 				Default:      "push",
 				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("permission_diff_suppression").(bool) {
+						if new == "triage" || new == "maintain" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+			"permission_diff_suppression": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			"invitation_id": {
 				Type:     schema.TypeString,
@@ -156,6 +170,10 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	d.SetId("")
 
 	return nil
+}
+
+func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta interface{}) error {
+	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
