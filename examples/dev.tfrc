@@ -1,0 +1,7 @@
+provider_installation {
+  dev_overrides {
+    "integrations/github" = "~/go/bin/"
+  }
+
+  direct {}
+}
