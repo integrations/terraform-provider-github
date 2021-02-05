@@ -114,6 +114,8 @@ func splitRepoFilePath(path string) (string, string) {
 }
 
 func getTeamID(teamIDString string, meta interface{}) (int64, error) {
+	// Given a string that is either a team id or team slug, return the
+	// id of the team it is referring to.
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
