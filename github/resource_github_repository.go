@@ -271,11 +271,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
 
-	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
-	// are encountered when the resources is created with the visibility parameter. As
-	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
-	repoReq.Visibility = nil
-
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
@@ -462,8 +457,15 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 
-	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
-	if !d.HasChange("visibility") {
+	if d.HasChange("visibility") {
+		// The endpoint will throw an error if this repo is being created and the old value is ""
+		o, n := d.GetChange("visibility")
+		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
+		if o.(string) == "" {
+			repoReq.Visibility = nil
+		}
+	} else {
+		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
 		repoReq.Visibility = nil
 	}
 
