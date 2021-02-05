@@ -14,7 +14,8 @@ Creating this resource installs a particular app on a particular repository.
 
 The app installation and the repository must both belong to the same
 organization on GitHub. Note: you can review your organization's installations
-at the following [link](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/reviewing-your-organizations-installed-integrations).
+by the following the instructions at this
+[link](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/reviewing-your-organizations-installed-integrations).
 
 ## Example Usage
 
