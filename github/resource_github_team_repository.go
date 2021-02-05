@@ -126,7 +126,11 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("team_id", teamIdString)
+	if d.Get("team_id") == "" {
+		// If team_id is empty, that means we are importing the resource.
+		// Set the team_id to be the id of the team.
+		d.Set("team_id", teamIdString)
+	}
 	d.Set("repository", repo.GetName())
 
 	permName, permErr := getRepoPermission(repo.GetPermissions())
