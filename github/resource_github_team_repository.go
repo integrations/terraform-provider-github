@@ -22,10 +22,10 @@ func resourceGithubTeamRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "ID or slug of team",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "ID or slug of team",
 			},
 			"repository": {
 				Type:     schema.TypeString,
@@ -58,6 +58,9 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
 	teamId, err := getTeamID(givenTeamId, meta)
+	if err != nil {
+		return err
+	}
 
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
