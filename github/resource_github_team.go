@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubTeam() *schema.Resource {
@@ -43,6 +44,11 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"create_default_maintainer": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"slug": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -53,6 +59,10 @@ func resourceGithubTeam() *schema.Resource {
 			},
 			"node_id": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"members_count": {
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 		},
@@ -67,24 +77,34 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Owner).name
+	ownerName := meta.(*Owner).name
 	name := d.Get("name").(string)
+
 	newTeam := github.NewTeam{
 		Name:        name,
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
+
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating team: %s (%s)", name, orgName)
+	log.Printf("[DEBUG] Creating team: %s (%s)", name, ownerName)
 	githubTeam, _, err := client.Teams.CreateTeam(ctx,
-		orgName, newTeam)
+		ownerName, newTeam)
 	if err != nil {
 		return err
+	}
+
+	create_default_maintainer := d.Get("create_default_maintainer").(bool)
+	if !create_default_maintainer {
+		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
+		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
+			return err
+		}
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -148,6 +168,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ldap_dn", team.GetLDAPDN())
 	d.Set("slug", team.GetSlug())
 	d.Set("node_id", team.GetNodeID())
+	d.Set("members_count", team.GetMembersCount())
 
 	return nil
 }
@@ -216,4 +237,44 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Deleting team: %s", d.Id())
 	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
 	return err
+}
+
+func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
+
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	v4client := meta.(*Owner).v4client
+
+	type User struct {
+		Login githubv4.String
+	}
+
+	var query struct {
+		Organization struct {
+			Team struct {
+				Members struct {
+					Nodes []User
+				}
+			} `graphql:"team(slug:$slug)"`
+		} `graphql:"organization(login:$login)"`
+	}
+	variables := map[string]interface{}{
+		"slug":  githubv4.String(teamSlug),
+		"login": githubv4.String(orgName),
+	}
+
+	err := v4client.Query(meta.(*Owner).StopContext, &query, variables)
+	if err != nil {
+		return err
+	}
+
+	for _, user := range query.Organization.Team.Members.Nodes {
+		log.Printf("[DEBUG] Removing default maintainer from team: %s", user.Login)
+		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, teamSlug, string(user.Login))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
