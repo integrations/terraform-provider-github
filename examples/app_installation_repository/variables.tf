@@ -1,4 +1,3 @@
-
 variable "installation_id" {
   description = "ID of an app installation in an organization"
   type        = string
