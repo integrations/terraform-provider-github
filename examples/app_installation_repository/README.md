@@ -1,12 +1,12 @@
 # App Installation Example
 
-This demos managing an application installation to a specific repository
-in the same organization.
+This example gives an application installation access to a
+specific repository in the same organization.
 
 To complete this demo, first [install an application in your
-github organization](https://docs.github.com/en/github/customizing-your-github-workflow/installing-an-app-in-your-organization). To understand the full scope of this
-resource, install the application only on select repositories in the organization
-(instead of all repositories).
+github organization](https://docs.github.com/en/github/customizing-your-github-workflow/installing-an-app-in-your-organization). To use the full scope of this
+resource, make sure you install the application only on select repositories
+in the organization (instead of all repositories).
 
 This will allow you to use this resource to manage which repositories
 the app installation has access to.
@@ -16,7 +16,8 @@ application by visiting `https://github.com/organizations/{ORG_NAME}/settings/in
 and configuring the app you'd like to install.
 The ID should be located in the URL on the configure page.
 
-This example will also create a repository in the specified organization.
+This example will create a repository in the specified organization.
+It will also add the created repository to the app installation.
 
 Alternatively, you may use variables passed via command line:
 
