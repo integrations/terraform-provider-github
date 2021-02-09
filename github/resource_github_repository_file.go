@@ -259,8 +259,8 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.GetCommitter().GetEmail())
+	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
+	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
