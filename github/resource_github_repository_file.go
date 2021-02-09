@@ -335,7 +335,7 @@ func checkRepositoryBranchExists(client *github.Client, owner, repo, branch stri
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				return fmt.Errorf("Branch %s not found in repository or repository is not readable", branch)
+				return fmt.Errorf("Branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
 			}
 		}
 		return err
