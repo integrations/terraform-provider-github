@@ -173,7 +173,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		"id": d.Id(),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
@@ -266,7 +266,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		ReviewDismissalActorIDs:      githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
@@ -288,7 +288,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		BranchProtectionRuleID: d.Id(),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Mutate(ctx, &mutate, input, nil)
 
