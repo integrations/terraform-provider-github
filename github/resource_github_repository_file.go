@@ -259,8 +259,8 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.GetCommitter().GetEmail())
+	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
+	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
@@ -335,7 +335,7 @@ func checkRepositoryBranchExists(client *github.Client, owner, repo, branch stri
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				return fmt.Errorf("Branch %s not found in repository or repository is not readable", branch)
+				return fmt.Errorf("Branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
 			}
 		}
 		return err
