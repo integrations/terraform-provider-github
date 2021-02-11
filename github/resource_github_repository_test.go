@@ -68,7 +68,6 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
-
 	t.Run("updates a repositories name without error", func(t *testing.T) {
 
 		oldName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
