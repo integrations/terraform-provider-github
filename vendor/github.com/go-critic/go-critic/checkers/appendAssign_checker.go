@@ -5,15 +5,15 @@ import (
 	"go/token"
 	"go/types"
 
-	"github.com/go-lintpack/lintpack"
-	"github.com/go-lintpack/lintpack/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/go-toolsmith/astequal"
 	"github.com/go-toolsmith/astp"
 	"golang.org/x/tools/go/ast/astutil"
 )
 
 func init() {
-	var info lintpack.CheckerInfo
+	var info linter.CheckerInfo
 	info.Name = "appendAssign"
 	info.Tags = []string{"diagnostic"}
 	info.Summary = "Detects suspicious append result assignments"
@@ -24,14 +24,14 @@ p.negatives = append(p.negatives, y)`
 p.positives = append(p.positives, x)
 p.negatives = append(p.negatives, y)`
 
-	collection.AddChecker(&info, func(ctx *lintpack.CheckerContext) lintpack.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
 		return astwalk.WalkerForStmt(&appendAssignChecker{ctx: ctx})
 	})
 }
 
 type appendAssignChecker struct {
 	astwalk.WalkHandler
-	ctx *lintpack.CheckerContext
+	ctx *linter.CheckerContext
 }
 
 func (c *appendAssignChecker) VisitStmt(stmt ast.Stmt) {
@@ -81,7 +81,7 @@ func (c *appendAssignChecker) checkAppend(x ast.Expr, call *ast.CallExpr) {
 
 	switch y := call.Args[0].(type) {
 	case *ast.SliceExpr:
-		if _, ok := c.ctx.TypesInfo.TypeOf(y.X).(*types.Array); ok {
+		if _, ok := c.ctx.TypeOf(y.X).(*types.Array); ok {
 			// Arrays are frequently used as scratch storages.
 			return
 		}
