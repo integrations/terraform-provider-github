@@ -32,7 +32,7 @@ resource " github_branch_protection_v3" "example" {
 # to the branch.
 
 resource " github_branch_protection_v3" "example" {
-  repository     = "${github_repository.example.name}"
+  repository     = github_repository.example.name
   branch         = "main"
   enforce_admins = true
 
@@ -44,14 +44,18 @@ resource " github_branch_protection_v3" "example" {
   required_pull_request_reviews {
     dismiss_stale_reviews = true
     dismissal_users       = ["foo-user"]
-    dismissal_teams       = ["${github_team.example.slug}", "${github_team.second.slug}"]
+    dismissal_teams       = [github_team.example.slug]
   }
 
   restrictions {
     users = ["foo-user"]
-    teams = ["${github_team.example.slug}"]
+    teams = [github_team.example.slug]
     apps  = ["foo-app"]
   }
+}
+
+resource "github_repository" "example" {
+  name = "example"
 }
 
 resource "github_team" "example" {
@@ -59,8 +63,8 @@ resource "github_team" "example" {
 }
 
 resource "github_team_repository" "example" {
-  team_id    = "${github_team.example.id}"
-  repository = "${github_repository.example.name}"
+  team_id    = github_team.example.id
+  repository = github_repository.example.name
   permission = "pull"
 }
 ```
