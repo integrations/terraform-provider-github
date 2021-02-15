@@ -38,7 +38,7 @@ resource "github_repository_file" "foo" {
 
 The following arguments are supported:
 
-* `repo` - (Required) The repository to create the file in.
+* `repository` - (Required) The repository to create the file in.
 
 * `file` - (Required) The path of the file to manage.
 
