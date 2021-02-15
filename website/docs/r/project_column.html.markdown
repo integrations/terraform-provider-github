@@ -18,7 +18,7 @@ resource "github_organization_project" "project" {
 }
 
 resource "github_project_column" "column" {
-  project_id = "${github_organization_project.project.id}"
+  project_id = github_organization_project.project.id
   name       = "a column"
 }
 ```
