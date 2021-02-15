@@ -5,7 +5,7 @@ description: |-
   Protects a GitHub branch using the v3 / REST implementation.  The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
 ---
 
-# github\_branch\_protection
+# github\_branch\_protection\_v3
 
 Protects a GitHub branch. 
 
