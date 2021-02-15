@@ -19,7 +19,6 @@ This resource allows you to configure branch protection for repositories in your
 # to the branch.
 
 resource "github_branch_protection" "example" {
-
   repository_id = github_repository.example.node_id
   # also accepts repository name
   # repository_id  = github_repository.example.name
@@ -49,7 +48,11 @@ resource "github_branch_protection" "example" {
 
 }
 
-resource "github_user" "example" {
+resource "github_repository" "example" {
+  name = "test"
+}
+
+data "github_user" "example" {
   username = "example"
 }
 
