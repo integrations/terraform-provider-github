@@ -17,10 +17,10 @@ resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  visibility  = "public"
+  visibility = "public"
 
   template {
-    owner = "github"
+    owner      = "github"
     repository = "terraform-module-template"
   }
 }
