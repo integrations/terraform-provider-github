@@ -1,3 +1,10 @@
+## 4.4.1 (February 17, 2021)
+
+BUG FIXES:
+
+- Add more context to error messaging for `github_branch_protection` (#691)
+- Satisfy linter recommendation for `github_branch_protection` (#694)
+
 ## 4.4.0 (February 5, 2021)
 
 BUG FIXES:
