@@ -1,9 +1,16 @@
+## 4.5.0 (February 17, 2021)
+
+ENHANCEMENTS:
+
+- Add ability for `github_team_repository` to accept slug as a valid `team_id` ([#693](https://github.com/integrations/terraform-provider-github/pull/693))
+
 ## 4.4.1 (February 17, 2021)
 
 BUG FIXES:
 
-- Add more context to error messaging for `github_branch_protection` (#691)
-- Satisfy linter recommendation for `github_branch_protection` (#694)
+- Add more context to error messaging for `github_branch_protection` ([#691](https://github.com/integrations/terraform-provider-github/pull/691))
+- Satisfy linter recommendation for `github_branch_protection` ([#694](https://github.com/integrations/terraform-provider-github/pull/694))
+
 
 ## 4.4.0 (February 5, 2021)
 
