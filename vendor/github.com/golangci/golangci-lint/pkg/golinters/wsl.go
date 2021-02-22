@@ -52,7 +52,7 @@ func NewWSL() *goanalysis.Linter {
 			)
 
 			for _, file := range pass.Files {
-				files = append(files, pass.Fset.Position(file.Pos()).Filename)
+				files = append(files, pass.Fset.PositionFor(file.Pos(), false).Filename)
 			}
 
 			wslErrors, _ := wsl.NewProcessorWithConfig(processorCfg).
@@ -66,7 +66,7 @@ func NewWSL() *goanalysis.Linter {
 			defer mu.Unlock()
 
 			for _, err := range wslErrors {
-				issues = append(issues, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
 					FromLinter: name,
 					Pos:        err.Position,
 					Text:       err.Reason,
