@@ -255,7 +255,7 @@ func setPushes(protection BranchProtectionRule) []string {
 	return pushActors
 }
 
-func getBranchProtectionID(name string, pattern string, meta interface{}) (githubv4.ID, error) {
+func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{}) (githubv4.ID, error) {
 	var query struct {
 		Node struct {
 			Repository struct {
@@ -268,11 +268,10 @@ func getBranchProtectionID(name string, pattern string, meta interface{}) (githu
 				} `graphql:"branchProtectionRules(first: $first, after: $cursor)"`
 				ID string
 			} `graphql:"... on Repository"`
-		} `graphql:"repository(owner: $owner, name: $name)"`
+		} `graphql:"node(id: $id)"`
 	}
 	variables := map[string]interface{}{
-		"owner":  githubv4.String(meta.(*Owner).name),
-		"name":   githubv4.String(name),
+		"id":     repoID,
 		"first":  githubv4.Int(100),
 		"cursor": (*githubv4.String)(nil),
 	}
