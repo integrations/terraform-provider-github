@@ -307,7 +307,7 @@ func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface
 	}
 	d.Set("repository_id", repoID)
 
-	id, err := getBranchProtectionID(repoName, pattern, meta)
+	id, err := getBranchProtectionID(repoID, pattern, meta)
 	if err != nil {
 		return nil, err
 	}

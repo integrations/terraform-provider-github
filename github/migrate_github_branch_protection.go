@@ -27,7 +27,7 @@ func resourceGithubBranchProtectionUpgradeV0(rawState map[string]interface{}, me
 	}
 
 	branch := rawState["branch"].(string)
-	protectionRuleID, err := getBranchProtectionID(repoName, branch, meta)
+	protectionRuleID, err := getBranchProtectionID(repoID, branch, meta)
 	if err != nil {
 		return nil, err
 	}
