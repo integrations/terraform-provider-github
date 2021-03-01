@@ -133,10 +133,6 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 			Error: true,
 		},
 		{
-			Name:  "1_invalid_leading_digit",
-			Error: true,
-		},
-		{
 			Name:  "GITHUB_PREFIX",
 			Error: true,
 		},
