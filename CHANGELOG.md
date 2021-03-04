@@ -1,3 +1,11 @@
+## 4.5.1 (March 3, 2021)
+
+BUG FIXES:
+
+- Fix `github_branch_protection` import by repository node ID and pattern ([#713](https://github.com/integrations/terraform-provider-github/pull/713))
+- Add pagination when retrieving team members for `data_source_github_team` ([#702](https://github.com/integrations/terraform-provider-github/pull/702))
+
+
 ## 4.5.0 (February 17, 2021)
 
 ENHANCEMENTS:
