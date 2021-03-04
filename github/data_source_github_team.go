@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"github.com/google/go-github/v32/github"
 	"log"
 	"strconv"
 
@@ -59,14 +60,27 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	member, _, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), nil)
-	if err != nil {
-		return err
+	options := github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{
+			PerPage: maxPerPage,
+		},
 	}
 
-	members := []string{}
-	for _, v := range member {
-		members = append(members, v.GetLogin())
+	var members []string
+	for {
+		member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range member {
+			members = append(members, v.GetLogin())
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		options.Page = resp.NextPage
 	}
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
