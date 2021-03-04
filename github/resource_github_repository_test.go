@@ -236,7 +236,13 @@ func TestAccGithubRepositories(t *testing.T) {
 			resource "github_repository" "test" {
 			  name           = "tf-acc-test-branch-%[1]s"
 			  description    = "Terraform acceptance tests %[1]s"
-				default_branch = "main"
+			  default_branch = "main"
+			  auto_init      = true
+			}
+
+			resource "github_branch" "default" {
+			  repository = github_repository.test.name
+			  branch     = "default"
 			}
 		`, randomID)
 
@@ -247,14 +253,12 @@ func TestAccGithubRepositories(t *testing.T) {
 					"main",
 				),
 			),
-			// FIXME: Deferred until https://github.com/integrations/terraform-provider-github/issues/513
-			// > Cannot update default branch for an empty repository. Please init the repository and push first
-			// "after": resource.ComposeTestCheckFunc(
-			// 	resource.TestCheckResourceAttr(
-			// 		"github_repository.test", "default_branch",
-			// 		"default",
-			// 	),
-			// ),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "default_branch",
+					"default",
+				),
+			),
 		}
 
 		testCase := func(t *testing.T, mode string) {
@@ -266,12 +270,74 @@ func TestAccGithubRepositories(t *testing.T) {
 						Config: config,
 						Check:  checks["before"],
 					},
-					// {
-					// 	Config: strings.Replace(config,
-					// 		`default_branch = "main"`,
-					// 		`default_branch = "default"`, 1),
-					// 	Check: checks["after"],
-					// },
+					// Test changing default_branch
+					{
+						Config: strings.Replace(config,
+							`default_branch = "main"`,
+							`default_branch = "default"`, 1),
+						Check: checks["after"],
+					},
+					// Test changing default_branch back to main again
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
+
+		// Although default_branch is deprecated, for backwards compatibility
+		// we allow setting it to "main".
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name           = "tf-acc-test-empty-%[1]s"
+			  description    = "Terraform acceptance tests %[1]s"
+			  default_branch = "main"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "default_branch",
+				"main",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					// Test creation with default_branch set
+					{
+						Config: config,
+						Check:  check,
+					},
+					// Test that changing another property does not try to set
+					// default_branch (which would crash).
+					{
+						Config: strings.Replace(config,
+							`acceptance tests`,
+							`acceptance test`, 1),
+						Check: check,
+					},
 				},
 			})
 		}
