@@ -9,7 +9,7 @@ description: |-
 
 Provides a GitHub repository milestone resource.
 
-This resource allows you to create and manage milestones for a Github Repository within an organization or user account.
+This resource allows you to create and manage milestones for a GitHub Repository within an organization or user account.
 
 ## Example Usage
 
@@ -26,9 +26,9 @@ resource "github_repository_milestone" "example" {
 
 The following arguments are supported:
 
-* `owner` - (Required) The owner of the Github Repository.
+* `owner` - (Required) The owner of the GitHub Repository.
 
-* `repository` - (Required) The name of the Github Repository.
+* `repository` - (Required) The name of the GitHub Repository.
 
 * `title` - (Required) The title of the milestone.
 

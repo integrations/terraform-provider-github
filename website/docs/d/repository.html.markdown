@@ -55,7 +55,7 @@ The following arguments are supported:
 
 * `archived` - Whether the repository is archived.
 
-* `pages` - The repository's GitHub Pages configuration. 
+* `pages` - The repository's GitHub Pages configuration.
 
 * `topics` - The list of topics of the repository.
 
@@ -71,4 +71,4 @@ The following arguments are supported:
 
 * `node_id` - GraphQL global node id for use with v4 API
 
-* `repo_id` - Github ID for the repository
+* `repo_id` - GitHub ID for the repository
