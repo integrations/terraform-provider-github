@@ -467,13 +467,12 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		repoReq.Visibility = nil
 	}
 
-	// Can only set `default_branch` on an already created repository with the target branches ref already in-place
-	if v, ok := d.GetOk("default_branch"); ok {
-		branch := v.(string)
-		// If branch is "main", and the repository hasn't been initialized yet, setting this value will fail
-		if branch != "main" {
-			repoReq.DefaultBranch = &branch
-		}
+	// The documentation for `default_branch` states: "This can only be set
+	// after a repository has already been created". However, for backwards
+	// compatibility we need to allow terraform configurations that set
+	// `default_branch` to "main" when a repository is created.
+	if d.HasChange("default_branch") && !d.IsNewResource() {
+		repoReq.DefaultBranch = github.String(d.Get("default_branch").(string))
 	}
 
 	repoName := d.Id()
