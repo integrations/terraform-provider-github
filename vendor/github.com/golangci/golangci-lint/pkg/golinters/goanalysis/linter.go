@@ -220,18 +220,31 @@ func buildIssues(diags []Diagnostic, linterNameBuilder func(diag *Diagnostic) st
 	for i := range diags {
 		diag := &diags[i]
 		linterName := linterNameBuilder(diag)
+
 		var text string
 		if diag.Analyzer.Name == linterName {
 			text = diag.Message
 		} else {
 			text = fmt.Sprintf("%s: %s", diag.Analyzer.Name, diag.Message)
 		}
+
 		issues = append(issues, result.Issue{
 			FromLinter: linterName,
 			Text:       text,
 			Pos:        diag.Position,
 			Pkg:        diag.Pkg,
 		})
+
+		if len(diag.Related) > 0 {
+			for _, info := range diag.Related {
+				issues = append(issues, result.Issue{
+					FromLinter: linterName,
+					Text:       fmt.Sprintf("%s(related information): %s", diag.Analyzer.Name, info.Message),
+					Pos:        diag.Pkg.Fset.Position(info.Pos),
+					Pkg:        diag.Pkg,
+				})
+			}
+		}
 	}
 	return issues
 }
@@ -323,11 +336,13 @@ func saveIssuesToCache(allPkgs []*packages.Package, pkgsFromCache map[*packages.
 				for ind := range pkgIssues {
 					i := &pkgIssues[ind]
 					encodedIssues = append(encodedIssues, EncodingIssue{
-						FromLinter:  i.FromLinter,
-						Text:        i.Text,
-						Pos:         i.Pos,
-						LineRange:   i.LineRange,
-						Replacement: i.Replacement,
+						FromLinter:           i.FromLinter,
+						Text:                 i.Text,
+						Pos:                  i.Pos,
+						LineRange:            i.LineRange,
+						Replacement:          i.Replacement,
+						ExpectNoLint:         i.ExpectNoLint,
+						ExpectedNoLintLinter: i.ExpectedNoLintLinter,
 					})
 				}
 
@@ -392,12 +407,14 @@ func loadIssuesFromCache(pkgs []*packages.Package, lintCtx *linter.Context,
 				issues := make([]result.Issue, 0, len(pkgIssues))
 				for _, i := range pkgIssues {
 					issues = append(issues, result.Issue{
-						FromLinter:  i.FromLinter,
-						Text:        i.Text,
-						Pos:         i.Pos,
-						LineRange:   i.LineRange,
-						Replacement: i.Replacement,
-						Pkg:         pkg,
+						FromLinter:           i.FromLinter,
+						Text:                 i.Text,
+						Pos:                  i.Pos,
+						LineRange:            i.LineRange,
+						Replacement:          i.Replacement,
+						Pkg:                  pkg,
+						ExpectNoLint:         i.ExpectNoLint,
+						ExpectedNoLintLinter: i.ExpectedNoLintLinter,
 					})
 				}
 				cacheRes.issues = issues

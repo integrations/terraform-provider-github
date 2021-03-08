@@ -40,7 +40,7 @@ var DefaultExcludePatterns = []ExcludePattern{
 	{
 		ID: "EXC0001",
 		Pattern: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close" +
-			"|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked",
+			"|.*Flush|os\\.Remove(All)?|.*print(f|ln)?|os\\.(Un)?Setenv). is not checked",
 		Linter: "errcheck",
 		Why:    "Almost all programs ignore errors on these functions and in most cases it's ok",
 	},
@@ -99,22 +99,33 @@ var DefaultExcludePatterns = []ExcludePattern{
 		Linter:  "gosec",
 		Why:     "False positive is triggered by 'src, err := ioutil.ReadFile(filename)'",
 	},
+	{
+		ID: "EXC0011",
+		Pattern: "(comment on exported (method|function|type|const)|" +
+			"should have( a package)? comment|comment should be of the form)",
+		Linter: "stylecheck",
+		Why:    "Annoying issue about not having a comment. The rare codebase has such comments",
+	},
 }
 
 func GetDefaultExcludePatternsStrings() []string {
-	return GetExcludePatternsStrings(nil)
+	ret := make([]string, len(DefaultExcludePatterns))
+	for i, p := range DefaultExcludePatterns {
+		ret[i] = p.Pattern
+	}
+	return ret
 }
 
-func GetExcludePatternsStrings(include []string) []string {
+func GetExcludePatterns(include []string) []ExcludePattern {
 	includeMap := make(map[string]bool, len(include))
 	for _, inc := range include {
 		includeMap[inc] = true
 	}
 
-	var ret []string
+	var ret []ExcludePattern
 	for _, p := range DefaultExcludePatterns {
 		if !includeMap[p.ID] {
-			ret = append(ret, p.Pattern)
+			ret = append(ret, p)
 		}
 	}
 
@@ -150,9 +161,15 @@ type Run struct {
 	SkipFiles          []string `mapstructure:"skip-files"`
 	SkipDirs           []string `mapstructure:"skip-dirs"`
 	UseDefaultSkipDirs bool     `mapstructure:"skip-dirs-use-default"`
+
+	AllowParallelRunners bool `mapstructure:"allow-parallel-runners"`
+	AllowSerialRunners   bool `mapstructure:"allow-serial-runners"`
 }
 
 type LintersSettings struct {
+	Gci struct {
+		LocalPrefixes string `mapstructure:"local-prefixes"`
+	}
 	Govet  GovetSettings
 	Golint struct {
 		MinConfidence float64 `mapstructure:"min-confidence"`
@@ -179,8 +196,13 @@ type LintersSettings struct {
 		Threshold int
 	}
 	Goconst struct {
-		MinStringLen        int `mapstructure:"min-len"`
-		MinOccurrencesCount int `mapstructure:"min-occurrences"`
+		MatchWithConstants  bool `mapstructure:"match-constant"`
+		MinStringLen        int  `mapstructure:"min-len"`
+		MinOccurrencesCount int  `mapstructure:"min-occurrences"`
+		ParseNumbers        bool `mapstructure:"numbers"`
+		NumberMin           int  `mapstructure:"min"`
+		NumberMax           int  `mapstructure:"max"`
+		IgnoreCalls         bool `mapstructure:"ignore-calls"`
 	}
 	Gomnd struct {
 		Settings map[string]map[string]interface{}
@@ -219,24 +241,49 @@ type LintersSettings struct {
 				Recommendations []string `mapstructure:"recommendations"`
 				Reason          string   `mapstructure:"reason"`
 			} `mapstructure:"modules"`
+			Versions []map[string]struct {
+				Version string `mapstructure:"version"`
+				Reason  string `mapstructure:"reason"`
+			} `mapstructure:"versions"`
+			LocalReplaceDirectives bool `mapstructure:"local_replace_directives"`
 		} `mapstructure:"blocked"`
 	}
 
-	WSL         WSLSettings
-	Lll         LllSettings
-	Unparam     UnparamSettings
-	Nakedret    NakedretSettings
-	Prealloc    PreallocSettings
-	Errcheck    ErrcheckSettings
-	Gocritic    GocriticSettings
-	Godox       GodoxSettings
-	Dogsled     DogsledSettings
-	Gocognit    GocognitSettings
-	Godot       GodotSettings
-	Testpackage TestpackageSettings
-	Nestif      NestifSettings
+	WSL              WSLSettings
+	Lll              LllSettings
+	Unparam          UnparamSettings
+	Nakedret         NakedretSettings
+	Prealloc         PreallocSettings
+	Errcheck         ErrcheckSettings
+	Gocritic         GocriticSettings
+	Godox            GodoxSettings
+	Dogsled          DogsledSettings
+	Gocognit         GocognitSettings
+	Godot            GodotSettings
+	Goheader         GoHeaderSettings
+	Testpackage      TestpackageSettings
+	Nestif           NestifSettings
+	NoLintLint       NoLintLintSettings
+	Exhaustive       ExhaustiveSettings
+	ExhaustiveStruct ExhaustiveStructSettings
+	Gofumpt          GofumptSettings
+	ErrorLint        ErrorLintSettings
+	Makezero         MakezeroSettings
+	Revive           ReviveSettings
+	Thelper          ThelperSettings
+	Forbidigo        ForbidigoSettings
+	Ifshort          IfshortSettings
+	Predeclared      PredeclaredSettings
+	Cyclop           Cyclop
+	ImportAs         ImportAsSettings
 
 	Custom map[string]CustomLinterSettings
+}
+
+type GoHeaderSettings struct {
+	Values       map[string]map[string]string `mapstructure:"values"`
+	Template     string                       `mapstructure:"template"`
+	TemplatePath string                       `mapstructure:"template-path"`
 }
 
 type GovetSettings struct {
@@ -304,6 +351,7 @@ type GocognitSettings struct {
 type WSLSettings struct {
 	StrictAppend                     bool `mapstructure:"strict-append"`
 	AllowAssignAndCallCuddle         bool `mapstructure:"allow-assign-and-call"`
+	AllowAssignAndAnythingCuddle     bool `mapstructure:"allow-assign-and-anything"`
 	AllowMultiLineAssignCuddle       bool `mapstructure:"allow-multiline-assign"`
 	AllowCuddleDeclaration           bool `mapstructure:"allow-cuddle-declarations"`
 	AllowTrailingComment             bool `mapstructure:"allow-trailing-comment"`
@@ -313,7 +361,20 @@ type WSLSettings struct {
 }
 
 type GodotSettings struct {
+	Scope   string   `mapstructure:"scope"`
+	Exclude []string `mapstructure:"exclude"`
+	Capital bool     `mapstructure:"capital"`
+
+	// Deprecated: use `Scope` instead
 	CheckAll bool `mapstructure:"check-all"`
+}
+
+type NoLintLintSettings struct {
+	RequireExplanation bool     `mapstructure:"require-explanation"`
+	AllowLeadingSpace  bool     `mapstructure:"allow-leading-space"`
+	RequireSpecific    bool     `mapstructure:"require-specific"`
+	AllowNoExplanation []string `mapstructure:"allow-no-explanation"`
+	AllowUnused        bool     `mapstructure:"allow-unused"`
 }
 
 type TestpackageSettings struct {
@@ -324,7 +385,85 @@ type NestifSettings struct {
 	MinComplexity int `mapstructure:"min-complexity"`
 }
 
-//nolint:gomnd
+type ExhaustiveSettings struct {
+	CheckGenerated             bool `mapstructure:"check-generated"`
+	DefaultSignifiesExhaustive bool `mapstructure:"default-signifies-exhaustive"`
+}
+
+type ExhaustiveStructSettings struct {
+	StructPatterns []string `mapstructure:"struct-patterns"`
+}
+
+type GofumptSettings struct {
+	ExtraRules bool `mapstructure:"extra-rules"`
+}
+
+type ErrorLintSettings struct {
+	Errorf bool `mapstructure:"errorf"`
+}
+
+type MakezeroSettings struct {
+	Always bool
+}
+
+type ReviveSettings struct {
+	IgnoreGeneratedHeader bool `mapstructure:"ignore-generated-header"`
+	Confidence            float64
+	Severity              string
+	Rules                 []struct {
+		Name      string
+		Arguments []interface{}
+		Severity  string
+	}
+	ErrorCode   int `mapstructure:"error-code"`
+	WarningCode int `mapstructure:"warning-code"`
+	Directives  []struct {
+		Name     string
+		Severity string
+	}
+}
+
+type ThelperSettings struct {
+	Test struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"test"`
+	Benchmark struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"benchmark"`
+	TB struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"tb"`
+}
+
+type IfshortSettings struct {
+	MaxDeclLines int `mapstructure:"max-decl-lines"`
+	MaxDeclChars int `mapstructure:"max-decl-chars"`
+}
+
+type ForbidigoSettings struct {
+	Forbid               []string `mapstructure:"forbid"`
+	ExcludeGodocExamples bool     `mapstructure:"exclude-godoc-examples"`
+}
+
+type PredeclaredSettings struct {
+	Ignore    string `mapstructure:"ignore"`
+	Qualified bool   `mapstructure:"q"`
+}
+
+type Cyclop struct {
+	MaxComplexity  int     `mapstructure:"max-complexity"`
+	PackageAverage float64 `mapstructure:"package-average"`
+	SkipTests      bool    `mapstructure:"skip-tests"`
+}
+
+type ImportAsSettings map[string]string
+
 var defaultLintersSettings = LintersSettings{
 	Lll: LllSettings{
 		LineLength: 120,
@@ -356,6 +495,7 @@ var defaultLintersSettings = LintersSettings{
 	WSL: WSLSettings{
 		StrictAppend:                     true,
 		AllowAssignAndCallCuddle:         true,
+		AllowAssignAndAnythingCuddle:     false,
 		AllowMultiLineAssignCuddle:       true,
 		AllowCuddleDeclaration:           false,
 		AllowTrailingComment:             false,
@@ -363,11 +503,38 @@ var defaultLintersSettings = LintersSettings{
 		ForceCuddleErrCheckAndAssign:     false,
 		ForceCaseTrailingWhitespaceLimit: 0,
 	},
+	NoLintLint: NoLintLintSettings{
+		RequireExplanation: false,
+		AllowLeadingSpace:  true,
+		RequireSpecific:    false,
+		AllowUnused:        false,
+	},
 	Testpackage: TestpackageSettings{
 		SkipRegexp: `(export|internal)_test\.go`,
 	},
 	Nestif: NestifSettings{
 		MinComplexity: 5,
+	},
+	Exhaustive: ExhaustiveSettings{
+		CheckGenerated:             false,
+		DefaultSignifiesExhaustive: false,
+	},
+	Gofumpt: GofumptSettings{
+		ExtraRules: false,
+	},
+	ErrorLint: ErrorLintSettings{
+		Errorf: true,
+	},
+	Ifshort: IfshortSettings{
+		MaxDeclLines: 1,
+		MaxDeclChars: 30,
+	},
+	Predeclared: PredeclaredSettings{
+		Ignore:    "",
+		Qualified: false,
+	},
+	Forbidigo: ForbidigoSettings{
+		ExcludeGodocExamples: true,
 	},
 }
 
@@ -387,11 +554,46 @@ type Linters struct {
 	Presets []string
 }
 
-type ExcludeRule struct {
+type BaseRule struct {
 	Linters []string
 	Path    string
 	Text    string
 	Source  string
+}
+
+func (b BaseRule) Validate(minConditionsCount int) error {
+	if err := validateOptionalRegex(b.Path); err != nil {
+		return fmt.Errorf("invalid path regex: %v", err)
+	}
+	if err := validateOptionalRegex(b.Text); err != nil {
+		return fmt.Errorf("invalid text regex: %v", err)
+	}
+	if err := validateOptionalRegex(b.Source); err != nil {
+		return fmt.Errorf("invalid source regex: %v", err)
+	}
+	nonBlank := 0
+	if len(b.Linters) > 0 {
+		nonBlank++
+	}
+	if b.Path != "" {
+		nonBlank++
+	}
+	if b.Text != "" {
+		nonBlank++
+	}
+	if b.Source != "" {
+		nonBlank++
+	}
+	if nonBlank < minConditionsCount {
+		return fmt.Errorf("at least %d of (text, source, path, linters) should be set", minConditionsCount)
+	}
+	return nil
+}
+
+const excludeRuleMinConditionsCount = 2
+
+type ExcludeRule struct {
+	BaseRule `mapstructure:",squash"`
 }
 
 func validateOptionalRegex(value string) error {
@@ -403,33 +605,18 @@ func validateOptionalRegex(value string) error {
 }
 
 func (e ExcludeRule) Validate() error {
-	if err := validateOptionalRegex(e.Path); err != nil {
-		return fmt.Errorf("invalid path regex: %v", err)
-	}
-	if err := validateOptionalRegex(e.Text); err != nil {
-		return fmt.Errorf("invalid text regex: %v", err)
-	}
-	if err := validateOptionalRegex(e.Source); err != nil {
-		return fmt.Errorf("invalid source regex: %v", err)
-	}
-	nonBlank := 0
-	if len(e.Linters) > 0 {
-		nonBlank++
-	}
-	if e.Path != "" {
-		nonBlank++
-	}
-	if e.Text != "" {
-		nonBlank++
-	}
-	if e.Source != "" {
-		nonBlank++
-	}
-	const minConditionsCount = 2
-	if nonBlank < minConditionsCount {
-		return errors.New("at least 2 of (text, source, path, linters) should be set")
-	}
-	return nil
+	return e.BaseRule.Validate(excludeRuleMinConditionsCount)
+}
+
+const severityRuleMinConditionsCount = 1
+
+type SeverityRule struct {
+	BaseRule `mapstructure:",squash"`
+	Severity string
+}
+
+func (s *SeverityRule) Validate() error {
+	return s.BaseRule.Validate(severityRuleMinConditionsCount)
 }
 
 type Issues struct {
@@ -449,23 +636,38 @@ type Issues struct {
 	NeedFix bool `mapstructure:"fix"`
 }
 
+type Severity struct {
+	Default       string         `mapstructure:"default-severity"`
+	CaseSensitive bool           `mapstructure:"case-sensitive"`
+	Rules         []SeverityRule `mapstructure:"rules"`
+}
+
+type Version struct {
+	Format string `mapstructure:"format"`
+}
+
 type Config struct {
 	Run Run
 
 	Output struct {
 		Format              string
 		Color               string
-		PrintIssuedLine     bool `mapstructure:"print-issued-lines"`
-		PrintLinterName     bool `mapstructure:"print-linter-name"`
-		UniqByLine          bool `mapstructure:"uniq-by-line"`
-		PrintWelcomeMessage bool `mapstructure:"print-welcome"`
+		PrintIssuedLine     bool   `mapstructure:"print-issued-lines"`
+		PrintLinterName     bool   `mapstructure:"print-linter-name"`
+		UniqByLine          bool   `mapstructure:"uniq-by-line"`
+		SortResults         bool   `mapstructure:"sort-results"`
+		PrintWelcomeMessage bool   `mapstructure:"print-welcome"`
+		PathPrefix          string `mapstructure:"path-prefix"`
 	}
 
 	LintersSettings LintersSettings `mapstructure:"linters-settings"`
 	Linters         Linters
 	Issues          Issues
+	Severity        Severity
+	Version         Version
 
-	InternalTest bool // Option is used only for testing golangci-lint code, don't use it
+	InternalCmdTest bool `mapstructure:"internal-cmd-test"` // Option is used only for testing golangci-lint command, don't use it
+	InternalTest    bool // Option is used only for testing golangci-lint code, don't use it
 }
 
 func NewDefault() *Config {

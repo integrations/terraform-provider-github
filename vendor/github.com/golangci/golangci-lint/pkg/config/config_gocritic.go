@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-lintpack/lintpack"
+	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/pkg/errors"
 
 	_ "github.com/go-critic/go-critic/checkers" // this import register checkers
@@ -18,9 +18,9 @@ const gocriticDebugKey = "gocritic"
 var (
 	gocriticDebugf        = logutils.Debug(gocriticDebugKey)
 	isGocriticDebug       = logutils.HaveDebugTag(gocriticDebugKey)
-	allGocriticCheckers   = lintpack.GetCheckersInfo()
-	allGocriticCheckerMap = func() map[string]*lintpack.CheckerInfo {
-		checkInfoMap := make(map[string]*lintpack.CheckerInfo)
+	allGocriticCheckers   = linter.GetCheckersInfo()
+	allGocriticCheckerMap = func() map[string]*linter.CheckerInfo {
+		checkInfoMap := make(map[string]*linter.CheckerInfo)
 		for _, checkInfo := range allGocriticCheckers {
 			checkInfoMap[checkInfo.Name] = checkInfo
 		}
@@ -242,13 +242,7 @@ func (s *GocriticSettings) Validate(log logutils.Log) error {
 		return errors.Wrap(err, "validate disabled checks")
 	}
 
-	for checkName := range s.SettingsPerCheck {
-		if !s.IsCheckEnabled(checkName) {
-			log.Warnf("Gocritic settings were provided for not enabled check %q", checkName)
-		}
-	}
-
-	if err := s.validateCheckerNames(); err != nil {
+	if err := s.validateCheckerNames(log); err != nil {
 		return errors.Wrap(err, "validation failed")
 	}
 
@@ -272,6 +266,7 @@ func sprintStrings(ss []string) string {
 	return fmt.Sprint(ss)
 }
 
+// getAllCheckerNames returns a map containing all checker names supported by gocritic.
 func getAllCheckerNames() map[string]bool {
 	allCheckerNames := map[string]bool{}
 	for _, checker := range allGocriticCheckers {
@@ -281,7 +276,7 @@ func getAllCheckerNames() map[string]bool {
 	return allCheckerNames
 }
 
-func isEnabledByDefaultGocriticCheck(info *lintpack.CheckerInfo) bool {
+func isEnabledByDefaultGocriticCheck(info *linter.CheckerInfo) bool {
 	return !info.HasTag("experimental") &&
 		!info.HasTag("opinionated") &&
 		!info.HasTag("performance")
@@ -290,9 +285,6 @@ func isEnabledByDefaultGocriticCheck(info *lintpack.CheckerInfo) bool {
 func getDefaultEnabledGocriticCheckersNames() []string {
 	var enabled []string
 	for _, info := range allGocriticCheckers {
-		// get in sync with lintpack behavior in bindDefaultEnabledList
-		// in https://github.com/go-lintpack/lintpack/blob/master/linter/lintmain/internal/check/check.go#L317
-
 		enable := isEnabledByDefaultGocriticCheck(info)
 		if enable {
 			enabled = append(enabled, info.Name)
@@ -305,9 +297,6 @@ func getDefaultEnabledGocriticCheckersNames() []string {
 func getDefaultDisabledGocriticCheckersNames() []string {
 	var disabled []string
 	for _, info := range allGocriticCheckers {
-		// get in sync with lintpack behavior in bindDefaultEnabledList
-		// in https://github.com/go-lintpack/lintpack/blob/master/linter/lintmain/internal/check/check.go#L317
-
 		enable := isEnabledByDefaultGocriticCheck(info)
 		if !enable {
 			disabled = append(disabled, info.Name)
@@ -317,7 +306,7 @@ func getDefaultDisabledGocriticCheckersNames() []string {
 	return disabled
 }
 
-func (s *GocriticSettings) validateCheckerNames() error {
+func (s *GocriticSettings) validateCheckerNames(log logutils.Log) error {
 	allowedNames := getAllCheckerNames()
 
 	for _, name := range s.EnabledChecks {
@@ -331,6 +320,16 @@ func (s *GocriticSettings) validateCheckerNames() error {
 		if !allowedNames[strings.ToLower(name)] {
 			return fmt.Errorf("disabled checker %s doesn't exist, all existing checkers: %s",
 				name, sprintAllowedCheckerNames(allowedNames))
+		}
+	}
+
+	for checkName := range s.SettingsPerCheck {
+		if _, ok := allowedNames[checkName]; !ok {
+			return fmt.Errorf("invalid setting, checker %s doesn't exist, all existing checkers: %s",
+				checkName, sprintAllowedCheckerNames(allowedNames))
+		}
+		if !s.IsCheckEnabled(checkName) {
+			log.Warnf("Gocritic settings were provided for not enabled check %q", checkName)
 		}
 	}
 

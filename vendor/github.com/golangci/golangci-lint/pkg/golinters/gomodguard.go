@@ -1,8 +1,6 @@
 package golinters
 
 import (
-	"log"
-	"os"
 	"sync"
 
 	"github.com/ryancurrah/gomodguard"
@@ -30,7 +28,9 @@ func NewGomodguard() *goanalysis.Linter {
 
 	return goanalysis.NewLinter(
 		gomodguardName,
-		"Allow and block list linter for direct Go module dependencies.",
+		"Allow and block list linter for direct Go module dependencies. "+
+			"This is different from depguard where there are different block "+
+			"types for example version constraints and module recommendations.",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
@@ -38,13 +38,13 @@ func NewGomodguard() *goanalysis.Linter {
 			var (
 				files        = []string{}
 				linterCfg    = lintCtx.Cfg.LintersSettings.Gomodguard
-				processorCfg = gomodguard.Configuration{}
+				processorCfg = &gomodguard.Configuration{}
 			)
 			processorCfg.Allowed.Modules = linterCfg.Allowed.Modules
 			processorCfg.Allowed.Domains = linterCfg.Allowed.Domains
 			for n := range linterCfg.Blocked.Modules {
 				for k, v := range linterCfg.Blocked.Modules[n] {
-					m := gomodguard.BlockedModule{k: gomodguard.Recommendations{
+					m := map[string]gomodguard.BlockedModule{k: {
 						Recommendations: v.Recommendations,
 						Reason:          v.Reason,
 					}}
@@ -53,11 +53,24 @@ func NewGomodguard() *goanalysis.Linter {
 				}
 			}
 
-			for _, file := range pass.Files {
-				files = append(files, pass.Fset.Position(file.Pos()).Filename)
+			for n := range linterCfg.Blocked.Versions {
+				for k, v := range linterCfg.Blocked.Versions[n] {
+					m := map[string]gomodguard.BlockedVersion{k: {
+						Version: v.Version,
+						Reason:  v.Reason,
+					}}
+					processorCfg.Blocked.Versions = append(processorCfg.Blocked.Versions, m)
+					break
+				}
 			}
 
-			processor, err := gomodguard.NewProcessor(processorCfg, log.New(os.Stderr, "", 0))
+			for _, file := range pass.Files {
+				files = append(files, pass.Fset.PositionFor(file.Pos(), false).Filename)
+			}
+
+			processorCfg.Blocked.LocalReplaceDirectives = linterCfg.Blocked.LocalReplaceDirectives
+
+			processor, err := gomodguard.NewProcessor(processorCfg)
 			if err != nil {
 				lintCtx.Log.Warnf("running gomodguard failed: %s: if you are not using go modules "+
 					"it is suggested to disable this linter", err)
@@ -73,7 +86,7 @@ func NewGomodguard() *goanalysis.Linter {
 			defer mu.Unlock()
 
 			for _, err := range gomodguardErrors {
-				issues = append(issues, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
 					FromLinter: gomodguardName,
 					Pos:        err.Position,
 					Text:       err.Reason,
