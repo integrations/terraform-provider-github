@@ -301,11 +301,11 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 	for i := range allRules {
 		if allRules[i].Pattern == pattern {
 			id = allRules[i].ID
-			break
+			return id, nil
 		}
 	}
 
-	return id, nil
+	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
 }
 
 func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
