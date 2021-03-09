@@ -83,6 +83,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository":                    dataSourceGithubRepository(),
 			"github_repository_milestone":          dataSourceGithubRepositoryMilestone(),
 			"github_team":                          dataSourceGithubTeam(),
+			"github_teams":                         dataSourceGithubTeams(),
 			"github_user":                          dataSourceGithubUser(),
 		},
 	}
