@@ -16,6 +16,7 @@ func TestAccGithubTeamsDataSource(t *testing.T) {
 		`)
 
 		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_teams.all", "teams.0.id"),
 			resource.TestCheckResourceAttrSet("data.github_teams.all", "teams.0.node_id"),
 		)
 

@@ -18,6 +18,10 @@ func dataSourceGithubTeams() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
 						"node_id": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -102,6 +106,7 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 	for i, team := range teams {
 		t := make(map[string]interface{})
 
+		t["id"] = team.DatabaseID
 		t["node_id"] = team.ID
 		t["slug"] = team.Slug
 		t["name"] = team.Name

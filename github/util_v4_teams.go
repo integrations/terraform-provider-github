@@ -7,6 +7,7 @@ type TeamsQuery struct {
 		Teams struct {
 			Nodes []struct {
 				ID          githubv4.String
+				DatabaseID  githubv4.Int
 				Slug        githubv4.String
 				Name        githubv4.String
 				Description githubv4.String
