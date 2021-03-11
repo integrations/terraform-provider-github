@@ -101,7 +101,7 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		return make([]interface{}, 0)
 	}
 
-	flatTeams := make([]interface{}, len(teams), len(teams))
+	flatTeams := make([]interface{}, len(teams))
 
 	for i, team := range teams {
 		t := make(map[string]interface{})
@@ -114,7 +114,7 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		t["privacy"] = team.Privacy
 
 		members := team.Members.Nodes
-		flatMembers := make([]string, len(members), len(members))
+		flatMembers := make([]string, len(members))
 
 		for i, member := range members {
 			flatMembers[i] = string(member.Login)
