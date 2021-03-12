@@ -29,7 +29,7 @@ The following arguments are supported:
 
 * `branch` - (Required) The repository branch to create.
 
-* `source_branch` - (Optional) The branch name to start from. Defaults to `master`.
+* `source_branch` - (Optional) The branch name to start from. Defaults to `main`.
 
 * `source_sha` - (Optional) The commit hash to start from. Defaults to the tip of `source_branch`. If provided, `source_branch` is ignored.
 
