@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -142,4 +143,24 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 		}
 		return team.GetID(), nil
 	}
+}
+
+// https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
+var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []error) {
+	name, ok := v.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
+	}
+
+	if !secretNameRegexp.MatchString(name) {
+		errs = append(errs, errors.New("Secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+	}
+
+	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
+		errs = append(errs, errors.New("Secret names must not start with the GITHUB_ prefix"))
+	}
+
+	return we, errs
 }
