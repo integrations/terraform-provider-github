@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -66,6 +67,16 @@ func TestAccGithubBranchProtection(t *testing.T) {
 							fmt.Sprintf("tf-acc-test-%s", randomID), "main",
 						),
 					},
+					{
+						ResourceName: "github_branch_protection.test",
+						ImportState:  true,
+						ExpectError: regexp.MustCompile(
+							`Could not find a branch protection rule with the pattern 'no-such-pattern'\.`,
+						),
+						ImportStateIdFunc: importBranchProtectionByRepoName(
+							fmt.Sprintf("tf-acc-test-%s", randomID), "no-such-pattern",
+						),
+					},
 				},
 			})
 		}
@@ -128,6 +139,15 @@ func TestAccGithubBranchProtection(t *testing.T) {
 						ImportStateVerify: true,
 						ImportStateIdFunc: importBranchProtectionByRepoID(
 							"github_repository.test", "main"),
+					},
+					{
+						ResourceName: "github_branch_protection.test",
+						ImportState:  true,
+						ExpectError: regexp.MustCompile(
+							`Could not find a branch protection rule with the pattern 'no-such-pattern'\.`,
+						),
+						ImportStateIdFunc: importBranchProtectionByRepoID(
+							"github_repository.test", "no-such-pattern"),
 					},
 				},
 			})
