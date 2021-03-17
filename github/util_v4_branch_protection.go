@@ -297,11 +297,9 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 		variables["cursor"] = githubv4.NewString(query.Node.Repository.BranchProtectionRules.PageInfo.EndCursor)
 	}
 
-	var id string
 	for i := range allRules {
 		if allRules[i].Pattern == pattern {
-			id = allRules[i].ID
-			return id, nil
+			return allRules[i].ID, nil
 		}
 	}
 
