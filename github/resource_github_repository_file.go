@@ -204,7 +204,7 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	d.Set("commit", create.Commit.GetSHA())
+	d.Set("commit_sha", create.Commit.GetSHA())
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
