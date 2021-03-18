@@ -183,5 +183,15 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 
 	d.Set("source_branch", sourceBranch)
 
-	return []*schema.ResourceData{d}, resourceGithubBranchRead(d, meta)
+	err = resourceGithubBranchRead(d, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// resourceGithubBranchRead calls d.SetId("") if the branch does not exist
+	if d.Id() == "" {
+		return nil, fmt.Errorf("Repository %s does not have a branch named %s.", repoName, branchName)
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
