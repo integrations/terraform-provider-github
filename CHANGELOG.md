@@ -1,3 +1,10 @@
+## 4.5.2 (March 16, 2021)
+
+BUG FIXES:
+
+- Fix updating `default_branch` on `github_repository` ([#719](https://github.com/integrations/terraform-provider-github/pull/719))
+
+
 ## 4.5.1 (March 3, 2021)
 
 BUG FIXES:

@@ -10,7 +10,7 @@ description: |-
 This resource allows you to create and manage Identity Provider (IdP) group connections within your GitHub teams.
 You must have team synchronization enabled for organizations owned by enterprise accounts.
 
-To learn more about team synchronization between IdPs and Github, please refer to:
+To learn more about team synchronization between IdPs and GitHub, please refer to:
 https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github
 
 ## Example Usage
@@ -21,7 +21,7 @@ data "github_organization_team_sync_groups" "example_groups" {}
 
 resource "github_team_sync_group_mapping" "example_group_mapping" {
   team_slug        = "example"
-  
+
   dynamic "group" {
     for_each = [for g in data.github_organization_team_sync_groups.example_groups.groups : g if g.group_name == "some_team_group"]
     content {
@@ -29,7 +29,7 @@ resource "github_team_sync_group_mapping" "example_group_mapping" {
       group_name        = group.value.group_name
       group_description = group.value.group_description
     }
-  } 
+  }
 }
 ```
 
@@ -45,7 +45,7 @@ The `group` block consists of:
 
 * `group_id` - The ID of the IdP group.
 
-* `group_name` - The name of the IdP group. 
+* `group_name` - The name of the IdP group.
 
 * `group_description` - The description of the IdP group.
 
