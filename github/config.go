@@ -13,13 +13,10 @@ import (
 )
 
 type Config struct {
-	Token        string
-	Owner        string
-	Organization string
-	BaseURL      string
-	Insecure     bool
-	Individual   bool
-	Anonymous    bool
+	Token    string
+	Owner    string
+	BaseURL  string
+	Insecure bool
 }
 
 type Owner struct {
@@ -51,6 +48,10 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 
 	return RateLimitedHTTPClient(client)
 
+}
+
+func (c *Config) Anonymous() bool {
+	return c.Token == ""
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
@@ -126,7 +127,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 func (c *Config) Meta() (interface{}, error) {
 
 	var client *http.Client
-	if c.Anonymous {
+	if c.Anonymous() {
 		client = c.AnonymousHTTPClient()
 	} else {
 		client = c.AuthenticatedHTTPClient()
@@ -146,7 +147,7 @@ func (c *Config) Meta() (interface{}, error) {
 	owner.v4client = v4client
 	owner.v3client = v3client
 
-	if c.Anonymous {
+	if c.Anonymous() {
 		return &owner, nil
 	} else {
 		return c.ConfigureOwner(&owner)

@@ -16,7 +16,7 @@ func TestAccConfigMeta(t *testing.T) {
 
 	t.Run("returns an anonymous client for the v3 REST API", func(t *testing.T) {
 
-		config := Config{Anonymous: true, BaseURL: "https://api.github.com/"}
+		config := Config{BaseURL: "https://api.github.com/"}
 		meta, err := config.Meta()
 		if err != nil {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
@@ -41,9 +41,8 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v3 REST API client to manage individual resources", func(t *testing.T) {
 
 		config := Config{
-			Token:     testToken,
-			BaseURL:   "https://api.github.com/",
-			Anonymous: false,
+			Token:   testToken,
+			BaseURL: "https://api.github.com/",
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -62,9 +61,8 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v4 GraphQL API client to manage individual resources", func(t *testing.T) {
 
 		config := Config{
-			Token:     testToken,
-			BaseURL:   "https://api.github.com/",
-			Anonymous: false,
+			Token:   testToken,
+			BaseURL: "https://api.github.com/",
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -87,10 +85,9 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v3 REST API client to manage organization resources", func(t *testing.T) {
 
 		config := Config{
-			Token:        testToken,
-			BaseURL:      "https://api.github.com/",
-			Organization: testOrganization,
-			Anonymous:    false,
+			Token:   testToken,
+			BaseURL: "https://api.github.com/",
+			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -109,10 +106,9 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v4 GraphQL API client to manage organization resources", func(t *testing.T) {
 
 		config := Config{
-			Token:        testToken,
-			BaseURL:      "https://api.github.com/",
-			Organization: testOrganization,
-			Anonymous:    false,
+			Token:   testToken,
+			BaseURL: "https://api.github.com/",
+			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
 		if err != nil {

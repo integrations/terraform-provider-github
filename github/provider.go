@@ -113,29 +113,17 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-		anonymous := true
-		if d.Get("token").(string) != "" {
-			anonymous = false
-		}
-
-		individual := true
-		if d.Get("organization").(string) != "" {
-			individual = false
-		}
-
 		owner := d.Get("owner").(string)
-		if !individual {
-			owner = d.Get("organization").(string)
+		org := d.Get("organization").(string)
+		if org != "" {
+			owner = org
 		}
 
 		config := Config{
-			Token:        d.Get("token").(string),
-			Organization: d.Get("organization").(string),
-			BaseURL:      d.Get("base_url").(string),
-			Insecure:     d.Get("insecure").(bool),
-			Owner:        owner,
-			Individual:   individual,
-			Anonymous:    anonymous,
+			Token:    d.Get("token").(string),
+			BaseURL:  d.Get("base_url").(string),
+			Insecure: d.Get("insecure").(bool),
+			Owner:    owner,
 		}
 
 		meta, err := config.Meta()
