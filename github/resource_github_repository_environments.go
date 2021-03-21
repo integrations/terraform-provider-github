@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -149,12 +150,12 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 	}
 	d.Set("name", environment.Name)
 
-	for _, protectionRule := range environment.ProtectionRules {
-		switch protectionRule.Type {
-		case "wait_tier":
-			d.Set("wait_timer", protectionRule.WaitTimer)
+	for _, r := range environment.ProtectionRules {
+		switch r.Type {
+		case "wait_timer":
+			d.Set("wait_timer", r.Rule.(*EnvironmentWaitTimer).Time)
 		case "required_reviewers":
-			d.Set("reviewers", []interface{}{protectionRule.Reviewers})
+			d.Set("reviewers", []interface{}{r.Rule.(*EnvironmentRequiredReviewers).Reviewers})
 		}
 	}
 	return nil
@@ -178,29 +179,82 @@ func readRepoEnvironment(ctx context.Context, owner, repo, environmentName strin
 
 // Environment represents an environment in a repository.
 type Environment struct {
-	ID                     int                    `json:"id"`
-	NodeID                 string                 `json:"node_id"`
-	Name                   string                 `json:"name"`
-	URL                    string                 `json:"url"`
-	HTMLURL                string                 `json:"html_url"`
-	CreatedAt              time.Time              `json:"created_at"`
-	UpdatedAt              time.Time              `json:"updated_at"`
-	ProtectionRules        []ProtectionRule       `json:"protection_rules"`
-	DeploymentBranchPolicy DeploymentBranchPolicy `json:"deployment_branch_policy"`
+	ID                     int                         `json:"id"`
+	NodeID                 string                      `json:"node_id"`
+	Name                   string                      `json:"name"`
+	URL                    string                      `json:"url"`
+	HTMLURL                string                      `json:"html_url"`
+	CreatedAt              time.Time                   `json:"created_at"`
+	UpdatedAt              time.Time                   `json:"updated_at"`
+	ProtectionRules        []EnvironmentProtectionRule `json:"protection_rules"`
+	DeploymentBranchPolicy DeploymentBranchPolicy      `json:"deployment_branch_policy"`
 }
 
-// ProtectionRule represents a list of protection rules for an environment.
-type ProtectionRule struct {
-	ID        int    `json:"id"`
-	NodeID    string `json:"node_id"`
-	Type      string `json:"type"`
-	WaitTimer int    `json:"wait_timer,omitempty"`
-	Reviewers []struct {
-		Type     string `json:"type"`
-		Reviewer struct {
-			Id int `json:"id"`
-		} `json:"reviewer"`
-	} `json:"reviewers,omitempty"`
+// EnvironmentProtectionRule represents an environment protection rule
+type EnvironmentProtectionRule struct {
+	EnvironmentProtectionRuleMeta
+	Rule interface{}
+}
+
+// EnvironmentProtectionRuleMeta represents a protection rule metadata
+type EnvironmentProtectionRuleMeta struct {
+	ID     int    `json:"id"`
+	Type   string `json:"type"`
+	NodeID string `json:"node_id"`
+}
+
+func (p *EnvironmentProtectionRule) UnmarshalJSON(data []byte) error {
+	if err := json.Unmarshal(data, &p.EnvironmentProtectionRuleMeta); err != nil {
+		return err
+	}
+	switch p.Type {
+	case "wait_timer":
+		p.Rule = new(EnvironmentWaitTimer)
+		return json.Unmarshal(data, p.Rule)
+	case "required_reviewers":
+		p.Rule = new(EnvironmentRequiredReviewers)
+		return json.Unmarshal(data, p.Rule)
+		//	case branch_policy not needed rule meta fulfill the required fields
+	}
+	return nil
+}
+
+//EnvironmentWaitTimer represents wait timer of an environment in minutes.
+type EnvironmentWaitTimer struct {
+	Time int `json:"wait_timer"`
+}
+
+//EnvironmentRequiredReviewers represents required reviewers.
+type EnvironmentRequiredReviewers struct {
+	Reviewers []EnvironmentRequiredReviewer `json:"reviewers,omitempty"`
+}
+
+//EnvironmentRequiredReviewer is a reviewer of environment can be either a user or a team.
+type EnvironmentRequiredReviewer struct {
+	EnvironmentRequiredReviewerMeta
+	Reviewer struct {
+		Entity interface{} `json:"reviewer"`
+	}
+}
+
+//EnvironmentRequiredReviewerMeta represents meta data for a reviewer.
+type EnvironmentRequiredReviewerMeta struct {
+	Type string `json:"type"`
+}
+
+func (r *EnvironmentRequiredReviewer) UnmarshalJSON(data []byte) error {
+	if err := json.Unmarshal(data, &r.EnvironmentRequiredReviewerMeta); err != nil {
+		return err
+	}
+	switch r.Type {
+	case "User":
+		r.Reviewer.Entity = new(github.User)
+		return json.Unmarshal(data, &r.Reviewer)
+	case "Team":
+		r.Reviewer.Entity = new(github.Team)
+		return json.Unmarshal(data, &r.Reviewer)
+	}
+	return nil
 }
 
 // DeploymentBranchPolicy represents deployment branch policy for an environment.
