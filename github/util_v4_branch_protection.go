@@ -297,15 +297,13 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 		variables["cursor"] = githubv4.NewString(query.Node.Repository.BranchProtectionRules.PageInfo.EndCursor)
 	}
 
-	var id string
 	for i := range allRules {
 		if allRules[i].Pattern == pattern {
-			id = allRules[i].ID
-			break
+			return allRules[i].ID, nil
 		}
 	}
 
-	return id, nil
+	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
 }
 
 func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
