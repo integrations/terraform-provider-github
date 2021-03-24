@@ -140,6 +140,7 @@ func Provider() terraform.ResourceProvider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"github_actions_organization_secrets":    dataSourceGithubActionsOrganizationSecrets(),
 			"github_actions_public_key":              dataSourceGithubActionsPublicKey(),
+			"github_actions_registration_token":      dataSourceGithubActionsRegistrationToken(),
 			"github_actions_secrets":                 dataSourceGithubActionsSecrets(),
 			"github_app":                             dataSourceGithubApp(),
 			"github_branch":                          dataSourceGithubBranch(),
