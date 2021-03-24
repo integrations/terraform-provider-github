@@ -1,3 +1,18 @@
+## 4.6.0 (March 23, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource** `github_app_installation_repository` ([#690](https://github.com/integrations/terraform-provider-github/issues/690))
+
+BUG FIXES:
+
+- Fix panic for `github_repository_file` ([#732](https://github.com/integrations/terraform-provider-github/pull/732))
+- Improve error messaging for `github_branch` ([#734](https://github.com/integrations/terraform-provider-github/pull/734))
+- Improve error messaging for `github_branch_protection` ([#721](https://github.com/integrations/terraform-provider-github/pull/721))
+- Fix update operation for `github_default_branch` ([#719](https://github.com/integrations/terraform-provider-github/pull/719))
+- Add name validation for `github_actions_organization_secret` ([#714](https://github.com/integrations/terraform-provider-github/pull/714))
+
+
 ## 4.5.2 (March 16, 2021)
 
 BUG FIXES:
