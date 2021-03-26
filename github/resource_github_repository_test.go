@@ -674,17 +674,55 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
+	t.Run("creates repos with private visibility", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "private" {
+				name       = "tf-acc-test-visibility-private-%s"
+				visibility = "private"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "visibility",
+				"private",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("updates repos to private visibility", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "public" {
 				name       = "tf-acc-test-visibility-public-%s"
 				visibility = "public"
-			}
-
-			resource "github_repository" "internal" {
-				name       = "tf-acc-test-visibility-internal-%[1]s"
-				visibility = "internal"
+				vulnerability_alerts = false
 			}
 		`, randomID)
 
@@ -694,18 +732,10 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 					"github_repository.public", "visibility",
 					"public",
 				),
-				resource.TestCheckResourceAttr(
-					"github_repository.internal", "visibility",
-					"internal",
-				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_repository.public", "visibility",
-					"private",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.internal", "visibility",
 					"private",
 				),
 			),
