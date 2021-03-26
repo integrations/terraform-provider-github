@@ -237,13 +237,29 @@ func resourceGithubRepository() *schema.Resource {
 	}
 }
 
+func calculateVisibility(d *schema.ResourceData) string {
+
+	if value, ok := d.GetOk("visibility"); ok {
+		return value.(string)
+	}
+
+	if value, ok := d.GetOk("private"); ok {
+		if value.(bool) {
+			return "private"
+		} else {
+			return "public"
+		}
+	}
+
+	return "public"
+}
+
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return &github.Repository{
 		Name:                github.String(d.Get("name").(string)),
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
-		Private:             github.Bool(d.Get("private").(bool)),
-		Visibility:          github.String(d.Get("visibility").(string)),
+		Visibility:          github.String(calculateVisibility(d)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
