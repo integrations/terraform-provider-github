@@ -17,6 +17,12 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Read:   resourceGithubActionsOrganizationSecretRead,
 		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("secret_name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
@@ -133,6 +139,24 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("updated_at", secret.UpdatedAt.String())
 	d.Set("created_at", secret.CreatedAt.String())
+	d.Set("visibility", secret.Visibility)
+
+	selectedRepositoryIDs := []int64{}
+
+	if secret.Visibility == "selected" {
+		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id())
+		if err != nil {
+			return err
+		}
+
+		selectedRepositories := selectedRepoList.Repositories
+
+		for _, repo := range selectedRepositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+		}
+	}
+
+	d.Set("selected_repository_ids", selectedRepositoryIDs)
 
 	return nil
 }
