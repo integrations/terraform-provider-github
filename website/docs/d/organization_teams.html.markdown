@@ -11,14 +11,24 @@ Use this data source to retrieve information about all GitHub teams in an organi
 
 ## Example Usage
 
+To retrieve *all* teams of the organization:
+
 ```hcl
 data "github_organization_teams" "all" {}
 ```
 
+To retrieve only the team's at the root of the organization:
+
+```hcl
+data "github_organization_teams" "root_teams" {
+  root_teams_only = true
+}
+```
+
 ## Attributes Reference
 
+* `root_teams_only` - Only return teams that are at the organization's root, i.e. no nested teams. Defaults to `false`.
 * `teams` - An Array of GitHub Teams.  Each `team` block consists of the fields documented below.
-
 ___
 
 The `team` block consists of:

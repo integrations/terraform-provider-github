@@ -13,6 +13,11 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 		Read: dataSourceGithubOrganizationTeamsRead,
 
 		Schema: map[string]*schema.Schema{
+			"root_teams_only": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"teams": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -62,25 +67,27 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
+	rootTeamsOnly := d.Get("root_teams_only").(bool)
 
 	log.Print("[INFO] Refreshing GitHub Teams for Organization: ", orgName)
 
 	var query TeamsQuery
 	variables := map[string]interface{}{
-		"first":  githubv4.Int(100),
-		"login":  githubv4.String(orgName),
-		"cursor": (*githubv4.String)(nil),
+		"first":         githubv4.Int(100),
+		"login":         githubv4.String(orgName),
+		"cursor":        (*githubv4.String)(nil),
+		"rootTeamsOnly": githubv4.Boolean(rootTeamsOnly),
 	}
 
-	var allTeams []interface{}
+	var teams []interface{}
 	for {
 		err = client.Query(meta.(*Owner).StopContext, &query, variables)
 		if err != nil {
 			return err
 		}
 
-		teams := flattenGitHubTeams(query)
-		allTeams = append(allTeams, teams...)
+		additionalTeams := flattenGitHubTeams(query)
+		teams = append(teams, additionalTeams...)
 
 		if !query.Organization.Teams.PageInfo.HasNextPage {
 			break
@@ -89,7 +96,7 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
-	d.Set("teams", allTeams)
+	d.Set("teams", teams)
 
 	return nil
 }

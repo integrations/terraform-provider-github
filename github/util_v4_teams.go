@@ -19,6 +19,6 @@ type TeamsQuery struct {
 				}
 			}
 			PageInfo PageInfo
-		} `graphql:"teams(first:$first, after:$cursor)"`
+		} `graphql:"teams(first:$first, after:$cursor, rootTeamsOnly:$rootTeamsOnly)"`
 	} `graphql:"organization(login:$login)"`
 }
