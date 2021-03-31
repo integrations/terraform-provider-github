@@ -1,18 +1,18 @@
 ---
 layout: "github"
-page_title: "GitHub: github_teams"
+page_title: "GitHub: github_organization_teams"
 description: |-
   Get information on all GitHub teams of an organization.
 ---
 
-# github\_teams
+# github\_organization\_teams
 
 Use this data source to retrieve information about all GitHub teams in an organization.
 
 ## Example Usage
 
 ```hcl
-data "github_teams" "all" {}
+data "github_organization_teams" "all" {}
 ```
 
 ## Attributes Reference

@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-func dataSourceGithubTeams() *schema.Resource {
+func dataSourceGithubOrganizationTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamsRead,
+		Read: dataSourceGithubOrganizationTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"teams": {
@@ -54,7 +54,7 @@ func dataSourceGithubTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
