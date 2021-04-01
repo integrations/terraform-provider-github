@@ -1,217 +1,173 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"strconv"
+	"strings"
 	"testing"
 
-	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubTeamRepository_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+func TestAccGithubTeamRepository(t *testing.T) {
 
-	var repository github.Repository
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	rn := "github_team_repository.test_team_test_repo"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
+	t.Run("manages team permissions to a repository", func(t *testing.T) {
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists(rn, &repository),
-					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
-				),
-			},
-			{
-				Config: testAccGithubTeamRepositoryUpdateConfig(randString, repoName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamRepositoryExists(rn, &repository),
-					testAccCheckGithubTeamRepositoryRoleState("push", &repository),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
-func TestAccCheckGetPermissions(t *testing.T) {
-	pullMap := map[string]bool{"pull": true, "triage": false, "push": false, "maintain": false, "admin": false}
-	triageMap := map[string]bool{"pull": false, "triage": true, "push": false, "maintain": false, "admin": false}
-	pushMap := map[string]bool{"pull": true, "triage": false, "push": true, "maintain": false, "admin": false}
-	maintainMap := map[string]bool{"pull": false, "triage": false, "push": false, "maintain": true, "admin": false}
-	adminMap := map[string]bool{"pull": true, "triage": false, "push": true, "maintain": false, "admin": true}
-	errorMap := map[string]bool{"pull": false, "triage": false, "push": false, "maintain": false, "admin": false}
-
-	pull, _ := getRepoPermission(pullMap)
-	if pull != "pull" {
-		t.Fatalf("Expected pull permission, actual: %s", pull)
-	}
-
-	triage, _ := getRepoPermission(triageMap)
-	if triage != "triage" {
-		t.Fatalf("Expected triage permission, actual: %s", triage)
-	}
-
-	push, _ := getRepoPermission(pushMap)
-	if push != "push" {
-		t.Fatalf("Expected push permission, actual: %s", push)
-	}
-
-	maintain, _ := getRepoPermission(maintainMap)
-	if maintain != "maintain" {
-		t.Fatalf("Expected maintain permission, actual: %s", maintain)
-	}
-
-	admin, _ := getRepoPermission(adminMap)
-	if admin != "admin" {
-		t.Fatalf("Expected admin permission, actual: %s", admin)
-	}
-
-	errPerm, err := getRepoPermission(errorMap)
-	if err == nil {
-		t.Fatalf("Expected an error getting permissions, actual: %v", errPerm)
-	}
-}
-
-func testAccCheckGithubTeamRepositoryRoleState(role string, repository *github.Repository) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resourceRole, err := getRepoPermission(repository.GetPermissions())
-		if err != nil {
-			return err
-		}
-
-		if resourceRole != role {
-			return fmt.Errorf("Team repository role %v in resource does match expected state of %v", resourceRole, role)
-		}
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Repository) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team repository ID is set")
-		}
-
-		conn := testAccProvider.Meta().(*Owner).v3client
-
-		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID, "team_id", "repository")
-		if err != nil {
-			return err
-		}
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
-		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
-		}
-
-		repo, _, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			testAccProvider.Meta().(*Owner).id,
-			teamId,
-			testAccProvider.Meta().(*Owner).name,
-			repoName)
-
-		if err != nil {
-			return err
-		}
-		*repository = *repo
-		return nil
-	}
-}
-
-func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_team_repository" {
-			continue
-		}
-
-		teamIdString, repoName, err := parseTwoPartID(rs.Primary.ID, "team_id", "repository")
-		if err != nil {
-			return err
-		}
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
-		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
-		}
-
-		repo, resp, err := conn.Teams.IsTeamRepoByID(context.TODO(),
-			orgId,
-			teamId,
-			testAccProvider.Meta().(*Owner).name,
-			repoName)
-
-		if err == nil {
-			if repo != nil &&
-				buildTwoPartID(teamIdString, repo.GetName()) == rs.Primary.ID {
-				return fmt.Errorf("Team repository still exists")
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "test"
 			}
+
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%[1]s"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = "${github_team.test.id}"
+				repository = "${github_repository.test.name}"
+				permission = "pull"
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"pull": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_repository.test", "permission",
+					"pull",
+				),
+			),
+			"triage": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_repository.test", "permission",
+					"triage",
+				),
+			),
+			"push": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_repository.test", "permission",
+					"push",
+				),
+			),
+			"maintain": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_repository.test", "permission",
+					"maintain",
+				),
+			),
+			"admin": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_repository.test", "permission",
+					"admin",
+				),
+			),
 		}
-		if resp.StatusCode != 404 {
-			return err
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["pull"],
+					},
+					{
+						Config: strings.Replace(config,
+							`permission = "pull"`,
+							`permission = "triage"`, 1),
+						Check: checks["triage"],
+					},
+					{
+						Config: strings.Replace(config,
+							`permission = "pull"`,
+							`permission = "push"`, 1),
+						Check: checks["push"],
+					},
+					{
+						Config: strings.Replace(config,
+							`permission = "pull"`,
+							`permission = "maintain"`, 1),
+						Check: checks["maintain"],
+					},
+					{
+						Config: strings.Replace(config,
+							`permission = "pull"`,
+							`permission = "admin"`, 1),
+						Check: checks["admin"],
+					},
+				},
+			})
 		}
-		return nil
-	}
-	return nil
-}
 
-func testAccGithubTeamRepositoryConfig(randString, repoName string) string {
-	return fmt.Sprintf(`
-resource "github_team" "test_team" {
-  name        = "tf-acc-test-team-repo-%s"
-  description = "Terraform acc test group"
-}
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
 
-resource "github_repository" "test" {
-  name = "%s"
-}
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
 
-resource "github_team_repository" "test_team_test_repo" {
-  team_id    = "${github_team.test_team.id}"
-  repository = "${github_repository.test.name}"
-  permission = "pull"
-}
-`, randString, repoName)
-}
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 
-func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string) string {
-	return fmt.Sprintf(`
-resource "github_team" "test_team" {
-  name        = "tf-acc-test-team-repo-%s"
-  description = "Terraform acc test group"
-}
+	})
 
-resource "github_repository" "test" {
-  name = "%s"
-}
+	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
 
-resource "github_team_repository" "test_team_test_repo" {
-  team_id    = "${github_team.test_team.id}"
-  repository = "${github_repository.test.name}"
-  permission = "push"
-}
-`, randString, repoName)
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "test"
+			}
+
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%[1]s"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = "${github_team.test.slug}"
+				repository = "${github_repository.test.name}"
+				permission = "pull"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("github_team_repository.test", "team_id"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						Config: strings.Replace(config,
+							`github_team.test.id`,
+							`github_team.test.slug`, 1),
+						Check: check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

@@ -1,0 +1,18 @@
+name: GitHub Actions CI
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      GOFLAGS: "-mod=vendor"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.13'
+      - run: make tools
+      - run: make lint
+      - run: make test
+      - run: make website-lint

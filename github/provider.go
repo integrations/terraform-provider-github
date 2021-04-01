@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"github_actions_organization_secret": resourceGithubActionsOrganizationSecret(),
 			"github_actions_secret":              resourceGithubActionsSecret(),
+			"github_app_installation_repository": resourceGithubAppInstallationRepository(),
 			"github_branch":                      resourceGithubBranch(),
 			"github_branch_protection":           resourceGithubBranchProtection(),
 			"github_branch_protection_v3":        resourceGithubBranchProtectionV3(),

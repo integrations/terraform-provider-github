@@ -1,3 +1,44 @@
+## 4.6.0 (March 23, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource** `github_app_installation_repository` ([#690](https://github.com/integrations/terraform-provider-github/issues/690))
+
+BUG FIXES:
+
+- Fix panic for `github_repository_file` ([#732](https://github.com/integrations/terraform-provider-github/pull/732))
+- Improve error messaging for `github_branch` ([#734](https://github.com/integrations/terraform-provider-github/pull/734))
+- Improve error messaging for `github_branch_protection` ([#721](https://github.com/integrations/terraform-provider-github/pull/721))
+- Fix update operation for `github_default_branch` ([#719](https://github.com/integrations/terraform-provider-github/pull/719))
+- Add name validation for `github_actions_organization_secret` ([#714](https://github.com/integrations/terraform-provider-github/pull/714))
+
+
+## 4.5.2 (March 16, 2021)
+
+BUG FIXES:
+
+- Fix updating `default_branch` on `github_repository` ([#719](https://github.com/integrations/terraform-provider-github/pull/719))
+
+
+## 4.5.1 (March 3, 2021)
+
+BUG FIXES:
+
+- Fix `github_branch_protection` import by repository node ID and pattern ([#713](https://github.com/integrations/terraform-provider-github/pull/713))
+- Add pagination when retrieving team members for `data_source_github_team` ([#702](https://github.com/integrations/terraform-provider-github/pull/702))
+
+
+## 4.5.0 (February 17, 2021)
+
+ENHANCEMENTS:
+
+- Add ability for `github_team_repository` to accept slug as a valid `team_id` ([#693](https://github.com/integrations/terraform-provider-github/pull/693))
+
+BUG FIXES:
+
+- Add more context to error messaging for `github_branch_protection` ([#691](https://github.com/integrations/terraform-provider-github/pull/691))
+- Satisfy linter recommendation for `github_branch_protection` ([#694](https://github.com/integrations/terraform-provider-github/pull/694))
+
 ## 4.4.0 (February 5, 2021)
 
 BUG FIXES:

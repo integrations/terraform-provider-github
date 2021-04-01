@@ -106,3 +106,52 @@ func flipUsernameCase(username string) string {
 	}
 	return string(oc)
 }
+
+func TestAccGithubUtilValidateSecretName(t *testing.T) {
+	cases := []struct {
+		Name  string
+		Error bool
+	}{
+		{
+			Name: "valid",
+		},
+		{
+			Name: "v",
+		},
+		{
+			Name: "_valid_underscore_",
+		},
+		{
+			Name: "valid_digit_1",
+		},
+		{
+			Name:  "invalid-dashed",
+			Error: true,
+		},
+		{
+			Name:  "1_invalid_leading_digit",
+			Error: true,
+		},
+		{
+			Name:  "GITHUB_PREFIX",
+			Error: true,
+		},
+		{
+			Name:  "github_prefix",
+			Error: true,
+		},
+	}
+
+	for _, tc := range cases {
+		var name interface{} = tc.Name
+		_, errors := validateSecretNameFunc(name, "")
+
+		if tc.Error != (len(errors) != 0) {
+			if tc.Error {
+				t.Fatalf("expected error, got none (%s)", tc.Name)
+			} else {
+				t.Fatalf("unexpected error(s): %s (%s)", errors, tc.Name)
+			}
+		}
+	}
+}

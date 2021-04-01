@@ -41,7 +41,7 @@ resource "github_team_repository" "some_team_repo" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The GitHub team id
+* `team_id` - (Required) The GitHub team id or the GitHub team slug
 * `repository` - (Required) The repository to add to the team.
 * `permission` - (Optional) The permissions of team members regarding the repository.
   Must be one of `pull`, `triage`, `push`, `maintain`, or `admin`. Defaults to `pull`.

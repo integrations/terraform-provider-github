@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -62,8 +63,18 @@ func TestAccGithubBranchProtection(t *testing.T) {
 						ResourceName:      "github_branch_protection.test",
 						ImportState:       true,
 						ImportStateVerify: true,
-						ImportStateIdFunc: branchProtectionImportStateIdFunc(
+						ImportStateIdFunc: importBranchProtectionByRepoName(
 							fmt.Sprintf("tf-acc-test-%s", randomID), "main",
+						),
+					},
+					{
+						ResourceName: "github_branch_protection.test",
+						ImportState:  true,
+						ExpectError: regexp.MustCompile(
+							`Could not find a branch protection rule with the pattern 'no-such-pattern'\.`,
+						),
+						ImportStateIdFunc: importBranchProtectionByRepoName(
+							fmt.Sprintf("tf-acc-test-%s", randomID), "no-such-pattern",
 						),
 					},
 				},
@@ -121,6 +132,22 @@ func TestAccGithubBranchProtection(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+					{
+						ResourceName:      "github_branch_protection.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateIdFunc: importBranchProtectionByRepoID(
+							"github_repository.test", "main"),
+					},
+					{
+						ResourceName: "github_branch_protection.test",
+						ImportState:  true,
+						ExpectError: regexp.MustCompile(
+							`Could not find a branch protection rule with the pattern 'no-such-pattern'\.`,
+						),
+						ImportStateIdFunc: importBranchProtectionByRepoID(
+							"github_repository.test", "no-such-pattern"),
 					},
 				},
 			})
@@ -322,8 +349,25 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 }
 
-func branchProtectionImportStateIdFunc(repo, pattern string) resource.ImportStateIdFunc {
+func importBranchProtectionByRepoName(repo, pattern string) resource.ImportStateIdFunc {
+	// test importing using an ID of the form <repo-name>:<branch-protection-pattern>
 	return func(s *terraform.State) (string, error) {
 		return fmt.Sprintf("%s:%s", repo, pattern), nil
+	}
+}
+
+func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.ImportStateIdFunc {
+	// test importing using an ID of the form <repo-node-id>:<branch-protection-pattern>
+	// by retrieving the GraphQL ID from the terraform.State
+	return func(s *terraform.State) (string, error) {
+		repo := s.RootModule().Resources[repoLogicalName]
+		if repo == nil {
+			return "", fmt.Errorf("Cannot find %s in terraform state", repoLogicalName)
+		}
+		repoID, found := repo.Primary.Attributes["node_id"]
+		if !found {
+			return "", fmt.Errorf("Repository %s does not have a node_id in terraform state", repo.Primary.ID)
+		}
+		return fmt.Sprintf("%s:%s", repoID, pattern), nil
 	}
 }
