@@ -17,7 +17,7 @@ This resource allows you to configure branch protection for repositories in your
 
 ```hcl
 # Protect the main branch of the foo repository. Only allow a specific user to merge to the branch.
-resource " github_branch_protection_v3" "example" {
+resource "github_branch_protection_v3" "example" {
   repository     = github_repository.example.name
   branch         = "main"
 
