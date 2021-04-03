@@ -32,9 +32,9 @@ jobs:
         uses: terraformtesting/acceptance-tests@v2.1.0
         with:
           TF_LOG: INFO
-          GITHUB_OWNER: kilwa0
+          GITHUB_OWNER: github-terraform-test-user
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
-          GITHUB_TEST_ORGANIZATION: kilorg
+          GITHUB_TEST_ORGANIZATION: terraformtesting
 
   acceptance-tests-organization:
     runs-on: ubuntu-latest
@@ -48,6 +48,6 @@ jobs:
         uses: terraformtesting/acceptance-tests@v2.1.0
         with:
           TF_LOG: INFO
-          GITHUB_ORGANIZATION: kilorg
+          GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
-          GITHUB_TEST_OWNER: kilwa0
+          GITHUB_TEST_OWNER: github-terraform-test-user
