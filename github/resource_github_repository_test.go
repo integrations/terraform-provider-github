@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -989,4 +990,13 @@ func init() {
 		Name: "github_repository",
 		F:    testSweepRepositories,
 	})
+}
+
+func reconfigureVisibility(config, visibility string) string {
+	re := regexp.MustCompile(`visibility = "(.*)"`)
+	newConfig := re.ReplaceAllString(
+		config,
+		fmt.Sprintf(`visibility = "%s"`, visibility),
+	)
+	return newConfig
 }
