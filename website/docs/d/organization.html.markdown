@@ -18,3 +18,4 @@ data "github_organization" "test" { name = "github" }
 ## Attributes Reference
 
  * `plan` - The plan name for the organization account
+ * `repos` - (`list`) A list with the repositories on the organization
