@@ -22,7 +22,7 @@ resource "github_repository" "repo" {
 }
 
 resource "github_repository_webhook" "foo" {
-  repository = "${github_repository.repo.name}"
+  repository = github_repository.repo.name
 
   name = "web"
 

@@ -16,7 +16,7 @@ This resource allows you to add/remove SSH keys from your user account.
 ```hcl
 resource "github_user_ssh_key" "example" {
   title = "example title"
-  key   = "${file("~/.ssh/id_rsa.pub")}"
+  key   = file("~/.ssh/id_rsa.pub")
 }
 ```
 

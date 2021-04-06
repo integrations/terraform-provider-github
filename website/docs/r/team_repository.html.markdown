@@ -31,8 +31,8 @@ resource "github_repository" "some_repo" {
 }
 
 resource "github_team_repository" "some_team_repo" {
-  team_id    = "${github_team.some_team.id}"
-  repository = "${github_repository.some_repo.name}"
+  team_id    = github_team.some_team.id
+  repository = github_repository.some_repo.name
   permission = "pull"
 }
 ```

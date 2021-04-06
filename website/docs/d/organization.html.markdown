@@ -12,7 +12,9 @@ Use this data source to retrieve basic information about a GitHub Organization.
 ## Example Usage
 
 ```hcl
-data "github_organization" "test" { name = "github" }
+data "github_organization" "test" {
+  name = "github"
+}
 ```
 
 ## Attributes Reference

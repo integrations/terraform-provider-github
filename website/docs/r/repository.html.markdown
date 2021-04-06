@@ -17,10 +17,10 @@ resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  visibility  = "public"
+  visibility = "public"
 
   template {
-    owner = "github"
+    owner      = "github"
     repository = "terraform-module-template"
   }
 }
@@ -127,8 +127,6 @@ The `source` block supports the following:
 ## Attributes Reference
 
 The following additional attributes are exported:
-
-* `node_id` - the Node ID of the Repository.
 
 * `full_name` - A string of the form "orgname/reponame".
 
