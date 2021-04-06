@@ -26,12 +26,26 @@ Here are a few things you can do that will increase the likelihood of your pull 
 
 This section describes a typical sequence performed when developing locally. Full details of available tooling are available in the next section on [Automated And Manual Testing](#automated-and-manual-testing).
 
-1.  Export necessary configuration for authenticating your provider with GitHub
+### Local Development Setup
+
+Once you have the repository cloned, there's a couple of additional steps you'll need to take. Since most of the testing is acceptance or integration testing, we need to manipulate GitHub resources in order to run it. Useful setup steps are listed below:
+
+- If you haven't already, [create a GitHub organization you can use for testing](#github-organization).
+  - Optional: some may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
+  - Your organization _must_ have a repository called `terraform-module-template`. The [terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) repo is a good, re-usable example.
+    - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
+- If you haven't already, [generate a Personal Access Token (PAT) for authenticating your test runs](#github-personal-access-token).
+- Export the necessary configuration for authenticating your provider with GitHub
   ```sh
   export GITHUB_TOKEN=<token of a user with an organization account>
   export GITHUB_ORGANIZATION=<name of an organization>
   ```
-1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.  
+- Build the project with `make build`
+- Try an example test run from the default (`master`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
+
+### Local Development Iteration
+
+1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.
 1. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
 ```sh
 TF_LOG=DEBUG TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
@@ -68,7 +82,7 @@ Enter the provider directory and build the provider while specifying an output d
 $ go build -o ~/go/bin/
 ```
 
-This enables verifying your locally built provider using examples available in the `examples/` directory. 
+This enables verifying your locally built provider using examples available in the `examples/` directory.
 Note that you will first need to configure your shell to map our provider to the local build:
 
 ```sh
@@ -100,7 +114,7 @@ The following provider development overrides are set in the CLI configuration:
 
 ### Developing The Provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.11+ is *required*). 
+If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.13+ is *required*).
 
 You may also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`. Recent Go releases may have removed the need for this step however.
 
@@ -148,7 +162,7 @@ export GITHUB_OWNER=
 export GITHUB_BASE_URL=
 
 # leverage helper accounts for tests requiring them
-# examples include: 
+# examples include:
 # - https://github.com/github-terraform-test-user
 # - https://github.com/terraformtesting
 export GITHUB_TEST_OWNER=
@@ -176,6 +190,8 @@ Once the token has been created, it must be exported in your environment as `GIT
 ### GitHub Organization
 
 If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_ORGANIZATION`.
+
+Make sure that your organization has a `terraform-module-template` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
 
 If you are interested in using and/or testing Github's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
 
