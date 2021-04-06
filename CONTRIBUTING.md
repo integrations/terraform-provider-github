@@ -30,9 +30,8 @@ This section describes a typical sequence performed when developing locally. Ful
 
 Once you have the repository cloned, there's a couple of additional steps you'll need to take. Since most of the testing is acceptance or integration testing, we need to manipulate GitHub resources in order to run it. Useful setup steps are listed below:
 
-- If you haven't already, create a GitHub organization you can use for testing.
+- If you haven't already, [create a GitHub organization you can use for testing](#github-organization).
   - Optional: some may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
-  - See [here](#github-organization) for further instructions on creating an organization.
   - Your organization _must_ have a repository called `terraform-module-template`.
     - See [this repo](https://github.com/terraformtesting/terraform-template-module) for an example you can clone.
     - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
