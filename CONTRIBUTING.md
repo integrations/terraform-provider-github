@@ -191,7 +191,7 @@ Once the token has been created, it must be exported in your environment as `GIT
 
 If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_ORGANIZATION`.
 
-Make sure that your organization has a `terraform-module-template` repository (see [here](https://github.com/terraformtesting/terraform-template-module) for an example you can clone) and that its "Template repository" item in Settings is checked.
+Make sure that your organization has a `terraform-module-template` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
 
 If you are interested in using and/or testing Github's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
 
