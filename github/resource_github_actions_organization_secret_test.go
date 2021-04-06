@@ -116,4 +116,54 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
+	t.Run("imports secrets without error", func(t *testing.T) {
+		secretValue := "super_secret_value"
+
+		config := fmt.Sprintf(`
+			resource "github_actions_organization_secret" "test_secret" {
+				secret_name      = "test_secret_name"
+				plaintext_value  = "%s"
+				visibility       = "private"
+			}
+		`, secretValue)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_organization_secret.test_secret", "plaintext_value",
+				secretValue,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:            "github_actions_organization_secret.test_secret",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"plaintext_value"},
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
