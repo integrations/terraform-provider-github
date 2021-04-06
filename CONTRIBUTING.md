@@ -32,8 +32,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 
 - If you haven't already, [create a GitHub organization you can use for testing](#github-organization).
   - Optional: some may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
-  - Your organization _must_ have a repository called `terraform-module-template`.
-    - See [this repo](https://github.com/terraformtesting/terraform-template-module) for an example you can clone.
+  - Your organization _must_ have a repository called `terraform-module-template`. The [terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) repo is a good, re-usable example.
     - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
 - If you haven't already, generate a Personal Access Token (PAT) for authenticating your test runs.
   - See [here](#github-personal-access-token) for instructions and scope requirements.
