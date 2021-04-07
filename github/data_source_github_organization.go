@@ -32,7 +32,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"repos": {
+			"repositories": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
