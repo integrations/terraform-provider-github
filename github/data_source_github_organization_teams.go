@@ -1,11 +1,10 @@
 package github
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 	"log"
-	"strconv"
-	"time"
 )
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
@@ -95,7 +94,9 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 		variables["cursor"] = githubv4.NewString(query.Organization.Teams.PageInfo.EndCursor)
 	}
 
-	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
+	// Use the organization ID and value of rootTeamsOnly to create a unique ID.
+	// This supports the edge case where the same data source is used twice: once with and once without rootTeamsOnly=true.
+	d.SetId(fmt.Sprintf("%s-%t", string(query.Organization.ID), rootTeamsOnly))
 	d.Set("teams", teams)
 
 	return nil

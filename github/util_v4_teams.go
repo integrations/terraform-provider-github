@@ -4,6 +4,7 @@ import "github.com/shurcooL/githubv4"
 
 type TeamsQuery struct {
 	Organization struct {
+		ID    githubv4.String
 		Teams struct {
 			Nodes []struct {
 				ID          githubv4.String
