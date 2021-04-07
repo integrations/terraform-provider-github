@@ -22,7 +22,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "description"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
-			resource.TestCheckResourceAttrSet("data.github_organization.test", "repos.#"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "repositories.#"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
