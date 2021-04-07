@@ -86,7 +86,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("name", organization.GetName())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", plan.Name)
-	d.Set("repos", repoList)
+	d.Set("repositories", repoList)
 
 	return nil
 }
