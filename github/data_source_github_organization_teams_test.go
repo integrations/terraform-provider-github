@@ -50,14 +50,14 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 	t.Run("queries root teams only without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-			data "github_organization_teams" "all" {
+			data "github_organization_teams" "root_teams" {
 				root_teams_only = true
 			}
 		`)
 
 		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
+			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.id"),
+			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.node_id"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
