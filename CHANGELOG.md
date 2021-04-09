@@ -1,3 +1,14 @@
+## 4.7.0 (April 9, 2021)
+
+ENHANCEMENTS:
+
+* **New Data Source** `github_organization_teams` ([#725](https://github.com/integrations/terraform-provider-github/issues/725))
+
+BUG FIXES:
+
+- Set visibility on create instead of update for `github_repository` ([#746](https://github.com/integrations/terraform-provider-github/pull/746))
+- Various documentation updates
+
 ## 4.6.0 (March 23, 2021)
 
 ENHANCEMENTS:
