@@ -79,6 +79,7 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":                    dataSourceGithubMembership(),
 			"github_organization":                  dataSourceGithubOrganization(),
 			"github_organization_team_sync_groups": dataSourceGithubOrganizationTeamSyncGroups(),
+			"github_organization_teams":            dataSourceGithubOrganizationTeams(),
 			"github_release":                       dataSourceGithubRelease(),
 			"github_repositories":                  dataSourceGithubRepositories(),
 			"github_repository":                    dataSourceGithubRepository(),
