@@ -17,14 +17,15 @@ func Provider() terraform.ResourceProvider {
 			"owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
 			},
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: OwnerOrOrgEnvDefaultFunc,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 				Description: descriptions["organization"],
+				Deprecated:  "Use owner (or GITHUB_OWNER) instead of organization (or GITHUB_ORGANIZATION)",
 			},
 			"base_url": {
 				Type:        schema.TypeString,
@@ -115,29 +116,34 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
-		anonymous := true
-		if d.Get("token").(string) != "" {
-			anonymous = false
-		}
-
-		individual := true
-		if d.Get("organization").(string) != "" {
-			individual = false
-		}
-
 		owner := d.Get("owner").(string)
-		if !individual {
-			owner = d.Get("organization").(string)
+
+		// BEGIN backwards compatibility
+		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
+		// 'owner' and 'organization'. This meant that if 'owner' and
+		// 'GITHUB_OWNER' were set, 'GITHUB_OWNER' would be used as the default
+		// value of 'organization' and therefore override 'owner'.
+		//
+		// This seems undesirable (an environment variable should not override
+		// an explicitly set value in a provider block), but is necessary
+		// for backwards compatibility. We could remove this backwards compatibility
+		// code in a future major release.
+		env, _ := OwnerOrOrgEnvDefaultFunc()
+		if env.(string) != "" {
+			owner = env.(string)
+		}
+		// END backwards compatibility
+
+		org := d.Get("organization").(string)
+		if org != "" {
+			owner = org
 		}
 
 		config := Config{
-			Token:        d.Get("token").(string),
-			Organization: d.Get("organization").(string),
-			BaseURL:      d.Get("base_url").(string),
-			Insecure:     d.Get("insecure").(bool),
-			Owner:        owner,
-			Individual:   individual,
-			Anonymous:    anonymous,
+			Token:    d.Get("token").(string),
+			BaseURL:  d.Get("base_url").(string),
+			Insecure: d.Get("insecure").(bool),
+			Owner:    owner,
 		}
 
 		meta, err := config.Meta()

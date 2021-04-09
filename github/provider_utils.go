@@ -97,7 +97,7 @@ func testAccCheckOrganization() error {
 
 func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		return os.Getenv("GITHUB_ORGANIZATION"), nil
+		return organization, nil
 	}
 	return os.Getenv("GITHUB_OWNER"), nil
 }
