@@ -1,3 +1,9 @@
+## 4.8.0 (April 9, 2021)
+
+BUG FIXES:
+
+-  Deprecate `organization` / `GITHUB_ORGANIZATION` provider configuration options ([#735](https://github.com/integrations/terraform-provider-github/pull/735))
+
 ## 4.7.0 (April 9, 2021)
 
 ENHANCEMENTS:
