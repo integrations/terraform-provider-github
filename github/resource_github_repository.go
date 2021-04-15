@@ -240,21 +240,17 @@ func resourceGithubRepository() *schema.Resource {
 func calculateVisibility(d *schema.ResourceData) string {
 
 	if value, ok := d.GetOk("visibility"); ok {
-		log.Printf("[DEBUG] <<<<<<<< calculating visibility as %v", value.(string))
 		return value.(string)
 	}
 
 	if value, ok := d.GetOk("private"); ok {
 		if value.(bool) {
-			log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "private")
 			return "private"
 		} else {
-			log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "public")
 			return "public"
 		}
 	}
 
-	log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "public")
 	return "public"
 }
 
@@ -318,8 +314,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 					isPrivate = false
 				}
 			}
-
-			log.Printf("<<<<<<< Setting visibility to %v", isPrivate)
 
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
