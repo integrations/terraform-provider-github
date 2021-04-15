@@ -6,6 +6,11 @@ BUG FIXES:
 
 ## 4.7.0 (April 9, 2021)
 
+REGRESSIONS:
+
+- new repositories created via a template have a public visibility ([#678](https://github.com/integrations/terraform-provider-github/issues/758))
+  - workaround: a subsequent plan / apply will set the visibility to what is configured
+
 ENHANCEMENTS:
 
 * **New Data Source** `github_organization_teams` ([#725](https://github.com/integrations/terraform-provider-github/issues/725))
