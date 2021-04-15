@@ -8,7 +8,7 @@ BUG FIXES:
 
 REGRESSIONS:
 
-- new repositories created via a template have a public visibility ([#678](https://github.com/integrations/terraform-provider-github/issues/758))
+- new repositories created via a template have a public visibility ([#758](https://github.com/integrations/terraform-provider-github/issues/758))
   - workaround: a subsequent plan / apply will set the visibility to what is configured
 
 ENHANCEMENTS:
