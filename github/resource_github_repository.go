@@ -240,17 +240,21 @@ func resourceGithubRepository() *schema.Resource {
 func calculateVisibility(d *schema.ResourceData) string {
 
 	if value, ok := d.GetOk("visibility"); ok {
+		log.Printf("[DEBUG] <<<<<<<< calculating visibility as %v", value.(string))
 		return value.(string)
 	}
 
 	if value, ok := d.GetOk("private"); ok {
 		if value.(bool) {
+			log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "private")
 			return "private"
 		} else {
+			log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "public")
 			return "public"
 		}
 	}
 
+	log.Printf("[DEBUG] <<<<<<<< calculating private as %v", "public")
 	return "public"
 }
 
@@ -303,11 +307,25 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
+
+			// determine if repo should be public or private
+			isPrivate, ok := d.Get("private").(bool)
+
+			// prefer visibility to private flag
+			visibility, ok := d.Get("visibility").(string)
+			if ok {
+				if visibility != "private" {
+					isPrivate = false
+				}
+			}
+
+			log.Printf("<<<<<<< Setting visibility to %v", isPrivate)
+
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
 				Owner:       &owner,
 				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(d.Get("private").(bool)),
+				Private:     github.Bool(isPrivate),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
@@ -478,7 +496,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		o, n := d.GetChange("visibility")
 		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
 		if o.(string) == "" {
-			repoReq.Visibility = nil
+			repoReq.Visibility = github.String(n.(string))
 		}
 	} else {
 		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
