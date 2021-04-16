@@ -237,29 +237,13 @@ func resourceGithubRepository() *schema.Resource {
 	}
 }
 
-func calculateVisibility(d *schema.ResourceData) string {
-
-	if value, ok := d.GetOk("visibility"); ok {
-		return value.(string)
-	}
-
-	if value, ok := d.GetOk("private"); ok {
-		if value.(bool) {
-			return "private"
-		} else {
-			return "public"
-		}
-	}
-
-	return "public"
-}
-
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return &github.Repository{
 		Name:                github.String(d.Get("name").(string)),
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
-		Visibility:          github.String(calculateVisibility(d)),
+		Private:             github.Bool(d.Get("private").(bool)),
+		Visibility:          github.String(d.Get("visibility").(string)),
 		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
 		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
@@ -286,6 +270,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
+
+	// Auth issues (403 You need admin access to the organization before adding a repository to it.)
+	// are encountered when the resources is created with the visibility parameter. As
+	// resourceGithubRepositoryUpdate is called immediately after, this is subsequently corrected.
+	repoReq.Visibility = nil
 
 	repoName := repoReq.GetName()
 	ctx := context.Background()
@@ -473,15 +462,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 
-	if d.HasChange("visibility") {
-		// The endpoint will throw an error if this repo is being created and the old value is ""
-		o, n := d.GetChange("visibility")
-		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
-		if o.(string) == "" {
-			repoReq.Visibility = nil
-		}
-	} else {
-		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+	// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
+	if !d.HasChange("visibility") {
 		repoReq.Visibility = nil
 	}
 
