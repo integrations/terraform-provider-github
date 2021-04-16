@@ -296,17 +296,18 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	isPrivate := false
 
 	// prefer visibility to private flag since private flag is deprecated
+	privateKeyword, ok := d.Get("private").(bool)
+	if ok {
+		isPrivate = privateKeyword
+	}
+
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
 		if visibility == "private" {
 			isPrivate = true
 		}
-	} else {
-		privateKeyword, ok := d.Get("private").(bool)
-		if ok {
-			isPrivate = privateKeyword
-		}
 	}
+
 	repoReq.Private = github.Bool(isPrivate)
 	if isPrivate {
 		repoReq.Visibility = github.String("private")
