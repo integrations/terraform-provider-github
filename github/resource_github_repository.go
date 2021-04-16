@@ -308,11 +308,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 	repoReq.Private = github.Bool(isPrivate)
-	visibilityString := "public"
 	if isPrivate {
-		visibilityString = "private"
+		repoReq.Visibility = github.String("private")
+	} else {
+		repoReq.Visibility = github.String("public")
 	}
-	repoReq.Visibility = github.String(visibilityString)
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
