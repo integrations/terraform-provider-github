@@ -292,6 +292,28 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoName)
 
+	// determine if repository should be private. assume public to start
+	isPrivate := false
+
+	// prefer visibility to private flag since private flag is deprecated
+	visibility, ok := d.Get("visibility").(string)
+	if ok {
+		if visibility == "private" {
+			isPrivate = true
+		}
+	} else {
+		privateKeyword, ok := d.Get("private").(bool)
+		if ok {
+			isPrivate = privateKeyword
+		}
+	}
+	repoReq.Private = github.Bool(isPrivate)
+	visibilityString := "public"
+	if isPrivate {
+		visibilityString = "private"
+	}
+	repoReq.Visibility = github.String(visibilityString)
+
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
 
@@ -303,17 +325,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
-
-			// determine if repo should be public or private
-			isPrivate, ok := d.Get("private").(bool)
-
-			// prefer visibility to private flag
-			visibility, ok := d.Get("visibility").(string)
-			if ok {
-				if visibility != "private" {
-					isPrivate = false
-				}
-			}
 
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
@@ -357,17 +368,15 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	var alerts, private bool
+	var alerts bool
 	if a, ok := d.GetOk("vulnerability_alerts"); ok {
 		alerts = a.(bool)
 	}
-	if p, ok := d.GetOk("private"); ok {
-		private = p.(bool)
-	}
+
 	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
-	if private && alerts {
+	if isPrivate && alerts {
 		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
-	} else if !private && !alerts {
+	} else if !isPrivate && !alerts {
 		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
 	}
 	if createVulnerabilityAlerts != nil {
@@ -488,9 +497,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("visibility") {
 		// The endpoint will throw an error if this repo is being created and the old value is ""
 		o, n := d.GetChange("visibility")
-		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
+		log.Printf("[DEBUG] Visibility change: Old Value %v New Value %v", o, n)
 		if o.(string) == "" {
-			repoReq.Visibility = github.String(n.(string))
+			repoReq.Visibility = nil
 		}
 	} else {
 		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
