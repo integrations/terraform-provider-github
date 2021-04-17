@@ -56,7 +56,7 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 						"number": {
 							Type:        schema.TypeInt,
 							Computed:    true,
-							Description: "Per-repository, monononically increasing ID of this PR",
+							Description: "Per-repository, monotonically increasing ID of this PR",
 						},
 						"base_ref": {
 							Type:     schema.TypeString,
