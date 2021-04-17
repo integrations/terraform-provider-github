@@ -1,3 +1,17 @@
+## 4.9.0 (April 17, 2021)
+
+ENHANCEMENTS:
+
+* **New Data Sources** `github_repository_pull_request` / `github_repository_pull_requests` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
+* **New Resource** `github_repository_pull_request` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
+* Add `repositories` attribute for `github_organization` data source ([#750](https://github.com/integrations/terraform-provider-github/issues/750))
+* Add import functionality for `github_actions_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
+
+BUG FIXES:
+
+- Detect and overwrite value drift for `github_actions_secret` and `github_actions_organization_secret` ([#740](https://github.com/integrations/terraform-provider-github/pull/740))
+- Do not destroy repositories when `name` attribute changes ([#699](https://github.com/integrations/terraform-provider-github/pull/699))
+
 ## 4.8.0 (April 9, 2021)
 
 BUG FIXES:
