@@ -56,3 +56,15 @@ The following arguments are supported:
 
 * `created_at`      - Date of actions_secret creation.
 * `updated_at`      - Date of actions_secret update.
+
+## Import
+
+This resource can be imported using an ID made up of the secret name:
+
+```
+$ terraform import github_actions_organization_secret.test_secret test_secret_name
+```
+
+NOTE: the implementation is limited in that it won't fetch the value of the
+`plaintext_value` field when importing. You may need to ignore changes for the
+`plaintext_value` as a workaround.
