@@ -69,6 +69,68 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
+	t.Run("updates a repositories name without error", func(t *testing.T) {
+
+		oldName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
+		newName := fmt.Sprintf(`%[1]s-renamed`, oldName)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name         = "%[1]s"
+			  description  = "Terraform acceptance tests %[2]s"
+			}
+		`, oldName, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "name",
+					oldName,
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "name",
+					newName,
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						// Rename the repo to something else
+						Config: strings.Replace(
+							config,
+							oldName,
+							newName, 1),
+						Check: checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("imports repositories without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
