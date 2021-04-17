@@ -21,7 +21,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
       - name: Acceptance Tests (Anonymous)
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -37,7 +37,7 @@ jobs:
 
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -47,7 +47,7 @@ jobs:
 
       - name: Failed Acceptance Tests (Individual)
         if: ${{ failure() }}
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: DEBUG
           RUN_ALLOWED: ${{ steps.acceptance-tests-individual.outputs.failed }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -75,7 +75,7 @@ jobs:
           GITHUB_TEST_OWNER: github-terraform-test-user
 
       - name: Failed Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         if: ${{ failure() }}
         with:
           TF_LOG: DEBUG

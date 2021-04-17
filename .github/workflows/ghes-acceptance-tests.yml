@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
       - name: Acceptance Tests (Anonymous)
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
 
@@ -43,7 +43,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
       - name: Acceptance Tests (Individual)
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_OWNER: administrator
@@ -60,7 +60,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
       - name: Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.1.0
+        uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_ORGANIZATION: terraformtesting

@@ -1,3 +1,11 @@
+## 4.9.1 (April 17, 2021)
+
+BUG FIXES:
+
+- Bump Go version to 1.16 for acceptance tests and darwin/arm64 releases
+- Update acceptance tests to v2.2.0
+- Re-instate releases of darwin/arm64
+
 ## 4.9.0 (April 17, 2021)
 
 ENHANCEMENTS:
