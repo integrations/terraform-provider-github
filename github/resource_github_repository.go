@@ -566,7 +566,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		_, n := d.GetChange("visibility")
 		repoReq.Visibility = github.String(n.(string))
 		log.Printf("[DEBUG] Updating repository visibility: %s/%s", owner, repoName)
-		repo, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
 			if !strings.Contains(err.Error(), "422 Visibility is already private") {
 				return err
