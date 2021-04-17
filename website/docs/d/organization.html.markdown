@@ -20,3 +20,4 @@ data "github_organization" "test" {
 ## Attributes Reference
 
  * `plan` - The plan name for the organization account
+ * `repositories` - (`list`) A list with the repositories on the organization

@@ -18,10 +18,11 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization.test", "login"),
+			resource.TestCheckResourceAttr("data.github_organization.test", "login", testOrganization),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "description"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "repositories.#"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

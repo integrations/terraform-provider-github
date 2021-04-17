@@ -1,10 +1,10 @@
 package github
 
 import (
+	"github.com/google/go-github/v32/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"strconv"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubOrganization() *schema.Resource {
@@ -32,6 +32,13 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"repositories": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -50,11 +57,36 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 
 	plan := organization.GetPlan()
 
+	opts := &github.RepositoryListByOrgOptions{
+		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+	}
+
+	var repoList []string
+	var allRepos []*github.Repository
+
+	for {
+		repos, resp, err := client.Repositories.ListByOrg(ctx, name, opts)
+		if err != nil {
+			return err
+		}
+		allRepos = append(allRepos, repos...)
+
+		opts.Page = resp.NextPage
+
+		if resp.NextPage == 0 {
+			break
+		}
+	}
+	for index := range allRepos {
+		repoList = append(repoList, allRepos[index].GetFullName())
+	}
+
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", plan.Name)
+	d.Set("repositories", repoList)
 
 	return nil
 }
