@@ -27,8 +27,6 @@ builds:
     - arm64
   ignore:
     - goos: darwin
-      goarch: arm64
-    - goos: darwin
       goarch: '386'
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
