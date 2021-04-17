@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -484,18 +485,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
-
-	if d.HasChange("visibility") {
-		// The endpoint will throw an error if this repo is being created and the old value is ""
-		o, n := d.GetChange("visibility")
-		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
-		if o.(string) == "" {
-			repoReq.Visibility = github.String(n.(string))
-		}
-	} else {
-		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
-		repoReq.Visibility = nil
-	}
+	// handle visibility updates separately from other fields
+	repoReq.Visibility = nil
 
 	// The documentation for `default_branch` states: "This can only be set
 	// after a repository has already been created". However, for backwards
@@ -557,6 +548,18 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		_, err = updateVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("visibility") {
+		_, n := d.GetChange("visibility")
+		repoReq.Visibility = github.String(n.(string))
+		log.Printf("[DEBUG] Updating repository visibility: %s/%s", owner, repoName)
+		repo, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			if !strings.Contains(err.Error(), "422 Visibility is already private") {
+				return err
+			}
 		}
 	}
 
