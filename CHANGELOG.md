@@ -1,3 +1,10 @@
+## 4.9.2 (April 18, 2021)
+
+BUG FIXES:
+
+- correct visibility for repositories created via a template ([#761](https://github.com/integrations/terraform-provider-github/issues/761))
+
+
 ## 4.9.1 (April 17, 2021)
 
 BUG FIXES:
@@ -32,6 +39,7 @@ REGRESSIONS:
 
 - new repositories created via a template have a public visibility ([#758](https://github.com/integrations/terraform-provider-github/issues/758))
   - workaround: a subsequent plan / apply will set the visibility to what is configured
+  - fix: see v4.9.2
 
 ENHANCEMENTS:
 
