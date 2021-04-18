@@ -1019,6 +1019,56 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "private" {
+				name       = "tf-acc-test-visibility-private-%s"
+				visibility = "private"
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, randomID, testOrganization, "terraform-template-module")
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "visibility",
+				"private",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "private",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
 
 func testSweepRepositories(region string) error {

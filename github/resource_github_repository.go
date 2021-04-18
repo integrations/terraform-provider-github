@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v32/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -291,6 +292,29 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoName)
 
+	// determine if repository should be private. assume public to start
+	isPrivate := false
+
+	// prefer visibility to private flag since private flag is deprecated
+	privateKeyword, ok := d.Get("private").(bool)
+	if ok {
+		isPrivate = privateKeyword
+	}
+
+	visibility, ok := d.Get("visibility").(string)
+	if ok {
+		if visibility == "private" {
+			isPrivate = true
+		}
+	}
+
+	repoReq.Private = github.Bool(isPrivate)
+	if isPrivate {
+		repoReq.Visibility = github.String("private")
+	} else {
+		repoReq.Visibility = github.String("public")
+	}
+
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
 
@@ -302,11 +326,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
+
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:        &repoName,
 				Owner:       &owner,
 				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(d.Get("private").(bool)),
+				Private:     github.Bool(isPrivate),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
@@ -344,17 +369,15 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	var alerts, private bool
+	var alerts bool
 	if a, ok := d.GetOk("vulnerability_alerts"); ok {
 		alerts = a.(bool)
 	}
-	if p, ok := d.GetOk("private"); ok {
-		private = p.(bool)
-	}
+
 	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
-	if private && alerts {
+	if isPrivate && alerts {
 		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
-	} else if !private && !alerts {
+	} else if !isPrivate && !alerts {
 		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
 	}
 	if createVulnerabilityAlerts != nil {
@@ -472,17 +495,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 
-	if d.HasChange("visibility") {
-		// The endpoint will throw an error if this repo is being created and the old value is ""
-		o, n := d.GetChange("visibility")
-		log.Printf("[DEBUG] Old Value %v New Value %v", o, n)
-		if o.(string) == "" {
-			repoReq.Visibility = nil
-		}
-	} else {
-		// The endpoint will throw an error if trying to PATCH with a visibility value that is the same
-		repoReq.Visibility = nil
-	}
+	// handle visibility updates separately from other fields
+	repoReq.Visibility = nil
 
 	// The documentation for `default_branch` states: "This can only be set
 	// after a repository has already been created". However, for backwards
@@ -545,6 +559,34 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		if err != nil {
 			return err
 		}
+	}
+
+	if d.HasChange("visibility") {
+		o, n := d.GetChange("visibility")
+		repoReq.Visibility = github.String(n.(string))
+		log.Printf("[DEBUG] <<<<<<<<<<<<< Updating repository visibility from %s to %s", o, n)
+		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			if !strings.Contains(err.Error(), "422 Visibility is already private") {
+				return err
+			}
+		}
+	} else {
+		log.Printf("[DEBUG] <<<<<<<<<< no visibility update required. visibility: %s", d.Get("visibility"))
+	}
+
+	if d.HasChange("private") {
+		o, n := d.GetChange("private")
+		repoReq.Private = github.Bool(n.(bool))
+		log.Printf("[DEBUG] <<<<<<<<<<<<< Updating repository privacy from %v to %v", o, n)
+		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			if !strings.Contains(err.Error(), "422 Privacy is already set") {
+				return err
+			}
+		}
+	} else {
+		log.Printf("[DEBUG] <<<<<<<<<< no privacy update required. private: %v", d.Get("private"))
 	}
 
 	return resourceGithubRepositoryRead(d, meta)
