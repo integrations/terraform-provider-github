@@ -369,24 +369,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	var alerts bool
-	if a, ok := d.GetOk("vulnerability_alerts"); ok {
-		alerts = a.(bool)
-	}
-
-	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
-	if isPrivate && alerts {
-		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
-	} else if !isPrivate && !alerts {
-		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
-	}
-	if createVulnerabilityAlerts != nil {
-		_, err := createVulnerabilityAlerts(ctx, owner, repoName)
-		if err != nil {
-			return err
-		}
-	}
-
 	pages := expandPages(d.Get("pages").([]interface{}))
 	if pages != nil {
 		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
