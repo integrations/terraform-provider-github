@@ -5,7 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"golang.org/x/oauth2/jws"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -20,7 +21,7 @@ const (
 )
 
 var (
-	testEpochTime time.Time = time.Unix(0, 0)
+	testEpochTime = time.Unix(0, 0)
 )
 
 func TestGenerateAppJWT(t *testing.T) {
@@ -30,52 +31,80 @@ func TestGenerateAppJWT(t *testing.T) {
 		t.FailNow()
 	}
 
-	jwt, err := generateAppJWT(testGitHubAppID, testEpochTime, pemData)
-	t.Log(jwt)
+	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, pemData)
+	t.Log(appJWT)
 	if err != nil {
 		t.Logf("Failed to generate GitHub app JWT: %s", err)
 		t.FailNow()
 	}
 
 	t.Run("produces a properly shaped jwt", func(t *testing.T) {
-		parts := strings.Split(jwt, ".")
+		parts := strings.Split(appJWT, ".")
 
 		if len(parts) != 3 {
-			t.Logf("The produced JWT an invalid JWT token: %s", jwt)
+			t.Logf("Failed to produce a properly shaped jwt token: '%s'", appJWT)
+			t.Fail()
+		}
+	})
+
+	t.Run("produces a jwt with expected algorithm and type", func(t *testing.T) {
+		tok, err := jwt.ParseSigned(appJWT)
+		if err != nil {
+			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
+			t.Fail()
+		}
+
+		if len(tok.Headers) != 1 {
+			t.Logf("Failed to decode JWT '%s': multiple header entries were found", appJWT)
+			t.FailNow()
+		}
+
+		headers := tok.Headers[0]
+
+		expectedAlgorithm := string(jose.RS256)
+		if headers.Algorithm != expectedAlgorithm {
+			t.Logf("The generated JWT '%s' does not use the expected algorithm - Expected: %s - Found: %s", appJWT, expectedAlgorithm, headers.Algorithm)
+			t.Fail()
+		}
+
+		if value, ok := headers.ExtraHeaders[jose.HeaderType]; !ok || value != "JWT" {
+			t.Logf("The generated JWT '%s' does not contain the expected 'typ' header or its value isn't set to 'JWT'", appJWT)
 			t.Fail()
 		}
 	})
 
 	t.Run("produces a jwt with expected claims", func(t *testing.T) {
-		claims, err := jws.Decode(jwt)
+		tok, err := jwt.ParseSigned(appJWT)
 		if err != nil {
-			t.Logf("Failed to decode generated JWT: %s", err)
+			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
 		}
 
-		if claims.Iss != testGitHubAppID {
-			t.Logf("Unexpected 'iss' claim - Expected: %s - Found: %s", testGitHubAppID, claims.Iss)
+		claims := &jwt.Claims{}
+		err = tok.UnsafeClaimsWithoutVerification(claims)
+		if err != nil {
+			t.Logf("Failed to extract claims from JWT '%s': %s", appJWT, err)
 			t.Fail()
 		}
 
-		expectedIssuedAt := testEpochTime.Add(time.Duration(-60) * time.Second).Unix()
-		if claims.Iat != expectedIssuedAt {
-			t.Logf("Unexpected 'iss' claim - Expected: %d - Found: %s", expectedIssuedAt, claims.Iss)
+		if claims.Issuer != testGitHubAppID {
+			t.Logf("Unexpected 'iss' claim - Expected: %s - Found: %s", testGitHubAppID, claims.Issuer)
 			t.Fail()
 		}
 
-		expectedExpiration := testEpochTime.Add(time.Duration(5) * time.Minute).Unix()
-		if claims.Exp != expectedExpiration {
-			t.Logf("Unexpected 'exp' claim - Expected: %d - Found: %d", expectedExpiration, claims.Exp)
+		expectedIssuedAt := testEpochTime.Add(time.Duration(-60) * time.Second)
+		if claims.IssuedAt.Time() != expectedIssuedAt {
+			t.Logf("Unexpected 'iss' claim - Expected: %d - Found: %d", expectedIssuedAt.Unix(), claims.IssuedAt)
 			t.Fail()
 		}
 
-		if claims.Sub != "" || claims.Aud != "" || claims.Typ != "" || claims.Scope != "" || claims.Prn != "" {
-			t.Logf("Extra claims found in JWT: %+v", claims)
+		expectedExpiration := testEpochTime.Add(time.Duration(5) * time.Minute)
+		if claims.Expiry.Time() != expectedExpiration {
+			t.Logf("Unexpected 'exp' claim - Expected: %d - Found: %d", expectedExpiration.Unix(), claims.Expiry)
 			t.Fail()
 		}
 
-		if !t.Failed() && len(claims.PrivateClaims) != 0 {
+		if claims.Subject != "" || claims.Audience != nil || claims.ID != "" || claims.NotBefore != nil {
 			t.Logf("Extra claims found in JWT: %+v", claims)
 			t.Fail()
 		}
@@ -95,9 +124,16 @@ func TestGenerateAppJWT(t *testing.T) {
 			t.FailNow()
 		}
 
-		err = jws.Verify(jwt, publicKey.(*rsa.PublicKey))
+		tok, err := jwt.ParseSigned(appJWT)
 		if err != nil {
-			t.Logf("Failed to verify JWT's signature: %s", jwt)
+			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
+			t.Fail()
+		}
+
+		claims := &jwt.Claims{}
+		err = tok.Claims(publicKey.(*rsa.PublicKey), claims)
+		if err != nil {
+			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
 		}
 	})

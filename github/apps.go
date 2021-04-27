@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"golang.org/x/oauth2/jws"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -19,12 +20,12 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile str
 		return "", err
 	}
 
-	jwt, err := generateAppJWT(appID, time.Now(), pemData)
+	appJWT, err := generateAppJWT(appID, time.Now(), pemData)
 	if err != nil {
 		return "", err
 	}
 
-	token, err := getInstallationAccessToken(baseURL, jwt, appInstallationID)
+	token, err := getInstallationAccessToken(baseURL, appJWT, appInstallationID)
 	if err != nil {
 		return "", err
 	}
@@ -77,21 +78,25 @@ func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error)
 		return "", err
 	}
 
-	header := &jws.Header{
-		Algorithm: "RS256", // Dictated by GitHub's API.
-		Typ:       "JWT",   // Dictated by JWT's spec.
+	signer, err := jose.NewSigner(
+		jose.SigningKey{Algorithm: jose.RS256, Key: privateKey},
+		(&jose.SignerOptions{}).WithType("JWT"),
+	)
+
+	if err != nil {
+		return "", err
 	}
 
-	claims := &jws.ClaimSet{
-		Iss: appID,
+	claims := &jwt.Claims{
+		Issuer: appID,
 		// Using now - 60s to accommodate any client/server clock drift.
-		Iat: now.Add(time.Duration(-60) * time.Second).Unix(),
+		IssuedAt: jwt.NewNumericDate(now.Add(time.Duration(-60) * time.Second)),
 		// The JWT's lifetime can be short as it is only used immediately
 		// after to retrieve the installation's access  token.
-		Exp: now.Add(time.Duration(5) * time.Minute).Unix(),
+		Expiry: jwt.NewNumericDate(now.Add(time.Duration(5) * time.Minute)),
 	}
 
-	token, err := jws.Encode(header, claims, privateKey)
+	token, err := jwt.Signed(signer).Claims(claims).CompactSerialize()
 	if err != nil {
 		return "", err
 	}
