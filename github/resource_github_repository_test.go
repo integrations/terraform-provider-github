@@ -12,6 +12,48 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
+func init() {
+	resource.AddTestSweepers("github_repository", &resource.Sweeper{
+		Name: "github_repository",
+		F:    testSweepRepositories,
+	})
+}
+
+func testSweepRepositories(region string) error {
+	meta, err := sharedConfigForRegion(region)
+	if err != nil {
+		return err
+	}
+
+	client := meta.(*Owner).v3client
+
+	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range repos {
+		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
+			log.Printf("Destroying Repository %s", name)
+
+			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func reconfigureVisibility(config, visibility string) string {
+	re := regexp.MustCompile(`visibility = "(.*)"`)
+	newConfig := re.ReplaceAllString(
+		config,
+		fmt.Sprintf(`visibility = "%s"`, visibility),
+	)
+	return newConfig
+}
+
 func TestAccGithubRepositories(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1071,44 +1113,101 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 }
 
-func testSweepRepositories(region string) error {
-	meta, err := sharedConfigForRegion(region)
-	if err != nil {
-		return err
-	}
+func TestAccGithubRepositoryVulnerabilityAlerts(t *testing.T) {
 
-	client := meta.(*Owner).v3client
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
-	if err != nil {
-		return err
-	}
+	t.Run("disables vulnerability alerts for private repos when not configured", func(t *testing.T) {
 
-	for _, r := range repos {
-		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
-			log.Printf("Destroying Repository %s", name)
-
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
-				return err
+		config := fmt.Sprintf(`
+			resource "github_repository" "private" {
+				name       = "tf-acc-test-va-private-%s"
+				visibility = "private"
 			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "visibility",
+				"private",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "vulnerability_alerts",
+				"false",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
 		}
-	}
 
-	return nil
-}
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
 
-func init() {
-	resource.AddTestSweepers("github_repository", &resource.Sweeper{
-		Name: "github_repository",
-		F:    testSweepRepositories,
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 	})
-}
 
-func reconfigureVisibility(config, visibility string) string {
-	re := regexp.MustCompile(`visibility = "(.*)"`)
-	newConfig := re.ReplaceAllString(
-		config,
-		fmt.Sprintf(`visibility = "%s"`, visibility),
-	)
-	return newConfig
+	t.Run("enables vulnerability alerts for public repos when requested", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "public" {
+				name       = "tf-acc-test-va-%s"
+				visibility = "public"
+				vulnerability_alerts = true
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.public", "visibility",
+				"public",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.public", "vulnerability_alerts",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
