@@ -14,36 +14,50 @@ func TestAccGithubOrganizationMemberPrivileges_basic(t *testing.T) {
 		t.Skipf("Skipping because %s.", err.Error())
 	}
 
-	var organization github.Organization
+	var testOrganization github.Organization
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubOrganizationMemberPrivilegesConfigBefore,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationMemberPrivilegesAttributes(&organization, &testAccGithubOrganizationMemberPrivilegesExpectedAttributes{
-						DefaultRepoPermission: "none",
-						MembersCanCreateRepos: false,
-					}),
-				),
+	testCase := func(t *testing.T, mode string) {
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, mode) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubOrganizationMemberPrivilegesConfigBefore,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubOrganizationMemberPrivilegesAttributes(&testOrganization, &testAccGithubOrganizationMemberPrivilegesExpectedAttributes{
+							DefaultRepoPermission: "none",
+							MembersCanCreateRepos: false,
+						}),
+					),
+				},
+				{
+					Config: testAccGithubOrganizationMemberPrivilegesConfigAfter,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubOrganizationMemberPrivilegesAttributes(&testOrganization, &testAccGithubOrganizationMemberPrivilegesExpectedAttributes{
+							DefaultRepoPermission: "read",
+							MembersCanCreateRepos: true,
+						}),
+					),
+				},
+				{
+					ResourceName:      "github_organization_member_privileges.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				Config: testAccGithubOrganizationMemberPrivilegesConfigAfter,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationMemberPrivilegesAttributes(&organization, &testAccGithubOrganizationMemberPrivilegesExpectedAttributes{
-						DefaultRepoPermission: "read",
-						MembersCanCreateRepos: true,
-					}),
-				),
-			},
-			{
-				ResourceName:      "github_organization_member_privileges.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
+	}
+
+	t.Run("with an anonymous account", func(t *testing.T) {
+		t.Skip("anonymous account not supported for this operation")
+	})
+
+	t.Run("with an individual account", func(t *testing.T) {
+		t.Skip("individual account not supported for this operation")
+	})
+
+	t.Run("with an organization account", func(t *testing.T) {
+		testCase(t, organization)
 	})
 }
 
