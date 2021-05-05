@@ -16,6 +16,8 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
+### OAuth / Personal Access Token Authentication
+
 ```hcl
 # Configure the GitHub Provider
 provider "github" {
@@ -29,9 +31,32 @@ resource "github_membership" "membership_for_user_x" {
 }
 ```
 
+### GitHub App Authentication
+
+```hcl
+provider "github" {
+  owner = var.owner
+  app_auth {
+    // Empty block to allow the provider configurations to be specified through
+    // environment variables.
+    // See: https://github.com/hashicorp/terraform-plugin-sdk/issues/142
+  }
+}
+
+terraform {
+  required_providers {
+    github = {
+      source  = "integrations/github"
+    }
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
+
+* `app_auth` - (Optional) A GitHub App ID, installation ID and PEM file. When not provided or made available via respective environment variables (`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PEM_FILE`), the provider can only access resources available anonymously.
 
 * `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider can only access resources available anonymously.
 
