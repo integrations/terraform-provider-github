@@ -168,6 +168,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "name", "tf-acc-"+randomID,
+			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repository.test", "has_projects",
 			),
