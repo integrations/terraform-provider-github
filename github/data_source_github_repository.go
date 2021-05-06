@@ -28,11 +28,12 @@ func dataSourceGithubRepository() *schema.Resource {
 			"description": {
 				Type:     schema.TypeString,
 				Default:  nil,
-				Computed: true,
+				Optional: true,
 			},
 			"homepage_url": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Default:  "",
+				Optional: true,
 			},
 			"private": {
 				Type:     schema.TypeBool,
@@ -218,6 +219,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		if err := d.Set("pages", flattenPages(pages)); err != nil {
 			return fmt.Errorf("error setting pages: %w", err)
 		}
+	} else {
+		d.Set("pages", flattenPages(nil))
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))

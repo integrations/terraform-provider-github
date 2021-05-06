@@ -151,7 +151,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 	})
 
-	t.Run("defaults on a new repository", func(t *testing.T) {
+	t.Run("checks defaults on a new repository", func(t *testing.T) {
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -174,6 +174,12 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"data.github_repository.test", "description", "",
 			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "homepage_url", "",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "pages.#", "0",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -189,9 +195,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			})
 		}
 
-		//t.Run("with an individual account", func(t *testing.T) {
-		//	testCase(t, individual)
-		//})
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
