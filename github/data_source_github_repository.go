@@ -27,6 +27,7 @@ func dataSourceGithubRepository() *schema.Resource {
 
 			"description": {
 				Type:     schema.TypeString,
+				Default:  nil,
 				Computed: true,
 			},
 			"homepage_url": {
@@ -186,7 +187,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(repoName)
 
-	d.Set("name", repoName)
+	d.Set("name", repo.GetName())
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())

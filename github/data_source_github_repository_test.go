@@ -171,6 +171,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_repository.test", "has_projects",
 			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "description", "",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
