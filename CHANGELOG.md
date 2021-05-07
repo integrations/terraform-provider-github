@@ -1,3 +1,9 @@
+## 4.9.3 (May 7, 2021)
+
+BUG FIXES:
+
+- Mark `slug` as `computed` when `name` is changed for `github_team` ([#757](https://github.com/integrations/terraform-provider-github/issues/757))
+
 ## 4.9.2 (April 18, 2021)
 
 BUG FIXES:
@@ -20,7 +26,7 @@ ENHANCEMENTS:
 * **New Data Sources** `github_repository_pull_request` / `github_repository_pull_requests` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
 * **New Resource** `github_repository_pull_request` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
 * Add `repositories` attribute for `github_organization` data source ([#750](https://github.com/integrations/terraform-provider-github/issues/750))
-* Add import functionality for `github_actions_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
+* Add import functionality for `github_actions_organization_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
 
 BUG FIXES:
 

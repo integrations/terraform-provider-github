@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+
 	"github.com/google/go-github/v35/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -20,6 +22,12 @@ func resourceGithubTeam() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+
+		CustomizeDiff: customdiff.Sequence(
+			customdiff.ComputedIf("slug", func(d *schema.ResourceDiff, meta interface{}) bool {
+				return d.HasChange("name")
+			}),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
