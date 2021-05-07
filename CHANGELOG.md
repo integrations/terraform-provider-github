@@ -1,3 +1,7 @@
+## 2.4.2 (March 05, 2020)
+
+Equivalent to v2.4.1 but published under a new version to work around a bug in publishing to the Terraform Registry
+
 ## 2.4.1 (March 05, 2020)
 
 BUG FIXES:
