@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-
 	"github.com/google/go-github/v35/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
