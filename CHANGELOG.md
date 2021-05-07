@@ -1,3 +1,9 @@
+## 4.9.3 (May 7, 2021)
+
+BUG FIXES:
+
+- Mark `slug` as `computed` when `name` is changed for `github_team` ([#757](https://github.com/integrations/terraform-provider-github/issues/757))
+
 ## 4.9.2 (April 18, 2021)
 
 BUG FIXES:
