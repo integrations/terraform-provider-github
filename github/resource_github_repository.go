@@ -303,7 +303,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
-		if visibility == "private" {
+		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
 		}
 	}
