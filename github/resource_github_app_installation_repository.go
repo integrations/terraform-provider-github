@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v35/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -97,8 +97,8 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta in
 			return err
 		}
 
-		log.Printf("[DEBUG] Found %d repos, checking if any matches %s", len(repos), repoName)
-		for _, r := range repos {
+		log.Printf("[DEBUG] Found %d repos, checking if any matches %s", repos.TotalCount, repoName)
+		for _, r := range repos.Repositories {
 			if r.GetName() == repoName {
 				d.Set("installation_id", installationIDString)
 				d.Set("repository", repoName)
