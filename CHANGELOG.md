@@ -1,3 +1,10 @@
+## 4.9.4 (May 11, 2021)
+
+BUG FIXES:
+
+- Add EMU support by allowing `internal` visibility to be configured for `github_repository` ([#781](https://github.com/integrations/terraform-provider-github/issues/781))
+- Update `go-github` to 35.1.0 ([#772](https://github.com/integrations/terraform-provider-github/issues/772))
+
 ## 4.9.3 (May 7, 2021)
 
 BUG FIXES:
