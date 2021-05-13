@@ -29,6 +29,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"actions": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"dependabot": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -55,6 +65,12 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	if len(api.Importer) > 0 {
 		d.Set("importer", api.Importer)
+	}
+	if len(api.Actions) > 0 {
+		d.Set("actions", api.Actions)
+	}
+	if len(api.Dependabot) > 0 {
+		d.Set("dependabot", api.Dependabot)
 	}
 
 	return nil
