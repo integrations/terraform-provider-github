@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint v1.25.1
-	github.com/google/go-github/v32 v32.1.0
+	github.com/google/go-github/v35 v35.1.0
 	github.com/hashicorp/go-getter v1.4.2-0.20200106182914-9813cbd4eb02 // indirect
 	github.com/hashicorp/hcl/v2 v2.3.0 // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7 // indirect

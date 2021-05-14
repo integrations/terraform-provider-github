@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v35/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -303,7 +303,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
-		if visibility == "private" {
+		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
 		}
 	}
