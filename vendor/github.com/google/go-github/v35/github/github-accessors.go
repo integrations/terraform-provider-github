@@ -13612,6 +13612,22 @@ func (r *RunnerApplicationDownload) GetOS() string {
 	return *r.OS
 }
 
+// GetSHA256Checksum returns the SHA256Checksum field if it's non-nil, zero value otherwise.
+func (r *RunnerApplicationDownload) GetSHA256Checksum() string {
+	if r == nil || r.SHA256Checksum == nil {
+		return ""
+	}
+	return *r.SHA256Checksum
+}
+
+// GetTempDownloadToken returns the TempDownloadToken field if it's non-nil, zero value otherwise.
+func (r *RunnerApplicationDownload) GetTempDownloadToken() string {
+	if r == nil || r.TempDownloadToken == nil {
+		return ""
+	}
+	return *r.TempDownloadToken
+}
+
 // GetAllowsPublicRepositories returns the AllowsPublicRepositories field if it's non-nil, zero value otherwise.
 func (r *RunnerGroup) GetAllowsPublicRepositories() bool {
 	if r == nil || r.AllowsPublicRepositories == nil {
@@ -14258,6 +14274,14 @@ func (t *Team) GetPermission() string {
 		return ""
 	}
 	return *t.Permission
+}
+
+// GetPermissions returns the Permissions field if it's non-nil, zero value otherwise.
+func (t *Team) GetPermissions() map[string]bool {
+	if t == nil || t.Permissions == nil {
+		return map[string]bool{}
+	}
+	return *t.Permissions
 }
 
 // GetPrivacy returns the Privacy field if it's non-nil, zero value otherwise.
