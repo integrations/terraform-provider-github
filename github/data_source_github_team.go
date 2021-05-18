@@ -2,9 +2,10 @@ package github
 
 import (
 	"context"
-	"github.com/google/go-github/v35/github"
 	"log"
 	"strconv"
+
+	"github.com/google/go-github/v35/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -35,6 +36,11 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 			},
 			"members": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"repositories": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -83,9 +89,27 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		options.Page = resp.NextPage
 	}
 
+	var repositories []string
+	for {
+		repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range repository {
+			repositories = append(repositories, v.GetName())
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		options.Page = resp.NextPage
+	}
+
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 	d.Set("name", team.GetName())
 	d.Set("members", members)
+	d.Set("repositories", repositories)
 	d.Set("description", team.GetDescription())
 	d.Set("privacy", team.GetPrivacy())
 	d.Set("permission", team.GetPermission())
