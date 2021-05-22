@@ -1,6 +1,7 @@
 package github
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -38,6 +39,36 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
+			},
+			"app_auth": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["app_auth"],
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+							Description: descriptions["app_auth.id"],
+						},
+						"installation_id": {
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+							Description: descriptions["app_auth.installation_id"],
+						},
+						"pem_file": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Sensitive:   true,
+							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
+							Description: descriptions["app_auth.pem_file"],
+						},
+					},
+				},
+				ConflictsWith: []string{"token"},
 			},
 		},
 
@@ -102,8 +133,8 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"token": "The OAuth token used to connect to GitHub. " +
-			"`anonymous` mode is enabled if `token` is not configured.",
+		"token": "The OAuth token used to connect to GitHub. Anonymous mode is enabled if both `token` and " +
+			"`app_auth` are not set.",
 
 		"base_url": "The GitHub Base API URL",
 
@@ -114,12 +145,21 @@ func init() {
 
 		"organization": "The GitHub organization name to manage. " +
 			"Use this field instead of `owner` when managing organization accounts.",
+
+		"app_auth": "The GitHub App credentials used to connect to GitHub. Conflicts with " +
+			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
+		"app_auth.id":              "The GitHub App ID.",
+		"app_auth.installation_id": "The GitHub App installation instance ID.",
+		"app_auth.pem_file":        "The GitHub App PEM file path.",
 	}
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
 		owner := d.Get("owner").(string)
+		baseURL := d.Get("base_url").(string)
+		token := d.Get("token").(string)
+		insecure := d.Get("insecure").(bool)
 
 		// BEGIN backwards compatibility
 		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
@@ -142,10 +182,41 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			owner = org
 		}
 
+		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]interface{})
+
+			var appID, appInstallationID, appPemFile string
+
+			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
+				appID = v
+			} else {
+				return nil, fmt.Errorf("app_auth.id must be set and contain a non-empty value")
+			}
+
+			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
+				appInstallationID = v
+			} else {
+				return nil, fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")
+			}
+
+			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+				appPemFile = v
+			} else {
+				return nil, fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")
+			}
+
+			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
+			if err != nil {
+				return nil, err
+			}
+
+			token = appToken
+		}
+
 		config := Config{
-			Token:    d.Get("token").(string),
-			BaseURL:  d.Get("base_url").(string),
-			Insecure: d.Get("insecure").(bool),
+			Token:    token,
+			BaseURL:  baseURL,
+			Insecure: insecure,
 			Owner:    owner,
 		}
 
