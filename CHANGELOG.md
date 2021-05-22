@@ -1,3 +1,11 @@
+## 4.10.0 (May 21, 2021)
+
+ENHANCEMENTS:
+
+* Add GitHub App authentication option to provider ([#753](https://github.com/integrations/terraform-provider-github/issues/753))
+* Add Actions and Dependabot IP ranges to `github_ip_ranges` data source ([#784](https://github.com/integrations/terraform-provider-github/issues/784))
+* Add additional fields to `github_repository` data source ([#778](https://github.com/integrations/terraform-provider-github/issues/778))
+
 ## 4.9.4 (May 11, 2021)
 
 BUG FIXES:
