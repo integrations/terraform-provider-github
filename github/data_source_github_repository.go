@@ -27,11 +27,13 @@ func dataSourceGithubRepository() *schema.Resource {
 
 			"description": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Default:  nil,
+				Optional: true,
 			},
 			"homepage_url": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Default:  "",
+				Optional: true,
 			},
 			"private": {
 				Type:     schema.TypeBool,
@@ -186,7 +188,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(repoName)
 
-	d.Set("name", repoName)
+	d.Set("name", repo.GetName())
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
@@ -207,6 +209,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("archived", repo.GetArchived())
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("has_projects", repo.GetHasProjects())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
@@ -216,6 +219,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		if err := d.Set("pages", flattenPages(pages)); err != nil {
 			return fmt.Errorf("error setting pages: %w", err)
 		}
+	} else {
+		d.Set("pages", flattenPages(nil))
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
