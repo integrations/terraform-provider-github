@@ -590,7 +590,7 @@ func checkPrintf(pass *analysis.Pass, kind Kind, call *ast.CallExpr, fn *types.F
 		}
 		if state.verb == 'w' {
 			if kind != KindErrorf {
-				pass.Reportf(call.Pos(), "%s call has error-wrapping directive %%w", state.name)
+				pass.Reportf(call.Pos(), "%s call has error-wrapping directive %%w, which is only supported by Errorf", state.name)
 				return
 			}
 			if anyW {
@@ -805,6 +805,7 @@ var printVerbs = []printVerb{
 	{'g', sharpNumFlag, argFloat | argComplex},
 	{'G', sharpNumFlag, argFloat | argComplex},
 	{'o', sharpNumFlag, argInt | argPointer},
+	{'O', sharpNumFlag, argInt | argPointer},
 	{'p', "-#", argPointer},
 	{'q', " -+.0#", argRune | argInt | argString},
 	{'s', " -+.0", argString},
