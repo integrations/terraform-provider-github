@@ -46,7 +46,7 @@ func resourceGithubTeam() *schema.Resource {
 			"parent_team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "ID or slug of parent team",
+				Description: "ID or slug of team",
 			},
 			"ldap_dn": {
 				Type:     schema.TypeString,
