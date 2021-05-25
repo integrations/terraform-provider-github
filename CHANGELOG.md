@@ -1,3 +1,10 @@
+## 4.10.1 (May 25, 2021)
+
+BUG FIXES:
+
+* Improve documentation for provider authentication options ([#801](https://github.com/integrations/terraform-provider-github/issues/801))
+
+
 ## 4.10.0 (May 21, 2021)
 
 ENHANCEMENTS:
