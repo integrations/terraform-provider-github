@@ -5,33 +5,30 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 const (
 	testGitHubAppID             string = "123456789"
 	testGitHubAppInstallationID string = "987654321"
-	testGitHubAppPrivateKeyFile string = "test-fixtures/github-app-key.pem"
 	testGitHubAppPublicKeyFile  string = "test-fixtures/github-app-key.pub"
+	testGitHubAppPrivateKeyFile string = "test-fixtures/github-app-key.pem"
 )
 
 var (
 	testEpochTime = time.Unix(0, 0)
+
+	testGitHubAppPrivateKeyPemData, _ = ioutil.ReadFile(testGitHubAppPrivateKeyFile)
 )
 
 func TestGenerateAppJWT(t *testing.T) {
-	pemData, err := ioutil.ReadFile(testGitHubAppPrivateKeyFile)
-	if err != nil {
-		t.Logf("Failed to read private key file '%s': %s", testGitHubAppPrivateKeyFile, err)
-		t.FailNow()
-	}
-
-	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, pemData)
+	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, testGitHubAppPrivateKeyPemData)
 	t.Log(appJWT)
 	if err != nil {
 		t.Logf("Failed to generate GitHub app JWT: %s", err)
