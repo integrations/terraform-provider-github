@@ -8,43 +8,36 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubTeamRepositorty(t *testing.T) {
+func TestAccGithubTeamRepositories(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Get Repositories By Teams", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "repo-test" {
-				name = "tf-acc-repo-%s"
-				auto_init = true
+
+		resource "github_repository" "test" {
+			name      = "tf-acc-test-%s"
+			auto_init = true
+		  }
+
+		  resource "github_team" "test" {
+			name = "tf-acc-test-%[1]s"
+		  }
 			
-		  	}
+		  resource "github_team_repository" "test" {
+			team_id    = "${github_team.test.id}"
+			repository = "${github_repository.test.name}"
+		  }
 
-			resource "github_team" "team-test" {
-				name = "tf-acc-test-team01"
-			}
-
-			resource "github_team_repository" "team-repo-test" {
-				repository = "${github_repository.repo-test.id}"
-				team_id = "${github_team.team-test.id}"
-			}
-
-			data "github_team" "example" {
-				slug = "team-test-01"
-			}
-
-   		    output "team_repository_name" {
-				value = data.github_team.example.repositories.0
-			}
-			
-			output "team_repository_numbers" {
-				value = data.github_team.example.repositories.#
-			}
+		  data "github_team" "example" {
+			depends_on = ["github_repository.test", "github_team.test", "github_team_repository.test"]
+			slug = github_team.test.slug
+		  }
 		`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.example", "name"),
+			resource.TestCheckResourceAttr("data.github_team.example", "repositories.#", "1"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -53,8 +46,9 @@ func TestAccGithubTeamRepositorty(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  check,
+						Config:             config,
+						Check:              check,
+						ExpectNonEmptyPlan: true,
 					},
 				},
 			})
