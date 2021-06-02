@@ -30,3 +30,5 @@ data "github_team" "example" {
  * `privacy` - the team's privacy type.
  * `permission` - the team's permission level.
  * `members` - List of team members
+ * `repositories` - List of team repositories
+ 
