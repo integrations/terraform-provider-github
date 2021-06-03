@@ -31,10 +31,16 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateSecretNameFunc,
 			},
+			"encrypted_value": {
+				Type:      schema.TypeString,
+				ForceNew:  true,
+				Optional:  true,
+				Sensitive: true,
+			},
 			"plaintext_value": {
 				Type:      schema.TypeString,
-				Required:  true,
 				ForceNew:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"visibility": {
@@ -70,6 +76,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
+	var encryptedValue []byte
 
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
@@ -95,9 +102,13 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 		return err
 	}
 
-	encryptedText, err := encryptPlaintext(plaintextValue, publicKey)
-	if err != nil {
-		return err
+	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
+		encryptedValue = []byte(encryptedText.(string))
+	} else {
+		encryptedValue, err = encryptPlaintext(plaintextValue, publicKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
@@ -106,7 +117,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 		KeyID:                 keyId,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: selectedRepositoryIDs,
-		EncryptedValue:        base64.StdEncoding.EncodeToString(encryptedText),
+		EncryptedValue:        base64.StdEncoding.EncodeToString(encryptedValue),
 	}
 
 	_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
@@ -136,6 +147,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
+	d.Set("encrypted_value", d.Get("encrypted_value"))
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("created_at", secret.CreatedAt.String())
 	d.Set("visibility", secret.Visibility)
