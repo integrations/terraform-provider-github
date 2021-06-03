@@ -33,9 +33,15 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateSecretNameFunc,
 			},
+			"encrypted_value": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  true,
+				Sensitive: true,
+			},
 			"plaintext_value": {
 				Type:      schema.TypeString,
-				Required:  true,
+				Optional:  true,
 				ForceNew:  true,
 				Sensitive: true,
 			},
@@ -60,6 +66,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 	envName := d.Get("environment").(string)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
+	var encryptedValue []byte
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
@@ -71,16 +78,20 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 		return err
 	}
 
-	encryptedText, err := encryptPlaintext(plaintextValue, publicKey)
-	if err != nil {
-		return err
+	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
+		encryptedValue = []byte(encryptedText.(string))
+	} else {
+		encryptedValue, err = encryptPlaintext(plaintextValue, publicKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
 	eSecret := &github.EncryptedSecret{
 		Name:           secretName,
 		KeyID:          keyId,
-		EncryptedValue: base64.StdEncoding.EncodeToString(encryptedText),
+		EncryptedValue: base64.StdEncoding.EncodeToString(encryptedValue),
 	}
 
 	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repo.GetID(), envName, eSecret)
@@ -120,6 +131,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	d.Set("encrypted_value", d.Get("encrypted_value"))
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("created_at", secret.CreatedAt.String())
 

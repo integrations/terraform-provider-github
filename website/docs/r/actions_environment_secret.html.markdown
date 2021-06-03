@@ -15,7 +15,7 @@ interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is 
 
 For the purposes of security, the contents of the `plaintext_value` field have been marked as `sensitive` to Terraform,
 but it is important to note that **this does not hide it from state files**. You should treat state as sensitive always.
-It is also advised that you do not store plaintext values in your code but rather populate the `plaintext_value`
+It is also advised that you do not store plaintext values in your code but rather populate the `encrypted_value`
 using fields from a resource, data source or variable as, while encrypted in state, these will be easily accessible
 in your code. See below for an example of this abstraction.
 
@@ -26,6 +26,12 @@ resource "github_actions_environment_secret" "example_secret" {
   environment       = "example_environment"
   secret_name       = "example_secret_name"
   plaintext_value   = var.some_secret_string
+}
+
+resource "github_actions_environment_secret" "example_secret" {
+  environment       = "example_environment"
+  secret_name       = "example_secret_name"
+  encrypted_value   = var.some_encrypted_secret_string
 }
 ```
 
@@ -55,7 +61,8 @@ The following arguments are supported:
 * `repository`              - (Required) Name of the repository.
 * `environment`             - (Required) Name of the environment.
 * `secret_name`             - (Required) Name of the secret.
-* `plaintext_value`         - (Required) Plaintext value of the secret to be encrypted.
+* `encrypted_value`         - (Optional) Encrypted value of the secret.
+* `plaintext_value`         - (Optional) Plaintext value of the secret to be encrypted.
 
 ## Attributes Reference
 

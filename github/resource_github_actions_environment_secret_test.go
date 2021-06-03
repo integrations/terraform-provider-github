@@ -29,37 +29,52 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 				environment 		 = "test_environment_name"
 			}
 
-			resource "github_actions_environment_secret" "test_secret" {
+			resource "github_actions_environment_secret" "plaintext_secret" {
 			  repository       = github_repository.test.name
 				environment 		 = github_repository_environment.test.environment
-			  secret_name      = "test_secret_name"
+			  secret_name      = "test_plaintext_secret_name"
 			  plaintext_value  = "%s"
 			}
-		`, randomID, secretValue)
+
+			resource "github_actions_environment_secret" "encrypted_secret" {
+			  repository       = github_repository.test.name
+				environment 		 = github_repository_environment.test.environment
+			  secret_name      = "test_encrypted_secret_name"
+			  encrypted_value  = "%s"
+			}
+		`, randomID, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_environment_secret.test_secret", "plaintext_value",
+					"github_actions_environment_secret.plaintext_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_environment_secret.encrypted_secret", "encrypted_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_environment_secret.test_secret", "created_at",
+					"github_actions_environment_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_environment_secret.test_secret", "updated_at",
+					"github_actions_environment_secret.plaintext_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_environment_secret.test_secret", "plaintext_value",
+					"github_actions_environment_secret.plaintext_secret", "plaintext_value",
+					updatedSecretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_environment_secret.encrypted_secret", "encrypted_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_environment_secret.test_secret", "created_at",
+					"github_actions_environment_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_environment_secret.test_secret", "updated_at",
+					"github_actions_environment_secret.plaintext_secret", "updated_at",
 				),
 			),
 		}
@@ -76,7 +91,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 					{
 						Config: strings.Replace(config,
 							secretValue,
-							updatedSecretValue, 1),
+							updatedSecretValue, 2),
 						Check: checks["after"],
 					},
 				},
@@ -111,13 +126,20 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 					environment 		 = "test_environment_name"
 				}
 
-				resource "github_actions_environment_secret" "test_secret" {
+				resource "github_actions_environment_secret" "plaintext_secret" {
 					repository       = github_repository.test.name
 					environment 		 = github_repository_environment.test.environment
-					secret_name      = "test_secret_name"
+					secret_name      = "test_plaintext_secret_name"
 					plaintext_value  = "%s"
 				}
-			`, randomID, secretValue)
+
+				resource "github_actions_environment_secret" "encrypted_secret" {
+					repository       = github_repository.test.name
+					environment 		 = github_repository_environment.test.environment
+					secret_name      = "test_encrypted_secret_name"
+					encrypted_value  = "%s"
+				}
+			`, randomID, secretValue, secretValue)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
