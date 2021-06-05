@@ -34,16 +34,18 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"plaintext_value"},
 			},
 			"plaintext_value": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"encrypted_value"},
 			},
 			"created_at": {
 				Type:     schema.TypeString,
@@ -183,7 +185,7 @@ func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta interface
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, repoID, envName)
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repoID), envName)
 	if err != nil {
 		return keyId, pkValue, err
 	}

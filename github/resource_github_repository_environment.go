@@ -113,9 +113,6 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing repository environment %s from state because it no longer exists in GitHub",
 					d.Id())

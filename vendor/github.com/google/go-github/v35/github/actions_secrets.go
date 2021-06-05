@@ -88,7 +88,7 @@ func (s *ActionsService) GetOrgPublicKey(ctx context.Context, org string) (*Publ
 // GetEnvPublicKey gets a public key that should be used for secret encryption.
 //
 // GitHub API docs: https://docs.github.com/en/rest/reference/actions#get-an-environment-public-key
-func (s *ActionsService) GetEnvPublicKey(ctx context.Context, repoID int64, env string) (*PublicKey, *Response, error) {
+func (s *ActionsService) GetEnvPublicKey(ctx context.Context, repoID int, env string) (*PublicKey, *Response, error) {
 	u := fmt.Sprintf("repositories/%v/environments/%v/secrets/public-key", repoID, env)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
