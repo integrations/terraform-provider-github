@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/v35/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
@@ -39,6 +40,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ForceNew:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"plaintext_value"},
+				ValidateFunc:  validation.StringIsBase64,
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -68,7 +70,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 	envName := d.Get("environment").(string)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
-	var encryptedValue []byte
+	var encryptedValue string
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
@@ -81,19 +83,20 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = []byte(encryptedText.(string))
+		encryptedValue = encryptedText.(string)
 	} else {
-		encryptedValue, err = encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			return err
 		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
 	eSecret := &github.EncryptedSecret{
 		Name:           secretName,
 		KeyID:          keyId,
-		EncryptedValue: base64.StdEncoding.EncodeToString(encryptedValue),
+		EncryptedValue: encryptedValue,
 	}
 
 	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repo.GetID(), envName, eSecret)
