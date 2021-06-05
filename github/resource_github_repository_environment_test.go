@@ -32,7 +32,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 					users = [data.github_user.current.id]
 				}
 				deployment_branch_policy {
-					protected_branches 		 = true
+					protected_branches     = true
 					custom_branch_policies = false
 				}
 			}
