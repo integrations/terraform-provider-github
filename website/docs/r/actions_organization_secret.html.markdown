@@ -60,7 +60,7 @@ resource "github_actions_organization_secret" "example_secret" {
 The following arguments are supported:
 
 * `secret_name`             - (Required) Name of the secret
-* `encrypted_value`         - (Optional) Encrypted value of the secret
+* `encrypted_value`         - (Optional) Encrypted value of the secret using the Github public key in Base64 format.
 * `plaintext_value`         - (Optional) Plaintext value of the secret to be encrypted
 * `visiblity`               - (Required) Configures the access that repositories have to the organization secret.
                               Must be one of `all`, `private`, `selected`. `selected_repository_ids` is required if set to `selected`.

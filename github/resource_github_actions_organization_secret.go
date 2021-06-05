@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-github/v35/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
@@ -32,16 +33,19 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:      schema.TypeString,
-				ForceNew:  true,
-				Optional:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"plaintext_value"},
+				ValidateFunc:  validation.StringIsBase64,
 			},
 			"plaintext_value": {
-				Type:      schema.TypeString,
-				ForceNew:  true,
-				Optional:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"encrypted_value"},
 			},
 			"visibility": {
 				Type:         schema.TypeString,
@@ -76,7 +80,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
-	var encryptedValue []byte
+	var encryptedValue string
 
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
@@ -103,12 +107,13 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = []byte(encryptedText.(string))
+		encryptedValue = encryptedText.(string)
 	} else {
-		encryptedValue, err = encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			return err
 		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
@@ -117,7 +122,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 		KeyID:                 keyId,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: selectedRepositoryIDs,
-		EncryptedValue:        base64.StdEncoding.EncodeToString(encryptedValue),
+		EncryptedValue:        encryptedValue,
 	}
 
 	_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
