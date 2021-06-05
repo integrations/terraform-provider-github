@@ -123,19 +123,19 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 
 				resource "github_repository_environment" "test" {
 					repository       = github_repository.test.name
-					environment 		 = "test_environment_name"
+					environment      = "test_environment_name"
 				}
 
 				resource "github_actions_environment_secret" "plaintext_secret" {
 					repository       = github_repository.test.name
-					environment 		 = github_repository_environment.test.environment
+					environment      = github_repository_environment.test.environment
 					secret_name      = "test_plaintext_secret_name"
 					plaintext_value  = "%s"
 				}
 
 				resource "github_actions_environment_secret" "encrypted_secret" {
 					repository       = github_repository.test.name
-					environment 		 = github_repository_environment.test.environment
+					environment      = github_repository_environment.test.environment
 					secret_name      = "test_encrypted_secret_name"
 					encrypted_value  = "%s"
 				}
