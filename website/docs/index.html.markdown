@@ -104,7 +104,9 @@ The following arguments are supported in the `provider` block:
 * `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
   * `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
-  * `pem_file` - (Required) This is the path to the GitHub App private key file. It can sourced from the `GITHUB_APP_PEM_FILE` environment variable.
+  * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable.
+
+Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`,
 `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set, the first in this

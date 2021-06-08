@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -150,7 +151,7 @@ func init() {
 			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
-		"app_auth.pem_file":        "The GitHub App PEM file path.",
+		"app_auth.pem_file":        "The GitHub App PEM file contents.",
 	}
 }
 

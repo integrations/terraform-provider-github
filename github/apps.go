@@ -4,23 +4,20 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
-// GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials. The
-// returned token can be used to interact with both GitHub's REST and GraphQL APIs.
-func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile string) (string, error) {
-	pemData, err := ioutil.ReadFile(appPemFile)
-	if err != nil {
-		return "", err
-	}
-
-	appJWT, err := generateAppJWT(appID, time.Now(), pemData)
+// GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
+// The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
+func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string) (string, error) {
+	appJWT, err := generateAppJWT(appID, time.Now(), []byte(pemData))
 	if err != nil {
 		return "", err
 	}
@@ -73,6 +70,10 @@ func getInstallationAccessToken(baseURL string, jwt string, installationID strin
 
 func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error) {
 	block, _ := pem.Decode(pemData)
+	if block == nil {
+		return "", errors.New("No decodeable PEM data found")
+	}
+
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return "", err
