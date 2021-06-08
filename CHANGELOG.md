@@ -1,3 +1,9 @@
+## Unreleased
+
+BREAKING CHANGES:
+
+- Allow GitHub App PEM data to be passed directly ([#803](https://github.com/integrations/terraform-provider-github/issues/803))
+
 ## 4.10.1 (May 25, 2021)
 
 BUG FIXES:
