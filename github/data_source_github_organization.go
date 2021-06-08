@@ -39,6 +39,13 @@ func dataSourceGithubOrganization() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"members": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -81,12 +88,37 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		repoList = append(repoList, allRepos[index].GetFullName())
 	}
 
+	membershipOpts := &github.ListMembersOptions{
+		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+	}
+
+	var memberList []string
+	var allMembers []*github.User
+
+	for {
+		members, resp, err := client.Organizations.ListMembers(ctx, name, membershipOpts)
+		if err != nil {
+			return err
+		}
+		allMembers = append(allMembers, members...)
+
+		membershipOpts.Page = resp.NextPage
+
+		if resp.NextPage == 0 {
+			break
+		}
+	}
+	for index := range allMembers {
+		memberList = append(memberList, *allMembers[index].Login)
+	}
+
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", plan.Name)
 	d.Set("repositories", repoList)
+	d.Set("members", memberList)
 
 	return nil
 }
