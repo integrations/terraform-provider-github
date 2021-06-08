@@ -15,7 +15,7 @@ interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is 
 
 For the purposes of security, the contents of the `plaintext_value` field have been marked as `sensitive` to Terraform,
 but it is important to note that **this does not hide it from state files**. You should treat state as sensitive always.
-It is also advised that you do not store plaintext values in your code but rather populate the `plaintext_value`
+It is also advised that you do not store plaintext values in your code but rather populate the `encrypted_value`
 using fields from a resource, data source or variable as, while encrypted in state, these will be easily accessible
 in your code. See below for an example of this abstraction.
 
@@ -26,6 +26,12 @@ resource "github_actions_organization_secret" "example_secret" {
   secret_name     = "example_secret_name"
   visibility      = "private"
   plaintext_value = var.some_secret_string
+}
+
+resource "github_actions_organization_secret" "example_secret" {
+  secret_name     = "example_secret_name"
+  visibility      = "private"
+  encrypted_value = var.some_encrypted_secret_string
 }
 ```
 
@@ -40,6 +46,13 @@ resource "github_actions_organization_secret" "example_secret" {
   plaintext_value         = var.some_secret_string
   selected_repository_ids = [data.github_repository.repo.repo_id]
 }
+
+resource "github_actions_organization_secret" "example_secret" {
+  secret_name             = "example_secret_name"
+  visibility              = "selected"
+  encrypted_value         = var.some_encrypted_secret_string
+  selected_repository_ids = [data.github_repository.repo.repo_id]
+}
 ```
 
 ## Argument Reference
@@ -47,7 +60,8 @@ resource "github_actions_organization_secret" "example_secret" {
 The following arguments are supported:
 
 * `secret_name`             - (Required) Name of the secret
-* `plaintext_value`         - (Required) Plaintext value of the secret to be encrypted
+* `encrypted_value`         - (Optional) Encrypted value of the secret using the Github public key in Base64 format.
+* `plaintext_value`         - (Optional) Plaintext value of the secret to be encrypted
 * `visiblity`               - (Required) Configures the access that repositories have to the organization secret.
                               Must be one of `all`, `private`, `selected`. `selected_repository_ids` is required if set to `selected`.
 * `selected_repository_ids` - (Optional) An array of repository ids that can access the organization secret.
@@ -66,5 +80,4 @@ $ terraform import github_actions_organization_secret.test_secret test_secret_na
 ```
 
 NOTE: the implementation is limited in that it won't fetch the value of the
-`plaintext_value` field when importing. You may need to ignore changes for the
-`plaintext_value` as a workaround.
+`plaintext_value` or `encrypted_value` fields when importing. You may need to ignore changes for these as a workaround.
