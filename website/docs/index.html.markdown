@@ -50,7 +50,7 @@ resource "github_membership" "membership_for_user_x" {
   # ...
 }
 ```
-~> **Note:** When upgrading from `hashicorp/github` to `integrations/github`, use `terraform state replace-provider`. Otherwise, Terraform will attempt to recreate all resources in state with the new provider.
+~> **Note:** When upgrading from `hashicorp/github` to `integrations/github`, use `terraform state replace-provider`. Otherwise, Terraform will attempt to require the old provider to interact with the state file.
 
 ## Authentication
 
