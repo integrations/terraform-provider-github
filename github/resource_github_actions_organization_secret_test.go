@@ -14,36 +14,50 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 		updatedSecretValue := "updated_super_secret_value"
 
 		config := fmt.Sprintf(`
-			resource "github_actions_organization_secret" "test_secret" {
-			  secret_name      = "test_secret_name"
+			resource "github_actions_organization_secret" "plaintext_secret" {
+			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
 			  visibility       = "private"
 			}
-		`, secretValue)
+
+			resource "github_actions_organization_secret" "encrypted_secret" {
+			  secret_name      = "test_encrypted_secret"
+			  encrypted_value  = "%s"
+			  visibility       = "private"
+			}
+		`, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.test_secret", "plaintext_value",
+					"github_actions_organization_secret.plaintext_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_organization_secret.encrypted_secret", "encrypted_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.test_secret", "created_at",
+					"github_actions_organization_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.test_secret", "updated_at",
+					"github_actions_organization_secret.plaintext_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.test_secret", "plaintext_value",
+					"github_actions_organization_secret.plaintext_secret", "plaintext_value",
+					updatedSecretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_organization_secret.encrypted_secret", "encrypted_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.test_secret", "created_at",
+					"github_actions_organization_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.test_secret", "updated_at",
+					"github_actions_organization_secret.plaintext_secret", "updated_at",
 				),
 			),
 		}
@@ -60,7 +74,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 					{
 						Config: strings.Replace(config,
 							secretValue,
-							updatedSecretValue, 1),
+							updatedSecretValue, 2),
 						Check: checks["after"],
 					},
 				},
@@ -81,15 +95,17 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
-		secretValue := "super_secret_value"
-
-		config := fmt.Sprintf(`
-				resource "github_actions_organization_secret" "test_secret" {
-					secret_name      = "test_secret_name"
-					plaintext_value  = "%s"
+		config := `
+				resource "github_actions_organization_secret" "plaintext_secret" {
+					secret_name      = "test_plaintext_secret"
 					visibility       = "private"
 				}
-			`, secretValue)
+
+				resource "github_actions_organization_secret" "encrypted_secret" {
+					secret_name      = "test_encrypted_secret"
+					visibility       = "private"
+				}
+			`
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -122,7 +138,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_secret" "test_secret" {
-				secret_name      = "test_secret_name"
+				secret_name      = "test_plaintext_secret"
 				plaintext_value  = "%s"
 				visibility       = "private"
 			}

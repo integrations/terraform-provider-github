@@ -1,3 +1,17 @@
+## 4.11.0 (Jun 7, 2021)
+
+BREAKING CHANGES:
+
+- Allow PEM data to be passed directly for GitHub App provider authentication ([#803](https://github.com/integrations/terraform-provider-github/issues/803))
+
+ENHANCEMENTS:
+
+- Add `encrypted_value` field to `github_actions_secret` and `github_actions_organization_secret` resources ([#807](https://github.com/integrations/terraform-provider-github/issues/807))
+
+BUG FIXES:
+
+- Fix error handling when branch does not exist for `github_branch` resource ([#806](https://github.com/integrations/terraform-provider-github/issues/806))
+
 ## 4.10.1 (May 25, 2021)
 
 BUG FIXES:
