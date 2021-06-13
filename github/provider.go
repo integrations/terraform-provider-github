@@ -78,6 +78,7 @@ func Provider() terraform.ResourceProvider {
 			"github_actions_environment_secret":               resourceGithubActionsEnvironmentSecret(),
 			"github_actions_organization_secret":              resourceGithubActionsOrganizationSecret(),
 			"github_actions_organization_secret_repositories": resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_runner_group":                     resourceGithubActionsRunnerGroup(),
 			"github_actions_secret":                           resourceGithubActionsSecret(),
 			"github_app_installation_repository":              resourceGithubAppInstallationRepository(),
 			"github_branch":                                   resourceGithubBranch(),
