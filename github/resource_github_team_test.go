@@ -105,6 +105,53 @@ func TestAccGithubTeamHierarchical(t *testing.T) {
 
 	})
 
+	t.Run("creates a hierarchy of teams using parent slug", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "parent" {
+				name        = "tf-acc-parent-%s-2"
+				description = "Terraform acc test parent team"
+				privacy     = "closed"
+			}
+
+			resource "github_team" "child" {
+				name           = "tf-acc-child-%[1]s-2"
+				description    = "Terraform acc test child team"
+				privacy        = "closed"
+				parent_team_id = "${github_team.parent.slug}"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("github_team.child", "parent_team_id"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }
 func TestAccGithubTeamRemovesDefaultMaintainer(t *testing.T) {
 
