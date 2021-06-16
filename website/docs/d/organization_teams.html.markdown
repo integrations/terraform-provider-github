@@ -40,3 +40,4 @@ The `team` block consists of:
  * `description` - the team's description.
  * `privacy` - the team's privacy type.
  * `members` - List of team members.
+ * `repositories` - List of team repositories.
