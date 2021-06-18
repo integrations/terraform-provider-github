@@ -1,3 +1,21 @@
+## 4.12.0 (Jun 18, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource:** `github_actions_environment_secret` ([[#805](https://github.com/integrations/terraform-provider-github/issues/805)])
+* **New Resource:** `github_repository_environment` ([[#805](https://github.com/integrations/terraform-provider-github/issues/805)])
+* Add `members` field to `github_organization` data source ([[#811](https://github.com/integrations/terraform-provider-github/issues/811)])
+* Add `repositories` field to `github_team` data source ([[#791](https://github.com/integrations/terraform-provider-github/issues/791)])
+* Add `repositories` field to `github_organization_teams` data source ([[#791](https://github.com/integrations/terraform-provider-github/issues/791)])
+
+
+BUG FIXES:
+
+- Document incompatibility between `github_app_installation_repository` and GitHub App authentication ([#818](https://github.com/integrations/terraform-provider-github/issues/818))
+- Document migration from `hashicorp/terraform-provider-github ([#816](https://github.com/integrations/terraform-provider-github/issues/816))
+- Allow users and apps to also be applied to push restrictions for `github_branch_protection` ([#824](https://github.com/integrations/terraform-provider-github/issues/824))
+
+
 ## 4.11.0 (Jun 7, 2021)
 
 BREAKING CHANGES:
