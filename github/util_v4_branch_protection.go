@@ -190,7 +190,7 @@ func setDismissalActorIDs(actors []DismissalActorTypes) []string {
 			pushActors = append(pushActors, a.Actor.Team.ID.(string))
 		}
 		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+			pushActors = append(pushActors, a.Actor.User.ID.(string))
 		}
 	}
 
@@ -204,7 +204,10 @@ func setPushActorIDs(actors []PushActorTypes) []string {
 			pushActors = append(pushActors, a.Actor.Team.ID.(string))
 		}
 		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+			pushActors = append(pushActors, a.Actor.User.ID.(string))
+		}
+		if a.Actor.App != (Actor{}) {
+			pushActors = append(pushActors, a.Actor.App.ID.(string))
 		}
 	}
 
