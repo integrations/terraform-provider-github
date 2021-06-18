@@ -351,7 +351,7 @@ func (s *ActionsService) DeleteOrgSecret(ctx context.Context, org, name string) 
 // ListEnvSecrets lists all secrets available in an environment.
 //
 // GitHub API docs: https://docs.github.com/en/rest/reference/actions#list-environment-secrets
-func (s *ActionsService) ListEnvSecrets(ctx context.Context, repoID int, env string, opts *ListOptions) (*Secrets, *Response, error) {
+func (s *ActionsService) ListEnvSecrets(ctx context.Context, repoID int64, env string, opts *ListOptions) (*Secrets, *Response, error) {
 	u := fmt.Sprintf("repositories/%v/environments/%v/secrets", repoID, env)
 	u, err := addOptions(u, opts)
 	if err != nil {
@@ -375,7 +375,7 @@ func (s *ActionsService) ListEnvSecrets(ctx context.Context, repoID int, env str
 // GetEnvSecret gets a single environment secret without revealing its encrypted value.
 //
 // GitHub API docs: https://docs.github.com/en/rest/reference/actions#list-environment-secrets
-func (s *ActionsService) GetEnvSecret(ctx context.Context, repoID int, env, secretName string) (*Secret, *Response, error) {
+func (s *ActionsService) GetEnvSecret(ctx context.Context, repoID int64, env, secretName string) (*Secret, *Response, error) {
 	u := fmt.Sprintf("repositories/%v/environments/%v/secrets/%v", repoID, env, secretName)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -394,7 +394,7 @@ func (s *ActionsService) GetEnvSecret(ctx context.Context, repoID int, env, secr
 // CreateOrUpdateEnvSecret creates or updates a repository secret with an encrypted value.
 //
 // GitHub API docs: https://docs.github.com/en/rest/reference/actions#create-or-update-an-environment-secret
-func (s *ActionsService) CreateOrUpdateEnvSecret(ctx context.Context, repoID int, env string, eSecret *EncryptedSecret) (*Response, error) {
+func (s *ActionsService) CreateOrUpdateEnvSecret(ctx context.Context, repoID int64, env string, eSecret *EncryptedSecret) (*Response, error) {
 	u := fmt.Sprintf("repositories/%v/environments/%v/secrets/%v", repoID, env, eSecret.Name)
 
 	req, err := s.client.NewRequest("PUT", u, eSecret)
@@ -408,7 +408,7 @@ func (s *ActionsService) CreateOrUpdateEnvSecret(ctx context.Context, repoID int
 // DeleteEnvSecret deletes a secret in an environment using the secret name.
 //
 // GitHub API docs: https://docs.github.com/en/rest/reference/actions#delete-an-environment-secret
-func (s *ActionsService) DeleteEnvSecret(ctx context.Context, repoID int, env, secretName string) (*Response, error) {
+func (s *ActionsService) DeleteEnvSecret(ctx context.Context, repoID int64, env, secretName string) (*Response, error) {
 	u := fmt.Sprintf("repositories/%v/environments/%v/secrets/%v", repoID, env, secretName)
 
 	req, err := s.client.NewRequest("DELETE", u, nil)

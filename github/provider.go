@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_actions_environment_secret":  resourceGithubActionsEnvironmentSecret(),
 			"github_actions_organization_secret": resourceGithubActionsOrganizationSecret(),
 			"github_actions_secret":              resourceGithubActionsSecret(),
 			"github_app_installation_repository": resourceGithubAppInstallationRepository(),
@@ -89,6 +90,7 @@ func Provider() terraform.ResourceProvider {
 			"github_project_column":              resourceGithubProjectColumn(),
 			"github_repository_collaborator":     resourceGithubRepositoryCollaborator(),
 			"github_repository_deploy_key":       resourceGithubRepositoryDeployKey(),
+			"github_repository_environment":      resourceGithubRepositoryEnvironment(),
 			"github_repository_file":             resourceGithubRepositoryFile(),
 			"github_repository_milestone":        resourceGithubRepositoryMilestone(),
 			"github_repository_project":          resourceGithubRepositoryProject(),
