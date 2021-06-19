@@ -347,7 +347,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				RepositoryID: templateRepoNodeID,
 				Name:         githubv4.String(repoName),
 				OwnerID:      meta.(*Owner).nodeID,
-				Visibility:   githubv4.RepositoryVisibility(strings.ToUpper(visibility)),
+				Visibility:   githubv4.RepositoryVisibility(strings.ToUpper(calculateVisibility(d))),
 				Description:  githubv4.NewString(githubv4.String(d.Get("description").(string))),
 			}
 
