@@ -802,49 +802,47 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	for _, visibility := range []string{"private", "internal"} {
-		t.Run(fmt.Sprintf("creates repos with %s visibility", visibility), func(t *testing.T) {
+	t.Run("creates repos with private visibility", func(t *testing.T) {
 
-			config := fmt.Sprintf(`
-				resource "github_repository" "%[1]s" {
-					name       = "tf-acc-test-visibility-%[1]s-%[2]s"
-					visibility = "%[1]s"
-				}
-			`, visibility, randomID)
-
-			check := resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					fmt.Sprintf("github_repository.%s", visibility), "visibility",
-					visibility,
-				),
-			)
-
-			testCase := func(t *testing.T, mode string) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config: config,
-							Check:  check,
-						},
-					},
-				})
+		config := fmt.Sprintf(`
+			resource "github_repository" "private" {
+				name       = "tf-acc-test-visibility-private-%s"
+				visibility = "private"
 			}
+		`, randomID)
 
-			t.Run("with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.private", "visibility",
+				"private",
+			),
+		)
 
-			t.Run("with an individual account", func(t *testing.T) {
-				testCase(t, individual)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
 			})
+		}
 
-			t.Run("with an organization account", func(t *testing.T) {
-				testCase(t, organization)
-			})
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
 		})
-	}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 
 	t.Run("updates repos to private visibility", func(t *testing.T) {
 
