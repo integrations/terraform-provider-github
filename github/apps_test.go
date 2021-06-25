@@ -145,7 +145,7 @@ func TestGetInstallationAccessToken(t *testing.T) {
 
 	ts := githubApiMock([]*mockResponse{
 		{
-			ExpectedUri: fmt.Sprintf("/app/installations/%s/access_tokens", testGitHubAppInstallationID),
+			ExpectedUri: fmt.Sprintf("/api/v3/app/installations/%s/access_tokens", testGitHubAppInstallationID),
 			ExpectedHeaders: map[string]string{
 				"Accept":        "application/vnd.github.v3+json",
 				"Authorization": fmt.Sprintf("Bearer %s", fakeJWT),
