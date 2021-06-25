@@ -17,7 +17,7 @@ data "github_user" "current" {
 }
 
 resource "github_repository" "example" {
-  name         = "example"
+  environment  = "example"
   description  = "My awesome codebase"
 }
 
@@ -38,7 +38,7 @@ resource "github_repository_environment" "example" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the environment.
+* `environment` - (Required) The name of the environment.
 
 * `repository` - (Required) The repository of the environment.
 
