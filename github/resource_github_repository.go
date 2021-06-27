@@ -333,8 +333,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 
-			log.Printf("[DEBUG] templateRepoNodeID: %s", templateRepoNodeID)
-
 			var mutate struct {
 				CloneTemplateRepository struct {
 					Repository struct {
