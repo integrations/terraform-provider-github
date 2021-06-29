@@ -14,7 +14,8 @@ const (
 	PROTECTION_REQUIRES_STATUS_CHECKS          = "required_status_checks"
 	PROTECTION_REQUIRES_STRICT_STATUS_CHECKS   = "strict"
 	PROTECTION_RESTRICTS_PUSHES                = "push_restrictions"
-	PROTECTION_RESTRICTS_REVIEW_DISMISSALS     = "dismissal_restrictions"
+	PROTECTION_RESTRICTS_REVIEW_DISMISSALS     = "restrict_dismissals"
+	PROTECTION_RESTRICTS_REVIEW_DISMISSERS     = "dismissal_restrictions"
 
 	REPOSITORY_ID = "repository_id"
 )

@@ -68,6 +68,10 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 						},
 						PROTECTION_RESTRICTS_REVIEW_DISMISSALS: {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						PROTECTION_RESTRICTS_REVIEW_DISMISSERS: {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
