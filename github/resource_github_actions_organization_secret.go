@@ -160,18 +160,23 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	selectedRepositoryIDs := []int64{}
 
 	if secret.Visibility == "selected" {
-		opts := &github.ListOptions{
+		opt := &github.ListOptions{
 			PerPage: 30,
 		}
-		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opts)
-		if err != nil {
-			return err
-		}
+		for {
+			results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
+			if err != nil {
+				return err
+			}
 
-		selectedRepositories := selectedRepoList.Repositories
+			for _, repo := range results.Repositories {
+				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			}
 
-		for _, repo := range selectedRepositories {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
 		}
 	}
 
