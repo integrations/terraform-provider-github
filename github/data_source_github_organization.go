@@ -1,10 +1,11 @@
 package github
 
 import (
-	"github.com/google/go-github/v35/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"strconv"
+
+	"github.com/google/go-github/v36/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceGithubOrganization() *schema.Resource {

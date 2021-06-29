@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v35/github"
+	"github.com/google/go-github/v36/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -160,7 +160,10 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	selectedRepositoryIDs := []int64{}
 
 	if secret.Visibility == "selected" {
-		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id())
+		opts := &github.ListOptions{
+			PerPage: 30,
+		}
+		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opts)
 		if err != nil {
 			return err
 		}
