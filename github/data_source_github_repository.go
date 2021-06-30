@@ -17,11 +17,13 @@ func dataSourceGithubRepository() *schema.Resource {
 			"full_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"name"},
 			},
 			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"full_name"},
 			},
 
