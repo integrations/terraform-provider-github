@@ -31,6 +31,10 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 }
 
 func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
+	if baseURL != "https://api.github.com/" {
+		baseURL += "api/v3/"
+	}
+
 	url := fmt.Sprintf("%sapp/installations/%s/access_tokens", baseURL, installationID)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
