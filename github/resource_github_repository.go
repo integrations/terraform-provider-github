@@ -309,11 +309,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoReq.Private = github.Bool(isPrivate)
-	if isPrivate {
-		repoReq.Visibility = github.String("private")
-	} else {
-		repoReq.Visibility = github.String("public")
-	}
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
@@ -567,7 +562,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		log.Printf("[DEBUG] <<<<<<<<<<<<< Updating repository visibility from %s to %s", o, n)
 		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if !strings.Contains(err.Error(), "422 Visibility is already private") {
+			if !strings.Contains(err.Error(), fmt.Sprintf("422 Visibility is already %s", n.(string))) {
 				return err
 			}
 		}
