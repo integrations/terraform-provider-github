@@ -1,11 +1,8 @@
-## 4.12.1 (Jun 30, 2021)
+## 4.12.2 (Jul 12, 2021)
 
 BUG FIXES:
 
-- Fix URL construction when authenticating via GitHub App for enterprise ([#835](https://github.com/integrations/terraform-provider-github/issues/835))
-- Create internal repositories without update sequence for `github_repository` ([#794](https://github.com/integrations/terraform-provider-github/issues/794))
-- Set `name` and `full_name` attributes as computed for `github_repository` data source ([#780](https://github.com/integrations/terraform-provider-github/issues/780))
-- Allow empty array for `selected_repository_ids` attribute of `github_actions_organization_secret` resource ([#843](https://github.com/integrations/terraform-provider-github/issues/843))
+- Update `go-github` to v36.0.0 ([#841](https://github.com/integrations/terraform-provider-github/issues/841))
 
 ## 4.12.0 (Jun 18, 2021)
 
