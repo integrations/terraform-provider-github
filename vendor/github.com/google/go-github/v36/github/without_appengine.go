@@ -3,9 +3,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build appengine
+//go:build !appengine
+// +build !appengine
 
-// This file provides glue for making github work on App Engine.
+// This file provides glue for making github work without App Engine.
 
 package github
 
@@ -15,6 +16,5 @@ import (
 )
 
 func withContext(ctx context.Context, req *http.Request) *http.Request {
-	// No-op because App Engine adds context to a request differently.
-	return req
+	return req.WithContext(ctx)
 }

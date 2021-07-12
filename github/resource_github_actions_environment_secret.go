@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v35/github"
+	"github.com/google/go-github/v36/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -99,7 +99,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repo.GetID(), envName, eSecret)
+	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, int(repo.GetID()), envName, eSecret)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 		return err
 	}
 
-	secret, _, err := client.Actions.GetEnvSecret(ctx, repo.GetID(), envName, secretName)
+	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), envName, secretName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -179,7 +179,7 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta i
 		return err
 	}
 	log.Printf("[DEBUG] Deleting environment secret: %s", d.Id())
-	_, err = client.Actions.DeleteEnvSecret(ctx, repo.GetID(), envName, secretName)
+	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), envName, secretName)
 
 	return err
 }

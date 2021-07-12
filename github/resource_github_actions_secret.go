@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v35/github"
+	"github.com/google/go-github/v36/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 )
