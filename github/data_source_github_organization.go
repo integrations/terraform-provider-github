@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"log"
 	"strconv"
 
@@ -34,6 +35,13 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Computed: true,
 			},
 			"repositories": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"admins": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
@@ -89,7 +97,31 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		repoList = append(repoList, allRepos[index].GetFullName())
 	}
 
+	memberList, err := listMembersByRole(ctx, client, name, "member")
+	if err != nil {
+		return err
+	}
+
+	adminList, err := listMembersByRole(ctx, client, name, "admin")
+	if err != nil {
+		return err
+	}
+
+	d.SetId(strconv.FormatInt(organization.GetID(), 10))
+	d.Set("login", organization.GetLogin())
+	d.Set("name", organization.GetName())
+	d.Set("description", organization.GetDescription())
+	d.Set("plan", plan.Name)
+	d.Set("repositories", repoList)
+	d.Set("members", memberList)
+	d.Set("admins", adminList)
+
+	return nil
+}
+
+func listMembersByRole(ctx context.Context, client *github.Client, name string, role string) ([]string, error) {
 	membershipOpts := &github.ListMembersOptions{
+		Role:        role,
 		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
 	}
 
@@ -99,7 +131,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	for {
 		members, resp, err := client.Organizations.ListMembers(ctx, name, membershipOpts)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		allMembers = append(allMembers, members...)
 
@@ -113,13 +145,5 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		memberList = append(memberList, *allMembers[index].Login)
 	}
 
-	d.SetId(strconv.FormatInt(organization.GetID(), 10))
-	d.Set("login", organization.GetLogin())
-	d.Set("name", organization.GetName())
-	d.Set("description", organization.GetDescription())
-	d.Set("plan", plan.Name)
-	d.Set("repositories", repoList)
-	d.Set("members", memberList)
-
-	return nil
+	return memberList, nil
 }
