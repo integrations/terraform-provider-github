@@ -17,13 +17,13 @@ data "github_user" "current" {
 }
 
 resource "github_repository" "example" {
-  environment  = "example"
+  name         = "A Repository Project"
   description  = "My awesome codebase"
 }
 
 resource "github_repository_environment" "example" {
-  name          = "A Repository Project"
-  repository    = github_repository.example.name
+  environment  = "example"
+  repository   = github_repository.example.name
   reviewers {
     users = [data.github_user.current.id]
   }
