@@ -182,6 +182,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  pattern        = "main"
 
 				required_pull_request_reviews {
+						restrict_dismissals        = false
 						dismiss_stale_reviews      = true
 						require_code_owner_reviews = true
 				}
@@ -202,6 +203,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.0.restrict_dismissals", "false",
 			),
 		)
 
