@@ -51,6 +51,8 @@ data "github_repository_pull_requests" "example" {
 
     * `head_owner` - Owner of the Pull Request head repository.
 
+    * `head_ref` - Value of the Pull Request `HEAD` reference.
+
     * `head_repository` - Name of the Pull Request head repository.
 
     * `head_sha` - Head commit SHA of the Pull Request head.
