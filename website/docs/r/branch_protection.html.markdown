@@ -33,7 +33,8 @@ resource "github_branch_protection" "example" {
   }
 
   required_pull_request_reviews {
-    dismiss_stale_reviews = true
+    dismiss_stale_reviews  = true
+    restrict_dismissals    = true
     dismissal_restrictions = [
       data.github_user.example.node_id,
       github_team.example.node_id,
@@ -93,7 +94,8 @@ The following arguments are supported:
 `required_pull_request_reviews` supports the following arguments:
 
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
-* `dismissal_restrictions`: (Optional) The list of actor IDs with dismissal access.
+* `restrict_dismissals`: (Optional) Restrict pull request review dismissals.
+* `dismissal_restrictions`: (Optional) The list of actor IDs with dismissal access. If not empty, `restrict_dismissals` is ignored.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 1-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
 

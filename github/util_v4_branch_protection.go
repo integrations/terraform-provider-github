@@ -132,6 +132,9 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 				data.RequiresCodeOwnerReviews = v.(bool)
 			}
 			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSALS]; ok {
+				data.RestrictsReviewDismissals = v.(bool)
+			}
+			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
 				for _, v := range vL {
@@ -226,7 +229,8 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
 			PROTECTION_REQUIRES_CODE_OWNER_REVIEWS:     protection.RequiresCodeOwnerReviews,
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
-			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     dismissalActors,
+			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
+			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
 		},
 	}
 
