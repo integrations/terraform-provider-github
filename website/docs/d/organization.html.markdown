@@ -19,5 +19,9 @@ data "github_organization" "test" {
 
 ## Attributes Reference
 
+ * `name` - The name of the organization account
+ * `login` - The login of the organization account
+ * `description` - The description the organization account
  * `plan` - The plan name for the organization account
  * `repositories` - (`list`) A list with the repositories on the organization
+ * `members` - (`list`) A list with the members of the organization
