@@ -1,3 +1,13 @@
+## 4.13.0 (Jul 26, 2021)
+
+BUG FIXES:
+
+- Fix setting `vulnerability_alerts` on private `github_repository` creation ([#768](https://github.com/integrations/terraform-provider-github/issues/768))
+
+ENHANCEMENTS:
+
+- Add `restrict_dismissals` option to `github_branch_protection` resource ([#839](https://github.com/integrations/terraform-provider-github/issues/839))
+
 ## 4.12.2 (Jul 12, 2021)
 
 BUG FIXES:
