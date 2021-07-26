@@ -74,36 +74,50 @@ func TestAccGithubActionsSecret(t *testing.T) {
 			  name = "tf-acc-test-%s"
 			}
 
-			resource "github_actions_secret" "test_secret" {
+			resource "github_actions_secret" "plaintext_secret" {
 			  repository       = github_repository.test.name
-			  secret_name      = "test_secret_name"
+			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
 			}
-		`, randomID, secretValue)
+
+			resource "github_actions_secret" "encrypted_secret" {
+			  repository       = github_repository.test.name
+			  secret_name      = "test_encrypted_secret"
+			  encrypted_value  = "%s"
+			}
+			`, randomID, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.test_secret", "plaintext_value",
+					"github_actions_secret.plaintext_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_secret.encrypted_secret", "encrypted_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.test_secret", "created_at",
+					"github_actions_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.test_secret", "updated_at",
+					"github_actions_secret.plaintext_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.test_secret", "plaintext_value",
+					"github_actions_secret.plaintext_secret", "plaintext_value",
+					updatedSecretValue,
+				),
+				resource.TestCheckResourceAttr(
+					"github_actions_secret.encrypted_secret", "encrypted_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.test_secret", "created_at",
+					"github_actions_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.test_secret", "updated_at",
+					"github_actions_secret.plaintext_secret", "updated_at",
 				),
 			),
 		}
@@ -120,7 +134,7 @@ func TestAccGithubActionsSecret(t *testing.T) {
 					{
 						Config: strings.Replace(config,
 							secretValue,
-							updatedSecretValue, 1),
+							updatedSecretValue, 2),
 						Check: checks["after"],
 					},
 				},
@@ -138,24 +152,24 @@ func TestAccGithubActionsSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
-
-		secretValue := "super_secret_value"
-
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
 					name = "tf-acc-test-%s"
 				}
 
-				resource "github_actions_secret" "test_secret" {
-					repository       = github_repository.test.name
-					secret_name      = "test_secret_name"
-					plaintext_value  = "%s"
+				resource "github_actions_secret" "plaintext_secret" {
+					repository 	= github_repository.test.name
+					secret_name	= "test_plaintext_secret"
 				}
-			`, randomID, secretValue)
+
+				resource "github_actions_secret" "encrypted_secret" {
+					repository 	= github_repository.test.name
+					secret_name	= "test_encrypted_secret"
+				}
+			`, randomID)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -183,5 +197,4 @@ func TestAccGithubActionsSecret(t *testing.T) {
 		})
 
 	})
-
 }

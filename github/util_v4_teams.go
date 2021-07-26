@@ -18,6 +18,11 @@ type TeamsQuery struct {
 						Login githubv4.String
 					}
 				}
+				Repositories struct {
+					Nodes []struct {
+						Name githubv4.String
+					}
+				}
 			}
 			PageInfo PageInfo
 		} `graphql:"teams(first:$first, after:$cursor, rootTeamsOnly:$rootTeamsOnly)"`

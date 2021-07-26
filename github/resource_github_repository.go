@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v36/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -303,17 +303,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
-		if visibility == "private" {
+		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
 		}
 	}
 
 	repoReq.Private = github.Bool(isPrivate)
-	if isPrivate {
-		repoReq.Visibility = github.String("private")
-	} else {
-		repoReq.Visibility = github.String("public")
-	}
 
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]interface{})
@@ -364,24 +359,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	topics := repoReq.Topics
 	if len(topics) > 0 {
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
-		if err != nil {
-			return err
-		}
-	}
-
-	var alerts bool
-	if a, ok := d.GetOk("vulnerability_alerts"); ok {
-		alerts = a.(bool)
-	}
-
-	var createVulnerabilityAlerts func(context.Context, string, string) (*github.Response, error)
-	if isPrivate && alerts {
-		createVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
-	} else if !isPrivate && !alerts {
-		createVulnerabilityAlerts = client.Repositories.DisableVulnerabilityAlerts
-	}
-	if createVulnerabilityAlerts != nil {
-		_, err := createVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -549,7 +526,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if !d.IsNewResource() && d.HasChange("vulnerability_alerts") {
+	if d.HasChange("vulnerability_alerts") {
 		updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
 		if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
 			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
@@ -564,21 +541,21 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("visibility") {
 		o, n := d.GetChange("visibility")
 		repoReq.Visibility = github.String(n.(string))
-		log.Printf("[DEBUG] <<<<<<<<<<<<< Updating repository visibility from %s to %s", o, n)
+		log.Printf("[DEBUG] Updating repository visibility from %s to %s", o, n)
 		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if !strings.Contains(err.Error(), "422 Visibility is already private") {
+			if !strings.Contains(err.Error(), fmt.Sprintf("422 Visibility is already %s", n.(string))) {
 				return err
 			}
 		}
 	} else {
-		log.Printf("[DEBUG] <<<<<<<<<< no visibility update required. visibility: %s", d.Get("visibility"))
+		log.Printf("[DEBUG] No visibility update required. visibility: %s", d.Get("visibility"))
 	}
 
 	if d.HasChange("private") {
 		o, n := d.GetChange("private")
 		repoReq.Private = github.Bool(n.(bool))
-		log.Printf("[DEBUG] <<<<<<<<<<<<< Updating repository privacy from %v to %v", o, n)
+		log.Printf("[DEBUG] Updating repository privacy from %v to %v", o, n)
 		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
 			if !strings.Contains(err.Error(), "422 Privacy is already set") {

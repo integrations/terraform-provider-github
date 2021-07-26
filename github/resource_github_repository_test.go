@@ -844,6 +844,49 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+	t.Run("creates repos with internal visibility", func(t *testing.T) {
+		t.Skip("organization used in automated tests does not support internal repositories")
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "internal" {
+				name       = "tf-acc-test-visibility-internal-%s"
+				visibility = "internal"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.internal", "visibility",
+				"internal",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("updates repos to private visibility", func(t *testing.T) {
 
 		config := fmt.Sprintf(`

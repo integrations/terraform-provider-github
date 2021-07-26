@@ -1,3 +1,69 @@
+## 4.12.2 (Jul 12, 2021)
+
+BUG FIXES:
+
+- Update `go-github` to v36.0.0 ([#841](https://github.com/integrations/terraform-provider-github/issues/841))
+
+## 4.12.0 (Jun 18, 2021)
+
+ENHANCEMENTS:
+
+* **New Resource:** `github_actions_environment_secret` ([[#805](https://github.com/integrations/terraform-provider-github/issues/805)])
+* **New Resource:** `github_repository_environment` ([[#805](https://github.com/integrations/terraform-provider-github/issues/805)])
+* Add `members` field to `github_organization` data source ([[#811](https://github.com/integrations/terraform-provider-github/issues/811)])
+* Add `repositories` field to `github_team` data source ([[#791](https://github.com/integrations/terraform-provider-github/issues/791)])
+* Add `repositories` field to `github_organization_teams` data source ([[#791](https://github.com/integrations/terraform-provider-github/issues/791)])
+
+
+BUG FIXES:
+
+- Document incompatibility between `github_app_installation_repository` and GitHub App authentication ([#818](https://github.com/integrations/terraform-provider-github/issues/818))
+- Document migration from `hashicorp/terraform-provider-github ([#816](https://github.com/integrations/terraform-provider-github/issues/816))
+- Allow users and apps to also be applied to push restrictions for `github_branch_protection` ([#824](https://github.com/integrations/terraform-provider-github/issues/824))
+
+
+## 4.11.0 (Jun 7, 2021)
+
+BREAKING CHANGES:
+
+- Allow PEM data to be passed directly for GitHub App provider authentication ([#803](https://github.com/integrations/terraform-provider-github/issues/803))
+
+ENHANCEMENTS:
+
+- Add `encrypted_value` field to `github_actions_secret` and `github_actions_organization_secret` resources ([#807](https://github.com/integrations/terraform-provider-github/issues/807))
+
+BUG FIXES:
+
+- Fix error handling when branch does not exist for `github_branch` resource ([#806](https://github.com/integrations/terraform-provider-github/issues/806))
+
+## 4.10.1 (May 25, 2021)
+
+BUG FIXES:
+
+* Improve documentation for provider authentication options ([#801](https://github.com/integrations/terraform-provider-github/issues/801))
+
+
+## 4.10.0 (May 21, 2021)
+
+ENHANCEMENTS:
+
+* Add GitHub App authentication option to provider ([#753](https://github.com/integrations/terraform-provider-github/issues/753))
+* Add Actions and Dependabot IP ranges to `github_ip_ranges` data source ([#784](https://github.com/integrations/terraform-provider-github/issues/784))
+* Add additional fields to `github_repository` data source ([#778](https://github.com/integrations/terraform-provider-github/issues/778))
+
+## 4.9.4 (May 11, 2021)
+
+BUG FIXES:
+
+- Add EMU support by allowing `internal` visibility to be configured for `github_repository` ([#781](https://github.com/integrations/terraform-provider-github/issues/781))
+- Update `go-github` to 35.1.0 ([#772](https://github.com/integrations/terraform-provider-github/issues/772))
+
+## 4.9.3 (May 7, 2021)
+
+BUG FIXES:
+
+- Mark `slug` as `computed` when `name` is changed for `github_team` ([#757](https://github.com/integrations/terraform-provider-github/issues/757))
+
 ## 4.9.2 (April 18, 2021)
 
 BUG FIXES:
@@ -20,7 +86,7 @@ ENHANCEMENTS:
 * **New Data Sources** `github_repository_pull_request` / `github_repository_pull_requests` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
 * **New Resource** `github_repository_pull_request` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
 * Add `repositories` attribute for `github_organization` data source ([#750](https://github.com/integrations/terraform-provider-github/issues/750))
-* Add import functionality for `github_actions_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
+* Add import functionality for `github_actions_organization_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
 
 BUG FIXES:
 

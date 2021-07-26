@@ -7,8 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v36/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
@@ -31,11 +32,20 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateSecretNameFunc,
 			},
+			"encrypted_value": {
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"plaintext_value"},
+				ValidateFunc:  validation.StringIsBase64,
+			},
 			"plaintext_value": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"encrypted_value"},
 			},
 			"visibility": {
 				Type:         schema.TypeString,
@@ -70,13 +80,12 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
+	var encryptedValue string
 
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
-	if visibility == "selected" && !hasSelectedRepositories {
-		return fmt.Errorf("Cannot use visbility set to selected without selected_repository_ids")
-	} else if visibility != "selected" && hasSelectedRepositories {
+	if visibility != "selected" && hasSelectedRepositories {
 		return fmt.Errorf("Cannot use selected_repository_ids without visibility being set to selected")
 	}
 
@@ -95,9 +104,14 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 		return err
 	}
 
-	encryptedText, err := encryptPlaintext(plaintextValue, publicKey)
-	if err != nil {
-		return err
+	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
+		encryptedValue = encryptedText.(string)
+	} else {
+		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
+		if err != nil {
+			return err
+		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
@@ -106,7 +120,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 		KeyID:                 keyId,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: selectedRepositoryIDs,
-		EncryptedValue:        base64.StdEncoding.EncodeToString(encryptedText),
+		EncryptedValue:        encryptedValue,
 	}
 
 	_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
@@ -136,6 +150,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
+	d.Set("encrypted_value", d.Get("encrypted_value"))
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("created_at", secret.CreatedAt.String())
 	d.Set("visibility", secret.Visibility)
@@ -143,15 +158,23 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	selectedRepositoryIDs := []int64{}
 
 	if secret.Visibility == "selected" {
-		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id())
-		if err != nil {
-			return err
+		opt := &github.ListOptions{
+			PerPage: 30,
 		}
+		for {
+			results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
+			if err != nil {
+				return err
+			}
 
-		selectedRepositories := selectedRepoList.Repositories
+			for _, repo := range results.Repositories {
+				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			}
 
-		for _, repo := range selectedRepositories {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
 		}
 	}
 
