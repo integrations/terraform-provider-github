@@ -86,7 +86,7 @@ func resourceGithubOrganizationUpdate(d *schema.ResourceData, meta interface{}) 
 	newName := github.String(d.Get("login").(string))
 	newOrganization := github.Organization{
 		Login: &orgName,
-		// Name: github.String(d.Get("profile_name").(string)),
+		Name:  github.String(d.Get("profile_name").(string)),
 	}
 
 	log.Printf("[DEBUG] Updating organization: %s", orgName)
@@ -95,6 +95,12 @@ func resourceGithubOrganizationUpdate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
+	org, _, err := client.Organizations.Edit(ctx, orgName, &newOrganization)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(strconv.FormatInt(org.GetID(), 10))
 	return resourceGithubOrganizationRead(d, meta)
 }
 
