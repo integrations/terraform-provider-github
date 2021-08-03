@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -182,6 +183,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
+			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
 			owner = org
 		}
 
