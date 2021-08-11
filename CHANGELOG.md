@@ -267,7 +267,7 @@ ENHANCEMENTS:
 REGRESSIONS:
 
 - undocumented, breaking configuration changes to `github_branch_protection` ([#566](https://github.com/integrations/terraform-provider-github/issues/566))
-- slowed performance of `github_branch_protection` ([$567](https://github.com/integrations/terraform-provider-github/issues/567))
+- slowed performance of `github_branch_protection` ([#567](https://github.com/integrations/terraform-provider-github/issues/567))
 - change to default branch breaks refresh of existing `github_repository_file` resources ([#564](https://github.com/integrations/terraform-provider-github/issues/564))
 
 BREAKING CHANGES:
