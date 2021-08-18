@@ -243,6 +243,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
+			resource.TestCheckResourceAttr(
+				"github_actions_runner_group.test", "selected_repository_ids.#",
+				"1",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
