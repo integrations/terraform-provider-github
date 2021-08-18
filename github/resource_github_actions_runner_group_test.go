@@ -34,6 +34,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				"github_actions_runner_group.test", "name",
 			),
 			resource.TestCheckResourceAttr(
+				"github_actions_runner_group.test", "name",
+				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+			),
+			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
 				"all",
 			),
@@ -84,6 +88,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
 				"github_actions_runner_group.test", "name",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_runner_group.test", "name",
+				fmt.Sprintf(`tf-acc-test-%s`, randomID),
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
@@ -140,6 +148,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -173,7 +182,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		})
 	})
 
-	// This test is currently skipped due to the perpetual diff in runner group visibility when creating a private runner group.
 	t.Run("imports a private runner group without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
@@ -188,6 +196,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 		)
 
@@ -230,19 +239,21 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+				name = "tf-acc-test-%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
-			  name       = github_repository.test.name
-			  visibility = "selected"
-			  selected_repository_ids = [github_repository.test.repo_id]
+				name       = github_repository.test.name
+				visibility = "selected"
+				selected_repository_ids = [github_repository.test.repo_id]
 			}
     `, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "selected_repository_ids.#",
 				"1",
