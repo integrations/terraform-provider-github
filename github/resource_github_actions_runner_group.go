@@ -94,8 +94,6 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	// TODO: also get runners
-	// runners := d.Get("runners").([]int64)
 	ctx := context.Background()
 
 	log.Printf("[DEBUG] Creating organization runner group: %s (%s)", name, orgName)
@@ -105,8 +103,6 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 			Name:                  &name,
 			Visibility:            &visibility,
 			SelectedRepositoryIDs: selectedRepositoryIDs,
-			// TODO
-			// Runners:               runners,
 		},
 	)
 	if err != nil {
@@ -122,6 +118,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	d.Set("runners_url", runnerGroup.GetRunnersURL())
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
+	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
@@ -170,6 +167,16 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("runners_url", runnerGroup.GetRunnersURL())
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
+
+	log.Printf("[DEBUG] Reading organization runner group repositories: %s (%s)", d.Id(), orgName)
+	runnerGroupRepositories, resp, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID)
+
+	selectedRepositoryIDs := []int64{}
+	for _, repo := range runnerGroupRepositories.Repositories {
+		selectedRepositoryIDs = append(selectedRepositoryIDs, *repo.ID)
+	}
+	log.Printf("[DEBUG] Got selected_repository_ids: %v", selectedRepositoryIDs)
+	d.Set("selected_repository_ids", selectedRepositoryIDs)
 
 	return nil
 }
