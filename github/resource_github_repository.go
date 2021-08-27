@@ -430,6 +430,12 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 
+	branches, _, err := client.Repositories.ListBranches(ctx, owner, repoName, nil)
+	if err != nil {
+		return err
+	}
+	d.Set("branches", flattenBranches(branches))
+
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
@@ -659,4 +665,21 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap["html_url"] = pages.GetHTMLURL()
 
 	return []interface{}{pagesMap}
+}
+
+func flattenBranches(branches []*github.Branch) []interface{} {
+	if branches == nil {
+		return []interface{}{}
+	}
+
+	branchList := make([]interface{}, 0, len(branches))
+
+	for _, branch := range branches {
+		branchMap := make(map[string]interface{})
+		branchMap["name"] = branch.Name
+		branchMap["protected"] = branch.Protected
+		branchList = append(branchList, branchMap)
+	}
+
+	return branchList
 }

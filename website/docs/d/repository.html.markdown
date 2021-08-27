@@ -72,3 +72,7 @@ The following arguments are supported:
 * `node_id` - GraphQL global node id for use with v4 API
 
 * `repo_id` - GitHub ID for the repository
+
+* `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
+ * `name` - Name of the branch.
+ * `protected` - Whether the branch is protected.
