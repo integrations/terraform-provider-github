@@ -17,6 +17,8 @@ data "github_ip_ranges" "test" {}
 
 ## Attributes Reference
 
+ * `actions` - An array of IP addresses in CIDR format specifying the addresses that incoming requests from GitHub actions will originate from.
+ * `dependabot` - An array of IP addresses in CIDR format specifying the A records for dependabot.
  * `hooks` - An Array of IP addresses in CIDR format specifying the addresses that incoming service hooks will originate from.
  * `git` - An Array of IP addresses in CIDR format specifying the Git servers.
  * `pages` - An Array of IP addresses in CIDR format specifying the A records for GitHub Pages.
