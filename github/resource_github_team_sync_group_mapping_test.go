@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v36/github"
+	"github.com/google/go-github/v37/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -206,7 +206,7 @@ resource "github_team" "test_team" {
 
 resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
-  
+
   dynamic "group" {
     for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if length(regexall("^acctest-github-provider", g.group_name)) > 0]
     content {
@@ -214,7 +214,7 @@ resource "github_team_sync_group_mapping" "test_mapping" {
       group_name        = group.value.group_name
       group_description = group.value.group_description
     }
-  } 
+  }
 }
 `, teamName)
 }
@@ -230,7 +230,7 @@ resource "github_team" "test_team" {
 
 resource "github_team_sync_group_mapping" "test_mapping" {
   team_slug  = github_team.test_team.slug
-  
+
   dynamic "group" {
     for_each = [for g in data.github_organization_team_sync_groups.test_groups.groups : g if length(regexall("^acctest-github-provider", g.group_name)) > 0]
     content {
@@ -238,7 +238,7 @@ resource "github_team_sync_group_mapping" "test_mapping" {
       group_name        = group.value.group_name
       group_description = "%s"
     }
-  } 
+  }
 }
 `, teamName, description)
 }

@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v36/github"
+	"github.com/google/go-github/v37/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -331,7 +331,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(client *github.Client, owner, repo, branch string) error {
 	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(repo, branch))
-	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch)
+	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, true)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
