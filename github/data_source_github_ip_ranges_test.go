@@ -19,6 +19,18 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "dependabot.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "hooks_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "dependabot_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "hooks_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "dependabot_ipv6.#"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
