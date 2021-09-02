@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 )
@@ -97,9 +98,12 @@ func testAccCheckOrganization() error {
 
 func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
+		log.Printf("[DEBUG] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
 		return organization, nil
 	}
-	return os.Getenv("GITHUB_OWNER"), nil
+	owner := os.Getenv("GITHUB_OWNER")
+	log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	return owner, nil
 }
 
 func testOrganizationFunc() string {
