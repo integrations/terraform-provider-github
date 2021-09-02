@@ -1,3 +1,13 @@
+## 4.14.0 (Sep 2, 2021)
+
+BUG FIXES:
+
+- Adds support for recreating a `github_team_repository` when repository is renamed ([#870](https://github.com/integrations/terraform-provider-github/issues/870))
+- Adds logging of configured authentication on provider startup ([#867](https://github.com/integrations/terraform-provider-github/issues/867))
+- Update documentation for `github_ip_ranges` data source ([#857](https://github.com/integrations/terraform-provider-github/issues/857))
+- Add support for IPv6 addresses returned by `github_ip_ranges` data source ([#883](https://github.com/integrations/terraform-provider-github/issues/883))
+- Update `go-github` to v37.0.0 ([#893](https://github.com/integrations/terraform-provider-github/issues/893))
+
 ## 4.13.0 (Jul 26, 2021)
 
 BUG FIXES:
