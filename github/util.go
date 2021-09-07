@@ -2,9 +2,11 @@ package github
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -76,6 +78,17 @@ func parseThreePartID(id, left, center, right string) (string, string, string, e
 // format the strings into an id `a:b:c`
 func buildThreePartID(a, b, c string) string {
 	return fmt.Sprintf("%s:%s:%s", a, b, c)
+}
+
+func buildChecksumID(v []string) string {
+	sort.Strings(v)
+
+	h := md5.New()
+	// Hash.Write never returns an error. See https://pkg.go.dev/hash#Hash
+	_, _ = h.Write([]byte(strings.Join(v, "")))
+	bs := h.Sum(nil)
+
+	return fmt.Sprintf("%x", bs)
 }
 
 func expandStringList(configured []interface{}) []string {
