@@ -37,6 +37,8 @@ const (
 	headerRateReset     = "X-RateLimit-Reset"
 	headerOTP           = "X-GitHub-OTP"
 
+	headerTokenExpiration = "GitHub-Authentication-Token-Expiration"
+
 	mediaTypeV3                = "application/vnd.github.v3+json"
 	defaultMediaType           = "application/octet-stream"
 	mediaTypeV3SHA             = "application/vnd.github.v3.sha"
@@ -188,6 +190,14 @@ type service struct {
 	client *Client
 }
 
+// Client returns the http.Client used by this GitHub client.
+func (c *Client) Client() *http.Client {
+	c.clientMu.Lock()
+	defer c.clientMu.Unlock()
+	clientCopy := *c.client
+	return &clientCopy
+}
+
 // ListOptions specifies the optional parameters to various List methods that
 // support offset pagination.
 type ListOptions struct {
@@ -212,6 +222,9 @@ type ListCursorOptions struct {
 
 	// A cursor, as given in the Link header. If specified, the query only searches for events before this cursor.
 	Before string `url:"before,omitempty"`
+
+	// A cursor, as given in the Link header. If specified, the query continues the search using this cursor.
+	Cursor string `url:"cursor,omitempty"`
 }
 
 // UploadOptions specifies the parameters to methods that support uploads.
@@ -445,9 +458,17 @@ type Response struct {
 	// calling the endpoint again.
 	NextPageToken string
 
+	// For APIs that support cursor pagination, such as RepositoryService.ListRepositoryHookDeliveries,
+	// the following field will be populated to point to the next page.
+	// Set ListCursorOptions.Cursor to this value when calling the endpoint again.
+	Cursor string
+
 	// Explicitly specify the Rate type so Rate's String() receiver doesn't
 	// propagate to Response.
 	Rate Rate
+
+	// token's expiration date
+	TokenExpiration Timestamp
 }
 
 // newResponse creates a new Response for the provided http.Response.
@@ -456,6 +477,7 @@ func newResponse(r *http.Response) *Response {
 	response := &Response{Response: r}
 	response.populatePageValues()
 	response.Rate = parseRate(r)
+	response.TokenExpiration = parseTokenExpiration(r)
 	return response
 }
 
@@ -481,7 +503,21 @@ func (r *Response) populatePageValues() {
 			if err != nil {
 				continue
 			}
-			page := url.Query().Get("page")
+
+			q := url.Query()
+
+			if cursor := q.Get("cursor"); cursor != "" {
+				for _, segment := range segments[1:] {
+					switch strings.TrimSpace(segment) {
+					case `rel="next"`:
+						r.Cursor = cursor
+					}
+				}
+
+				continue
+			}
+
+			page := q.Get("page")
 			if page == "" {
 				continue
 			}
@@ -499,7 +535,6 @@ func (r *Response) populatePageValues() {
 				case `rel="last"`:
 					r.LastPage, _ = strconv.Atoi(page)
 				}
-
 			}
 		}
 	}
@@ -520,6 +555,17 @@ func parseRate(r *http.Response) Rate {
 		}
 	}
 	return rate
+}
+
+// parseTokenExpiration parses the TokenExpiration related headers.
+func parseTokenExpiration(r *http.Response) Timestamp {
+	var exp Timestamp
+	if v := r.Header.Get(headerTokenExpiration); v != "" {
+		if t, err := time.Parse("2006-01-02 03:04:05 MST", v); err == nil {
+			exp = Timestamp{t.Local()}
+		}
+	}
+	return exp
 }
 
 type requestContext uint8
