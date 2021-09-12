@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v37/github"
+	"github.com/google/go-github/v38/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -248,7 +248,7 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
 	if sha, ok := d.GetOk("commit_sha"); ok {
 		log.Printf("[DEBUG] Using known commit SHA: %s", sha.(string))
-		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string))
+		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
 	} else {
 		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
 		commit, err = getFileCommit(client, owner, repo, file, branch)
@@ -388,7 +388,7 @@ func getFileCommit(client *github.Client, owner, repo, file, branch string) (*gi
 			continue
 		}
 
-		rc, _, err := client.Repositories.GetCommit(ctx, owner, repo, sha)
+		rc, _, err := client.Repositories.GetCommit(ctx, owner, repo, sha, nil)
 		if err != nil {
 			return nil, err
 		}
