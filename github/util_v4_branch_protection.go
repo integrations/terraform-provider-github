@@ -39,44 +39,46 @@ type BranchProtectionRule struct {
 	ReviewDismissalAllowances struct {
 		Nodes []DismissalActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
-	AllowsDeletions              githubv4.Boolean
-	AllowsForcePushes            githubv4.Boolean
-	DismissesStaleReviews        githubv4.Boolean
-	ID                           githubv4.ID
-	IsAdminEnforced              githubv4.Boolean
-	Pattern                      githubv4.String
-	RequiredApprovingReviewCount githubv4.Int
-	RequiredStatusCheckContexts  []githubv4.String
-	RequiresApprovingReviews     githubv4.Boolean
-	RequiresCodeOwnerReviews     githubv4.Boolean
-	RequiresCommitSignatures     githubv4.Boolean
-	RequiresLinearHistory        githubv4.Boolean
-	RequiresStatusChecks         githubv4.Boolean
-	RequiresStrictStatusChecks   githubv4.Boolean
-	RestrictsPushes              githubv4.Boolean
-	RestrictsReviewDismissals    githubv4.Boolean
+	AllowsDeletions                githubv4.Boolean
+	AllowsForcePushes              githubv4.Boolean
+	DismissesStaleReviews          githubv4.Boolean
+	ID                             githubv4.ID
+	IsAdminEnforced                githubv4.Boolean
+	Pattern                        githubv4.String
+	RequiredApprovingReviewCount   githubv4.Int
+	RequiredStatusCheckContexts    []githubv4.String
+	RequiresApprovingReviews       githubv4.Boolean
+	RequiresCodeOwnerReviews       githubv4.Boolean
+	RequiresCommitSignatures       githubv4.Boolean
+	RequiresLinearHistory          githubv4.Boolean
+	RequiresConversationResolution githubv4.Boolean
+	RequiresStatusChecks           githubv4.Boolean
+	RequiresStrictStatusChecks     githubv4.Boolean
+	RestrictsPushes                githubv4.Boolean
+	RestrictsReviewDismissals      githubv4.Boolean
 }
 
 type BranchProtectionResourceData struct {
-	AllowsDeletions              bool
-	AllowsForcePushes            bool
-	BranchProtectionRuleID       string
-	DismissesStaleReviews        bool
-	IsAdminEnforced              bool
-	Pattern                      string
-	PushActorIDs                 []string
-	RepositoryID                 string
-	RequiredApprovingReviewCount int
-	RequiredStatusCheckContexts  []string
-	RequiresApprovingReviews     bool
-	RequiresCodeOwnerReviews     bool
-	RequiresCommitSignatures     bool
-	RequiresLinearHistory        bool
-	RequiresStatusChecks         bool
-	RequiresStrictStatusChecks   bool
-	RestrictsPushes              bool
-	RestrictsReviewDismissals    bool
-	ReviewDismissalActorIDs      []string
+	AllowsDeletions                bool
+	AllowsForcePushes              bool
+	BranchProtectionRuleID         string
+	DismissesStaleReviews          bool
+	IsAdminEnforced                bool
+	Pattern                        string
+	PushActorIDs                   []string
+	RepositoryID                   string
+	RequiredApprovingReviewCount   int
+	RequiredStatusCheckContexts    []string
+	RequiresApprovingReviews       bool
+	RequiresCodeOwnerReviews       bool
+	RequiresCommitSignatures       bool
+	RequiresLinearHistory          bool
+	RequiresConversationResolution bool
+	RequiresStatusChecks           bool
+	RequiresStrictStatusChecks     bool
+	RestrictsPushes                bool
+	RestrictsReviewDismissals      bool
+	ReviewDismissalActorIDs        []string
 }
 
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
@@ -112,6 +114,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_LINEAR_HISTORY); ok {
 		data.RequiresLinearHistory = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION); ok {
+		data.RequiresConversationResolution = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
