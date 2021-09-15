@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v38/github"
+	"github.com/google/go-github/v39/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -169,7 +169,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("visibility", runnerGroup.GetVisibility())
 
 	log.Printf("[DEBUG] Reading organization runner group repositories: %s (%s)", d.Id(), orgName)
-	runnerGroupRepositories, _, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID)
+	runnerGroupRepositories, _, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, nil)
 	if err != nil {
 		return err
 	}
