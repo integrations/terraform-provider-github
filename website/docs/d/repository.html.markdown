@@ -49,6 +49,8 @@ The following arguments are supported:
 
 * `allow_rebase_merge` - Whether the repository allows rebase merges.
 
+* `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
+
 * `has_downloads` - Whether the repository has Downloads feature enabled.
 
 * `default_branch` - The name of the default branch of the repository.

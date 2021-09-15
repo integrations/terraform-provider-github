@@ -30,6 +30,7 @@ func TestAccGithubRepositories(t *testing.T) {
 			  allow_merge_commit = true
 			  allow_squash_merge = false
 			  allow_rebase_merge = false
+			  allow_auto_merge   = true
 			  auto_init          = false
 
 			}
@@ -38,6 +39,10 @@ func TestAccGithubRepositories(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "has_issues",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "allow_auto_merge",
 				"true",
 			),
 		)
