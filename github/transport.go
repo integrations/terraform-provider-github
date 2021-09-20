@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	ctxEtag    = ctxEtagType("etag")
-	ctxId      = ctxIdType("id")
-	writeDelay = 1 * time.Second
+	ctxEtag = ctxEtagType("etag")
+	ctxId   = ctxIdType("id")
 )
 
 // ctxIdType is used to avoid collisions between packages using context
@@ -51,6 +50,7 @@ func NewEtagTransport(rt http.RoundTripper) *etagTransport {
 type RateLimitTransport struct {
 	transport        http.RoundTripper
 	delayNextRequest bool
+	writeDelay       time.Duration
 
 	m sync.Mutex
 }
@@ -64,8 +64,8 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// If you're making a large number of POST, PATCH, PUT, or DELETE requests
 	// for a single user or client ID, wait at least one second between each request.
 	if rlt.delayNextRequest {
-		log.Printf("[DEBUG] Sleeping %s between write operations", writeDelay)
-		time.Sleep(writeDelay)
+		log.Printf("[DEBUG] Sleeping %s between write operations", rlt.writeDelay)
+		time.Sleep(rlt.writeDelay)
 	}
 
 	rlt.delayNextRequest = isWriteMethod(req.Method)
@@ -125,8 +125,18 @@ func (rlt *RateLimitTransport) unlock(req *http.Request) {
 	rlt.m.Unlock()
 }
 
-func NewRateLimitTransport(rt http.RoundTripper) *RateLimitTransport {
-	return &RateLimitTransport{transport: rt}
+// NetRateLimitTransport takes in an http.RoundTripper and a variadic list of
+// optional functions that modify the RateLimitTransport struct itself. This
+// may be used to alter the write delay in between requests, for example.
+func NewRateLimitTransport(rt http.RoundTripper, options ...func(*RateLimitTransport)) *RateLimitTransport {
+	// Default to 1 second of write delay if none is provided
+	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second}
+
+	for _, opt := range options {
+		opt(rlt)
+	}
+
+	return rlt
 }
 
 // drainBody reads all of b to memory and then returns two equivalent
