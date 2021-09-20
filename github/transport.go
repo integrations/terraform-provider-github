@@ -45,17 +45,17 @@ func NewEtagTransport(rt http.RoundTripper) *etagTransport {
 	return &etagTransport{transport: rt}
 }
 
-// rateLimitTransport implements GitHub's best practices
+// RateLimitTransport implements GitHub's best practices
 // for avoiding rate limits
 // https://developer.github.com/v3/guides/best-practices-for-integrators/#dealing-with-abuse-rate-limits
-type rateLimitTransport struct {
+type RateLimitTransport struct {
 	transport        http.RoundTripper
 	delayNextRequest bool
 
 	m sync.Mutex
 }
 
-func (rlt *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Make requests for a single user or client ID serially
 	// This is also necessary for safely saving
 	// and restoring bodies between retries below
@@ -113,20 +113,20 @@ func (rlt *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return resp, nil
 }
 
-func (rlt *rateLimitTransport) lock(req *http.Request) {
+func (rlt *RateLimitTransport) lock(req *http.Request) {
 	ctx := req.Context()
 	log.Printf("[TRACE] Acquiring lock for GitHub API request (%q)", ctx.Value(ctxId))
 	rlt.m.Lock()
 }
 
-func (rlt *rateLimitTransport) unlock(req *http.Request) {
+func (rlt *RateLimitTransport) unlock(req *http.Request) {
 	ctx := req.Context()
 	log.Printf("[TRACE] Releasing lock for GitHub API request (%q)", ctx.Value(ctxId))
 	rlt.m.Unlock()
 }
 
-func NewRateLimitTransport(rt http.RoundTripper) *rateLimitTransport {
-	return &rateLimitTransport{transport: rt}
+func NewRateLimitTransport(rt http.RoundTripper) *RateLimitTransport {
+	return &RateLimitTransport{transport: rt}
 }
 
 // drainBody reads all of b to memory and then returns two equivalent
