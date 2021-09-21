@@ -228,6 +228,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		}
 
 		writeDelay := d.Get("write_delay").(int)
+		if writeDelay <= 0 {
+			return nil, fmt.Errorf("write_delay must be greater than 0ms")
+		}
 		log.Printf("[DEBUG] Setting write_delay to %d", writeDelay)
 
 		config := Config{
