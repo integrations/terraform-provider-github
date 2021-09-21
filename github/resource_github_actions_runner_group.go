@@ -169,7 +169,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("visibility", runnerGroup.GetVisibility())
 
 	log.Printf("[DEBUG] Reading organization runner group repositories: %s (%s)", d.Id(), orgName)
-	runnerGroupRepositories, resp, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID)
+	runnerGroupRepositories, _, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID)
 	if err != nil {
 		return err
 	}
