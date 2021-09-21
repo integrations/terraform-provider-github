@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -41,6 +42,12 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["insecure"],
+			},
+			"write_delay": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1000,
+				Description: descriptions["write_delay"],
 			},
 			"app_auth": {
 				Type:        schema.TypeList,
@@ -156,6 +163,7 @@ func init() {
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
+		"write_delay":              "Amount of time in milliseconds to sleep in between writes to GitHub REST API.",
 	}
 }
 
@@ -219,11 +227,15 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			token = appToken
 		}
 
+		writeDelay := d.Get("write_delay").(int)
+		log.Printf("[DEBUG] Setting write_delay to %d", writeDelay)
+
 		config := Config{
-			Token:    token,
-			BaseURL:  baseURL,
-			Insecure: insecure,
-			Owner:    owner,
+			Token:      token,
+			BaseURL:    baseURL,
+			Insecure:   insecure,
+			Owner:      owner,
+			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
 		}
 
 		meta, err := config.Meta()
