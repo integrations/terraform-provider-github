@@ -1,3 +1,8 @@
+## 4.15.1 (Sep 23, 2021)
+
+BUG FIXES:
+- Revert suppression of  `etag` changes for `github_repository` resources ([[#991](https://github.com/integrations/terraform-provider-github/issues/991)])
+
 ## 4.15.0 (Sep 22, 2021)
 
 ENHANCEMENTS:
