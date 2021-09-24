@@ -33,13 +33,8 @@ type Owner struct {
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration) *http.Client {
 
-	// convenience func to set the write delay on the rate limiter
-	setWriteDelay := func(rlt *RateLimitTransport) {
-		rlt.writeDelay = writeDelay
-	}
-
 	client.Transport = NewEtagTransport(client.Transport)
-	client.Transport = NewRateLimitTransport(client.Transport, setWriteDelay)
+	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 
 	return client

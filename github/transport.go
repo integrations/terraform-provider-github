@@ -125,10 +125,12 @@ func (rlt *RateLimitTransport) unlock(req *http.Request) {
 	rlt.m.Unlock()
 }
 
+type RateLimitTransportOption func(*RateLimitTransport)
+
 // NetRateLimitTransport takes in an http.RoundTripper and a variadic list of
 // optional functions that modify the RateLimitTransport struct itself. This
 // may be used to alter the write delay in between requests, for example.
-func NewRateLimitTransport(rt http.RoundTripper, options ...func(*RateLimitTransport)) *RateLimitTransport {
+func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOption) *RateLimitTransport {
 	// Default to 1 second of write delay if none is provided
 	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second}
 
@@ -137,6 +139,13 @@ func NewRateLimitTransport(rt http.RoundTripper, options ...func(*RateLimitTrans
 	}
 
 	return rlt
+}
+
+// WithWriteDelay is used to set the write delay between requests
+func WithWriteDelay(d time.Duration) RateLimitTransportOption {
+	return func(rlt *RateLimitTransport) {
+		rlt.writeDelay = d
+	}
 }
 
 // drainBody reads all of b to memory and then returns two equivalent
