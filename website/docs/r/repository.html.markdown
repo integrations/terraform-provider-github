@@ -149,6 +149,11 @@ The following additional attributes are exported:
  * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
  * `status` - The GitHub Pages site's build status e.g. `building` or `built`.
 
+* `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
+ * `name` - Name of the branch.
+ * `protected` - Whether the branch is protected.
+
+
 ## Import
 
 Repositories can be imported using the `name`, e.g.

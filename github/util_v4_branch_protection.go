@@ -50,6 +50,7 @@ type BranchProtectionRule struct {
 	RequiresApprovingReviews     githubv4.Boolean
 	RequiresCodeOwnerReviews     githubv4.Boolean
 	RequiresCommitSignatures     githubv4.Boolean
+	RequiresLinearHistory        githubv4.Boolean
 	RequiresStatusChecks         githubv4.Boolean
 	RequiresStrictStatusChecks   githubv4.Boolean
 	RestrictsPushes              githubv4.Boolean
@@ -70,6 +71,7 @@ type BranchProtectionResourceData struct {
 	RequiresApprovingReviews     bool
 	RequiresCodeOwnerReviews     bool
 	RequiresCommitSignatures     bool
+	RequiresLinearHistory        bool
 	RequiresStatusChecks         bool
 	RequiresStrictStatusChecks   bool
 	RestrictsPushes              bool
@@ -106,6 +108,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_COMMIT_SIGNATURES); ok {
 		data.RequiresCommitSignatures = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_LINEAR_HISTORY); ok {
+		data.RequiresLinearHistory = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {

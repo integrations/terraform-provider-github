@@ -11,6 +11,7 @@ const (
 	PROTECTION_REQUIRES_APPROVING_REVIEWS      = "required_pull_request_reviews"
 	PROTECTION_REQUIRES_CODE_OWNER_REVIEWS     = "require_code_owner_reviews"
 	PROTECTION_REQUIRES_COMMIT_SIGNATURES      = "require_signed_commits"
+	PROTECTION_REQUIRES_LINEAR_HISTORY         = "required_linear_history"
 	PROTECTION_REQUIRES_STATUS_CHECKS          = "required_status_checks"
 	PROTECTION_REQUIRES_STRICT_STATUS_CHECKS   = "strict"
 	PROTECTION_RESTRICTS_PUSHES                = "push_restrictions"

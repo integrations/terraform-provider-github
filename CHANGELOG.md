@@ -1,3 +1,25 @@
+## 4.15.1 (Sep 23, 2021)
+
+BUG FIXES:
+- Revert suppression of  `etag` changes for `github_repository` resources ([[#991](https://github.com/integrations/terraform-provider-github/issues/991)])
+
+## 4.15.0 (Sep 22, 2021)
+
+ENHANCEMENTS:
+
+- **New Resource:** `github_actions_organization_secret_repositories` ([[#882](https://github.com/integrations/terraform-provider-github/issues/882)])
+- **New Resource:** `github_actions_runner_group` ([[#821](https://github.com/integrations/terraform-provider-github/issues/821)])
+- Add `require_linear_history` to `github_branch_protection` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
+- Add `branches` attribute to `github_repository` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
+
+
+BUG FIXES:
+
+- Update documentation for `d/github_ip_ranges` ([#895](https://github.com/integrations/terraform-provider-github/issues/895))
+- Update `go-github` to v38 ([#901](https://github.com/integrations/terraform-provider-github/issues/901))
+- Suppress `etag` changes for `github_repository` resources ([[#909](https://github.com/integrations/terraform-provider-github/issues/909)])
+
+
 ## 4.14.0 (Sep 2, 2021)
 
 BUG FIXES:
