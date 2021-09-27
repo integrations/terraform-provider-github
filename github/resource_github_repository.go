@@ -224,9 +224,7 @@ func resourceGithubRepository() *schema.Resource {
 						},
 						"include_all_branches": {
 							Type:     schema.TypeBool,
-							Required: false,
 							Optional: true,
-							Default:  false,
 						},
 					},
 				},

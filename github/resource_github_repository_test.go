@@ -565,7 +565,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-template-%s"
+				name        = "tf-acc-test-template-all-branches-%s"
 				description = "Terraform acceptance tests %[1]s"
 
 				template {
