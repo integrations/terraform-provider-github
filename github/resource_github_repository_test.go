@@ -561,6 +561,56 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
+	t.Run("creates a repository using a template with all branches", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-template-%s"
+				description = "Terraform acceptance tests %[1]s"
+
+				template {
+					owner = "%s"
+					repository = "%s"
+					include_all_branches = %t
+				}
+
+			}
+		`, randomID, testOrganization, "terraform-template-module", true)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "is_template",
+				"false",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("archives repositories on destroy", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
