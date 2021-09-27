@@ -330,7 +330,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				Name:               &repoName,
 				Owner:              &owner,
 				Description:        github.String(d.Get("description").(string)),
-				IncludeAllBranches: github.Bool(d.Get("include_all_branches").(bool)),
+				IncludeAllBranches: github.Bool(templateConfigMap["include_all_branches"].(bool)),
 				Private:            github.Bool(isPrivate),
 			}
 

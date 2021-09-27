@@ -578,9 +578,8 @@ func TestAccGithubRepositories(t *testing.T) {
 		`, randomID, testOrganization, "terraform-template-module", true)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
+			resource.TestCheckResourceAttrSet(
+				"github_repository.test", "template.#",
 			),
 		)
 
