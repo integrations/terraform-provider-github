@@ -164,7 +164,8 @@ func init() {
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
-		"write_delay_ms":           "Amount of time in milliseconds to sleep in between writes to GitHub API.",
+		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
+			"Defaults to 1000ms or 1s if not set.",
 	}
 }
 
