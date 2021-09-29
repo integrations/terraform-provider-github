@@ -569,7 +569,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 	} else {
-		log.Printf("[DEBUG] <<<<<<<<<< no privacy update required. private: %v", d.Get("private"))
+		log.Printf("[DEBUG] No privacy update required. private: %v", d.Get("private"))
 	}
 
 	return resourceGithubRepositoryRead(d, meta)
