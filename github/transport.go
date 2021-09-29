@@ -127,7 +127,7 @@ func (rlt *RateLimitTransport) unlock(req *http.Request) {
 
 type RateLimitTransportOption func(*RateLimitTransport)
 
-// NetRateLimitTransport takes in an http.RoundTripper and a variadic list of
+// NewRateLimitTransport takes in an http.RoundTripper and a variadic list of
 // optional functions that modify the RateLimitTransport struct itself. This
 // may be used to alter the write delay in between requests, for example.
 func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOption) *RateLimitTransport {
