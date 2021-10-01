@@ -165,7 +165,6 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	}
 
 	if enabledRepositories == "selected" {
-		// Error if the required block not set - make it more friendly here
 		enabledReposData, err := resourceGithubActionsEnabledRepositoriesObject(d)
 		if err != nil {
 			return err
