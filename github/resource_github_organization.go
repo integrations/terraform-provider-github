@@ -38,8 +38,8 @@ func resourceGithubOrganization() *schema.Resource {
 
 func resourceGithubOrganizationCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
+	authenticatedUser := meta.(*Owner).name
 
-	ownerName := meta.(*Owner).name
 	organizationName := github.String(d.Get("login").(string))
 	enterpriseAdmin := github.String(d.Get("admin").(string))
 
@@ -49,7 +49,8 @@ func resourceGithubOrganizationCreate(d *schema.ResourceData, meta interface{}) 
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization: %s (%s)", *organizationName, ownerName)
+	// if enterpriseAdmin != authenticatedUser something is wrong
+	log.Printf("[DEBUG] Creating organization: %s (%s)", *organizationName, authenticatedUser)
 	githubOrganization, _, err := client.Admin.CreateOrg(ctx, &newOrganization, *enterpriseAdmin)
 	if err != nil {
 		return err

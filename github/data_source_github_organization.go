@@ -66,7 +66,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	plan := organization.GetPlan()
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
 	var repoList []string
@@ -90,7 +90,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	membershipOpts := &github.ListMembersOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
 	var memberList []string
