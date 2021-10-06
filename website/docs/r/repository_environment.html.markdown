@@ -59,3 +59,12 @@ The `deployment_branch_policy` block supports the following:
 * `protected_branches` - (Required) Whether only branches with branch protection rules can deploy to this environment.
 
 * `custom_branch_policies` - (Required) Whether only branches that match the specified name patterns can deploy to this environment.
+
+
+## Import
+
+GitHub Repository Environment can be imported using an ID made up of `name` of the repository combined with the `environment` name of the environment, separated by a `:` character, e.g.
+
+```
+$ terraform import github_repository_environment.daily terraform:daily
+```
