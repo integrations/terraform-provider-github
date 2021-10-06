@@ -21,8 +21,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			}
 
 			resource "github_repository_autolink_reference" "autolink" {
-			  depends_on = ["github_repository.off"]
-			  repository = "github_repository.oof.name"
+			  repository = github_repository.oof.name
 
 			  key_prefix 		  = "OOF-"
 			  target_url_template = "https://awesome.com/find/OOF-<num>"
@@ -74,8 +73,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			}
 
 			resource "github_repository_autolink_reference" "autolink" {
-			  depends_on = ["github_repository.off"]
-			  repository = "github_repository.oof.name"
+			  repository = github_repository.oof.name
 
 			  key_prefix 		  = "OOF-"
 			  target_url_template = "https://awesome.com/find/OOF-<num>"
@@ -94,7 +92,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 						ResourceName:        "github_repository_autolink_reference.autolink",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("off-%s/", randomID),
+						ImportStateIdPrefix: fmt.Sprintf("oof-%s/", randomID),
 					},
 				},
 			})
@@ -123,8 +121,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			}
 
 			resource "github_repository_autolink_reference" "autolink" {
-			  depends_on = ["github_repository.off"]
-			  repository = "github_repository.oof.name"
+			  repository = github_repository.oof.name
 
 			  key_prefix 		  = "OOF-"
 			  target_url_template = "https://awesome.com/find/OOF-<num>"
