@@ -228,6 +228,40 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			}
 
 			token = appToken
+
+			if owner == "" {
+				ctx := context.Background()
+
+				// Authenticate using the App Installation `token`
+				ts := oauth2.StaticTokenSource(
+					&oauth2.Token{AccessToken: token},
+				)
+			
+				client := oauth2.NewClient(ctx, ts)
+			
+				v3client, err := c.NewRESTClient(RateLimitedHTTPClient(client, c.WriteDelay))
+			
+				if err != nil {
+					return nil, err
+				}
+			
+				var owner Owner
+				owner.v3client = v3client
+			
+				installation, err := client.Apps.GetInstallation(ctx, appInstallationId)
+			
+				if err != nil {
+					t.Errorf("Apps.GetInstallation returned error: %v", err)
+				}
+			
+				org, err := clients.Orgs.GetByID(ctx, installation.TargetID)
+			
+				if err != nil {
+					t.Errorf("Orgs.GetByID returned error: %v", err)
+				}
+			
+				owner = org.Login
+			}
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
