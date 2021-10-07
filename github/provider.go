@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -217,7 +218,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			}
 
 			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				appPemFile = v
+				appPemFile = strings.Replace(v, `\n`, "\n", -1)
 			} else {
 				return nil, fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")
 			}
