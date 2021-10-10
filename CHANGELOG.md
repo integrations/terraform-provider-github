@@ -1,7 +1,7 @@
 ## 4.16.0 (Oct 5, 2021)
 
 ENHANCEMENTS:
-- Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/906))
+- Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/907))
 
 BUG FIXES:
 - Update `go-github` to v39.0.0 ([#905](https://github.com/integrations/terraform-provider-github/pull/905))
