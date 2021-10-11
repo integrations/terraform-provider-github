@@ -15,6 +15,19 @@ type RequestedAction struct {
 	Identifier string `json:"identifier"` // The integrator reference of the action requested by the user.
 }
 
+// BranchProtectionRuleEvent triggered when a check suite is "created", "edited", or "deleted".
+// The Webhook event name is "branch_protection_rule".
+//
+// GitHub API docs: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#branch_protection_rule
+type BranchProtectionRuleEvent struct {
+	Action  *string               `json:"action,omitempty"`
+	Rule    *BranchProtectionRule `json:"rule,omitempty"`
+	Changes *ProtectionChanges    `json:"changes,omitempty"`
+	Repo    *Repository           `json:"repository,omitempty"`
+	Org     *Organization         `json:"organization,omitempty"`
+	Sender  *User                 `json:"sender,omitempty"`
+}
+
 // CheckRunEvent is triggered when a check run is "created", "completed", or "rerequested".
 // The Webhook event name is "check_run".
 //
@@ -130,6 +143,9 @@ type DeployKeyEvent struct {
 
 	// The deploy key resource.
 	Key *Key `json:"key,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // DeploymentEvent represents a deployment.
@@ -186,7 +202,8 @@ type GitHubAppAuthorizationEvent struct {
 	Action *string `json:"action,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	Sender *User `json:"sender,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // Page represents a single Wiki page.
@@ -478,6 +495,9 @@ type MetaEvent struct {
 	// This will contain different keys based on the type of webhook it is: repository,
 	// organization, business, app, or GitHub Marketplace.
 	Hook *Hook `json:"hook,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // MilestoneEvent is triggered when a milestone is created, closed, opened, edited, or deleted.
@@ -551,6 +571,9 @@ type PackageEvent struct {
 	Repo    *Repository   `json:"repository,omitempty"`
 	Org     *Organization `json:"organization,omitempty"`
 	Sender  *User         `json:"sender,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // PageBuildEvent represents an attempted build of a GitHub Pages site, whether
@@ -939,6 +962,9 @@ type RepositoryVulnerabilityAlertEvent struct {
 
 	//The repository of the vulnerable dependency.
 	Repository *Repository `json:"repository,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // RepositoryVulnerabilityAlert represents a repository security alert.
@@ -969,9 +995,10 @@ type StarEvent struct {
 	StarredAt *Timestamp `json:"starred_at,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	Org    *Organization `json:"organization,omitempty"`
-	Repo   *Repository   `json:"repository,omitempty"`
-	Sender *User         `json:"sender,omitempty"`
+	Org          *Organization `json:"organization,omitempty"`
+	Repo         *Repository   `json:"repository,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // StatusEvent is triggered when the status of a Git commit changes.
@@ -1049,6 +1076,9 @@ type UserEvent struct {
 	Action     *string     `json:"action,omitempty"`
 	Enterprise *Enterprise `json:"enterprise,omitempty"`
 	Sender     *User       `json:"sender,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // WatchEvent is related to starring a repository, not watching. See this API
@@ -1078,9 +1108,10 @@ type WorkflowDispatchEvent struct {
 	Workflow *string         `json:"workflow,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	Repo   *Repository   `json:"repository,omitempty"`
-	Org    *Organization `json:"organization,omitempty"`
-	Sender *User         `json:"sender,omitempty"`
+	Repo         *Repository   `json:"repository,omitempty"`
+	Org          *Organization `json:"organization,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // WorkflowJobEvent is triggered when a job is queued, started or completed.
@@ -1092,9 +1123,10 @@ type WorkflowJobEvent struct {
 	Action *string `json:"action,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	Org    *Organization `json:"organization,omitempty"`
-	Repo   *Repository   `json:"repository,omitempty"`
-	Sender *User         `json:"sender,omitempty"`
+	Org          *Organization `json:"organization,omitempty"`
+	Repo         *Repository   `json:"repository,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
 }
 
 // WorkflowRunEvent is triggered when a GitHub Actions workflow run is requested or completed.
@@ -1106,7 +1138,8 @@ type WorkflowRunEvent struct {
 	WorkflowRun *WorkflowRun `json:"workflow_run,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	Org    *Organization `json:"organization,omitempty"`
-	Repo   *Repository   `json:"repository,omitempty"`
-	Sender *User         `json:"sender,omitempty"`
+	Org          *Organization `json:"organization,omitempty"`
+	Repo         *Repository   `json:"repository,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
 }
