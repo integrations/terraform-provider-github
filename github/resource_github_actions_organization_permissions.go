@@ -93,7 +93,7 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 		switch t := data["patterns_allowed"].(type) {
 		case *schema.Set:
 			for _, value := range t.List() {
-				patternsAllowed = append(patternsAllowed, string(value.(string)))
+				patternsAllowed = append(patternsAllowed, value.(string))
 			}
 		}
 
