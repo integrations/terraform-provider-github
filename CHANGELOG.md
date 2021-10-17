@@ -1,15 +1,30 @@
+## 4.17.0 (Oct 17, 2021)
+
+ENHANCEMENTS:
+
+- **New Resource:** `github_repository_autolink_reference` ([[#924](https://github.com/integrations/terraform-provider-github/pull/924)])
+- **New Data Sources** `github_users` ([#900](https://github.com/integrations/terraform-provider-github/pull/900))
+- Add `allow_auto_merge` option for `github_repository` ([#923](https://github.com/integrations/terraform-provider-github/pull/923))
+
+BUG FIXES:
+
+- Various documentation fixes 🙇
+
 ## 4.16.0 (Oct 5, 2021)
 
 ENHANCEMENTS:
+
 - Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/906))
 
 BUG FIXES:
+
 - Update `go-github` to v39.0.0 ([#905](https://github.com/integrations/terraform-provider-github/pull/905))
 
 ## 4.15.1 (Sep 23, 2021)
 
 BUG FIXES:
-- Revert suppression of  `etag` changes for `github_repository` resources ([[#991](https://github.com/integrations/terraform-provider-github/issues/991)])
+
+- Revert suppression of  `etag` changes for `github_repository` resources ([[#910](https://github.com/integrations/terraform-provider-github/issues/910)])
 
 ## 4.15.0 (Sep 22, 2021)
 
