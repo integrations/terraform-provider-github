@@ -50,11 +50,11 @@ The following additional attributes are exported:
 GitHub Branch can be imported using an ID made up of `repository:branch`, e.g.
 
 ```
-$ terraform import github_branch.terraform terraform:master
+$ terraform import github_branch.terraform terraform:main
 ```
 
 Optionally, a source branch may be specified using an ID of `repository:branch:source_branch`.
-This is useful for importing branches that do not branch directly off master.
+This is useful for importing branches that do not branch directly off main.
 
 ```
 $ terraform import github_branch.terraform terraform:feature-branch:dev
