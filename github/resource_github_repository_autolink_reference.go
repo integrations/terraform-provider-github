@@ -43,12 +43,14 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
+				ForceNew:    true,
 			},
 			"target_url_template": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
 				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
+				ForceNew:     true,
 			},
 			"etag": {
 				Type:     schema.TypeString,
