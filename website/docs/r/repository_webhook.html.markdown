@@ -48,7 +48,7 @@ The following arguments are supported:
 
 * `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
 
-* `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
+* `active` - (Optional) Indicate if the webhook should receive events. Defaults to `true`.
 
 * `name` - (Optional) The type of the webhook. `web` is the default and the only option.
 
