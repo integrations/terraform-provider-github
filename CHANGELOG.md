@@ -18,7 +18,7 @@ ENHANCEMENTS:
 - **New Resource:** `github_actions_organization_secret_repositories` ([[#882](https://github.com/integrations/terraform-provider-github/issues/882)])
 - **New Resource:** `github_actions_runner_group` ([[#821](https://github.com/integrations/terraform-provider-github/issues/821)])
 - Add `require_linear_history` to `github_branch_protection` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
-- Add `branches` attribute to `github_repository` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
+- Add `branches` attribute to `github_repository` resource ([[#892](https://github.com/integrations/terraform-provider-github/issues/892)])
 
 
 BUG FIXES:
