@@ -155,6 +155,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
+		data.RequiresStatusChecks = true
 		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
@@ -171,9 +172,6 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			}
 
 			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
-			if len(data.RequiredStatusCheckContexts) > 0 {
-				data.RequiresStatusChecks = true
-			}
 		}
 	}
 
