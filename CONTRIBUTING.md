@@ -61,7 +61,7 @@ Also note that there is no build / `terraform init` / `terraform plan` sequence 
 
 ### Debugging the terraform provider
 
-Println debugging to obtain information about how code changes perform . If the `TF_LOG=DEBUG` level is set, calls to `log.Printf("[DEBUG] your message here")` will be printed in the program's output.
+Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, calls to `log.Printf("[DEBUG] your message here")` will be printed in the program's output.
 
 If a full debugger is desired, VSCode may be used. In order to do so,
 
