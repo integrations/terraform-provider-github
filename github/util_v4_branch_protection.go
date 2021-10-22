@@ -318,7 +318,8 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 }
 
 func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
-	data := BranchProtectionResourceData{}
+	return false
+	/*data := BranchProtectionResourceData{}
 	checks := false
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
@@ -339,5 +340,5 @@ func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) boo
 	if old == "0" && new == "1" && !checks {
 		return true
 	}
-	return false
+	return false*/
 }

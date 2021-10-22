@@ -85,8 +85,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 				},
 			},
 			PROTECTION_REQUIRES_STATUS_CHECKS: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: statusChecksDiffSuppression,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRES_STRICT_STATUS_CHECKS: {
