@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-github
+module github.com/integrations/terraform-provider-github/v4
 
 go 1.16
 
