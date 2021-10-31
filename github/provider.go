@@ -221,8 +221,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 				// The Go encoding/pem package only decodes PEM formatted blocks
 				// that contain new lines. Some platforms, like Terraform Cloud,
 				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value 
-				// (explicit value, or default value taken from 
+				// Any occurrence of \n in the `pem_file` argument's value
+				// (explicit value, or default value taken from
 				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 				// actual new line character before decoding.
 				appPemFile = strings.Replace(v, `\n`, "\n", -1)
