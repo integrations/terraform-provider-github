@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -260,22 +261,27 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 					return nil, err
 				}
 
-				var owner Owner
-				owner.v3client = v3client
+				var o Owner
+				o.v3client = v3client
 
-				installation, err := client.Apps.GetInstallation(ctx, appInstallationID)
-
+				instid, err := strconv.ParseInt(appInstallationID, 10, 64)
 				if err != nil {
-					fmt.Errorf("Apps.GetInstallation returned error: %v", err)
+					return nil, unconvertibleIdErr(appInstallationID, err)
 				}
 
-				org, err := client.Orgs.GetByID(ctx, installation.TargetID)
+				installation, _, err := o.v3client.Apps.GetInstallation(ctx, instid)
 
 				if err != nil {
-					fmt.Errorf("Orgs.GetByID returned error: %v", err)
+					return nil, fmt.Errorf("Apps.GetInstallation returned error: %v", err)
 				}
 
-				owner = org.Login
+				org, _, err := o.v3client.Organizations.GetByID(ctx, *installation.TargetID)
+
+				if err != nil {
+					return nil, fmt.Errorf("Organizations.GetByID returned error: %v", err)
+				}
+
+				owner = *org.Login
 			}
 		}
 
