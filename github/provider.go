@@ -1,9 +1,12 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -199,6 +202,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			owner = org
 		}
 
+		writeDelay := d.Get("write_delay_ms").(int)
+		if writeDelay <= 0 {
+			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
+		}
+		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
+
 		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
 			appAuthAttr := appAuth[0].(map[string]interface{})
 
@@ -236,39 +245,39 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 				ts := oauth2.StaticTokenSource(
 					&oauth2.Token{AccessToken: token},
 				)
-			
+
 				client := oauth2.NewClient(ctx, ts)
-			
+				c := Config{
+					Token:      token,
+					BaseURL:    baseURL,
+					Insecure:   insecure,
+					WriteDelay: time.Duration(writeDelay) * time.Millisecond,
+				}
+
 				v3client, err := c.NewRESTClient(RateLimitedHTTPClient(client, c.WriteDelay))
-			
+
 				if err != nil {
 					return nil, err
 				}
-			
+
 				var owner Owner
 				owner.v3client = v3client
-			
-				installation, err := client.Apps.GetInstallation(ctx, appInstallationId)
-			
+
+				installation, err := client.Apps.GetInstallation(ctx, appInstallationID)
+
 				if err != nil {
-					t.Errorf("Apps.GetInstallation returned error: %v", err)
+					fmt.Errorf("Apps.GetInstallation returned error: %v", err)
 				}
-			
-				org, err := clients.Orgs.GetByID(ctx, installation.TargetID)
-			
+
+				org, err := client.Orgs.GetByID(ctx, installation.TargetID)
+
 				if err != nil {
-					t.Errorf("Orgs.GetByID returned error: %v", err)
+					fmt.Errorf("Orgs.GetByID returned error: %v", err)
 				}
-			
+
 				owner = org.Login
 			}
 		}
-
-		writeDelay := d.Get("write_delay_ms").(int)
-		if writeDelay <= 0 {
-			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
-		}
-		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
 
 		config := Config{
 			Token:      token,
