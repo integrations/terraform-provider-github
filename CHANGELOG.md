@@ -1,3 +1,15 @@
+## 4.18.0 (Nov 8, 2021)
+
+ENHANCEMENTS:
+
+- **New Resource:** `github_actions_organization_permissions` ([[#920](https://github.com/integrations/terraform-provider-github/pull/920)])
+
+BUG FIXES:
+
+- Add newline compatbility to GitHub App provider authentication ([[#931](https://github.com/integrations/terraform-provider-github/pull/931)])
+- Fix `strict` setting of `required_status_checks` for `github_branch_protection` resource ([[#880](https://github.com/integrations/terraform-provider-github/issues/880)])
+
+
 ## 4.17.0 (Oct 17, 2021)
 
 ENHANCEMENTS:
