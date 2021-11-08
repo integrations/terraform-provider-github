@@ -59,6 +59,35 @@ Note that some resources still use a previous format that is incompatible with a
 
 Also note that there is no build / `terraform init` / `terraform plan` sequence here.  It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
 
+### Debugging the terraform provider
+
+Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, calls to `log.Printf("[DEBUG] your message here")` will be printed in the program's output.
+
+If a full debugger is desired, VSCode may be used. In order to do so,
+
+1. create a launch.json file with this configuration:
+```json
+{
+	"name": "Attach to Process",
+	"type": "go",
+	"request": "attach",
+	"mode": "local",
+	"processId": 0,
+}
+```
+Setting a `processId` of 0 allows a dropdown to select the process of the provider.
+
+2. Add a sleep call (e.g. `time.Sleep(15 * time.Second)`) in the [func providerConfigure(p *schema.Provider](https://github.com/integrations/terraform-provider-github/blob/main/github/provider.go#L176) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
+
+2. Build the terraform provider with debug flags enabled and copy it to a bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin`.
+
+3. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#building-the-provider) section.
+
+4. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
+
+5. The debugger is now connected! During a typical terraform command, the plugin may be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
+
+
 ## Automated And Manual Testing
 
 ### Overview
