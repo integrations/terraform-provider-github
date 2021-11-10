@@ -234,7 +234,7 @@ resource "github_team" "test_team" {
 
 resource "github_team_memberships" "test_team_memberships" {
   team_id  = "${github_team.test_team.id}"
-	member {
+	members {
 		username = "%s"
 		role     = "%s"
 	}
