@@ -1,15 +1,42 @@
+## 4.18.0 (Nov 8, 2021)
+
+ENHANCEMENTS:
+
+- **New Resource:** `github_actions_organization_permissions` ([[#920](https://github.com/integrations/terraform-provider-github/pull/920)])
+
+BUG FIXES:
+
+- Add newline compatbility to GitHub App provider authentication ([[#931](https://github.com/integrations/terraform-provider-github/pull/931)])
+- Fix `strict` setting of `required_status_checks` for `github_branch_protection` resource ([[#880](https://github.com/integrations/terraform-provider-github/issues/880)])
+
+
+## 4.17.0 (Oct 17, 2021)
+
+ENHANCEMENTS:
+
+- **New Resource:** `github_repository_autolink_reference` ([[#924](https://github.com/integrations/terraform-provider-github/pull/924)])
+- **New Data Sources** `github_users` ([#900](https://github.com/integrations/terraform-provider-github/pull/900))
+- Add `allow_auto_merge` option for `github_repository` ([#923](https://github.com/integrations/terraform-provider-github/pull/923))
+
+BUG FIXES:
+
+- Various documentation fixes 🙇
+
 ## 4.16.0 (Oct 5, 2021)
 
 ENHANCEMENTS:
+
 - Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/906))
 
 BUG FIXES:
+
 - Update `go-github` to v39.0.0 ([#905](https://github.com/integrations/terraform-provider-github/pull/905))
 
 ## 4.15.1 (Sep 23, 2021)
 
 BUG FIXES:
-- Revert suppression of  `etag` changes for `github_repository` resources ([[#991](https://github.com/integrations/terraform-provider-github/issues/991)])
+
+- Revert suppression of  `etag` changes for `github_repository` resources ([[#910](https://github.com/integrations/terraform-provider-github/issues/910)])
 
 ## 4.15.0 (Sep 22, 2021)
 
@@ -18,7 +45,7 @@ ENHANCEMENTS:
 - **New Resource:** `github_actions_organization_secret_repositories` ([[#882](https://github.com/integrations/terraform-provider-github/issues/882)])
 - **New Resource:** `github_actions_runner_group` ([[#821](https://github.com/integrations/terraform-provider-github/issues/821)])
 - Add `require_linear_history` to `github_branch_protection` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
-- Add `branches` attribute to `github_repository` resource ([[#887](https://github.com/integrations/terraform-provider-github/issues/887)])
+- Add `branches` attribute to `github_repository` resource ([[#892](https://github.com/integrations/terraform-provider-github/issues/892)])
 
 
 BUG FIXES:

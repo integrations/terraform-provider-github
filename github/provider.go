@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -89,6 +90,7 @@ func Provider() terraform.ResourceProvider {
 			"github_actions_environment_secret":               resourceGithubActionsEnvironmentSecret(),
 			"github_actions_organization_secret":              resourceGithubActionsOrganizationSecret(),
 			"github_actions_organization_secret_repositories": resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_organization_permissions":         resourceGithubActionsOrganizationPermissions(),
 			"github_actions_runner_group":                     resourceGithubActionsRunnerGroup(),
 			"github_actions_secret":                           resourceGithubActionsSecret(),
 			"github_app_installation_repository":              resourceGithubAppInstallationRepository(),
@@ -102,6 +104,7 @@ func Provider() terraform.ResourceProvider {
 			"github_organization_webhook":                     resourceGithubOrganizationWebhook(),
 			"github_project_card":                             resourceGithubProjectCard(),
 			"github_project_column":                           resourceGithubProjectColumn(),
+			"github_repository_autolink_reference":            resourceGithubRepositoryAutolinkReference(),
 			"github_repository_collaborator":                  resourceGithubRepositoryCollaborator(),
 			"github_repository_deploy_key":                    resourceGithubRepositoryDeployKey(),
 			"github_repository_environment":                   resourceGithubRepositoryEnvironment(),
@@ -139,6 +142,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_pull_requests":      dataSourceGithubRepositoryPullRequests(),
 			"github_team":                          dataSourceGithubTeam(),
 			"github_user":                          dataSourceGithubUser(),
+			"github_users":                         dataSourceGithubUsers(),
 		},
 	}
 
@@ -227,7 +231,14 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			}
 
 			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				appPemFile = v
+				// The Go encoding/pem package only decodes PEM formatted blocks
+				// that contain new lines. Some platforms, like Terraform Cloud,
+				// do not support new lines within Environment Variables.
+				// Any occurrence of \n in the `pem_file` argument's value
+				// (explicit value, or default value taken from
+				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
+				// actual new line character before decoding.
+				appPemFile = strings.Replace(v, `\n`, "\n", -1)
 			} else {
 				return nil, fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")
 			}

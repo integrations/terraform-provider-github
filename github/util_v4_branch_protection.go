@@ -155,6 +155,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
+		data.RequiresStatusChecks = true
 		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
@@ -171,9 +172,6 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			}
 
 			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
-			if len(data.RequiredStatusCheckContexts) > 0 {
-				data.RequiresStatusChecks = true
-			}
 		}
 	}
 
@@ -317,29 +315,4 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 	}
 
 	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
-}
-
-func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
-	data := BranchProtectionResourceData{}
-	checks := false
-
-	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
-		vL := v.([]interface{})
-		for _, v := range vL {
-			if v == nil {
-				break
-			}
-
-			m := v.(map[string]interface{})
-			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
-			if len(data.RequiredStatusCheckContexts) > 0 {
-				checks = true
-			}
-		}
-	}
-
-	if old == "0" && new == "1" && !checks {
-		return true
-	}
-	return false
 }
