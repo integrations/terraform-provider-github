@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubTeamMemberships_basic(t *testing.T) {
+func TestAccGithubTeamMembers_basic(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
@@ -23,26 +23,26 @@ func TestAccGithubTeamMemberships_basic(t *testing.T) {
 
 	var membership github.Membership
 
-	rn := "github_team_membership.test_team_memberships"
+	rn := "github_team_membership.test_team_members"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipsDestroy,
+		CheckDestroy: testAccCheckGithubTeamMembersDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipsConfig(randString, testCollaborator, "member"),
+				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipsExists(rn, &membership),
-					testAccCheckGithubTeamMembershipsRoleState(rn, "member", &membership),
+					testAccCheckGithubTeamMembersExists(rn, &membership),
+					testAccCheckGithubTeamMembersRoleState(rn, "member", &membership),
 				),
 			},
 			{
-				Config: testAccGithubTeamMembershipsConfig(randString, testCollaborator, "maintainer"),
+				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "maintainer"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipsExists(rn, &membership),
-					testAccCheckGithubTeamMembershipsRoleState(rn, "maintainer", &membership),
+					testAccCheckGithubTeamMembersExists(rn, &membership),
+					testAccCheckGithubTeamMembersRoleState(rn, "maintainer", &membership),
 				),
 			},
 			{
@@ -54,7 +54,7 @@ func TestAccGithubTeamMemberships_basic(t *testing.T) {
 	})
 }
 
-func TestAccGithubTeamMemberships_caseInsensitive(t *testing.T) {
+func TestAccGithubTeamMembers_caseInsensitive(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
@@ -65,7 +65,7 @@ func TestAccGithubTeamMemberships_caseInsensitive(t *testing.T) {
 	var membership github.Membership
 	var otherMembership github.Membership
 
-	rn := "github_team_membership.test_team_memberships"
+	rn := "github_team_membership.test_team_members"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	otherCase := flipUsernameCase(testCollaborator)
@@ -77,19 +77,19 @@ func TestAccGithubTeamMemberships_caseInsensitive(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipsDestroy,
+		CheckDestroy: testAccCheckGithubTeamMembersDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipsConfig(randString, testCollaborator, "member"),
+				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipsExists(rn, &membership),
+					testAccCheckGithubTeamMembersExists(rn, &membership),
 				),
 			},
 			{
-				Config: testAccGithubTeamMembershipsConfig(randString, otherCase, "member"),
+				Config: testAccGithubTeamMembersConfig(randString, otherCase, "member"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembershipsExists(rn, &otherMembership),
-					testAccGithubTeamMembershipsTheSame(&membership, &otherMembership),
+					testAccCheckGithubTeamMembersExists(rn, &otherMembership),
+					testAccGithubTeamMembersTheSame(&membership, &otherMembership),
 				),
 			},
 			{
@@ -101,12 +101,12 @@ func TestAccGithubTeamMemberships_caseInsensitive(t *testing.T) {
 	})
 }
 
-func testAccCheckGithubTeamMembershipsDestroy(s *terraform.State) error {
+func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Owner).v3client
 	orgId := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_team_memberships" {
+		if rs.Type != "github_team_members" {
 			continue
 		}
 
@@ -132,7 +132,7 @@ func testAccCheckGithubTeamMembershipsDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckGithubTeamMembershipsExists(n string, membership *github.Membership) resource.TestCheckFunc {
+func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -171,7 +171,7 @@ func testAccCheckGithubTeamMembershipsExists(n string, membership *github.Member
 	}
 }
 
-func testAccCheckGithubTeamMembershipsRoleState(n, expected string, membership *github.Membership) resource.TestCheckFunc {
+func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -200,14 +200,14 @@ func testAccCheckGithubTeamMembershipsRoleState(n, expected string, membership *
 			return fmt.Errorf("Team has not one member: %d", len(members))
 		}
 
-		TeamMemberships, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
+		TeamMembers, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
 			orgId, teamId, *members[0].Login)
 		if err != nil {
 			return err
 		}
 
 		resourceRole := membership.GetRole()
-		actualRole := TeamMemberships.GetRole()
+		actualRole := TeamMembers.GetRole()
 
 		if resourceRole != expected {
 			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
@@ -220,7 +220,7 @@ func testAccCheckGithubTeamMembershipsRoleState(n, expected string, membership *
 	}
 }
 
-func testAccGithubTeamMembershipsConfig(randString, username, role string) string {
+func testAccGithubTeamMembersConfig(randString, username, role string) string {
 	return fmt.Sprintf(`
 resource "github_membership" "test_org_membership" {
   username = "%s"
@@ -232,7 +232,7 @@ resource "github_team" "test_team" {
   description = "Terraform acc test group"
 }
 
-resource "github_team_memberships" "test_team_memberships" {
+resource "github_team_members" "test_team_members" {
   team_id  = "${github_team.test_team.id}"
 	members {
 		username = "%s"
@@ -242,7 +242,7 @@ resource "github_team_memberships" "test_team_memberships" {
 `, username, randString, username, role)
 }
 
-func testAccGithubTeamMembershipsTheSame(orig, other *github.Membership) resource.TestCheckFunc {
+func testAccGithubTeamMembersTheSame(orig, other *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *orig.URL != *other.URL {
 			return errors.New("users are different")

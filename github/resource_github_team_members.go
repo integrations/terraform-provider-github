@@ -14,13 +14,13 @@ type MemberChange struct {
 	Old, New map[string]interface{}
 }
 
-func resourceGithubTeamMemberships() *schema.Resource {
+func resourceGithubTeamMembers() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceGithubTeamMembershipsCreate,
-		Read:   resourceGithubTeamMembershipsRead,
-		Update: resourceGithubTeamMembershipsUpdate,
-		Delete: resourceGithubTeamMembershipsDelete,
+		Create: resourceGithubTeamMembersCreate,
+		Read:   resourceGithubTeamMembersRead,
+		Update: resourceGithubTeamMembersUpdate,
+		Delete: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -59,7 +59,7 @@ func resourceGithubTeamMemberships() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembershipsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -92,10 +92,10 @@ func resourceGithubTeamMembershipsCreate(d *schema.ResourceData, meta interface{
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembershipsRead(d, meta)
+	return resourceGithubTeamMembersRead(d, meta)
 }
 
-func resourceGithubTeamMembershipsUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -178,10 +178,10 @@ func resourceGithubTeamMembershipsUpdate(d *schema.ResourceData, meta interface{
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembershipsRead(d, meta)
+	return resourceGithubTeamMembersRead(d, meta)
 }
 
-func resourceGithubTeamMembershipsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
@@ -240,7 +240,7 @@ func resourceGithubTeamMembershipsRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceGithubTeamMembershipsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
