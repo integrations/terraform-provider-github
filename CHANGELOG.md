@@ -1,3 +1,11 @@
+## 4.18.1 (Nov 22, 2021)
+
+BUG FIXES:
+
+- Add length requirement to `topics` option for `github_repository` ([[#951](https://github.com/integrations/terraform-provider-github/pull/951)])
+- Add pagination to `selected_repositories` option for `github_actions_runner_group` ([[#970](https://github.com/integrations/terraform-provider-github/pull/970)])
+- Add handling for new `node_id` format introduced to the GitHub GraphQL API (`github_repository`) ([[#914](https://github.com/integrations/terraform-provider-github/pull/914)])
+
 ## 4.18.0 (Nov 8, 2021)
 
 ENHANCEMENTS:
