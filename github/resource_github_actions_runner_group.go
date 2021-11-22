@@ -169,15 +169,28 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("visibility", runnerGroup.GetVisibility())
 
 	log.Printf("[DEBUG] Reading organization runner group repositories: %s (%s)", d.Id(), orgName)
-	runnerGroupRepositories, _, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, nil)
-	if err != nil {
-		return err
+	selectedRepositoryIDs := []int64{}
+	options := github.ListOptions{
+		PerPage: maxPerPage,
 	}
 
-	selectedRepositoryIDs := []int64{}
-	for _, repo := range runnerGroupRepositories.Repositories {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, *repo.ID)
+	for {
+		runnerGroupRepositories, resp, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, &options)
+		if err != nil {
+			return err
+		}
+
+		for _, repo := range runnerGroupRepositories.Repositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, *repo.ID)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.Page = resp.NextPage
 	}
+
 	log.Printf("[DEBUG] Got selected_repository_ids: %v", selectedRepositoryIDs)
 	d.Set("selected_repository_ids", selectedRepositoryIDs)
 
@@ -209,6 +222,24 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 
 	log.Printf("[DEBUG] Updating organization runner group: %s (%s)", d.Id(), orgName)
 	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
+		return err
+	}
+
+	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	selectedRepositoryIDs := []int64{}
+
+	if hasSelectedRepositories {
+		ids := selectedRepositories.(*schema.Set).List()
+
+		for _, id := range ids {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		}
+	}
+
+	reposOptions := github.SetRepoAccessRunnerGroupRequest{SelectedRepositoryIDs: selectedRepositoryIDs}
+
+	log.Printf("[DEBUG] Updating organization runner group's selected repositries: %s (%s)", d.Id(), orgName)
+	if _, err := client.Actions.SetRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, reposOptions); err != nil {
 		return err
 	}
 
