@@ -178,7 +178,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen"),
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,34}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 35 characters or less"),
 				},
 			},
 			"vulnerability_alerts": {
