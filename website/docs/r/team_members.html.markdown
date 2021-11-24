@@ -9,10 +9,11 @@ description: |-
 
 Provides a GitHub team members resource.
 
-Authoritative. Sets the team members for the team and removes all unmanaged users from the team. This resource allows you to manage users from teams in your organization. When applied,
-the users will be added to the team. If the user hasn't accepted their invitation to the
-organization, they won't be part of the team until they do. When
-destroyed, the users will be removed from the team.
+This resource allows you to manage members of teams in your organization. It sets the requested team members for the team and removes all unmanaged users.
+
+When applied, if the user hasn't accepted their invitation to the organization, they won't be part of the team until they do.
+
+When destroyed, all users will be removed from the team.
 
 > Note: You can accidentally lock yourself out of your team using this resource. Deleting a github_team_members removes access from anyone without organization-level access to the team. Proceed with caution.It should generally only be used with teams fully managed by Terraform.
 
@@ -43,7 +44,7 @@ resource "github_team_members" "some_team_members" {
     role     = "maintainer"
   }
 
-  members {s
+  members {
     username = "AnotherUser"
     role     = "member"
   }
