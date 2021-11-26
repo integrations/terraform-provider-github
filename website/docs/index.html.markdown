@@ -100,8 +100,6 @@ The following arguments are supported in the `provider` block:
 
 * `owner` - (Optional) This is the target GitHub organization or individual user account to manage. For example, `torvalds` and `github` are valid owners. It is optional to provide this value and it can also be sourced from the `GITHUB_OWNER` environment variable. When not provided and a `token` is available, the individual user account owning the `token` will be used. When not provided and no `token` is available, the provider may not function correctly.
 
-* `organization` - (Deprecated) This behaves the same as `owner`, which should be used instead. This value can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
-
 * `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
   * `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
@@ -111,15 +109,5 @@ The following arguments are supported in the `provider` block:
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
-For backwards compatibility, if more than one of `owner`, `organization`,
-`GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set, the first in this
-list takes priority.
-
-1. Setting `organization` in the GitHub provider configuration.
-2. Setting the `GITHUB_ORGANIZATION` environment variable.
-3. Setting the `GITHUB_OWNER` environment variable.
-4. Setting `owner` in the GitHub provider configuration.
-
-~> It is a bug that `GITHUB_OWNER` takes precedence over `owner`, which may
-be fixed in a future major release. For compatibility with future releases,
-please set only one of `GITHUB_OWNER` and `owner`.
+// TODO(kfcampbell): is this true? (no) should it be true? (yes)
+If both `owner` and `GITHUB_OWNER` are set, `owner` takes priority.

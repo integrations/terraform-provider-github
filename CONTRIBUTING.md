@@ -38,7 +38,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 - Export the necessary configuration for authenticating your provider with GitHub
   ```sh
   export GITHUB_TOKEN=<token of a user with an organization account>
-  export GITHUB_ORGANIZATION=<name of an organization>
+  export GITHUB_OWNER=<name of an organization>
   ```
 - Build the project with `make build`
 - Try an example test run from the default (`master`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
@@ -218,7 +218,7 @@ Once the token has been created, it must be exported in your environment as `GIT
 
 ### GitHub Organization
 
-If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_ORGANIZATION`.
+If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_OWNER`.
 
 Make sure that your organization has a `terraform-module-template` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
 

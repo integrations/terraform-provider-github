@@ -25,13 +25,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
 			},
-			"organization": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
-				Description: descriptions["organization"],
-				Deprecated:  "Use owner (or GITHUB_OWNER) instead of organization (or GITHUB_ORGANIZATION)",
-			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,

@@ -9,7 +9,6 @@ import (
 
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
-var testOrganization string = testOrganizationFunc()
 var testOwner string = os.Getenv("GITHUB_OWNER")
 var testToken string = os.Getenv("GITHUB_TOKEN")
 var testBaseURLGHES string = os.Getenv("GHES_BASE_URL")
@@ -18,8 +17,8 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TOKEN"); v == "" {
 		t.Fatal("GITHUB_TOKEN must be set for acceptance tests")
 	}
-	if v := os.Getenv("GITHUB_ORGANIZATION"); v == "" && os.Getenv("GITHUB_OWNER") == "" {
-		t.Fatal("GITHUB_ORGANIZATION or GITHUB_OWNER must be set for acceptance tests")
+	if v := os.Getenv("GITHUB_OWNER"); v == "" {
+		t.Fatal("GITHUB_OWNER must be set for acceptance tests")
 	}
 	if v := os.Getenv("GITHUB_TEST_USER"); v == "" {
 		t.Fatal("GITHUB_TEST_USER must be set for acceptance tests")
@@ -55,6 +54,14 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set")
 		}
+		// TODO(kfcampbell): this is a problem. how are we going to know it's an organization
+		// in acceptance tests?
+		// ideas:
+		// - we could perform a lookup online to determine the type
+		// - we could use the GITHUB_ORG variable only for acceptance tests
+		// - we could switch GITHUB_ORG to be a boolean
+		// - we could deprecate GITHUB_ORG entirely and create
+		// 	another environment variable boolean to use instead
 	case organization:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_ORGANIZATION") != "" {
 			return
@@ -73,11 +80,7 @@ func testAccCheckOrganization() error {
 
 	owner := os.Getenv("GITHUB_OWNER")
 	if owner == "" {
-		organization := os.Getenv("GITHUB_ORGANIZATION")
-		if organization == "" {
-			return fmt.Errorf("Neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
-		}
-		owner = organization
+		return fmt.Errorf("`GITHUB_OWNER` not set in environment")
 	}
 
 	config := Config{
@@ -97,21 +100,9 @@ func testAccCheckOrganization() error {
 }
 
 func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
-	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		log.Printf("[DEBUG] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
-		return organization, nil
-	}
 	owner := os.Getenv("GITHUB_OWNER")
 	log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
 	return owner, nil
-}
-
-func testOrganizationFunc() string {
-	organization := os.Getenv("GITHUB_ORGANIZATION")
-	if organization == "" {
-		organization = os.Getenv("GITHUB_TEST_ORGANIZATION")
-	}
-	return organization
 }
 
 func testOwnerFunc() string {
