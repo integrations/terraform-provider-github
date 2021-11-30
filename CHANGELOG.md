@@ -34,7 +34,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
-- Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/906))
+- Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/907))
 
 BUG FIXES:
 
