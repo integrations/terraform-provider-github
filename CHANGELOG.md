@@ -1,3 +1,10 @@
+## 4.18.2 (Nov 30, 2021)
+
+BUG FIXES:
+
+- Add length requirement to `name` option for `github_repository` ([[#965](https://github.com/integrations/terraform-provider-github/pull/965)])
+- Various documentation fixes 🙇
+
 ## 4.18.1 (Nov 22, 2021)
 
 BUG FIXES:
