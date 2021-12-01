@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 )
@@ -97,12 +96,6 @@ func testAccCheckOrganization() error {
 		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
-}
-
-func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
-	owner := os.Getenv("GITHUB_OWNER")
-	log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
-	return owner, nil
 }
 
 func testOwnerFunc() string {

@@ -151,11 +151,7 @@ func init() {
 
 		"insecure": "Enable `insecure` mode for testing purposes",
 
-		"owner": "The GitHub owner name to manage. " +
-			"Use this field instead of `organization` when managing individual accounts.",
-
-		"organization": "The GitHub organization name to manage. " +
-			"Use this field instead of `owner` when managing organization accounts.",
+		"owner": "The GitHub organization or user name to manage. ",
 
 		"app_auth": "The GitHub App credentials used to connect to GitHub. Conflicts with " +
 			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
@@ -173,28 +169,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
-
-		// BEGIN backwards compatibility
-		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
-		// 'owner' and 'organization'. This meant that if 'owner' and
-		// 'GITHUB_OWNER' were set, 'GITHUB_OWNER' would be used as the default
-		// value of 'organization' and therefore override 'owner'.
-		//
-		// This seems undesirable (an environment variable should not override
-		// an explicitly set value in a provider block), but is necessary
-		// for backwards compatibility. We could remove this backwards compatibility
-		// code in a future major release.
-		env, _ := OwnerOrOrgEnvDefaultFunc()
-		if env.(string) != "" {
-			owner = env.(string)
-		}
-		// END backwards compatibility
-
-		org := d.Get("organization").(string)
-		if org != "" {
-			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
-			owner = org
-		}
 
 		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
 			appAuthAttr := appAuth[0].(map[string]interface{})
