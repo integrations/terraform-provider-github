@@ -17,7 +17,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, testOwner, testOrganization)
+		`, testOwner, testOwner)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwner),
@@ -59,7 +59,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, "!"+testOwner, testOrganization)
+		`, "!"+testOwner, testOwner)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{

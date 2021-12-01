@@ -21,15 +21,15 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			data "github_repository" "test" {
 				full_name = data.github_repositories.test.full_names.0
 			}
-		`, testOrganization)
+		`, testOwner)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOrganization)),
+				regexp.MustCompile(`^`+testOwner)),
 			resource.TestMatchResourceAttr(
 				"data.github_repository.test", "full_name",
-				regexp.MustCompile(`^`+testOrganization)),
+				regexp.MustCompile(`^`+testOwner)),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -101,7 +101,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
-		
+
 			resource "github_repository" "test" {
 				name         = "tf-acc-%s"
 				auto_init    = true

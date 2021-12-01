@@ -7,6 +7,7 @@ import (
 )
 
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
+
 var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
 var testOwner string = os.Getenv("GITHUB_OWNER")
 var testToken string = os.Getenv("GITHUB_TOKEN")
@@ -45,13 +46,13 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		if os.Getenv("GITHUB_TOKEN") == "" {
 			return
 		} else {
-			t.Log("GITHUB_TOKEN environment variable should be empty")
+			t.Log("GITHUB_TOKEN environment variable should be empty in anonymous mode")
 		}
-	case individual:
+	case individual, organization:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
 			return
 		} else {
-			t.Log("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set")
+			t.Logf("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set for tests in %v mode", providerMode)
 		}
 		// TODO(kfcampbell): this is a problem. how are we going to know it's an organization
 		// in acceptance tests?
@@ -61,12 +62,6 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		// - we could switch GITHUB_ORG to be a boolean
 		// - we could deprecate GITHUB_ORG entirely and create
 		// 	another environment variable boolean to use instead
-	case organization:
-		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_ORGANIZATION") != "" {
-			return
-		} else {
-			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION environment variables should be set")
-		}
 	}
 
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
@@ -96,6 +91,14 @@ func testAccCheckOrganization() error {
 		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
+}
+
+func testOwnerFunc() string {
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		owner = os.Getenv("GITHUB_TEST_OWNER")
+	}
+	return owner
 }
 
 const anonymous = "anonymous"
