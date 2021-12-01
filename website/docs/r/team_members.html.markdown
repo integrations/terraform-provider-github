@@ -9,13 +9,15 @@ description: |-
 
 Provides a GitHub team members resource.
 
-This resource allows you to manage members of teams in your organization. It sets the requested team members for the team and removes all unmanaged users.
+This resource allows you to manage members of teams in your organization. It sets the requested team members for the team and removes all users not managed by Terraform.
 
 When applied, if the user hasn't accepted their invitation to the organization, they won't be part of the team until they do.
 
 When destroyed, all users will be removed from the team.
 
-> Note: You can accidentally lock yourself out of your team using this resource. Deleting a github_team_members removes access from anyone without organization-level access to the team. Proceed with caution.It should generally only be used with teams fully managed by Terraform.
+~> **Note**: This resource is not compatible with `github_team_membership`. Use either `github_team_members` or `github_team_membership`.
+
+~> **Note**:Note: You can accidentally lock yourself out of your team using this resource. Deleting a `github_team_members` resource removes access from anyone without organization-level access to the team. Proceed with caution. It should generally only be used with teams fully managed by Terraform.
 
 ## Example Usage
 
