@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -13,92 +12,61 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubTeamMembers_basic(t *testing.T) {
+func TestAccGithubTeamMembers(t *testing.T) {
 	if testCollaborator == "" {
 		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
 	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	resourceName := "github_team_members.test_team_members"
 
 	var membership github.Membership
 
-	rn := "github_team_membership.test_team_members"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	t.Run("creates a team & members configured with defaults", func(t *testing.T) {
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:     func() { skipUnlessMode(t, mode) },
+				Providers:    testAccProviders,
+				CheckDestroy: testAccCheckGithubTeamMembersDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccGithubTeamMembersConfig(randomID, testCollaborator, "member"),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrSet(resourceName, "etag"),
+							testAccCheckGithubTeamMembersExists(resourceName, &membership),
+							testAccCheckGithubTeamMembersRoleState(resourceName, "member", &membership),
+						),
+					},
+					{
+						Config: testAccGithubTeamMembersConfig(randomID, testCollaborator, "maintainer"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckGithubTeamMembersExists(resourceName, &membership),
+							testAccCheckGithubTeamMembersRoleState(resourceName, "maintainer", &membership),
+						),
+					},
+					{
+						ResourceName:      resourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembersDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "member"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembersExists(rn, &membership),
-					testAccCheckGithubTeamMembersRoleState(rn, "member", &membership),
-				),
-			},
-			{
-				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "maintainer"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembersExists(rn, &membership),
-					testAccCheckGithubTeamMembersRoleState(rn, "maintainer", &membership),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
-}
 
-func TestAccGithubTeamMembers_caseInsensitive(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
-
-	var membership github.Membership
-	var otherMembership github.Membership
-
-	rn := "github_team_membership.test_team_members"
-	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-	otherCase := flipUsernameCase(testCollaborator)
-
-	if testCollaborator == otherCase {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
-	}
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembersDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamMembersConfig(randString, testCollaborator, "member"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembersExists(rn, &membership),
-				),
-			},
-			{
-				Config: testAccGithubTeamMembersConfig(randString, otherCase, "member"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamMembersExists(rn, &otherMembership),
-					testAccGithubTeamMembersTheSame(&membership, &otherMembership),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
 }
 
 func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
@@ -238,16 +206,8 @@ resource "github_team_members" "test_team_members" {
 		username = "%s"
 		role     = "%s"
 	}
+
+	depends_on = [github_membership.github_membership]
 }
 `, username, randString, username, role)
-}
-
-func testAccGithubTeamMembersTheSame(orig, other *github.Membership) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if *orig.URL != *other.URL {
-			return errors.New("users are different")
-		}
-
-		return nil
-	}
 }
