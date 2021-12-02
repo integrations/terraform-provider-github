@@ -19,12 +19,12 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 			data "github_repositories" "test" {
 				query = "org:%s"
 			}
-		`, testOwner)
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOwner),
+				regexp.MustCompile(`^`+testOrganization),
 			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repositories.test", "names.0",

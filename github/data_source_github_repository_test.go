@@ -21,15 +21,15 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			data "github_repository" "test" {
 				full_name = data.github_repositories.test.full_names.0
 			}
-		`, testOwner)
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOwner)),
+				regexp.MustCompile(`^`+testOrganization)),
 			resource.TestMatchResourceAttr(
 				"data.github_repository.test", "full_name",
-				regexp.MustCompile(`^`+testOwner)),
+				regexp.MustCompile(`^`+testOrganization)),
 		)
 
 		testCase := func(t *testing.T, mode string) {

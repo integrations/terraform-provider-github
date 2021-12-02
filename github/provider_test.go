@@ -124,7 +124,7 @@ func TestAccProviderConfigure(t *testing.T) {
 				token = "%s"
 				organization = "%s"
 			}`,
-			testToken, testOwner,
+			testToken, testOrganizationFunc(),
 		)
 
 		resource.Test(t, resource.TestCase{

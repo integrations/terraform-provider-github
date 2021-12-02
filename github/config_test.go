@@ -87,7 +87,7 @@ func TestAccConfigMeta(t *testing.T) {
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
-			Owner:   testOwner,
+			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -96,7 +96,7 @@ func TestAccConfigMeta(t *testing.T) {
 
 		ctx := context.Background()
 		client := meta.(*Owner).v3client
-		_, _, err = client.Organizations.Get(ctx, testOwner)
+		_, _, err = client.Organizations.Get(ctx, testOrganization)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
@@ -108,7 +108,7 @@ func TestAccConfigMeta(t *testing.T) {
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
-			Owner:   testOwner,
+			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -123,7 +123,7 @@ func TestAccConfigMeta(t *testing.T) {
 			} `graphql:"organization(login: $login)"`
 		}
 		variables := map[string]interface{}{
-			"login": githubv4.String(testOwner),
+			"login": githubv4.String(testOrganization),
 		}
 		err = client.Query(context.Background(), &query, variables)
 		if err != nil {

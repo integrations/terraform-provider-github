@@ -530,7 +530,7 @@ func TestAccGithubRepositories(t *testing.T) {
 				}
 
 			}
-		`, randomID, testOwner, "terraform-template-module")
+		`, randomID, testOrganization, "terraform-template-module")
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -1078,7 +1078,7 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 					repository = "%s"
 				}
 			}
-		`, randomID, testOwner, "terraform-template-module")
+		`, randomID, testOrganization, "terraform-template-module")
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

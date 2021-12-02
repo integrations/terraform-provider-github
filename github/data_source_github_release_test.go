@@ -13,7 +13,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 
 	testReleaseRepository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	testReleaseID := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID")
-	testReleaseOwner := testOwner
+	testReleaseOwner := testOrganizationFunc()
 
 	t.Run("queries latest release", func(t *testing.T) {
 

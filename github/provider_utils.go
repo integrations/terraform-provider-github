@@ -2,11 +2,13 @@ package github
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 )
 
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var testOrganization string = testOrganizationFunc()
 
 var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
 var testOwner string = os.Getenv("GITHUB_OWNER")
@@ -35,8 +37,10 @@ func testAccPreCheck(t *testing.T) {
 }
 
 func skipUnlessMode(t *testing.T, providerMode string) {
+	log.Printf("[DEBUG] <<<<<<< skipUnlessMode")
 	switch providerMode {
 	case anonymous:
+		log.Printf("[DEBUG] <<<<<<< anonymous")
 		if os.Getenv("GITHUB_BASE_URL") != "" &&
 			os.Getenv("GITHUB_BASE_URL") != "https://api.github.com/" {
 			t.Log("anonymous mode not supported for GHES deployments")
@@ -44,12 +48,15 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		}
 
 		if os.Getenv("GITHUB_TOKEN") == "" {
+			log.Printf("[DEBUG] <<<<<<< configuring anonymous user without token")
 			return
 		} else {
 			t.Log("GITHUB_TOKEN environment variable should be empty in anonymous mode")
 		}
 	case individual, organization:
+		log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
+			log.Printf("[DEBUG] <<<<<<< configuring user type: %s", providerMode)
 			return
 		} else {
 			t.Logf("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set for tests in %v mode", providerMode)
@@ -64,6 +71,7 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		// 	another environment variable boolean to use instead
 	}
 
+	log.Printf("[DEBUG] <<<<<<< skipping!")
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
 }
 
@@ -99,6 +107,18 @@ func testOwnerFunc() string {
 		owner = os.Getenv("GITHUB_TEST_OWNER")
 	}
 	return owner
+}
+
+// testOrganizationFunc returns a test organization. IMPORTANT:
+// since GITHUB_ORGANIZATION is deprecated, this is an ugly fallback
+// to make sure that we can still test organization cases appropriately
+// in integration testing.
+func testOrganizationFunc() string {
+	organization := os.Getenv("GITHUB_TEST_ORGANIZATION")
+	if organization == "" {
+		organization = os.Getenv("GITHUB_OWNER")
+	}
+	return organization
 }
 
 const anonymous = "anonymous"
