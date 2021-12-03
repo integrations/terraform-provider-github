@@ -182,6 +182,11 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)

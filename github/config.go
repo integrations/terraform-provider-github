@@ -15,11 +15,12 @@ import (
 )
 
 type Config struct {
-	Token      string
-	Owner      string
-	BaseURL    string
-	Insecure   bool
-	WriteDelay time.Duration
+	Token       string
+	Owner       string
+	BaseURL     string
+	Insecure    bool
+	DetectDrift bool
+	WriteDelay  time.Duration
 }
 
 type Owner struct {
@@ -28,6 +29,7 @@ type Owner struct {
 	v3client       *github.Client
 	v4client       *githubv4.Client
 	StopContext    context.Context
+	DetectDrift    bool
 	IsOrganization bool
 }
 

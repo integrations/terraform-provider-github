@@ -182,6 +182,11 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 }
 
 func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

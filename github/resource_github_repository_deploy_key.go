@@ -82,6 +82,11 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

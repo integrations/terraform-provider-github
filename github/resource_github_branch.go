@@ -102,6 +102,11 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))

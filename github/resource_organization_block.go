@@ -55,6 +55,11 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 

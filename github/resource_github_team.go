@@ -129,6 +129,11 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

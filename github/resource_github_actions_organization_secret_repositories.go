@@ -66,6 +66,11 @@ func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(d *schema
 }
 
 func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()

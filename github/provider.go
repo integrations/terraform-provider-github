@@ -32,6 +32,12 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["organization"],
 				Deprecated:  "Use owner (or GITHUB_OWNER) instead of organization (or GITHUB_ORGANIZATION)",
 			},
+			"detect_drift": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["detect_drift"],
+			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -157,6 +163,8 @@ func init() {
 
 		"base_url": "The GitHub Base API URL",
 
+		"detect_drift": "Will disable state refresh if true",
+
 		"insecure": "Enable `insecure` mode for testing purposes",
 
 		"owner": "The GitHub owner name to manage. " +
@@ -181,6 +189,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
+		detectDrift := d.Get("detect_drift").(bool)
 
 		// BEGIN backwards compatibility
 		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
@@ -249,11 +258,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
 
 		config := Config{
-			Token:      token,
-			BaseURL:    baseURL,
-			Insecure:   insecure,
-			Owner:      owner,
-			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
+			Token:       token,
+			BaseURL:     baseURL,
+			Insecure:    insecure,
+			Owner:       owner,
+			DetectDrift: detectDrift,
+			WriteDelay:  time.Duration(writeDelay) * time.Millisecond,
 		}
 
 		meta, err := config.Meta()
@@ -262,6 +272,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		}
 
 		meta.(*Owner).StopContext = p.StopContext()
+		meta.(*Owner).DetectDrift = detectDrift
 
 		return meta, nil
 	}

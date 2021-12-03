@@ -118,6 +118,11 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 }
 
 func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

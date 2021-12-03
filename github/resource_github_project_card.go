@@ -70,6 +70,11 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	nodeID := d.Id()
 	cardID := d.Get("card_id").(int)

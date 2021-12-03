@@ -79,6 +79,11 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)

@@ -109,6 +109,8 @@ The following arguments are supported in the `provider` block:
 
 * `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Defaults to 1000ms or 1 second if not provided.
 
+* `detect_drift` - (Optional) Enables or disables the providers ability to detect drift between whats in the configuration and reality. If `false`, drift detection will be disabled. Defaults to `true`.
+
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`,

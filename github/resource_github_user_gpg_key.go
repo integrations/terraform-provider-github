@@ -52,6 +52,11 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

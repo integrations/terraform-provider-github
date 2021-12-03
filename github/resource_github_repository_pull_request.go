@@ -160,6 +160,11 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta inte
 }
 
 func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 

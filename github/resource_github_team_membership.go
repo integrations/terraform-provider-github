@@ -81,6 +81,11 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
+	drift := meta.(*Owner).DetectDrift
+	if !drift {
+		return nil
+	}
+
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
