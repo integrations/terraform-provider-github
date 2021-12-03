@@ -1188,6 +1188,14 @@ func (a *AuthorizationUpdateRequest) GetNoteURL() string {
 	return *a.NoteURL
 }
 
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (a *AuthorizedActorsOnly) GetFrom() bool {
+	if a == nil || a.From == nil {
+		return false
+	}
+	return *a.From
+}
+
 // GetID returns the ID field if it's non-nil, zero value otherwise.
 func (a *Autolink) GetID() int64 {
 	if a == nil || a.ID == nil {
@@ -1362,6 +1370,230 @@ func (b *BranchPolicy) GetProtectedBranches() bool {
 		return false
 	}
 	return *b.ProtectedBranches
+}
+
+// GetAdminEnforced returns the AdminEnforced field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetAdminEnforced() bool {
+	if b == nil || b.AdminEnforced == nil {
+		return false
+	}
+	return *b.AdminEnforced
+}
+
+// GetAllowDeletionsEnforcementLevel returns the AllowDeletionsEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetAllowDeletionsEnforcementLevel() string {
+	if b == nil || b.AllowDeletionsEnforcementLevel == nil {
+		return ""
+	}
+	return *b.AllowDeletionsEnforcementLevel
+}
+
+// GetAllowForcePushesEnforcementLevel returns the AllowForcePushesEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetAllowForcePushesEnforcementLevel() string {
+	if b == nil || b.AllowForcePushesEnforcementLevel == nil {
+		return ""
+	}
+	return *b.AllowForcePushesEnforcementLevel
+}
+
+// GetAuthorizedActorsOnly returns the AuthorizedActorsOnly field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetAuthorizedActorsOnly() bool {
+	if b == nil || b.AuthorizedActorsOnly == nil {
+		return false
+	}
+	return *b.AuthorizedActorsOnly
+}
+
+// GetAuthorizedDismissalActorsOnly returns the AuthorizedDismissalActorsOnly field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetAuthorizedDismissalActorsOnly() bool {
+	if b == nil || b.AuthorizedDismissalActorsOnly == nil {
+		return false
+	}
+	return *b.AuthorizedDismissalActorsOnly
+}
+
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetCreatedAt() Timestamp {
+	if b == nil || b.CreatedAt == nil {
+		return Timestamp{}
+	}
+	return *b.CreatedAt
+}
+
+// GetDismissStaleReviewsOnPush returns the DismissStaleReviewsOnPush field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetDismissStaleReviewsOnPush() bool {
+	if b == nil || b.DismissStaleReviewsOnPush == nil {
+		return false
+	}
+	return *b.DismissStaleReviewsOnPush
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetID() int64 {
+	if b == nil || b.ID == nil {
+		return 0
+	}
+	return *b.ID
+}
+
+// GetIgnoreApprovalsFromContributors returns the IgnoreApprovalsFromContributors field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetIgnoreApprovalsFromContributors() bool {
+	if b == nil || b.IgnoreApprovalsFromContributors == nil {
+		return false
+	}
+	return *b.IgnoreApprovalsFromContributors
+}
+
+// GetLinearHistoryRequirementEnforcementLevel returns the LinearHistoryRequirementEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetLinearHistoryRequirementEnforcementLevel() string {
+	if b == nil || b.LinearHistoryRequirementEnforcementLevel == nil {
+		return ""
+	}
+	return *b.LinearHistoryRequirementEnforcementLevel
+}
+
+// GetMergeQueueEnforcementLevel returns the MergeQueueEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetMergeQueueEnforcementLevel() string {
+	if b == nil || b.MergeQueueEnforcementLevel == nil {
+		return ""
+	}
+	return *b.MergeQueueEnforcementLevel
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetName() string {
+	if b == nil || b.Name == nil {
+		return ""
+	}
+	return *b.Name
+}
+
+// GetPullRequestReviewsEnforcementLevel returns the PullRequestReviewsEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetPullRequestReviewsEnforcementLevel() string {
+	if b == nil || b.PullRequestReviewsEnforcementLevel == nil {
+		return ""
+	}
+	return *b.PullRequestReviewsEnforcementLevel
+}
+
+// GetRepositoryID returns the RepositoryID field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRepositoryID() int64 {
+	if b == nil || b.RepositoryID == nil {
+		return 0
+	}
+	return *b.RepositoryID
+}
+
+// GetRequireCodeOwnerReview returns the RequireCodeOwnerReview field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRequireCodeOwnerReview() bool {
+	if b == nil || b.RequireCodeOwnerReview == nil {
+		return false
+	}
+	return *b.RequireCodeOwnerReview
+}
+
+// GetRequiredApprovingReviewCount returns the RequiredApprovingReviewCount field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRequiredApprovingReviewCount() int {
+	if b == nil || b.RequiredApprovingReviewCount == nil {
+		return 0
+	}
+	return *b.RequiredApprovingReviewCount
+}
+
+// GetRequiredConversationResolutionLevel returns the RequiredConversationResolutionLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRequiredConversationResolutionLevel() string {
+	if b == nil || b.RequiredConversationResolutionLevel == nil {
+		return ""
+	}
+	return *b.RequiredConversationResolutionLevel
+}
+
+// GetRequiredDeploymentsEnforcementLevel returns the RequiredDeploymentsEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRequiredDeploymentsEnforcementLevel() string {
+	if b == nil || b.RequiredDeploymentsEnforcementLevel == nil {
+		return ""
+	}
+	return *b.RequiredDeploymentsEnforcementLevel
+}
+
+// GetRequiredStatusChecksEnforcementLevel returns the RequiredStatusChecksEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetRequiredStatusChecksEnforcementLevel() string {
+	if b == nil || b.RequiredStatusChecksEnforcementLevel == nil {
+		return ""
+	}
+	return *b.RequiredStatusChecksEnforcementLevel
+}
+
+// GetSignatureRequirementEnforcementLevel returns the SignatureRequirementEnforcementLevel field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetSignatureRequirementEnforcementLevel() string {
+	if b == nil || b.SignatureRequirementEnforcementLevel == nil {
+		return ""
+	}
+	return *b.SignatureRequirementEnforcementLevel
+}
+
+// GetStrictRequiredStatusChecksPolicy returns the StrictRequiredStatusChecksPolicy field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetStrictRequiredStatusChecksPolicy() bool {
+	if b == nil || b.StrictRequiredStatusChecksPolicy == nil {
+		return false
+	}
+	return *b.StrictRequiredStatusChecksPolicy
+}
+
+// GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRule) GetUpdatedAt() Timestamp {
+	if b == nil || b.UpdatedAt == nil {
+		return Timestamp{}
+	}
+	return *b.UpdatedAt
+}
+
+// GetAction returns the Action field if it's non-nil, zero value otherwise.
+func (b *BranchProtectionRuleEvent) GetAction() string {
+	if b == nil || b.Action == nil {
+		return ""
+	}
+	return *b.Action
+}
+
+// GetChanges returns the Changes field.
+func (b *BranchProtectionRuleEvent) GetChanges() *ProtectionChanges {
+	if b == nil {
+		return nil
+	}
+	return b.Changes
+}
+
+// GetOrg returns the Org field.
+func (b *BranchProtectionRuleEvent) GetOrg() *Organization {
+	if b == nil {
+		return nil
+	}
+	return b.Org
+}
+
+// GetRepo returns the Repo field.
+func (b *BranchProtectionRuleEvent) GetRepo() *Repository {
+	if b == nil {
+		return nil
+	}
+	return b.Repo
+}
+
+// GetRule returns the Rule field.
+func (b *BranchProtectionRuleEvent) GetRule() *BranchProtectionRule {
+	if b == nil {
+		return nil
+	}
+	return b.Rule
+}
+
+// GetSender returns the Sender field.
+func (b *BranchProtectionRuleEvent) GetSender() *User {
+	if b == nil {
+		return nil
+	}
+	return b.Sender
 }
 
 // GetApp returns the App field.
@@ -3148,6 +3380,14 @@ func (d *DeployKeyEvent) GetAction() string {
 	return *d.Action
 }
 
+// GetInstallation returns the Installation field.
+func (d *DeployKeyEvent) GetInstallation() *Installation {
+	if d == nil {
+		return nil
+	}
+	return d.Installation
+}
+
 // GetKey returns the Key field.
 func (d *DeployKeyEvent) GetKey() *Key {
 	if d == nil {
@@ -4276,6 +4516,22 @@ func (f *ForkEvent) GetSender() *User {
 	return f.Sender
 }
 
+// GetPreviousTagName returns the PreviousTagName field if it's non-nil, zero value otherwise.
+func (g *GenerateNotesOptions) GetPreviousTagName() string {
+	if g == nil || g.PreviousTagName == nil {
+		return ""
+	}
+	return *g.PreviousTagName
+}
+
+// GetTargetCommitish returns the TargetCommitish field if it's non-nil, zero value otherwise.
+func (g *GenerateNotesOptions) GetTargetCommitish() string {
+	if g == nil || g.TargetCommitish == nil {
+		return ""
+	}
+	return *g.TargetCommitish
+}
+
 // GetInclude returns the Include field if it's non-nil, zero value otherwise.
 func (g *GetAuditLogOptions) GetInclude() string {
 	if g == nil || g.Include == nil {
@@ -4610,6 +4866,14 @@ func (g *GitHubAppAuthorizationEvent) GetAction() string {
 		return ""
 	}
 	return *g.Action
+}
+
+// GetInstallation returns the Installation field.
+func (g *GitHubAppAuthorizationEvent) GetInstallation() *Installation {
+	if g == nil {
+		return nil
+	}
+	return g.Installation
 }
 
 // GetSender returns the Sender field.
@@ -4986,6 +5250,14 @@ func (h *HookConfig) GetInsecureSSL() string {
 		return ""
 	}
 	return *h.InsecureSSL
+}
+
+// GetSecret returns the Secret field if it's non-nil, zero value otherwise.
+func (h *HookConfig) GetSecret() string {
+	if h == nil || h.Secret == nil {
+		return ""
+	}
+	return *h.Secret
 }
 
 // GetURL returns the URL field if it's non-nil, zero value otherwise.
@@ -6314,6 +6586,14 @@ func (i *IssueCommentEvent) GetIssue() *Issue {
 		return nil
 	}
 	return i.Issue
+}
+
+// GetOrganization returns the Organization field.
+func (i *IssueCommentEvent) GetOrganization() *Organization {
+	if i == nil {
+		return nil
+	}
+	return i.Organization
 }
 
 // GetRepo returns the Repo field.
@@ -7796,6 +8076,14 @@ func (m *MetaEvent) GetHookID() int64 {
 	return *m.HookID
 }
 
+// GetInstallation returns the Installation field.
+func (m *MetaEvent) GetInstallation() *Installation {
+	if m == nil {
+		return nil
+	}
+	return m.Installation
+}
+
 // GetHTMLURL returns the HTMLURL field if it's non-nil, zero value otherwise.
 func (m *Metric) GetHTMLURL() string {
 	if m == nil || m.HTMLURL == nil {
@@ -8956,6 +9244,14 @@ func (p *Package) GetRegistry() *PackageRegistry {
 	return p.Registry
 }
 
+// GetRepository returns the Repository field.
+func (p *Package) GetRepository() *Repository {
+	if p == nil {
+		return nil
+	}
+	return p.Repository
+}
+
 // GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
 func (p *Package) GetUpdatedAt() Timestamp {
 	if p == nil || p.UpdatedAt == nil {
@@ -8964,12 +9260,44 @@ func (p *Package) GetUpdatedAt() Timestamp {
 	return *p.UpdatedAt
 }
 
+// GetURL returns the URL field if it's non-nil, zero value otherwise.
+func (p *Package) GetURL() string {
+	if p == nil || p.URL == nil {
+		return ""
+	}
+	return *p.URL
+}
+
+// GetVersionCount returns the VersionCount field if it's non-nil, zero value otherwise.
+func (p *Package) GetVersionCount() int64 {
+	if p == nil || p.VersionCount == nil {
+		return 0
+	}
+	return *p.VersionCount
+}
+
+// GetVisibility returns the Visibility field if it's non-nil, zero value otherwise.
+func (p *Package) GetVisibility() string {
+	if p == nil || p.Visibility == nil {
+		return ""
+	}
+	return *p.Visibility
+}
+
 // GetAction returns the Action field if it's non-nil, zero value otherwise.
 func (p *PackageEvent) GetAction() string {
 	if p == nil || p.Action == nil {
 		return ""
 	}
 	return *p.Action
+}
+
+// GetInstallation returns the Installation field.
+func (p *PackageEvent) GetInstallation() *Installation {
+	if p == nil {
+		return nil
+	}
+	return p.Installation
 }
 
 // GetOrg returns the Org field.
@@ -9098,6 +9426,46 @@ func (p *PackageFile) GetUpdatedAt() Timestamp {
 		return Timestamp{}
 	}
 	return *p.UpdatedAt
+}
+
+// GetPackageType returns the PackageType field if it's non-nil, zero value otherwise.
+func (p *PackageListOptions) GetPackageType() string {
+	if p == nil || p.PackageType == nil {
+		return ""
+	}
+	return *p.PackageType
+}
+
+// GetState returns the State field if it's non-nil, zero value otherwise.
+func (p *PackageListOptions) GetState() string {
+	if p == nil || p.State == nil {
+		return ""
+	}
+	return *p.State
+}
+
+// GetVisibility returns the Visibility field if it's non-nil, zero value otherwise.
+func (p *PackageListOptions) GetVisibility() string {
+	if p == nil || p.Visibility == nil {
+		return ""
+	}
+	return *p.Visibility
+}
+
+// GetContainer returns the Container field.
+func (p *PackageMetadata) GetContainer() *PackageContainerMetadata {
+	if p == nil {
+		return nil
+	}
+	return p.Container
+}
+
+// GetPackageType returns the PackageType field if it's non-nil, zero value otherwise.
+func (p *PackageMetadata) GetPackageType() string {
+	if p == nil || p.PackageType == nil {
+		return ""
+	}
+	return *p.PackageType
 }
 
 // GetAboutURL returns the AboutURL field if it's non-nil, zero value otherwise.
@@ -9300,6 +9668,30 @@ func (p *PackageVersion) GetManifest() string {
 	return *p.Manifest
 }
 
+// GetMetadata returns the Metadata field.
+func (p *PackageVersion) GetMetadata() *PackageMetadata {
+	if p == nil {
+		return nil
+	}
+	return p.Metadata
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (p *PackageVersion) GetName() string {
+	if p == nil || p.Name == nil {
+		return ""
+	}
+	return *p.Name
+}
+
+// GetPackageHTMLURL returns the PackageHTMLURL field if it's non-nil, zero value otherwise.
+func (p *PackageVersion) GetPackageHTMLURL() string {
+	if p == nil || p.PackageHTMLURL == nil {
+		return ""
+	}
+	return *p.PackageHTMLURL
+}
+
 // GetPrerelease returns the Prerelease field if it's non-nil, zero value otherwise.
 func (p *PackageVersion) GetPrerelease() bool {
 	if p == nil || p.Prerelease == nil {
@@ -9354,6 +9746,14 @@ func (p *PackageVersion) GetUpdatedAt() Timestamp {
 		return Timestamp{}
 	}
 	return *p.UpdatedAt
+}
+
+// GetURL returns the URL field if it's non-nil, zero value otherwise.
+func (p *PackageVersion) GetURL() string {
+	if p == nil || p.URL == nil {
+		return ""
+	}
+	return *p.URL
 }
 
 // GetVersion returns the Version field if it's non-nil, zero value otherwise.
@@ -10474,6 +10874,22 @@ func (p *Protection) GetRestrictions() *BranchRestrictions {
 		return nil
 	}
 	return p.Restrictions
+}
+
+// GetAuthorizedActorNames returns the AuthorizedActorNames field.
+func (p *ProtectionChanges) GetAuthorizedActorNames() *AuthorizedActorNames {
+	if p == nil {
+		return nil
+	}
+	return p.AuthorizedActorNames
+}
+
+// GetAuthorizedActorsOnly returns the AuthorizedActorsOnly field.
+func (p *ProtectionChanges) GetAuthorizedActorsOnly() *AuthorizedActorsOnly {
+	if p == nil {
+		return nil
+	}
+	return p.AuthorizedActorsOnly
 }
 
 // GetAllowDeletions returns the AllowDeletions field if it's non-nil, zero value otherwise.
@@ -11938,6 +12354,14 @@ func (p *PushEvent) GetInstallation() *Installation {
 		return nil
 	}
 	return p.Installation
+}
+
+// GetOrganization returns the Organization field.
+func (p *PushEvent) GetOrganization() *Organization {
+	if p == nil {
+		return nil
+	}
+	return p.Organization
 }
 
 // GetPusher returns the Pusher field.
@@ -14052,6 +14476,14 @@ func (r *RepositoryRelease) GetDraft() bool {
 	return *r.Draft
 }
 
+// GetGenerateReleaseNotes returns the GenerateReleaseNotes field if it's non-nil, zero value otherwise.
+func (r *RepositoryRelease) GetGenerateReleaseNotes() bool {
+	if r == nil || r.GenerateReleaseNotes == nil {
+		return false
+	}
+	return *r.GenerateReleaseNotes
+}
+
 // GetHTMLURL returns the HTMLURL field if it's non-nil, zero value otherwise.
 func (r *RepositoryRelease) GetHTMLURL() string {
 	if r == nil || r.HTMLURL == nil {
@@ -14290,6 +14722,14 @@ func (r *RepositoryVulnerabilityAlertEvent) GetAlert() *RepositoryVulnerabilityA
 		return nil
 	}
 	return r.Alert
+}
+
+// GetInstallation returns the Installation field.
+func (r *RepositoryVulnerabilityAlertEvent) GetInstallation() *Installation {
+	if r == nil {
+		return nil
+	}
+	return r.Installation
 }
 
 // GetRepository returns the Repository field.
@@ -14906,6 +15346,14 @@ func (s *StarEvent) GetAction() string {
 		return ""
 	}
 	return *s.Action
+}
+
+// GetInstallation returns the Installation field.
+func (s *StarEvent) GetInstallation() *Installation {
+	if s == nil {
+		return nil
+	}
+	return s.Installation
 }
 
 // GetOrg returns the Org field.
@@ -16852,6 +17300,14 @@ func (u *UserEvent) GetEnterprise() *Enterprise {
 	return u.Enterprise
 }
 
+// GetInstallation returns the Installation field.
+func (u *UserEvent) GetInstallation() *Installation {
+	if u == nil {
+		return nil
+	}
+	return u.Installation
+}
+
 // GetSender returns the Sender field.
 func (u *UserEvent) GetSender() *User {
 	if u == nil {
@@ -17468,6 +17924,14 @@ func (w *WorkflowBill) GetTotalMS() int64 {
 	return *w.TotalMS
 }
 
+// GetInstallation returns the Installation field.
+func (w *WorkflowDispatchEvent) GetInstallation() *Installation {
+	if w == nil {
+		return nil
+	}
+	return w.Installation
+}
+
 // GetOrg returns the Org field.
 func (w *WorkflowDispatchEvent) GetOrg() *Organization {
 	if w == nil {
@@ -17644,6 +18108,14 @@ func (w *WorkflowJobEvent) GetAction() string {
 	return *w.Action
 }
 
+// GetInstallation returns the Installation field.
+func (w *WorkflowJobEvent) GetInstallation() *Installation {
+	if w == nil {
+		return nil
+	}
+	return w.Installation
+}
+
 // GetOrg returns the Org field.
 func (w *WorkflowJobEvent) GetOrg() *Organization {
 	if w == nil {
@@ -17690,6 +18162,22 @@ func (w *WorkflowRun) GetCancelURL() string {
 		return ""
 	}
 	return *w.CancelURL
+}
+
+// GetCheckSuiteID returns the CheckSuiteID field if it's non-nil, zero value otherwise.
+func (w *WorkflowRun) GetCheckSuiteID() int64 {
+	if w == nil || w.CheckSuiteID == nil {
+		return 0
+	}
+	return *w.CheckSuiteID
+}
+
+// GetCheckSuiteNodeID returns the CheckSuiteNodeID field if it's non-nil, zero value otherwise.
+func (w *WorkflowRun) GetCheckSuiteNodeID() string {
+	if w == nil || w.CheckSuiteNodeID == nil {
+		return ""
+	}
+	return *w.CheckSuiteNodeID
 }
 
 // GetCheckSuiteURL returns the CheckSuiteURL field if it's non-nil, zero value otherwise.
@@ -17914,6 +18402,14 @@ func (w *WorkflowRunEvent) GetAction() string {
 		return ""
 	}
 	return *w.Action
+}
+
+// GetInstallation returns the Installation field.
+func (w *WorkflowRunEvent) GetInstallation() *Installation {
+	if w == nil {
+		return nil
+	}
+	return w.Installation
 }
 
 // GetOrg returns the Org field.
