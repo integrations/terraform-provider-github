@@ -74,8 +74,15 @@ type WorkflowRunEnvironment struct {
 
 // WorkflowRunBill specifies billable time for a specific environment in a workflow run.
 type WorkflowRunBill struct {
-	TotalMS *int64 `json:"total_ms,omitempty"`
-	Jobs    *int   `json:"jobs,omitempty"`
+	TotalMS *int64               `json:"total_ms,omitempty"`
+	Jobs    *int                 `json:"jobs,omitempty"`
+	JobRuns []*WorkflowRunJobRun `json:"job_runs,omitempty"`
+}
+
+// WorkflowRunJobRun represents a usage of individual jobs of a specific workflow run.
+type WorkflowRunJobRun struct {
+	JobID      *int   `json:"job_id,omitempty"`
+	DurationMS *int64 `json:"duration_ms,omitempty"`
 }
 
 func (s *ActionsService) listWorkflowRuns(ctx context.Context, endpoint string, opts *ListWorkflowRunsOptions) (*WorkflowRuns, *Response, error) {
@@ -202,6 +209,20 @@ func (s *ActionsService) GetWorkflowRunLogs(ctx context.Context, owner, repo str
 	}
 	parsedURL, err := url.Parse(resp.Header.Get("Location"))
 	return parsedURL, newResponse(resp), err
+}
+
+// DeleteWorkflowRun deletes a workflow run by ID.
+//
+// GitHub API docs: https://docs.github.com/en/rest/reference/actions#delete-a-workflow-run
+func (s *ActionsService) DeleteWorkflowRun(ctx context.Context, owner, repo string, runID int64) (*Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/actions/runs/%v", owner, repo, runID)
+
+	req, err := s.client.NewRequest("DELETE", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(ctx, req, nil)
 }
 
 // DeleteWorkflowRunLogs deletes all logs for a workflow run.

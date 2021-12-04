@@ -80,6 +80,9 @@ type Repository struct {
 	LicenseTemplate   *string `json:"license_template,omitempty"`
 	GitignoreTemplate *string `json:"gitignore_template,omitempty"`
 
+	// Options for configuring Advanced Security and Secret Scanning
+	SecurityAndAnalysis *SecurityAndAnalysis `json:"security_and_analysis,omitempty"`
+
 	// Creating an organization repository. Required for non-owners.
 	TeamID *int64 `json:"team_id,omitempty"`
 
@@ -181,6 +184,39 @@ type RepositoryListOptions struct {
 	Direction string `url:"direction,omitempty"`
 
 	ListOptions
+}
+
+// SecurityAndAnalysis specifies the optional advanced security features
+// that are enabled on a given repository.
+type SecurityAndAnalysis struct {
+	AdvancedSecurity *AdvancedSecurity `json:"advanced_security,omitempty"`
+	SecretScanning   *SecretScanning   `json:"secret_scanning,omitempty"`
+}
+
+func (s SecurityAndAnalysis) String() string {
+	return Stringify(s)
+}
+
+// AdvancedSecurity specifies the state of advanced security on a repository.
+//
+// GitHub API docs: https://docs.github.com/en/github/getting-started-with-github/learning-about-github/about-github-advanced-security
+type AdvancedSecurity struct {
+	Status *string `json:"status,omitempty"`
+}
+
+func (a AdvancedSecurity) String() string {
+	return Stringify(a)
+}
+
+// SecretScanning specifies the state of secret scanning on a repository.
+//
+// GitHub API docs: https://docs.github.com/en/code-security/secret-security/about-secret-scanning
+type SecretScanning struct {
+	Status *string `json:"status,omitempty"`
+}
+
+func (s SecretScanning) String() string {
+	return Stringify(s)
 }
 
 // List the repositories for a user. Passing the empty string will list
@@ -1035,6 +1071,34 @@ func (s *RepositoriesService) getBranchFromURL(ctx context.Context, u string, fo
 		resp, err = s.getBranchFromURL(ctx, u, false)
 	}
 	return resp, err
+}
+
+// renameBranchRequest represents a request to rename a branch.
+type renameBranchRequest struct {
+	NewName string `json:"new_name"`
+}
+
+// RenameBranch renames a branch in a repository.
+//
+// To rename a non-default branch: Users must have push access. GitHub Apps must have the `contents:write` repository permission.
+// To rename the default branch: Users must have admin or owner permissions. GitHub Apps must have the `administration:write` repository permission.
+//
+// GitHub API docs: https://docs.github.com/en/rest/reference/repos#rename-a-branch
+func (s *RepositoriesService) RenameBranch(ctx context.Context, owner, repo, branch, newName string) (*Branch, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/branches/%v/rename", owner, repo, branch)
+	r := &renameBranchRequest{NewName: newName}
+	req, err := s.client.NewRequest("POST", u, r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b := new(Branch)
+	resp, err := s.client.Do(ctx, req, b)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return b, resp, nil
 }
 
 // GetBranchProtection gets the protection of a given branch.
