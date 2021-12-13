@@ -128,6 +128,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 				"github_branch_protection.test", "require_conversation_resolution", "true",
 			),
 			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_linear_history", "false",
+			),
+			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "required_status_checks.#", "0",
 			),
 			resource.TestCheckResourceAttr(
