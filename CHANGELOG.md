@@ -1,3 +1,16 @@
+## 4.19.0 (Dec 13, 2021)
+
+ENHANCEMENTS:
+
+- Export `branches` attribute of `github_repository` resource ([[#959](https://github.com/integrations/terraform-provider-github/pull/959)])
+- Add `require_conversation_resolution` support for `github_branch_protection` resource ([[#904](https://github.com/integrations/terraform-provider-github/pull/904)])
+
+BUG FIXES:
+
+- Adjust length requirement to `topics` option for `github_repository` ([[#996](https://github.com/integrations/terraform-provider-github/pull/996)])
+- Add `required_linear_history` support for `github_branch_protection` resource ([[#935](https://github.com/integrations/terraform-provider-github/pull/935)])
+
+
 ## 4.18.2 (Nov 30, 2021)
 
 BUG FIXES:
