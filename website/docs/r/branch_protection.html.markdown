@@ -77,6 +77,7 @@ The following arguments are supported:
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
 * `required_linear_history` - (Optional) Boolean, setting this to `true` enforces a linear commit Git history, which prevents anyone from pushing merge commits to a branch
+* `require_conversation_resolution` - (Optional) Boolean, setting this to `true` requires all conversations on code must be resolved before a pull request can be merged.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
 * `push_restrictions` - (Optional) The list of actor IDs that may push to the branch.

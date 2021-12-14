@@ -127,6 +127,22 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"branches": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"protected": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"pages": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
@@ -179,7 +195,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,34}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 35 characters or less"),
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,34}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 35 characters or less"),
 				},
 			},
 			"vulnerability_alerts": {
