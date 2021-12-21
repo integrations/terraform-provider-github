@@ -109,3 +109,8 @@ The following arguments are supported in the `provider` block:
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
+## Authenticating with multiple providers
+
+When authenticating with multiple providers, it is possible to fail to authenticate both of them correctly and experience unexpected behavior. This is especially fraught when using both `integrations/github` and `hashicorp/github`. As [this GitHub comment](https://github.com/integrations/terraform-provider-github/issues/655#issuecomment-804419698) from @tibbes details, [local names](https://www.terraform.io/docs/language/providers/requirements.html#local-names) must be used when using two providers with the same name. Otherwise, as @tibbes mentions, the `provider "github"` block is sent to one of the providers but not the other, which means that the other provider is working in anonymous mode with no token, no owner, and no organization.
+
+If you are experiencing unexpected behavior with the provider and your HCL config contains both `integrations/github` and `hashicorp/github`, consider using only one of the providers or else local names in your configuration.
