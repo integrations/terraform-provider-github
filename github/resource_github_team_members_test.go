@@ -207,7 +207,7 @@ resource "github_team_members" "test_team_members" {
 		role     = "%s"
 	}
 
-	depends_on = [github_membership.github_membership]
+	depends_on = [github_membership.test_org_membership]
 }
 `, username, randString, username, role)
 }
