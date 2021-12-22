@@ -182,9 +182,9 @@ Commonly required environment variables are listed below:
 export TF_LOG=DEBUG
 
 # enable testing of organization scenarios instead of individual or anonymous
-export GITHUB_ORGANIZATION=
+export GITHUB_TEST_ORGANIZATION=
 
-# enable testing of individual scenarios instead of organizaiton or anonymous
+# enable testing of individual scenarios instead of organization or anonymous
 export GITHUB_OWNER=
 
 # enable testing of enterprise appliances
@@ -201,7 +201,7 @@ export GITHUB_TEST_USER_TOKEN=
 
 Note that the above `GITHUB_TEST_ORGANIZATION` variable does not have a corresponding `GITHUB_ORGANIZATION` environment variable for use outside of tests. The `GITHUB_ORGANIZATION` variable was deprecated in version 5.0.0 of the GitHub Terraform provider, and the sole way to configure an organization is to use the `owner` provider block configuration or the `GITHUB_OWNER` variable.
 
-Use the `GITHUB_TEST_ORGANIZATION` variable only in acceptance tests, only to specify an organization owner. This is useful in provider scenarios that are valid for both individual and organization owners and need to be tested appropriately.
+Use the `GITHUB_TEST_ORGANIZATION` variable only in acceptance tests, only to specify an organization owner. This is useful in provider scenarios that are valid for both individual and organization owners and need to be tested individually.
 
 See [this project](https://github.com/terraformtesting/acceptance-tests) for more information on how tests are run automatically.
 

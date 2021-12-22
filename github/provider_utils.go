@@ -110,7 +110,7 @@ func testOwnerFunc() string {
 }
 
 // testOrganizationFunc returns a test organization. IMPORTANT:
-// since GITHUB_ORGANIZATION is deprecated, this is an ugly fallback
+// GITHUB_ORGANIZATION is deprecated. The purpose of this variable is
 // to make sure that we can still test organization cases appropriately
 // in integration testing.
 func testOrganizationFunc() string {

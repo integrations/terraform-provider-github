@@ -70,7 +70,7 @@ jobs:
         with:
           TF_LOG: INFO
           RUN_ALL: true
-          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
 
@@ -80,6 +80,6 @@ jobs:
         with:
           TF_LOG: DEBUG
           RUN_ALLOWED: ${{ steps.acceptance-tests-organization.outputs.failed }}
-          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user

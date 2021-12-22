@@ -48,6 +48,6 @@ jobs:
         uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: INFO
-          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
