@@ -154,6 +154,21 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+
 	input := githubv4.CreateBranchProtectionRuleInput{
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
@@ -255,7 +270,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	approvingReviews := setApprovingReviews(protection)
+	approvingReviews, _ := setApprovingReviews(protection, d, meta)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
@@ -267,7 +282,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	restrictsPushes := setPushes(protection)
+	restrictsPushes, _ := setPushes(protection, d, meta)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
@@ -288,6 +303,21 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:         d.Id(),
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
