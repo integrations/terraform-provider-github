@@ -22,6 +22,9 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_OWNER"); v == "" {
 		t.Fatal("GITHUB_OWNER must be set for acceptance tests")
 	}
+	if v := os.Getenv("GITHUB_TEST_ORGANIZATION"); v == "" {
+		t.Fatal("GITHUB_TEST_ORGANIZATION must be set for acceptance tests")
+	}
 	if v := os.Getenv("GITHUB_TEST_USER"); v == "" {
 		t.Fatal("GITHUB_TEST_USER must be set for acceptance tests")
 	}
@@ -38,9 +41,9 @@ func testAccPreCheck(t *testing.T) {
 
 func skipUnlessMode(t *testing.T, providerMode string) {
 	log.Printf("[DEBUG] <<<<<<< skipUnlessMode")
+	log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
 	switch providerMode {
 	case anonymous:
-		log.Printf("[DEBUG] <<<<<<< anonymous")
 		if os.Getenv("GITHUB_BASE_URL") != "" &&
 			os.Getenv("GITHUB_BASE_URL") != "https://api.github.com/" {
 			t.Log("anonymous mode not supported for GHES deployments")
@@ -53,8 +56,7 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN environment variable should be empty in anonymous mode")
 		}
-	case individual, organization:
-		log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
+	case individual:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
 			log.Printf("[DEBUG] <<<<<<< configuring user type: %s", providerMode)
 			return
@@ -69,6 +71,12 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		// - we could switch GITHUB_ORG to be a boolean
 		// - we could deprecate GITHUB_ORG entirely and create
 		// 	another environment variable boolean to use instead
+	case organization:
+		log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
+		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_TEST_ORGANIZATION") != "" {
+			log.Printf("[DEBUG] <<<<<<< configuring user type: %s", providerMode)
+			return
+		}
 	}
 
 	log.Printf("[DEBUG] <<<<<<< skipping!")
@@ -80,9 +88,11 @@ func testAccCheckOrganization() error {
 	baseURL := os.Getenv("GITHUB_BASE_URL")
 	token := os.Getenv("GITHUB_TOKEN")
 
-	owner := os.Getenv("GITHUB_OWNER")
-	if owner == "" {
-		return fmt.Errorf("`GITHUB_OWNER` not set in environment")
+	owner := os.Getenv("GITHUB_TEST_ORGANIZATION")
+	if owner == "" && os.Getenv("GITHUB_OWNER") == "" {
+		return fmt.Errorf("neither `GITHUB_TEST_ORGANIZATION` nor `GITHUB_OWNER` are set in environment")
+	} else if owner == "" {
+		owner = os.Getenv("GITHUB_OWNER")
 	}
 
 	config := Config{
