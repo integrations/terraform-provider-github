@@ -48,6 +48,21 @@ const (
 	mediaTypeIssueImportAPI    = "application/vnd.github.golden-comet-preview+json"
 
 	// Media Type values to access preview APIs
+	// These media types will be added to the API request as headers
+	// and used to enable particular features on GitHub API that are still in preview.
+	// After some time, specific media types will be promoted (to a "stable" state).
+	// From then on, the preview headers are not required anymore to activate the additional
+	// feature on GitHub.com's API. However, this API header might still be needed for users
+	// to run a GitHub Enterprise Server on-premise.
+	// It's not uncommon for GitHub Enterprise Server customers to run older versions which
+	// would probably rely on the preview headers for some time.
+	// While the header promotion is going out for GitHub.com, it may be some time before it
+	// even arrives in GitHub Enterprise Server.
+	// We keep those preview headers around to avoid breaking older GitHub Enterprise Server
+	// versions. Additionally, non-functional (preview) headers don't create any side effects
+	// on GitHub Cloud version.
+	//
+	// See https://github.com/google/go-github/pull/2125 for full context.
 
 	// https://developer.github.com/changes/2014-12-09-new-attributes-for-stars-api/
 	mediaTypeStarringPreview = "application/vnd.github.v3.star+json"
@@ -462,6 +477,10 @@ type Response struct {
 	// Set ListCursorOptions.Cursor to this value when calling the endpoint again.
 	Cursor string
 
+	// For APIs that support before/after pagination, such as OrganizationsService.AuditLog.
+	Before string
+	After  string
+
 	// Explicitly specify the Rate type so Rate's String() receiver doesn't
 	// propagate to Response.
 	Rate Rate
@@ -517,8 +536,16 @@ func (r *Response) populatePageValues() {
 			}
 
 			page := q.Get("page")
-			if page == "" {
+			since := q.Get("since")
+			before := q.Get("before")
+			after := q.Get("after")
+
+			if page == "" && before == "" && after == "" && since == "" {
 				continue
+			}
+
+			if since != "" {
+				page = since
 			}
 
 			for _, segment := range segments[1:] {
@@ -527,8 +554,10 @@ func (r *Response) populatePageValues() {
 					if r.NextPage, err = strconv.Atoi(page); err != nil {
 						r.NextPageToken = page
 					}
+					r.After = after
 				case `rel="prev"`:
 					r.PrevPage, _ = strconv.Atoi(page)
+					r.Before = before
 				case `rel="first"`:
 					r.FirstPage, _ = strconv.Atoi(page)
 				case `rel="last"`:
@@ -708,10 +737,10 @@ func (c *Client) checkRateLimitBeforeDo(req *http.Request, rateLimitCategory rat
 	return nil
 }
 
-// compareHttpResponse returns whether two http.Response objects are equal or not.
+// compareHTTPResponse returns whether two http.Response objects are equal or not.
 // Currently, only StatusCode is checked. This function is used when implementing the
 // Is(error) bool interface for the custom error types in this package.
-func compareHttpResponse(r1, r2 *http.Response) bool {
+func compareHTTPResponse(r1, r2 *http.Response) bool {
 	if r1 == nil && r2 == nil {
 		return true
 	}
@@ -761,7 +790,7 @@ func (r *ErrorResponse) Is(target error) bool {
 	}
 
 	if r.Message != v.Message || (r.DocumentationURL != v.DocumentationURL) ||
-		!compareHttpResponse(r.Response, v.Response) {
+		!compareHTTPResponse(r.Response, v.Response) {
 		return false
 	}
 
@@ -827,7 +856,7 @@ func (r *RateLimitError) Is(target error) bool {
 
 	return r.Rate == v.Rate &&
 		r.Message == v.Message &&
-		compareHttpResponse(r.Response, v.Response)
+		compareHTTPResponse(r.Response, v.Response)
 }
 
 // AcceptedError occurs when GitHub returns 202 Accepted response with an
@@ -881,7 +910,7 @@ func (r *AbuseRateLimitError) Is(target error) bool {
 
 	return r.Message == v.Message &&
 		r.RetryAfter == v.RetryAfter &&
-		compareHttpResponse(r.Response, v.Response)
+		compareHTTPResponse(r.Response, v.Response)
 }
 
 // sanitizeURL redacts the client_secret parameter from the URL which may be

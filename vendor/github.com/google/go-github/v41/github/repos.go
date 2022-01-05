@@ -80,6 +80,9 @@ type Repository struct {
 	LicenseTemplate   *string `json:"license_template,omitempty"`
 	GitignoreTemplate *string `json:"gitignore_template,omitempty"`
 
+	// Options for configuring Advanced Security and Secret Scanning
+	SecurityAndAnalysis *SecurityAndAnalysis `json:"security_and_analysis,omitempty"`
+
 	// Creating an organization repository. Required for non-owners.
 	TeamID *int64 `json:"team_id,omitempty"`
 
@@ -181,6 +184,39 @@ type RepositoryListOptions struct {
 	Direction string `url:"direction,omitempty"`
 
 	ListOptions
+}
+
+// SecurityAndAnalysis specifies the optional advanced security features
+// that are enabled on a given repository.
+type SecurityAndAnalysis struct {
+	AdvancedSecurity *AdvancedSecurity `json:"advanced_security,omitempty"`
+	SecretScanning   *SecretScanning   `json:"secret_scanning,omitempty"`
+}
+
+func (s SecurityAndAnalysis) String() string {
+	return Stringify(s)
+}
+
+// AdvancedSecurity specifies the state of advanced security on a repository.
+//
+// GitHub API docs: https://docs.github.com/en/github/getting-started-with-github/learning-about-github/about-github-advanced-security
+type AdvancedSecurity struct {
+	Status *string `json:"status,omitempty"`
+}
+
+func (a AdvancedSecurity) String() string {
+	return Stringify(a)
+}
+
+// SecretScanning specifies the state of secret scanning on a repository.
+//
+// GitHub API docs: https://docs.github.com/en/code-security/secret-security/about-secret-scanning
+type SecretScanning struct {
+	Status *string `json:"status,omitempty"`
+}
+
+func (s SecretScanning) String() string {
+	return Stringify(s)
 }
 
 // List the repositories for a user. Passing the empty string will list
@@ -767,6 +803,50 @@ type Protection struct {
 	RequiredConversationResolution *RequiredConversationResolution `json:"required_conversation_resolution"`
 }
 
+// BranchProtectionRule represents the rule applied to a repositories branch.
+type BranchProtectionRule struct {
+	ID                                       *int64     `json:"id,omitempty"`
+	RepositoryID                             *int64     `json:"repository_id,omitempty"`
+	Name                                     *string    `json:"name,omitempty"`
+	CreatedAt                                *Timestamp `json:"created_at,omitempty"`
+	UpdatedAt                                *Timestamp `json:"updated_at,omitempty"`
+	PullRequestReviewsEnforcementLevel       *string    `json:"pull_request_reviews_enforcement_level,omitempty"`
+	RequiredApprovingReviewCount             *int       `json:"required_approving_review_count,omitempty"`
+	DismissStaleReviewsOnPush                *bool      `json:"dismiss_stale_reviews_on_push,omitempty"`
+	AuthorizedDismissalActorsOnly            *bool      `json:"authorized_dismissal_actors_only,omitempty"`
+	IgnoreApprovalsFromContributors          *bool      `json:"ignore_approvals_from_contributors,omitempty"`
+	RequireCodeOwnerReview                   *bool      `json:"require_code_owner_review,omitempty"`
+	RequiredStatusChecks                     []string   `json:"required_status_checks,omitempty"`
+	RequiredStatusChecksEnforcementLevel     *string    `json:"required_status_checks_enforcement_level,omitempty"`
+	StrictRequiredStatusChecksPolicy         *bool      `json:"strict_required_status_checks_policy,omitempty"`
+	SignatureRequirementEnforcementLevel     *string    `json:"signature_requirement_enforcement_level,omitempty"`
+	LinearHistoryRequirementEnforcementLevel *string    `json:"linear_history_requirement_enforcement_level,omitempty"`
+	AdminEnforced                            *bool      `json:"admin_enforced,omitempty"`
+	AllowForcePushesEnforcementLevel         *string    `json:"allow_force_pushes_enforcement_level,omitempty"`
+	AllowDeletionsEnforcementLevel           *string    `json:"allow_deletions_enforcement_level,omitempty"`
+	MergeQueueEnforcementLevel               *string    `json:"merge_queue_enforcement_level,omitempty"`
+	RequiredDeploymentsEnforcementLevel      *string    `json:"required_deployments_enforcement_level,omitempty"`
+	RequiredConversationResolutionLevel      *string    `json:"required_conversation_resolution_level,omitempty"`
+	AuthorizedActorsOnly                     *bool      `json:"authorized_actors_only,omitempty"`
+	AuthorizedActorNames                     []string   `json:"authorized_actor_names,omitempty"`
+}
+
+// ProtectionChanges represents the changes to the rule if the BranchProtection was edited.
+type ProtectionChanges struct {
+	AuthorizedActorsOnly *AuthorizedActorsOnly `json:"authorized_actors_only,omitempty"`
+	AuthorizedActorNames *AuthorizedActorNames `json:"authorized_actor_names,omitempty"`
+}
+
+// AuthorizedActorNames represents who are authorized to edit the branch protection rules.
+type AuthorizedActorNames struct {
+	From []string `json:"from,omitempty"`
+}
+
+// AuthorizedActorsOnly represents if the branche rule can be edited by authorized actors only.
+type AuthorizedActorsOnly struct {
+	From *bool `json:"from,omitempty"`
+}
+
 // ProtectionRequest represents a request to create/edit a branch's protection.
 type ProtectionRequest struct {
 	RequiredStatusChecks       *RequiredStatusChecks                 `json:"required_status_checks"`
@@ -991,6 +1071,34 @@ func (s *RepositoriesService) getBranchFromURL(ctx context.Context, u string, fo
 		resp, err = s.getBranchFromURL(ctx, u, false)
 	}
 	return resp, err
+}
+
+// renameBranchRequest represents a request to rename a branch.
+type renameBranchRequest struct {
+	NewName string `json:"new_name"`
+}
+
+// RenameBranch renames a branch in a repository.
+//
+// To rename a non-default branch: Users must have push access. GitHub Apps must have the `contents:write` repository permission.
+// To rename the default branch: Users must have admin or owner permissions. GitHub Apps must have the `administration:write` repository permission.
+//
+// GitHub API docs: https://docs.github.com/en/rest/reference/repos#rename-a-branch
+func (s *RepositoriesService) RenameBranch(ctx context.Context, owner, repo, branch, newName string) (*Branch, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/branches/%v/rename", owner, repo, branch)
+	r := &renameBranchRequest{NewName: newName}
+	req, err := s.client.NewRequest("POST", u, r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b := new(Branch)
+	resp, err := s.client.Do(ctx, req, b)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return b, resp, nil
 }
 
 // GetBranchProtection gets the protection of a given branch.
