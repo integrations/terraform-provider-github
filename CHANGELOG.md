@@ -1,3 +1,11 @@
+## 4.19.1 (Jan 5, 2022)
+
+BUG FIXES:
+
+- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/905))
+- Add `nil` check for `plan` field of `github_organization` data source ([#1016](https://github.com/integrations/terraform-provider-github/pull/1016))
+
+
 ## 4.19.0 (Dec 13, 2021)
 
 ENHANCEMENTS:
@@ -54,6 +62,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
+* **New Data Source:** `github_repository_file` ([#896](https://github.com/integrations/terraform-provider-github/pull/896))
 - Add `write_delay_ms` provider option [#907](https://github.com/integrations/terraform-provider-github/pull/907))
 
 BUG FIXES:
