@@ -10,10 +10,6 @@ func dataSourceGithubTree() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubTreeRead,
 		Schema: map[string]*schema.Schema{
-			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
 			"recursive": {
 				Type:     schema.TypeBool,
 				Default:  false,
@@ -23,7 +19,7 @@ func dataSourceGithubTree() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"tree": {
+			"entries": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -60,7 +56,7 @@ func dataSourceGithubTree() *schema.Resource {
 }
 
 func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
-	owner := d.Get("owner").(string)
+	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
 	sha := d.Get("tree_sha").(string)
 	recursive := d.Get("recursive").(bool)
@@ -74,7 +70,7 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	entries := make([]interface{}, 0)
+	entries := make([]interface{}, 0, len(tree.Entries))
 
 	for _, entry := range tree.Entries {
 		entries = append(entries, map[string]interface{}{
@@ -87,7 +83,7 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(tree.GetSHA())
-	d.Set("tree", entries)
+	d.Set("entries", entries)
 
 	return nil
 }
