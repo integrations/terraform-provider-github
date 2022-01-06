@@ -71,7 +71,14 @@ jobs:
 
   acceptance-tests-organization:
     runs-on: ubuntu-latest
+    if: contains(join(github.event.pull_request.labels.*.name, ', '), 'test')
     steps:
+      - name: Parse Args
+        id: args
+        run: |
+          echo "::set-output name=run_allowed::$(
+            jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
+          )"
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -83,7 +90,7 @@ jobs:
         uses: terraformtesting/acceptance-tests@v2.2.0
         with:
           TF_LOG: INFO
-          RUN_ALL: true
+          RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
@@ -93,7 +100,7 @@ jobs:
         if: ${{ failure() }}
         with:
           TF_LOG: DEBUG
-          RUN_ALLOWED: ${{ steps.acceptance-tests-organization.outputs.failed }}
+          RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
