@@ -1,6 +1,7 @@
 name: Dotcom Acceptance Tests (manual)
 
 on:
+  push:
   pull_request:
     types: [labeled]
 
