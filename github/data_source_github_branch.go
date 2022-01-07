@@ -19,6 +19,12 @@ func dataSourceGithubBranch() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"repository_owner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"branch": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -47,12 +53,17 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Reading GitHub branch reference %s/%s (%s)", orgName, repoName, branchRefName)
+	repoOwner := orgName
+	if repoOwnerVar, ok := d.GetOk("repository_owner"); ok {
+		repoOwner = repoOwnerVar
+	}
+
+	log.Printf("[DEBUG] Reading GitHub branch reference %s/%s (%s)", repoOwner, repoName, branchRefName)
 	ref, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, branchRefName)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("Error reading GitHub branch reference %s/%s (%s): %s", orgName, repoName, branchRefName, err)
+				log.Printf("Error reading GitHub branch reference %s/%s (%s): %s", repoOwner, repoName, branchRefName, err)
 				d.SetId("")
 				return nil
 			}
@@ -60,7 +71,8 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repoName, branchName))
+	d.SetId(buildThreePartID(repoOwner, repoName, branchName))
+	d.Set("repository_owner", repoOwner)
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("ref", *ref.Ref)
 	d.Set("sha", *ref.Object.SHA)

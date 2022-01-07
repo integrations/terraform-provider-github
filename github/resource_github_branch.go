@@ -26,6 +26,12 @@ func resourceGithubBranch() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"repository_owner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"branch": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -73,30 +79,36 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	sourceBranchName := d.Get("source_branch").(string)
 	sourceBranchRefName := "refs/heads/" + sourceBranchName
 
+	repoOwner := orgName
+	if repoOwnerVar, ok := d.GetOk("repository_owner"); ok {
+		repoOwner = repoOwnerVar
+	}
+
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
 		log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s) to derive source_sha",
-			orgName, repoName, sourceBranchRefName)
-		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
+			repoOwner, repoName, sourceBranchRefName)
+		ref, _, err := client.Git.GetRef(ctx, repoOwner, repoName, sourceBranchRefName)
 		if err != nil {
 			return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
-				orgName, repoName, sourceBranchRefName, err)
+				repoOwner, repoName, sourceBranchRefName, err)
 		}
 		d.Set("source_sha", *ref.Object.SHA)
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
 	log.Printf("[DEBUG] Creating GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
-	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
+		repoOwner, repoName, branchRefName)
+	_, _, err := client.Git.CreateRef(ctx, repoOwner, repoName, &github.Reference{
 		Ref:    &branchRefName,
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating GitHub branch reference %s/%s (%s): %s",
-			orgName, repoName, branchRefName, err)
+			repoOwner, repoName, branchRefName, err)
 	}
 
-	d.SetId(buildTwoPartID(repoName, branchName))
+	d.SetId(buildThreePartID(repoOwner, repoName, branchName))
+	d.Set("repository_owner", repoOwner)
 
 	return resourceGithubBranchRead(d, meta)
 }
