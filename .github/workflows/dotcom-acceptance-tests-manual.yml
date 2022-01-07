@@ -8,7 +8,7 @@ jobs:
 
   acceptance-tests-anonymous:
     runs-on: ubuntu-latest
-    if: contains(join(github.event.pull_request.labels.*.name, ', '), 'test')
+    if: contains(join(github.event.pull_request.labels.*.name, ', '), 'test/')
     steps:
       - name: Parse Args
         id: args
