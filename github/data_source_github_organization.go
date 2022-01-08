@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v41/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -63,7 +63,11 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	plan := organization.GetPlan()
+	var planName string
+
+	if plan := organization.GetPlan(); plan != nil {
+		planName = plan.GetName()
+	}
 
 	opts := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
@@ -117,7 +121,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
 	d.Set("description", organization.GetDescription())
-	d.Set("plan", plan.Name)
+	d.Set("plan", planName)
 	d.Set("repositories", repoList)
 	d.Set("members", memberList)
 
