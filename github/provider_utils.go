@@ -51,35 +51,26 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		}
 
 		if os.Getenv("GITHUB_TOKEN") == "" {
-			log.Printf("[DEBUG] <<<<<<< configuring anonymous user without token")
+			log.Printf("[DEBUG] configuring anonymous user without token")
 			return
 		} else {
 			t.Log("GITHUB_TOKEN environment variable should be empty in anonymous mode")
 		}
 	case individual:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
-			log.Printf("[DEBUG] <<<<<<< configuring user type: %s", providerMode)
+			log.Printf("[DEBUG] configuring user type: %s", providerMode)
 			return
 		} else {
 			t.Logf("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set for tests in %v mode", providerMode)
 		}
-		// TODO(kfcampbell): this is a problem. how are we going to know it's an organization
-		// in acceptance tests?
-		// ideas:
-		// - we could perform a lookup online to determine the type
-		// - we could use the GITHUB_ORG variable only for acceptance tests
-		// - we could switch GITHUB_ORG to be a boolean
-		// - we could deprecate GITHUB_ORG entirely and create
-		// 	another environment variable boolean to use instead
 	case organization:
-		log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
+		log.Printf("[DEBUG] user type: %s", providerMode)
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_TEST_ORGANIZATION") != "" {
-			log.Printf("[DEBUG] <<<<<<< configuring user type: %s", providerMode)
+			log.Printf("[DEBUG] configuring user type: %s", providerMode)
 			return
 		}
 	}
 
-	log.Printf("[DEBUG] <<<<<<< skipping!")
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
 }
 
