@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -166,6 +167,12 @@ func init() {
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
 		owner := d.Get("owner").(string)
+
+		if owner == "" && os.Getenv("GITHUB_OWNER") != "" {
+			owner = os.Getenv("GITHUB_OWNER")
+			log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+		}
+
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
