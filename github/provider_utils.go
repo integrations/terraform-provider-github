@@ -47,7 +47,6 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 			t.Log("anonymous mode not supported for GHES deployments")
 			break
 		}
-
 		if os.Getenv("GITHUB_TOKEN") == "" {
 			log.Printf("[DEBUG] configuring anonymous user without token")
 			return
@@ -62,10 +61,15 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 			t.Logf("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set for tests in %v mode", providerMode)
 		}
 	case organization:
-		log.Printf("[DEBUG] user type: %s", providerMode)
-		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_TEST_ORGANIZATION") != "" {
+		testOwner := os.Getenv("GITHUB_TEST_ORGANIZATION")
+		if testOwner == "" {
+			testOwner = os.Getenv("GITHUB_OWNER")
+		}
+		if os.Getenv("GITHUB_TOKEN") != "" && testOwner != "" {
 			log.Printf("[DEBUG] configuring user type: %s", providerMode)
 			return
+		} else {
+			t.Logf("GITHUB_TOKEN and GITHUB_TEST_ORGANIZATION environment variables should be set for tests in %v mode", providerMode)
 		}
 	}
 
