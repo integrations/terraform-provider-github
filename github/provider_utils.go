@@ -40,8 +40,6 @@ func testAccPreCheck(t *testing.T) {
 }
 
 func skipUnlessMode(t *testing.T, providerMode string) {
-	log.Printf("[DEBUG] <<<<<<< skipUnlessMode")
-	log.Printf("[DEBUG] <<<<<<< user type: %s", providerMode)
 	switch providerMode {
 	case anonymous:
 		if os.Getenv("GITHUB_BASE_URL") != "" &&
