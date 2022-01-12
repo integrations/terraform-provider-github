@@ -3,8 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 
+	"github.com/google/go-github/v41/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -203,6 +206,13 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("Error reading GitHub branch reference %s/%s: %s", owner, repoName, err)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 

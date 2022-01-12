@@ -55,16 +55,22 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		config := map[string]string{
 			"no_match_name": `
-				data "github_repository" "no_match_name" {
+				data "github_repository" "test" {
 					name = "owner/repo"
 				}
 			`,
 			"no_match_fullname": `
-				data "github_repository" "no_match_fullname" {
+				data "github_repository" "test" {
 					full_name = "owner/repo"
 				}
 			`,
 		}
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckNoResourceAttr(
+				"data.github_branch.test", "id",
+			),
+		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -72,12 +78,12 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config:      config["no_match_name"],
-						ExpectError: regexp.MustCompile(`Not Found`),
+						Config: config["no_match_name"],
+						Check:  check,
 					},
 					{
-						Config:      config["no_match_fullname"],
-						ExpectError: regexp.MustCompile(`Not Found`),
+						Config: config["no_match_fullname"],
+						Check:  check,
 					},
 				},
 			})
