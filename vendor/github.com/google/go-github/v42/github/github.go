@@ -178,6 +178,7 @@ type Client struct {
 	Billing        *BillingService
 	Checks         *ChecksService
 	CodeScanning   *CodeScanningService
+	Dependabot     *DependabotService
 	Enterprise     *EnterpriseService
 	Gists          *GistsService
 	Git            *GitService
@@ -306,6 +307,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Billing = (*BillingService)(&c.common)
 	c.Checks = (*ChecksService)(&c.common)
 	c.CodeScanning = (*CodeScanningService)(&c.common)
+	c.Dependabot = (*DependabotService)(&c.common)
 	c.Enterprise = (*EnterpriseService)(&c.common)
 	c.Gists = (*GistsService)(&c.common)
 	c.Git = (*GitService)(&c.common)
@@ -544,7 +546,7 @@ func (r *Response) populatePageValues() {
 				continue
 			}
 
-			if since != "" {
+			if since != "" && page == "" {
 				page = since
 			}
 
@@ -884,7 +886,7 @@ func (ae *AcceptedError) Is(target error) bool {
 }
 
 // AbuseRateLimitError occurs when GitHub returns 403 Forbidden response with the
-// "documentation_url" field value equal to "https://docs.github.com/en/free-pro-team@latest/rest/reference/#abuse-rate-limits".
+// "documentation_url" field value equal to "https://docs.github.com/en/free-pro-team@latest/rest/overview/resources-in-the-rest-api#secondary-rate-limits".
 type AbuseRateLimitError struct {
 	Response *http.Response // HTTP response that caused this error
 	Message  string         `json:"message"` // error message
@@ -1003,7 +1005,9 @@ func CheckResponse(r *http.Response) error {
 			Response: errorResponse.Response,
 			Message:  errorResponse.Message,
 		}
-	case r.StatusCode == http.StatusForbidden && strings.HasSuffix(errorResponse.DocumentationURL, "#abuse-rate-limits"):
+	case r.StatusCode == http.StatusForbidden &&
+		(strings.HasSuffix(errorResponse.DocumentationURL, "#abuse-rate-limits") ||
+			strings.HasSuffix(errorResponse.DocumentationURL, "#secondary-rate-limits")):
 		abuseRateLimitError := &AbuseRateLimitError{
 			Response: errorResponse.Response,
 			Message:  errorResponse.Message,
