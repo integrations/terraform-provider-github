@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v42/github"
 )
 
 func TestEtagTransport(t *testing.T) {
