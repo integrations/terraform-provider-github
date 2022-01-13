@@ -66,7 +66,7 @@ func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta i
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	keyId, publicKey, err := getPublicKeyDetails(owner, repo, meta)
+	keyId, publicKey, err := getDependabotPublicKeyDetails(owner, repo, meta)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta i
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
 		encryptedValue = encryptedText.(string)
 	} else {
-		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := encryptDependabotPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func resourceGithubDependabotSecretDelete(d *schema.ResourceData, meta interface
 	return err
 }
 
-func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
+func getDependabotPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -177,7 +177,7 @@ func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkV
 	return publicKey.GetKeyID(), publicKey.GetKey(), err
 }
 
-func encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
+func encryptDependabotPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
 	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyB64)
 	if err != nil {
 		return nil, err

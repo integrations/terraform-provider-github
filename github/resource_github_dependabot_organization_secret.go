@@ -99,7 +99,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		}
 	}
 
-	keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, meta)
+	keyId, publicKey, err := getDependabotOrganizationPublicKeyDetails(owner, meta)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func resourceGithubDependabotOrganizationSecretDelete(d *schema.ResourceData, me
 	return err
 }
 
-func getOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
+func getDependabotOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
