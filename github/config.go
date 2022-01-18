@@ -8,7 +8,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
