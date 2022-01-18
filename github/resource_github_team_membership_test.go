@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"

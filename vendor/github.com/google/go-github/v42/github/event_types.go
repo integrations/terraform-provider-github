@@ -20,12 +20,13 @@ type RequestedAction struct {
 //
 // GitHub API docs: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#branch_protection_rule
 type BranchProtectionRuleEvent struct {
-	Action  *string               `json:"action,omitempty"`
-	Rule    *BranchProtectionRule `json:"rule,omitempty"`
-	Changes *ProtectionChanges    `json:"changes,omitempty"`
-	Repo    *Repository           `json:"repository,omitempty"`
-	Org     *Organization         `json:"organization,omitempty"`
-	Sender  *User                 `json:"sender,omitempty"`
+	Action       *string               `json:"action,omitempty"`
+	Rule         *BranchProtectionRule `json:"rule,omitempty"`
+	Changes      *ProtectionChanges    `json:"changes,omitempty"`
+	Repo         *Repository           `json:"repository,omitempty"`
+	Org          *Organization         `json:"organization,omitempty"`
+	Sender       *User                 `json:"sender,omitempty"`
+	Installation *Installation         `json:"installation,omitempty"`
 }
 
 // CheckRunEvent is triggered when a check run is "created", "completed", or "rerequested".
@@ -179,6 +180,59 @@ type DeploymentStatusEvent struct {
 	Installation *Installation `json:"installation,omitempty"`
 }
 
+// DiscussionEvent represents a webhook event for a discussion.
+// The Webhook event name is "discussion".
+//
+// GitHub API docs: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#discussion
+type DiscussionEvent struct {
+	// Action is the action that was performed. Possible values are:
+	// created, edited, deleted, pinned, unpinned, locked, unlocked,
+	// transferred, category_changed, answered, or unanswered.
+	Action       *string       `json:"action,omitempty"`
+	Discussion   *Discussion   `json:"discussion,omitempty"`
+	Repo         *Repository   `json:"repository,omitempty"`
+	Org          *Organization `json:"organization,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
+}
+
+// Discussion represents a discussion in a GitHub DiscussionEvent.
+type Discussion struct {
+	RepositoryURL      *string             `json:"repository_url,omitempty"`
+	DiscussionCategory *DiscussionCategory `json:"category,omitempty"`
+	AnswerHTMLURL      *string             `json:"answer_html_url,omitempty"`
+	AnswerChosenAt     *Timestamp          `json:"answer_chosen_at,omitempty"`
+	AnswerChosenBy     *string             `json:"answer_chosen_by,omitempty"`
+	HTMLURL            *string             `json:"html_url,omitempty"`
+	ID                 *int64              `json:"id,omitempty"`
+	NodeID             *string             `json:"node_id,omitempty"`
+	Number             *int                `json:"number,omitempty"`
+	Title              *string             `json:"title,omitempty"`
+	User               *User               `json:"user,omitempty"`
+	State              *string             `json:"state,omitempty"`
+	Locked             *bool               `json:"locked,omitempty"`
+	Comments           *int                `json:"comments,omitempty"`
+	CreatedAt          *Timestamp          `json:"created_at,omitempty"`
+	UpdatedAt          *Timestamp          `json:"updated_at,omitempty"`
+	AuthorAssociation  *string             `json:"author_association,omitempty"`
+	ActiveLockReason   *string             `json:"active_lock_reason,omitempty"`
+	Body               *string             `json:"body,omitempty"`
+}
+
+// DiscussionCategory represents a discussion category in a GitHub DiscussionEvent.
+type DiscussionCategory struct {
+	ID           *int64     `json:"id,omitempty"`
+	NodeID       *string    `json:"node_id,omitempty"`
+	RepositoryID *int64     `json:"repository_id,omitempty"`
+	Emoji        *string    `json:"emoji,omitempty"`
+	Name         *string    `json:"name,omitempty"`
+	Description  *string    `json:"description,omitempty"`
+	CreatedAt    *Timestamp `json:"created_at,omitempty"`
+	UpdatedAt    *Timestamp `json:"updated_at,omitempty"`
+	Slug         *string    `json:"slug,omitempty"`
+	IsAnswerable *bool      `json:"is_answerable,omitempty"`
+}
+
 // ForkEvent is triggered when a user forks a repository.
 // The Webhook event name is "fork".
 //
@@ -229,12 +283,13 @@ type GollumEvent struct {
 	Installation *Installation `json:"installation,omitempty"`
 }
 
-// EditChange represents the changes when an issue, pull request, or comment has
-// been edited.
+// EditChange represents the changes when an issue, pull request, comment,
+// or repository has been edited.
 type EditChange struct {
 	Title *EditTitle `json:"title,omitempty"`
 	Body  *EditBody  `json:"body,omitempty"`
 	Base  *EditBase  `json:"base,omitempty"`
+	Repo  *EditRepo  `json:"repository,omitempty"`
 }
 
 // EditTitle represents a pull-request title change.
@@ -255,6 +310,16 @@ type EditBase struct {
 
 // EditRef represents a ref change of a pull-request.
 type EditRef struct {
+	From *string `json:"from,omitempty"`
+}
+
+// EditRepo represents a change of repository name.
+type EditRepo struct {
+	Name *RepoName `json:"name,omitempty"`
+}
+
+// RepoName represents a change of repository name.
+type RepoName struct {
 	From *string `json:"from,omitempty"`
 }
 
@@ -937,6 +1002,7 @@ type RepositoryEvent struct {
 	Repo   *Repository `json:"repository,omitempty"`
 
 	// The following fields are only populated by Webhook events.
+	Changes      *EditChange   `json:"changes,omitempty"`
 	Org          *Organization `json:"organization,omitempty"`
 	Sender       *User         `json:"sender,omitempty"`
 	Installation *Installation `json:"installation,omitempty"`
