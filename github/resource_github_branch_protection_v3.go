@@ -101,7 +101,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      1,
-							ValidateFunc: validation.IntBetween(1, 6),
+							ValidateFunc: validation.IntBetween(0, 6),
 						},
 					},
 				},

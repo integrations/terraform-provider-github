@@ -323,6 +323,72 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 	})
 
+	t.Run("configures required pull request reviews: 0 required approving review count", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id  = github_repository.test.node_id
+			  pattern        = "main"
+
+				required_pull_request_reviews {
+						dismiss_stale_reviews           = true
+						require_code_owner_reviews      = true
+						required_approving_review_count = 0
+				}
+
+			}
+
+	`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.0.required_approving_review_count", "0",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("configures branch push restrictions", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
