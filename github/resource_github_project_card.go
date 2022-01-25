@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,7 +29,15 @@ func resourceGithubProjectCard() *schema.Resource {
 			},
 			"note": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+			},
+			"content_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"content_type": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -56,7 +65,22 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Creating project card note in column ID: %d", columnID)
 	client := meta.(*Owner).v3client
-	options := github.ProjectCardOptions{Note: d.Get("note").(string)}
+	options := github.ProjectCardOptions{}
+
+	note := d.Get("note").(string)
+	if len(note) > 0 {
+		options.Note = note
+	} else {
+		contentID := d.Get("content_id").(int)
+		if contentID > 0 {
+			options.ContentID = int64(contentID)
+		}
+
+		options.ContentType = d.Get("content_type").(string)
+		if options.ContentType != "Issue" && options.ContentType != "PullRequest" {
+			return fmt.Errorf("content_type must be set to either Issue or PullRequest")
+		}
+	}
 	ctx := context.Background()
 	card, _, err := client.Projects.CreateProjectCard(ctx, columnID, &options)
 	if err != nil {
@@ -110,8 +134,18 @@ func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta interface{}) e
 	cardID := d.Get("card_id").(int)
 
 	log.Printf("[DEBUG] Updating project Card: %s", d.Id())
-	options := github.ProjectCardOptions{
-		Note: d.Get("note").(string),
+	options := github.ProjectCardOptions{}
+
+	note := d.Get("note").(string)
+	if len(note) > 0 {
+		options.Note = note
+	} else {
+		contentID := d.Get("content_id").(int)
+		if contentID > 0 {
+			options.ContentID = int64(contentID)
+		}
+
+		options.ContentType = d.Get("content_type").(string)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	_, _, err := client.Projects.UpdateProjectCard(ctx, int64(cardID), &options)
