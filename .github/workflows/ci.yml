@@ -16,5 +16,5 @@ jobs:
       - run: make tools
       - run: make lint
       - run: make website-lint
-      - run: make fmtcheck
+      - run: make build
       - run: make test
