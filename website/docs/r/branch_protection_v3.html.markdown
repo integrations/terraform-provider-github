@@ -89,6 +89,14 @@ The following arguments are supported:
 
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+* `checks` - (Required) The source branch and directory for the rendered Pages site. See [checks configuration](#checks-configuration) below for details.
+
+#### Checks Configuration ####
+
+The `checks` block supports the following:
+
+* `context`: The name of the required check.
+* `app_id`: (Optional) The ID of the GitHub App that must provide this check. Omit this field to automatically select the GitHub App that has recently provided this check, or any app if it was not set by a GitHub App. Pass -1 to explicitly allow any app to set the status.
 
 ### Required Pull Request Reviews
 
