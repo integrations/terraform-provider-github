@@ -67,8 +67,6 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating team repository association: %s:%s (%s/%s)",
-		givenTeamId, permission, orgName, repoName)
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -111,7 +109,6 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team repository association: %s (%s/%s)", teamIdString, orgName, repoName)
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
 		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
@@ -119,7 +116,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team repository association %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing team repository association %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -167,8 +164,6 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating team repository association: %s:%s (%s/%s)",
-		teamIdString, permission, orgName, repoName)
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
@@ -208,8 +203,6 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting team repository association: %s (%s/%s)",
-		teamIdString, orgName, repoName)
 	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 
 	if resp.Response.StatusCode == 404 {
@@ -220,7 +213,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 		}
 		newRepoName := repo.GetName()
 		if newRepoName != repoName {
-			log.Printf("[DEBUG] Repo name has changed %s -> %s. "+
+			log.Printf("[INFO] Repo name has changed %s -> %s. "+
 				"Try deleting team repository again.",
 				repoName, newRepoName)
 			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)

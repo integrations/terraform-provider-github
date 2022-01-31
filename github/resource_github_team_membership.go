@@ -62,7 +62,6 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	username := d.Get("username").(string)
 	role := d.Get("role").(string)
 
-	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
 	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 		orgId,
 		teamId,
@@ -104,7 +103,6 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
@@ -113,7 +111,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing team membership %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -139,7 +137,6 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	username := d.Get("username").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
 	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 
 	return err

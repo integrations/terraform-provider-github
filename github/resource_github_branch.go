@@ -118,7 +118,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing branch %s/%s (%s) from state because it no longer exists in Github",
+				log.Printf("[INFO] Removing branch %s/%s (%s) from state because it no longer exists in GitHub",
 					orgName, repoName, branchName)
 				d.SetId("")
 				return nil
