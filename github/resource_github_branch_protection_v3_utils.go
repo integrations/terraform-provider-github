@@ -46,10 +46,19 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 			contexts = append(contexts, c)
 		}
 
+		checks := make([]interface{}, 0, len(rsc.Checks))
+		for _, c := range rsc.Checks {
+			checkMap := make(map[string]interface{})
+			checkMap["context"] = c.Context
+			checkMap["app_id"] = c.AppID
+			checks = append(checks, checkMap)
+		}
+
 		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
 				"strict":   rsc.Strict,
 				"contexts": schema.NewSet(schema.HashString, contexts),
+				"checks":   checks,
 			},
 		})
 	}
@@ -193,6 +202,15 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 			contexts := expandNestedSet(m, "contexts")
 			rsc.Contexts = contexts
+
+			checks := make([]RequiredStatusCheck, 0)
+			for _, c := range m["checks"].([]map[string]interface{}) {
+				check := new(github.RequiredStatusCheck)
+				check.Context = c["context"]
+				check.AppID = c["app_id"]
+				checks = append(checks, check)
+			}
+			rsc.Checks = checks
 		}
 		return rsc, nil
 	}
