@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/shurcooL/githubv4"
-	"log"
 	"reflect"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubUsers() *schema.Resource {
@@ -69,7 +69,6 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
 	if len(usernames) > 0 {
-		log.Printf("[INFO] Refreshing GitHub Users: %s", strings.Join(usernames, ", "))
 		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		client := meta.(*Owner).v4client
 		err := client.Query(ctx, query.Addr().Interface(), variables)
