@@ -54,7 +54,6 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 		return unconvertibleIdErr(columnIDStr, err)
 	}
 
-	log.Printf("[DEBUG] Creating project card note in column ID: %d", columnID)
 	client := meta.(*Owner).v3client
 	options := github.ProjectCardOptions{Note: d.Get("note").(string)}
 	ctx := context.Background()
@@ -71,14 +70,12 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	nodeID := d.Id()
 	cardID := d.Get("card_id").(int)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading project card: %s", nodeID)
 	card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
