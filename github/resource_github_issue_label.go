@@ -88,8 +88,6 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	log.Printf("[DEBUG] Querying label existence: %s (%s/%s)",
-		name, orgName, repoName)
 	existing, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, originalName)
 	if err != nil && resp.StatusCode != http.StatusNotFound {
@@ -98,9 +96,6 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 
 	if existing != nil {
 		label.Description = github.String(d.Get("description").(string))
-
-		log.Printf("[DEBUG] Updating label: %s:%s (%s/%s)",
-			name, color, orgName, repoName)
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
@@ -125,13 +120,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 			label.Description = github.String(v.(string))
 		}
 
-		log.Printf("[DEBUG] Creating label: %s:%s (%s/%s)",
-			name, color, orgName, repoName)
-		_, resp, err := client.Issues.CreateLabel(ctx,
+		_, _, err := client.Issues.CreateLabel(ctx,
 			orgName, repoName, label)
-		if resp != nil {
-			log.Printf("[DEBUG] Response from creating label: %#v", *resp)
-		}
 		if err != nil {
 			return err
 		}
@@ -155,7 +145,6 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading label: %s (%s/%s)", name, orgName, repoName)
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, name)
 	if err != nil {
@@ -164,7 +153,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
 					name, orgName, repoName)
 				d.SetId("")
 				return nil
@@ -191,7 +180,6 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting label: %s (%s/%s)", name, orgName, repoName)
 	_, err := client.Issues.DeleteLabel(ctx,
 		orgName, repoName, name)
 	return err
