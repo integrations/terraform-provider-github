@@ -86,7 +86,6 @@ func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta inte
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository environment: %s/%s/%s", owner, repoName, envName)
 	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
 
 	if err != nil {
@@ -109,12 +108,11 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Reading repository environment: %s (%s/%s/%s)", d.Id(), owner, repoName, envName)
 	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository environment %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository environment %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -173,9 +171,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Updating repository environment: %s/%s/%s", owner, repoName, envName)
 	resultKey, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
-
 	if err != nil {
 		return err
 	}
@@ -196,7 +192,6 @@ func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta inte
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository environment: %s/%s/%s", owner, repoName, envName)
 	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	return err
 }
