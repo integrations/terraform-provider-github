@@ -191,7 +191,7 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 			opts.SHA = fileContent.SHA
 		} else {
 			// Error if overwriting a file is not requested
-			return fmt.Errorf("[ERROR] Refusing to overwrite existing file. Configure `overwrite_on_create` to `true` to override.")
+			return fmt.Errorf("refusing to overwrite existing file: configure `overwrite_on_create` to `true` to override")
 		}
 	}
 
