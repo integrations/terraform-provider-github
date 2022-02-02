@@ -24,23 +24,23 @@ func dataSourceGithubTree() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"path": &schema.Schema{
+						"path": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"mode": &schema.Schema{
+						"mode": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"size": &schema.Schema{
+						"size": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"sha": &schema.Schema{
+						"sha": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
