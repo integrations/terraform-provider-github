@@ -156,13 +156,7 @@ $ $GOPATH/bin/terraform-provider-github
 ...
 ```
 
-In order to test the provider, you can simply run `make test`.
-
-```sh
-$ make test
-```
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
+In order to run the full suite of provider acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources, and often cost money to run.
 
@@ -204,6 +198,8 @@ Note that the above `GITHUB_TEST_ORGANIZATION` variable does not have a correspo
 Use the `GITHUB_TEST_ORGANIZATION` variable only in acceptance tests, only to specify an organization owner. This is useful in provider scenarios that are valid for both individual and organization owners and need to be tested individually.
 
 See [this project](https://github.com/terraformtesting/acceptance-tests) for more information on how tests are run automatically.
+
+There are also a small amount of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
 
 ### GitHub Personal Access Token
 

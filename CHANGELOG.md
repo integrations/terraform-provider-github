@@ -1,8 +1,16 @@
+## 4.19.2 (Jan 20, 2022)
+
+BUG FIXES:
+
+- Update `go-github` to v42.0.0 ([#1035](https://github.com/integrations/terraform-provider-github/pull/1035))
+- Adjust count requirement of `required_approving_review_count` option for `github_branch_protection` ([#971](https://github.com/integrations/terraform-provider-github/pull/971))
+- Add `nil` check for `require_conversation_resolution` field of `github_branch_protection` resource ([#1032](https://github.com/integrations/terraform-provider-github/pull/1032))
+
 ## 4.19.1 (Jan 5, 2022)
 
 BUG FIXES:
 
-- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/905))
+- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/993))
 - Add `nil` check for `plan` field of `github_organization` data source ([#1016](https://github.com/integrations/terraform-provider-github/pull/1016))
 
 
