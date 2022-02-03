@@ -111,6 +111,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_webhook":                       resourceGithubRepositoryWebhook(),
 			"github_repository":                               resourceGithubRepository(),
 			"github_team_membership":                          resourceGithubTeamMembership(),
+			"github_team_members":                             resourceGithubTeamMembers(),
 			"github_team_repository":                          resourceGithubTeamRepository(),
 			"github_team_sync_group_mapping":                  resourceGithubTeamSyncGroupMapping(),
 			"github_team":                                     resourceGithubTeam(),
