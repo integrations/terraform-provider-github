@@ -180,7 +180,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repoName, envName))
+	d.SetId(buildTwoPartID(repoName, resultKey.GetName()))
 
 	return resourceGithubRepositoryEnvironmentRead(d, meta)
 }
