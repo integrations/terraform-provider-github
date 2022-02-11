@@ -23,7 +23,7 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 			  name = "tf-acc-test-%s"
 			}
 
-			data "github_actions_public_key" "test_pk" {
+			data "github_dependabot_public_key" "test_pk" {
 			  repository = github_repository.test.name
 			}
 
@@ -31,10 +31,10 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test_pk", "key_id",
+				"data.github_dependabot_public_key.test_pk", "key_id",
 			),
 			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test_pk", "key",
+				"data.github_dependabot_public_key.test_pk", "key",
 			),
 		)
 
@@ -74,13 +74,13 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 			  name = "tf-acc-test-%s"
 			}
 
-			resource "github_actions_secret" "plaintext_secret" {
+			resource "github_dependabot_secret" "plaintext_secret" {
 			  repository       = github_repository.test.name
 			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
 			}
 
-			resource "github_actions_secret" "encrypted_secret" {
+			resource "github_dependabot_secret" "encrypted_secret" {
 			  repository       = github_repository.test.name
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
@@ -90,34 +90,34 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
+					"github_dependabot_secret.plaintext_secret", "plaintext_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
+					"github_dependabot_secret.encrypted_secret", "encrypted_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
+					"github_dependabot_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
+					"github_dependabot_secret.plaintext_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
+					"github_dependabot_secret.plaintext_secret", "plaintext_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
+					"github_dependabot_secret.encrypted_secret", "encrypted_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
+					"github_dependabot_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
+					"github_dependabot_secret.plaintext_secret", "updated_at",
 				),
 			),
 		}
@@ -160,12 +160,12 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 					name = "tf-acc-test-%s"
 				}
 
-				resource "github_actions_secret" "plaintext_secret" {
+				resource "github_dependabot_secret" "plaintext_secret" {
 					repository 	= github_repository.test.name
 					secret_name	= "test_plaintext_secret"
 				}
 
-				resource "github_actions_secret" "encrypted_secret" {
+				resource "github_dependabot_secret" "encrypted_secret" {
 					repository 	= github_repository.test.name
 					secret_name	= "test_encrypted_secret"
 				}

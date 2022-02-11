@@ -10,12 +10,11 @@ import (
 )
 
 func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
-
 	const ORG_SECRET_NAME = "ORG_SECRET_NAME"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	secret_name, exists := os.LookupEnv(ORG_SECRET_NAME)
 
-	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
+	t.Run("set repository allowlist for an organization secret", func(t *testing.T) {
 		if !exists {
 			t.Skipf("%s environment variable is missing", ORG_SECRET_NAME)
 		}
@@ -33,7 +32,7 @@ func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 				vulnerability_alerts = "true"
 			}
 
-			resource "github_actions_organization_secret_repositories" "org_secret_repos" {
+			resource "github_dependabot_organization_secret_repositories" "org_secret_repos" {
 				secret_name = "%s"
 				selected_repository_ids = [
 					github_repository.test_repo_1.repo_id,
@@ -44,10 +43,10 @@ func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
-				"github_actions_organization_secret_repositories.org_secret_repos", "secret_name",
+				"github_dependabot_organization_secret_repositories.org_secret_repos", "secret_name",
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_organization_secret_repositories.org_secret_repos", "selected_repository_ids.#", "2",
+				"github_dependabot_organization_secret_repositories.org_secret_repos", "selected_repository_ids.#", "2",
 			),
 		)
 
