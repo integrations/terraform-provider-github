@@ -51,7 +51,7 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Error reading GitHub branch reference %s/%s (%s): %s", orgName, repoName, branchRefName, err)
+				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
 				d.SetId("")
 				return nil
 			}

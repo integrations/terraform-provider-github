@@ -208,7 +208,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("Error reading GitHub branch reference %s/%s: %s", owner, repoName, err)
+				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
 				d.SetId("")
 				return nil
 			}
