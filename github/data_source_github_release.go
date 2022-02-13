@@ -30,6 +30,7 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
+					"latest_prerelease",
 					"latest",
 					"id",
 					"tag",
@@ -108,8 +109,38 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 
 	var err error
 	var release *github.RepositoryRelease
-
 	switch retrieveBy := strings.ToLower(d.Get("retrieve_by").(string)); retrieveBy {
+	case "latest_prerelease":
+		// The GitHub API doesn't specify a way to just load the most recent prerelease,
+		// so we'll load all releases and determine which one is the most recent
+		// prerelease after.
+		log.Printf("[INFO] Refreshing GitHub latest prerelease from repository %s", repository)
+		var releases []*github.RepositoryRelease
+		nextPage := 1
+		// TODO: 10 is sort of arbitrary here -- what's the best way to allow configurability
+		// for this to prevent the provider from becoming glacially slow on large repos?
+		for nextPage < 10 {
+			opt := &github.ListOptions{Page: nextPage}
+			var response *github.Response
+			releases, response, err = client.Repositories.ListReleases(ctx, owner, repository, opt)
+			for _, rel := range releases {
+				if *rel.Prerelease != true || *rel.Draft == true {
+					continue
+				}
+				if release == nil {
+					release = rel
+				} else {
+					if rel.PublishedAt.After(release.PublishedAt.Time) {
+						release = rel
+					}
+				}
+			}
+			if response.NextPage > nextPage {
+				nextPage = response.NextPage
+			} else {
+				break
+			}
+		}
 	case "latest":
 		log.Printf("[INFO] Refreshing GitHub latest release from repository %s", repository)
 		release, _, err = client.Repositories.GetLatestRelease(ctx, owner, repository)

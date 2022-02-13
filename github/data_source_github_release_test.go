@@ -13,6 +13,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 
 	testReleaseRepository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	testReleaseID := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID")
+	testPrereleaseID := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_PRERELEASE_ID")
 	testReleaseOwner := testOrganizationFunc()
 
 	t.Run("queries latest release", func(t *testing.T) {
@@ -28,6 +29,49 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"data.github_release.test", "id", testReleaseID,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("queries latest prerelease", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			data "github_release" "test" {
+				repository = "%s"
+				owner = "%s"
+				retrieve_by = "latest_prerelease"
+			}
+		`, testReleaseRepository, testReleaseOwner)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_release.test", "id", testPrereleaseID,
 			),
 		)
 
