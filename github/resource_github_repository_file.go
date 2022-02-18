@@ -191,12 +191,11 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 			opts.SHA = fileContent.SHA
 		} else {
 			// Error if overwriting a file is not requested
-			return fmt.Errorf("[ERROR] Refusing to overwrite existing file. Configure `overwrite_on_create` to `true` to override.")
+			return fmt.Errorf("refusing to overwrite existing file: configure `overwrite_on_create` to `true` to override")
 		}
 	}
 
 	// Create a new or overwritten file
-	log.Printf("[DEBUG] Creating repository file: %s/%s/%s in branch: %s", owner, repo, file, branch)
 	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
@@ -221,11 +220,10 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	log.Printf("[DEBUG] Reading repository file: %s/%s/%s, branch: %s", owner, repo, file, branch)
 	opts := &github.RepositoryContentGetOptions{Ref: branch}
 	fc, _, _, _ := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if fc == nil {
-		log.Printf("[WARN] Removing repository path %s/%s/%s from state because it no longer exists in GitHub",
+		log.Printf("[INFO] Removing repository path %s/%s/%s from state because it no longer exists in GitHub",
 			owner, repo, file)
 		d.SetId("")
 		return nil
@@ -241,7 +239,6 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("file", file)
 	d.Set("sha", fc.GetSHA())
 
-	log.Printf("[DEBUG] Fetching commit info for repository file: %s/%s/%s", owner, repo, file)
 	var commit *github.RepositoryCommit
 
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
@@ -289,7 +286,6 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 		opts.Message = &m
 	}
 
-	log.Printf("[DEBUG] Updating content in repository file: %s/%s/%s", owner, repo, file)
 	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
@@ -318,7 +314,6 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 		Branch:  &branch,
 	}
 
-	log.Printf("[DEBUG] Deleting repository file: %s/%s/%s", owner, repo, file)
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return nil

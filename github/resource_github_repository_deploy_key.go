@@ -63,7 +63,6 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository deploy key: %s (%s/%s)", title, owner, repoName)
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
 		Key:      github.String(key),
 		Title:    github.String(title),
@@ -99,7 +98,6 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading repository deploy key: %s (%s/%s)", d.Id(), owner, repoName)
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -107,7 +105,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository deploy key %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository deploy key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -140,7 +138,6 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository deploy key: %s (%s/%s)", idString, owner, repoName)
 	_, err = client.Repositories.DeleteKey(ctx, owner, repoName, id)
 	if err != nil {
 		return err

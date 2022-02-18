@@ -62,8 +62,6 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	}
 	ctx := context.Background()
 
-	orgName := meta.(*Owner).name
-	log.Printf("[DEBUG] Creating project column (%s) in project %d (%s)", options.Name, projectID, orgName)
 	column, _, err := client.Projects.CreateProjectColumn(ctx,
 		projectID,
 		&options,
@@ -90,12 +88,11 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading project column: %s", d.Id())
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing project column %s from state because it no longer exists in GitHub", d.Id())
+				log.Printf("[INFO] Removing project column %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
 				return nil
 			}
@@ -125,7 +122,6 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{})
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating project column: %s", d.Id())
 	_, _, err = client.Projects.UpdateProjectColumn(ctx, columnID, &options)
 	if err != nil {
 		return err
@@ -143,7 +139,6 @@ func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{})
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting project column: %s", d.Id())
 	_, err = client.Projects.DeleteProjectColumn(ctx, columnID)
 	return err
 }

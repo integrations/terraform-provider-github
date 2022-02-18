@@ -3,7 +3,6 @@ package github
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
-	"log"
 )
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
@@ -71,8 +70,6 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	rootTeamsOnly := d.Get("root_teams_only").(bool)
-
-	log.Print("[INFO] Refreshing GitHub Teams for Organization: ", orgName)
 
 	var query TeamsQuery
 	variables := map[string]interface{}{

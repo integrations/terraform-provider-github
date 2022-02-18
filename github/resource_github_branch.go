@@ -74,8 +74,6 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	sourceBranchRefName := "refs/heads/" + sourceBranchName
 
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
-		log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s) to derive source_sha",
-			orgName, repoName, sourceBranchRefName)
 		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
 		if err != nil {
 			return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
@@ -85,8 +83,6 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
-	log.Printf("[DEBUG] Creating GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
 	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
 		Ref:    &branchRefName,
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
@@ -115,8 +111,6 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -124,7 +118,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch %s/%s (%s) from state because it no longer exists in Github",
+				log.Printf("[INFO] Removing branch %s/%s (%s) from state because it no longer exists in GitHub",
 					orgName, repoName, branchName)
 				d.SetId("")
 				return nil
@@ -155,8 +149,6 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Deleting GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
 	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
 		return fmt.Errorf("Error deleting GitHub branch reference %s/%s (%s): %s",

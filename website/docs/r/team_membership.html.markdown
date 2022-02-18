@@ -14,6 +14,8 @@ the user will be added to the team. If the user hasn't accepted their invitation
 organization, they won't be part of the team until they do. When
 destroyed, the user will be removed from the team.
 
+~> **Note**: This resource is not compatible with `github_team_members`. Use either `github_team_members` or `github_team_membership`.
+
 ## Example Usage
 
 ```hcl

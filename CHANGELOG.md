@@ -1,3 +1,17 @@
+## 4.20.0 (Feb 3, 2022)
+
+ENHANCEMENTS:
+
+* Add new resource `github_team_members` to allow authoritative team management by @stawik-mesa in https://github.com/integrations/terraform-provider-github/pull/975
+
+BUG FIXES:
+
+* test: checkout pull request via sha instead of ref by @jcudit in https://github.com/integrations/terraform-provider-github/pull/1043
+* Small CI cleanup by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1048
+
+**Full Changelog**: https://github.com/integrations/terraform-provider-github/compare/v4.19.2...v4.20.0
+
+
 ## 4.19.2 (Jan 20, 2022)
 
 BUG FIXES:
