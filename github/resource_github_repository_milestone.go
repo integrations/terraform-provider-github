@@ -106,7 +106,6 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 		milestone.State = github.String(v.(string))
 	}
 
-	log.Printf("[DEBUG] Creating milestone for repository: %s/%s", owner, repoName)
 	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, milestone)
 	if err != nil {
 		return err
@@ -128,7 +127,6 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	log.Printf("[DEBUG] Reading milestone for repository: %s/%s", owner, repoName)
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -136,7 +134,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interfac
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing milestone for %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing milestone for %s/%s from state because it no longer exists in GitHub",
 					owner, repoName)
 				d.SetId("")
 				return nil
@@ -192,7 +190,6 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 		milestone.State = github.String(n.(string))
 	}
 
-	log.Printf("[DEBUG] Updating milestone for repository: %s/%s", owner, repoName)
 	_, _, err = conn.Issues.EditMilestone(ctx, owner, repoName, number, milestone)
 	if err != nil {
 		return err
@@ -211,7 +208,6 @@ func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	log.Printf("[DEBUG] Deleting milestone for repository: %s/%s", owner, repoName)
 	_, err = conn.Issues.DeleteMilestone(ctx, owner, repoName, number)
 	if err != nil {
 		return err

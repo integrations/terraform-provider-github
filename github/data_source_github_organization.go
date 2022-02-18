@@ -1,7 +1,6 @@
 package github
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v42/github"
@@ -53,7 +52,6 @@ func dataSourceGithubOrganization() *schema.Resource {
 
 func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
-	log.Printf("[INFO] Refreshing GitHub Organization: %s", name)
 
 	client := meta.(*Owner).v3client
 	ctx := meta.(*Owner).StopContext

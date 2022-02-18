@@ -54,7 +54,6 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 		return unconvertibleIdErr(columnIDStr, err)
 	}
 
-	log.Printf("[DEBUG] Creating project card note in column ID: %d", columnID)
 	client := meta.(*Owner).v3client
 	options := github.ProjectCardOptions{Note: d.Get("note").(string)}
 	ctx := context.Background()
@@ -71,19 +70,17 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	nodeID := d.Id()
 	cardID := d.Get("card_id").(int)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading project card: %s", nodeID)
 	card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing project card %s from state because it no longer exists in GitHub", d.Id())
+				log.Printf("[INFO] Removing project card %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
 				return nil
 			}
@@ -109,7 +106,6 @@ func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta interface{}) e
 	client := meta.(*Owner).v3client
 	cardID := d.Get("card_id").(int)
 
-	log.Printf("[DEBUG] Updating project Card: %s", d.Id())
 	options := github.ProjectCardOptions{
 		Note: d.Get("note").(string),
 	}
@@ -126,7 +122,6 @@ func resourceGithubProjectCardDelete(d *schema.ResourceData, meta interface{}) e
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting project Card: %s", d.Id())
 	cardID := d.Get("card_id").(int)
 	_, err := client.Projects.DeleteProjectCard(ctx, int64(cardID))
 	if err != nil {
@@ -144,7 +139,6 @@ func resourceGithubProjectCardImport(d *schema.ResourceData, meta interface{}) (
 		return []*schema.ResourceData{d}, unconvertibleIdErr(cardIDStr, err)
 	}
 
-	log.Printf("[DEBUG] Importing project card with card ID: %d", cardID)
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	card, _, err := client.Projects.GetProjectCard(ctx, cardID)

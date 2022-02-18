@@ -127,7 +127,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing environment secret %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -156,7 +156,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The environment secret %s has been externally updated in GitHub", d.Id())
+		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
 		d.Set("updated_at", secret.UpdatedAt.String())
@@ -178,7 +178,7 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta i
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Deleting environment secret: %s", d.Id())
+	log.Printf("[INFO] Deleting environment secret: %s", d.Id())
 	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), envName, secretName)
 
 	return err

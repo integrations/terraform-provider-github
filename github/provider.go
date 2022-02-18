@@ -200,7 +200,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
+			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
 			owner = org
 		}
 
@@ -246,7 +246,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		if writeDelay <= 0 {
 			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
 		}
-		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
+		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
 
 		config := Config{
 			Token:      token,

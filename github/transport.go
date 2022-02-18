@@ -114,14 +114,10 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 func (rlt *RateLimitTransport) lock(req *http.Request) {
-	ctx := req.Context()
-	log.Printf("[TRACE] Acquiring lock for GitHub API request (%q)", ctx.Value(ctxId))
 	rlt.m.Lock()
 }
 
 func (rlt *RateLimitTransport) unlock(req *http.Request) {
-	ctx := req.Context()
-	log.Printf("[TRACE] Releasing lock for GitHub API request (%q)", ctx.Value(ctxId))
 	rlt.m.Unlock()
 }
 

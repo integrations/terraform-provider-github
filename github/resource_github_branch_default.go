@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 
 	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -45,7 +44,6 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{})
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating branch default: %s (%s/%s)", defaultBranch, owner, repoName)
 	if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
 		return err
 	}
@@ -83,7 +81,6 @@ func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta interface{})
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
-	defaultBranch := d.Get("branch").(string)
 
 	repository := &github.Repository{
 		DefaultBranch: nil,
@@ -91,7 +88,6 @@ func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta interface{})
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Removing branch default: %s (%s/%s)", defaultBranch, owner, repoName)
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
 	return err
 }
@@ -109,7 +105,6 @@ func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta interface{})
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Updating branch default: %s (%s/%s)", defaultBranch, owner, repoName)
 	if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
 		return err
 	}

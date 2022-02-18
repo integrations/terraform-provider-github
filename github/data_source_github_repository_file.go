@@ -76,7 +76,6 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	log.Printf("[DEBUG] Data Source reading repository file: %s/%s/%s, branch: %s", owner, repo, file, branch)
 	opts := &github.RepositoryContentGetOptions{Ref: branch}
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {

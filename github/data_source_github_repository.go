@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -199,10 +198,9 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("One of %q or %q has to be provided", "full_name", "name")
+		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	log.Printf("[DEBUG] Reading GitHub repository %s/%s", owner, repoName)
 	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
 		return err
