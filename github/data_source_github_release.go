@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -111,7 +110,6 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 
 	switch retrieveBy := strings.ToLower(d.Get("retrieve_by").(string)); retrieveBy {
 	case "latest":
-		log.Printf("[INFO] Refreshing GitHub latest release from repository %s", repository)
 		release, _, err = client.Repositories.GetLatestRelease(ctx, owner, repository)
 	case "id":
 		releaseID := int64(d.Get("release_id").(int))
@@ -119,7 +117,6 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("`release_id` must be set when `retrieve_by` = `id`")
 		}
 
-		log.Printf("[INFO] Refreshing GitHub release by id %d from repository %s", releaseID, repository)
 		release, _, err = client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	case "tag":
 		tag := d.Get("release_tag").(string)
@@ -127,7 +124,6 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("`release_tag` must be set when `retrieve_by` = `tag`")
 		}
 
-		log.Printf("[INFO] Refreshing GitHub release by tag %s from repository %s", tag, repository)
 		release, _, err = client.Repositories.GetReleaseByTag(ctx, owner, repository, tag)
 	default:
 		return fmt.Errorf("one of: `latest`, `id`, `tag` must be set for `retrieve_by`")

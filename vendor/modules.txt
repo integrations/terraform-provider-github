@@ -412,7 +412,8 @@ github.com/timakin/bodyclose/passes/bodyclose
 github.com/tommy-muehle/go-mnd
 github.com/tommy-muehle/go-mnd/checks
 github.com/tommy-muehle/go-mnd/config
-# github.com/ulikunitz/xz v0.5.5
+# github.com/ulikunitz/xz v0.5.10
+## explicit
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog

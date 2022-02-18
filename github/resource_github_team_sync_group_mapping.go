@@ -70,7 +70,6 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Creating team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
@@ -96,7 +95,6 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team-sync group mapping (Team slug: %s)", slug)
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -104,7 +102,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team_sync_group mapping for %s/%s from state because it no longer exists in Github",
+				log.Printf("[INFO] Removing team_sync_group mapping for %s/%s from state because it no longer exists in GitHub",
 					orgName, slug)
 				d.SetId("")
 				return nil
@@ -138,7 +136,6 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Updating team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
@@ -161,9 +158,7 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	groups := make([]*github.IDPGroup, 0)
 	emptyGroupList := github.IDPGroupList{Groups: groups}
 
-	log.Printf("[DEBUG] Deleting team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
-
 	return err
 }
 

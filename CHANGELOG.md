@@ -1,8 +1,30 @@
+## 4.20.0 (Feb 3, 2022)
+
+ENHANCEMENTS:
+
+* Add new resource `github_team_members` to allow authoritative team management by @stawik-mesa in https://github.com/integrations/terraform-provider-github/pull/975
+
+BUG FIXES:
+
+* test: checkout pull request via sha instead of ref by @jcudit in https://github.com/integrations/terraform-provider-github/pull/1043
+* Small CI cleanup by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1048
+
+**Full Changelog**: https://github.com/integrations/terraform-provider-github/compare/v4.19.2...v4.20.0
+
+
+## 4.19.2 (Jan 20, 2022)
+
+BUG FIXES:
+
+- Update `go-github` to v42.0.0 ([#1035](https://github.com/integrations/terraform-provider-github/pull/1035))
+- Adjust count requirement of `required_approving_review_count` option for `github_branch_protection` ([#971](https://github.com/integrations/terraform-provider-github/pull/971))
+- Add `nil` check for `require_conversation_resolution` field of `github_branch_protection` resource ([#1032](https://github.com/integrations/terraform-provider-github/pull/1032))
+
 ## 4.19.1 (Jan 5, 2022)
 
 BUG FIXES:
 
-- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/905))
+- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/993))
 - Add `nil` check for `plan` field of `github_organization` data source ([#1016](https://github.com/integrations/terraform-provider-github/pull/1016))
 
 

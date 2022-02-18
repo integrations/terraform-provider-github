@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v42/github"
@@ -55,7 +54,6 @@ func dataSourceGithubTeam() *schema.Resource {
 
 func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	slug := d.Get("slug").(string)
-	log.Printf("[INFO] Refreshing GitHub Team: %s", slug)
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
