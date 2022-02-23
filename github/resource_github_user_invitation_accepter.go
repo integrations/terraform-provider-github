@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -35,7 +34,6 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Accepting invitation: %d", invitationId)
 	_, err = client.Users.AcceptInvitation(ctx, int64(invitationId))
 	if err != nil {
 		return err

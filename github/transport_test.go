@@ -53,7 +53,7 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 
 		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("[ERROR] %s", err)
+			log.Printf("[DEBUG] Error: %s", err)
 		}
 		log.Printf("[DEBUG] Mock server received %s request to %q; headers:\n%s\nrequest body: %q\n",
 			r.Method, r.RequestURI, r.Header, string(bodyBytes))
@@ -76,22 +76,22 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		}
 
 		if r.RequestURI != tc.ExpectedUri {
-			log.Printf("[ERROR] Expected URI: %q, given: %q", tc.ExpectedUri, r.RequestURI)
+			log.Printf("[DEBUG] Error: expected URI: %q, given: %q", tc.ExpectedUri, r.RequestURI)
 			w.WriteHeader(400)
 			return
 		}
 		if !headersMatch(r.Header, tc.ExpectedHeaders) {
-			log.Printf("[ERROR] Expected headers: %q, given: %q", tc.ExpectedHeaders, r.Header)
+			log.Printf("[DEBUG] Error: expected headers: %q, given: %q", tc.ExpectedHeaders, r.Header)
 			w.WriteHeader(400)
 			return
 		}
 		if tc.ExpectedMethod != "" && r.Method != tc.ExpectedMethod {
-			log.Printf("[ERROR] Expected method: %q, given: %q", tc.ExpectedMethod, r.Method)
+			log.Printf("[DEBUG] Error: expected method: %q, given: %q", tc.ExpectedMethod, r.Method)
 			w.WriteHeader(400)
 			return
 		}
 		if len(tc.ExpectedBody) > 0 && string(bodyBytes) != string(tc.ExpectedBody) {
-			log.Printf("[ERROR] Expected body: %q, given: %q",
+			log.Printf("[DEBUG] Error: expected body: %q, given: %q",
 				string(tc.ExpectedBody), string(bodyBytes))
 			w.WriteHeader(400)
 			return

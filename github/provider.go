@@ -112,6 +112,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_webhook":                       resourceGithubRepositoryWebhook(),
 			"github_repository":                               resourceGithubRepository(),
 			"github_team_membership":                          resourceGithubTeamMembership(),
+			"github_team_members":                             resourceGithubTeamMembers(),
 			"github_team_repository":                          resourceGithubTeamRepository(),
 			"github_team_sync_group_mapping":                  resourceGithubTeamSyncGroupMapping(),
 			"github_team":                                     resourceGithubTeam(),
@@ -200,7 +201,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
+			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
 			owner = org
 		}
 
@@ -246,7 +247,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		if writeDelay <= 0 {
 			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
 		}
-		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
+		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
 
 		config := Config{
 			Token:      token,

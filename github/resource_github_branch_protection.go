@@ -193,7 +193,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-			log.Printf("[WARN] Removing branch protection (%s) from state because it no longer exists in GitHub", d.Id())
+			log.Printf("[INFO] Removing branch protection (%s) from state because it no longer exists in GitHub", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -205,55 +205,55 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_ALLOWS_DELETIONS, protection.AllowsDeletions)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_IS_ADMIN_ENFORCED, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_IS_ADMIN_ENFORCED, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.RequiresCommitSignatures)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_LINEAR_HISTORY, protection.RequiresLinearHistory)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LINEAR_HISTORY, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LINEAR_HISTORY, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.RequiresConversationResolution)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	approvingReviews := setApprovingReviews(protection)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	statusChecks := setStatusChecks(protection)
 	err = d.Set(PROTECTION_REQUIRES_STATUS_CHECKS, statusChecks)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	restrictsPushes := setPushes(protection)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
-		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	return nil

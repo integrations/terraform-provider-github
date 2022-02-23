@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -101,7 +100,6 @@ func dataSourceGithubUser() *schema.Resource {
 
 func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	username := d.Get("username").(string)
-	log.Printf("[INFO] Refreshing GitHub User: %s", username)
 
 	client := meta.(*Owner).v3client
 	ctx := context.Background()

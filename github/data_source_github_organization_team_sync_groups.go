@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -39,8 +38,6 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 }
 
 func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
-	log.Print("[INFO] Refreshing GitHub Organization Team-Sync Groups")
-
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
