@@ -185,6 +185,10 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
+	if teamIdString == "" && !d.IsNewResource() {
+		log.Printf("[DEBUG] Importing team with id %q", d.Id())
+		teamIdString = d.Id()
+	}
 
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
