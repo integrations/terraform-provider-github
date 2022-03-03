@@ -3,8 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -203,6 +206,13 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
