@@ -1,3 +1,12 @@
+## 4.21.0 (Mar 3, 2022)
+
+BUG FIXES:
+
+* Remove team from state if deletion failed and it does not exist by @cytopia in https://github.com/integrations/terraform-provider-github/pull/1039
+    * Note that this is a behavior change from previous GitHub Terraform provider releases: now, if a GitHub team deletion operation fails and the team does not exist, the team will be automatically removed from state.
+* Make data_github_repository work with non-existing repositories by @tobiassjosten in https://github.com/integrations/terraform-provider-github/pull/1031
+* Standardize logs by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1053
+
 ## 4.20.0 (Feb 3, 2022)
 
 ENHANCEMENTS:
