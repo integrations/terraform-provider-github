@@ -1,4 +1,18 @@
-## 4.21.0 (Mar 3, 2022)
+## 4.21.0 (Mar 11, 2022)
+
+ENHANCEMENTS:
+
+* Adding BypassPullRequestActorIDs to branch protection by @jtyr in https://github.com/integrations/terraform-provider-github/pull/1030
+* Adding suspended_at attribute to github_user data source by @mrobinson-anaplan in https://github.com/integrations/terraform-provider-github/pull/1070
+* Documentation: Add id to github_user data dource by @kangaechu in https://github.com/integrations/terraform-provider-github/pull/1061
+
+BUG FIXES:
+
+* fix: use the appropriate ID when trying to import `github_team_members` objects by @bison-brandon in https://github.com/integrations/terraform-provider-github/pull/1074
+* Environment ID gets set incorrectly on update by @aceresia-bg in https://github.com/integrations/terraform-provider-github/pull/1058
+* Fix whitespace in documentation for branch_protection_v3 by @JCradock in https://github.com/integrations/terraform-provider-github/pull/1059
+
+## 4.20.1 (Mar 3, 2022)
 
 BUG FIXES:
 
