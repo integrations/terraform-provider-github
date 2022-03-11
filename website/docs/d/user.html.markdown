@@ -34,6 +34,7 @@ output "current_github_login" {
 
 ## Attributes Reference
 
+ * `id` - the ID of the user.
  * `node_id` - the Node ID of the user.
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.
