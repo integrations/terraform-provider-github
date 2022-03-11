@@ -90,6 +90,10 @@ func dataSourceGithubUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"suspended_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"node_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -147,6 +151,7 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("following", user.GetFollowing())
 	d.Set("created_at", user.GetCreatedAt())
 	d.Set("updated_at", user.GetUpdatedAt())
+	d.Set("suspended_at", user.GetSuspendedAt())
 	d.Set("node_id", user.GetNodeID())
 
 	return nil
