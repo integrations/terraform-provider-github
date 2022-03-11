@@ -117,5 +117,5 @@ The following arguments are supported:
 GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
 
 ```
-$ terraform import  github_branch_protection_v3.terraform terraform:main
+$ terraform import github_branch_protection_v3.terraform terraform:main
 ```

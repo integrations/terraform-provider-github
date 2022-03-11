@@ -86,6 +86,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						PROTECTION_PULL_REQUESTS_BYPASSERS: {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -147,6 +152,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	input := githubv4.CreateBranchProtectionRuleInput{
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
+		BypassPullRequestActorIDs:      githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassPullRequestActorIDs)),
 		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                        githubv4.String(data.Pattern),
@@ -275,6 +281,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		BranchProtectionRuleID:         d.Id(),
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
+		BypassPullRequestActorIDs:      githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassPullRequestActorIDs)),
 		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                        githubv4.NewString(githubv4.String(data.Pattern)),

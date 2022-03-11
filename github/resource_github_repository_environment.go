@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -176,7 +175,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repoName, strconv.FormatInt(resultKey.GetID(), 10)))
+	d.SetId(buildTwoPartID(repoName, resultKey.GetName()))
 
 	return resourceGithubRepositoryEnvironmentRead(d, meta)
 }
