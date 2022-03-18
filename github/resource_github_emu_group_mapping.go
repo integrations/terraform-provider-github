@@ -68,11 +68,6 @@ func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta interface{
 	id := groupMap["group_id"].(string)
 
 	groupId, _ := strconv.ParseInt(id, 10, 64)
-	//name := groupMap["group_name"]
-	//desc := groupMap["group_description"]
-
-	//eg, resp, err := client.Teams.GetExternalGroup(ctx, orgName, groupId)
-	//fmt.Printf("resp: %v", resp)
 
 	eg := &github.ExternalGroup{
 		GroupID: &groupId,
@@ -81,8 +76,8 @@ func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta interface{
 	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 	fmt.Printf("group: %v, resp: %v", group, resp)
 
-	// todo: set terraform state
-	return nil
+	d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
+	return resourceGithubEMUGroupMappingRead(d, meta)
 }
 
 func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
@@ -92,30 +87,21 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	managedTeam := d.Get("managed_team").(string)
-	githubTeam := d.Get("github_team").(string)
+	//teamSlug := d.Get("team_slug").(string)
+	groupMap := d.Get("group").(map[string]interface{})
+	id := groupMap["group_id"].(string)
+	groupId, _ := strconv.ParseInt(id, 10, 64)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	opts := &github.ListExternalGroupsOptions{}
-
-	filteredTeams := make([]*github.ExternalGroup, 0)
-	teams, resp, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
-	fmt.Printf("[DEBUG] Response code: %v", resp.StatusCode)
+	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, groupId)
 	if err != nil {
 		// might need to do something here to ignore expected errors
 		return err
 	}
-	// example groupID: 28836 name: terraform-emu-test-group
-	// gonna need to do another lookup here maybe with groupID to do a match?
-	//client.Teams.GetTeamByID(ctx, )
-	for _, team := range teams.Groups {
-		if *team.GroupName == managedTeam {
-			filteredTeams = append(filteredTeams, team)
-		}
-	}
-	fmt.Printf("[DEBUG]: GitHub team: %v", githubTeam)
-	// do the d.set stuff to set the resource information
+
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("group", group)
 	return nil
 }
 
@@ -124,5 +110,20 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	teamSlug := d.Get("team_slug").(string)
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	resp, err := client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug)
+	fmt.Printf("resp: %v", resp)
+	if err != nil {
+		return err
+	}
 	return nil
 }
