@@ -1,3 +1,11 @@
+# 4.22.0 (Mar 18, 2022)
+
+ENHANCEMENTS:
+
+* feat: add `tree` data source by @jasonwalsh in https://github.com/integrations/terraform-provider-github/pull/1027
+* feat: support for issues using github_issue resource by @ewilde in https://github.com/integrations/terraform-provider-github/pull/1047
+* feat: add configurable read_delay_ms by @morremeyer in https://github.com/integrations/terraform-provider-github/pull/1054
+
 ## 4.21.0 (Mar 11, 2022)
 
 ENHANCEMENTS:
