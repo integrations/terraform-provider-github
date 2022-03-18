@@ -131,14 +131,14 @@ func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{
 
 func getInt64FromInterface(val interface{}) (int64, error) {
 	var id64 int64
-	switch val.(type) {
+	switch val := val.(type) {
 	case int64:
-		id64 = val.(int64)
+		id64 = val
 	case int:
-		id64 = int64(val.(int))
+		id64 = int64(val)
 	case string:
 		var err error
-		id64, err = strconv.ParseInt(val.(string), 10, 64)
+		id64, err = strconv.ParseInt(val, 10, 64)
 		if err != nil {
 			return 0, fmt.Errorf("could not parse id from string: %v", err)
 		}
