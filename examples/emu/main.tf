@@ -15,7 +15,7 @@ terraform {
 
 resource "github_emu_group_mapping" "test" {
 
-  team_slug = "emu-test-team"
+  team_slug = "emu-test-team-2"
   group = {
     group_id = "28836"
     group_name = "terraform-emu-test-group"

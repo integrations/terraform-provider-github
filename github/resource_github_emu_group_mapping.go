@@ -55,6 +55,33 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 }
 
 func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta interface{}) error {
+	return resourceGithubEMUGroupMappingUpdate(d, meta)
+}
+
+func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	groupMap := d.Get("group").(map[string]interface{})
+	id := groupMap["group_id"].(string)
+	groupId, _ := strconv.ParseInt(id, 10, 64)
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, groupId)
+	if err != nil {
+		return err
+	}
+
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("group", group)
+	return nil
+}
+
+func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -74,39 +101,13 @@ func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta interface{
 	}
 
 	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("group: %v, resp: %v", group, resp)
 
 	d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
 	return resourceGithubEMUGroupMappingRead(d, meta)
-}
-
-func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	//teamSlug := d.Get("team_slug").(string)
-	groupMap := d.Get("group").(map[string]interface{})
-	id := groupMap["group_id"].(string)
-	groupId, _ := strconv.ParseInt(id, 10, 64)
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, groupId)
-	if err != nil {
-		// might need to do something here to ignore expected errors
-		return err
-	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("group", group)
-	return nil
-}
-
-func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
