@@ -273,7 +273,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	// Combine etag of both requests
+	// Combine etag of all requests
 	d.Set("etag", buildChecksumID(etags))
 
 	return nil
