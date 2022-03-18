@@ -26,25 +26,9 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"group": {
-				Type:     schema.TypeMap,
+			"group_id": {
+				Type:     schema.TypeInt,
 				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"group_id": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"group_name": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"group_description": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -65,13 +49,19 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	groupMap := d.Get("group").(map[string]interface{})
-	id := groupMap["group_id"].(string)
-	groupId, _ := strconv.ParseInt(id, 10, 64)
+
+	id, ok := d.GetOk("group_id")
+	if !ok {
+		return fmt.Errorf("could not get group id from provided value")
+	}
+	id64, err := getInt64FromInterface(id)
+	if err != nil {
+		return err
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, groupId)
+	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
 	if err != nil {
 		return err
 	}
@@ -90,21 +80,28 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	teamSlug := d.Get("team_slug").(string)
-	groupMap := d.Get("group").(map[string]interface{})
-	id := groupMap["group_id"].(string)
-
-	groupId, _ := strconv.ParseInt(id, 10, 64)
-
-	eg := &github.ExternalGroup{
-		GroupID: &groupId,
+	teamSlug, ok := d.Get("team_slug").(string)
+	if !ok {
+		return fmt.Errorf("could not get team slug from provided value")
 	}
 
-	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+	id, ok := d.GetOk("group_id")
+	if !ok {
+		return fmt.Errorf("could not get group id from provided value")
+	}
+	id64, err := getInt64FromInterface(id)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("group: %v, resp: %v", group, resp)
+
+	eg := &github.ExternalGroup{
+		GroupID: &id64,
+	}
+
+	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+	if err != nil {
+		return err
+	}
 
 	d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
 	return resourceGithubEMUGroupMappingRead(d, meta)
@@ -117,14 +114,36 @@ func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	teamSlug := d.Get("team_slug").(string)
+
+	teamSlug, ok := d.Get("team_slug").(string)
+	if !ok {
+		return fmt.Errorf("could not parse team slug from provided value")
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	resp, err := client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug)
-	fmt.Printf("resp: %v", resp)
+	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getInt64FromInterface(val interface{}) (int64, error) {
+	var id64 int64
+	switch val.(type) {
+	case int64:
+		id64 = val.(int64)
+	case int:
+		id64 = int64(val.(int))
+	case string:
+		var err error
+		id64, err = strconv.ParseInt(val.(string), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse id from string: %v", err)
+		}
+	default:
+		return 0, fmt.Errorf("unexpected type converting to int64 from interface")
+	}
+	return id64, nil
 }
