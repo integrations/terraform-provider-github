@@ -20,6 +20,13 @@ type DismissalActorTypes struct {
 	}
 }
 
+type BypassPullRequestActorTypes struct {
+	Actor struct {
+		Team Actor `graphql:"... on Team"`
+		User Actor `graphql:"... on User"`
+	}
+}
+
 type PushActorTypes struct {
 	Actor struct {
 		App  Actor `graphql:"... on App"`
@@ -39,6 +46,9 @@ type BranchProtectionRule struct {
 	ReviewDismissalAllowances struct {
 		Nodes []DismissalActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
+	BypassPullRequestAllowances struct {
+		Nodes []BypassPullRequestActorTypes
+	} `graphql:"bypassPullRequestAllowances(first: 100)"`
 	AllowsDeletions                githubv4.Boolean
 	AllowsForcePushes              githubv4.Boolean
 	DismissesStaleReviews          githubv4.Boolean
@@ -62,6 +72,7 @@ type BranchProtectionResourceData struct {
 	AllowsDeletions                bool
 	AllowsForcePushes              bool
 	BranchProtectionRuleID         string
+	BypassPullRequestActorIDs      []string
 	DismissesStaleReviews          bool
 	IsAdminEnforced                bool
 	Pattern                        string
@@ -157,6 +168,16 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.RestrictsReviewDismissals = true
 				}
 			}
+			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
+				bypassPullRequestActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, v.(string))
+				}
+				if len(bypassPullRequestActorIDs) > 0 {
+					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
+				}
+			}
 		}
 	}
 
@@ -210,6 +231,20 @@ func setDismissalActorIDs(actors []DismissalActorTypes) []string {
 	return pushActors
 }
 
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes) []string {
+	bypassActors := make([]string, 0, len(actors))
+	for _, a := range actors {
+		if a.Actor.Team != (Actor{}) {
+			bypassActors = append(bypassActors, a.Actor.Team.ID.(string))
+		}
+		if a.Actor.User != (Actor{}) {
+			bypassActors = append(bypassActors, a.Actor.User.ID.(string))
+		}
+	}
+
+	return bypassActors
+}
+
 func setPushActorIDs(actors []PushActorTypes) []string {
 	pushActors := make([]string, 0, len(actors))
 	for _, a := range actors {
@@ -234,6 +269,8 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
 	dismissalActors := setDismissalActorIDs(dismissalAllowances)
+	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
+	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances)
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -241,6 +278,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
+			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
 		},
 	}
 

@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -74,7 +73,6 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 		URLTemplate: &targetURLTemplate,
 	}
 
-	log.Printf("[DEBUG] Creating repository autolink reference: %s -> %s (%s/%s)", keyPrefix, targetURLTemplate, owner, repoName)
 	autolinkRef, _, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
 	if err != nil {
 		return err
@@ -98,7 +96,6 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading repository autolink reference: %s (%s/%s)", d.Id(), owner, repoName)
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
 		return err
@@ -124,7 +121,6 @@ func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, met
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository autolink reference: %s (%s/%s)", d.Id(), owner, repoName)
 	_, err = client.Repositories.DeleteAutolink(ctx, owner, repoName, autolinkRefID)
 	return err
 }

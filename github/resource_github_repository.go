@@ -319,8 +319,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	repoName := repoReq.GetName()
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository: %s/%s", owner, repoName)
-
 	// determine if repository should be private. assume public to start
 	isPrivate := false
 
@@ -409,8 +407,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] Reading repository: %s/%s", owner, repoName)
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -423,7 +419,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository %s/%s from state because it no longer exists in GitHub",
 					owner, repoName)
 				d.SetId("")
 				return nil
@@ -501,7 +497,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	// Can only update a repository if it is not archived or the update is to
 	// archive the repository (unarchiving is not supported by the Github API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
-		log.Printf("[DEBUG] Skipping update of archived repository")
+		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
 	}
 
@@ -524,7 +520,6 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating repository: %s/%s", owner, repoName)
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return err

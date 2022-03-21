@@ -20,6 +20,7 @@ type Config struct {
 	BaseURL    string
 	Insecure   bool
 	WriteDelay time.Duration
+	ReadDelay  time.Duration
 }
 
 type Owner struct {
@@ -31,10 +32,10 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration) *http.Client {
+func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
-	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay))
+	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 
 	return client
@@ -48,7 +49,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
 }
 
 func (c *Config) Anonymous() bool {
@@ -57,7 +58,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
@@ -147,14 +148,14 @@ func (c *Config) Meta() (interface{}, error) {
 	owner.v3client = v3client
 
 	if c.Anonymous() {
-		log.Printf("[DEBUG] No token present; configuring anonymous owner.")
+		log.Printf("[INFO] No token present; configuring anonymous owner.")
 		return &owner, nil
 	} else {
 		_, err = c.ConfigureOwner(&owner)
 		if err != nil {
 			return &owner, err
 		}
-		log.Printf("[DEBUG] Token present; configuring authenticated owner: %s", owner.name)
+		log.Printf("[INFO] Token present; configuring authenticated owner: %s", owner.name)
 		return &owner, nil
 	}
 }

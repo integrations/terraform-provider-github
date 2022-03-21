@@ -71,11 +71,10 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading branch protection signed commit status: %s/%s (%s)", orgName, repoName, branch)
 	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		log.Printf("[WARN] Not able to read signature protection: %s/%s (%s)", orgName, repoName, branch)
+		log.Printf("[INFO] Not able to read signature protection: %s/%s (%s)", orgName, repoName, branch)
 		return nil
 	}
 
@@ -98,10 +97,8 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	}
 
 	if requiredSignedCommit {
-		log.Printf("[DEBUG] Enabling branch protection signed commit: %s/%s (%s) - $s", orgName, repoName, branch)
 		_, _, err = client.Repositories.RequireSignaturesOnProtectedBranch(ctx, orgName, repoName, branch)
 	} else {
-		log.Printf("[DEBUG] Removing branch protection signed commit: %s/%s (%s) - $s", orgName, repoName, branch)
 		_, err = client.Repositories.OptionalSignaturesOnProtectedBranch(ctx, orgName, repoName, branch)
 	}
 	return err

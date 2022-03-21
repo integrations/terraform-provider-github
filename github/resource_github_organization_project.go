@@ -54,7 +54,6 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	body := d.Get("body").(string)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization project: %s (%s)", name, orgName)
 	project, _, err := client.Organizations.CreateProject(ctx,
 		orgName,
 		&github.ProjectOptions{
@@ -88,7 +87,6 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading organization project: %s (%s)", d.Id(), orgName)
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -96,7 +94,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization project %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing organization project %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
 				return nil
@@ -121,7 +119,6 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	}
 
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
 
 	name := d.Get("name").(string)
 	body := d.Get("body").(string)
@@ -137,7 +134,6 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating organization project: %s (%s)", d.Id(), orgName)
 	if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
 		return err
 	}
@@ -152,14 +148,12 @@ func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interf
 	}
 
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting organization project: %s (%s)", d.Id(), orgName)
 	_, err = client.Projects.DeleteProject(ctx, projectID)
 	return err
 }

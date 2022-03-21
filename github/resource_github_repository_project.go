@@ -70,7 +70,6 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, owner, repoName)
 	project, _, err := client.Repositories.CreateProject(ctx,
 		owner, repoName, &options)
 	if err != nil {
@@ -94,7 +93,6 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -102,7 +100,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository project %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -137,7 +135,6 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating repository project: %s", d.Id())
 	_, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
 	if err != nil {
 		return err
@@ -155,7 +152,6 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository project: %s", d.Id())
 	_, err = client.Projects.DeleteProject(ctx, projectID)
 	return err
 }

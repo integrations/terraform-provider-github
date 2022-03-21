@@ -19,8 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Acceptance Tests (Anonymous)
         id: acceptance-tests-anonymous
         uses: terraformtesting/acceptance-tests@v2.2.0
@@ -48,8 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
         uses: terraformtesting/acceptance-tests@v2.2.0
@@ -82,8 +80,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization

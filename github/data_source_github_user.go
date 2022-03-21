@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -91,6 +90,10 @@ func dataSourceGithubUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"suspended_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"node_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -101,7 +104,6 @@ func dataSourceGithubUser() *schema.Resource {
 
 func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	username := d.Get("username").(string)
-	log.Printf("[INFO] Refreshing GitHub User: %s", username)
 
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
@@ -149,6 +151,7 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("following", user.GetFollowing())
 	d.Set("created_at", user.GetCreatedAt())
 	d.Set("updated_at", user.GetUpdatedAt())
+	d.Set("suspended_at", user.GetSuspendedAt())
 	d.Set("node_id", user.GetNodeID())
 
 	return nil

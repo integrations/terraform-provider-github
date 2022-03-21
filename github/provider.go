@@ -50,6 +50,12 @@ func Provider() terraform.ResourceProvider {
 				Default:     1000,
 				Description: descriptions["write_delay_ms"],
 			},
+			"read_delay_ms": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: descriptions["read_delay_ms"],
+			},
 			"app_auth": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -93,6 +99,7 @@ func Provider() terraform.ResourceProvider {
 			"github_branch":                                   resourceGithubBranch(),
 			"github_branch_protection":                        resourceGithubBranchProtection(),
 			"github_branch_protection_v3":                     resourceGithubBranchProtectionV3(),
+			"github_issue":                                    resourceGithubIssue(),
 			"github_issue_label":                              resourceGithubIssueLabel(),
 			"github_membership":                               resourceGithubMembership(),
 			"github_organization_block":                       resourceOrganizationBlock(),
@@ -111,6 +118,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_webhook":                       resourceGithubRepositoryWebhook(),
 			"github_repository":                               resourceGithubRepository(),
 			"github_team_membership":                          resourceGithubTeamMembership(),
+			"github_team_members":                             resourceGithubTeamMembers(),
 			"github_team_repository":                          resourceGithubTeamRepository(),
 			"github_team_sync_group_mapping":                  resourceGithubTeamSyncGroupMapping(),
 			"github_team":                                     resourceGithubTeam(),
@@ -137,6 +145,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_pull_request":       dataSourceGithubRepositoryPullRequest(),
 			"github_repository_pull_requests":      dataSourceGithubRepositoryPullRequests(),
 			"github_team":                          dataSourceGithubTeam(),
+			"github_tree":                          dataSourceGithubTree(),
 			"github_user":                          dataSourceGithubUser(),
 			"github_users":                         dataSourceGithubUsers(),
 		},
@@ -171,6 +180,8 @@ func init() {
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
 		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
 			"Defaults to 1000ms or 1s if not set.",
+		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
+			"Defaults to 0ms if not set.",
 	}
 }
 
@@ -199,7 +210,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
+			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
 			owner = org
 		}
 
@@ -245,7 +256,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		if writeDelay <= 0 {
 			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
 		}
-		log.Printf("[DEBUG] Setting write_delay_ms to %d", writeDelay)
+		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
+
+		readDelay := d.Get("read_delay_ms").(int)
+		if readDelay < 0 {
+			return nil, fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")
+		}
+		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
 		config := Config{
 			Token:      token,
@@ -253,6 +270,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Insecure:   insecure,
 			Owner:      owner,
 			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
+			ReadDelay:  time.Duration(readDelay) * time.Millisecond,
 		}
 
 		meta, err := config.Meta()
