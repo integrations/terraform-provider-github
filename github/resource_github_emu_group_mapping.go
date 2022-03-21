@@ -18,6 +18,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				fmt.Printf("resource data: %v, meta: %v", d, meta)
+				d.Set("team_slug", d.Id())
+
+				orgName := meta.(*Owner).name
+				teamSlug, ok := d.Get("team_slug").(string)
+				if !ok {
+					return nil, fmt.Errorf("could not get team slug from provided value when importing external group")
+				}
+				d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
 				return []*schema.ResourceData{d}, nil
 			},
 		},
