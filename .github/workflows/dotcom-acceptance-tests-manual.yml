@@ -17,7 +17,7 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Acceptance Tests (Anonymous)
@@ -45,7 +45,7 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Acceptance Tests (Individual)
@@ -78,7 +78,7 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
