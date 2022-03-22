@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -17,7 +16,7 @@ func checkRepositoryBranchExists(client *github.Client, owner, repo, branch stri
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				return fmt.Errorf("Branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
+				return fmt.Errorf("branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
 			}
 		}
 		return err
@@ -34,7 +33,7 @@ func checkRepositoryFileExists(client *github.Client, owner, repo, file, branch 
 		return nil
 	}
 	if fc == nil {
-		return fmt.Errorf("File %s not a file in in repository %s/%s or repository is not readable", file, owner, repo)
+		return fmt.Errorf("file %s not a file in in repository %s/%s or repository is not readable", file, owner, repo)
 	}
 
 	return nil
@@ -77,11 +76,10 @@ func getFileCommit(client *github.Client, owner, repo, file, branch string) (*gi
 
 		for _, f := range rc.Files {
 			if f.GetFilename() == file && f.GetStatus() != "removed" {
-				log.Printf("[DEBUG] Found file: %s in commit: %s", file, sha)
 				return rc, nil
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("Cannot find file %s in repo %s/%s", file, owner, repo)
+	return nil, fmt.Errorf("cannot find file %s in repo %s/%s", file, owner, repo)
 }

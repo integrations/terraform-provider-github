@@ -44,7 +44,6 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 	ctx := context.Background()
 	username := d.Get("username").(string)
 
-	log.Printf("[DEBUG] Creating organization block: %s (%s)", username, orgName)
 	_, err = client.Organizations.BlockUser(ctx, orgName, username)
 	if err != nil {
 		return err
@@ -65,7 +64,6 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading organization block: %s (%s)", d.Id(), orgName)
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -74,7 +72,7 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 			}
 			// not sure if this will ever be hit, I imagine just returns false?
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization block %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing organization block %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
 				return nil
@@ -101,7 +99,6 @@ func resourceOrganizationBlockDelete(d *schema.ResourceData, meta interface{}) e
 	username := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting organization block: %s (%s)", d.Id(), orgName)
 	_, err := client.Organizations.UnblockUser(ctx, orgName, username)
 	return err
 }

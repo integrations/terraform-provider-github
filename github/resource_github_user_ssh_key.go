@@ -54,7 +54,6 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 	key := d.Get("key").(string)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating user SSH key: %s", title)
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
 		Title: github.String(title),
 		Key:   github.String(key),
@@ -80,7 +79,6 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading user SSH key: %s", d.Id())
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -88,7 +86,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing user SSH key %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing user SSH key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -113,8 +111,6 @@ func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) er
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting user SSH key: %s", d.Id())
 	_, err = client.Users.DeleteKey(ctx, id)
-
 	return err
 }

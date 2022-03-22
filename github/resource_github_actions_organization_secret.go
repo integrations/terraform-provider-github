@@ -141,7 +141,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -196,7 +196,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
+		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
 		d.Set("updated_at", secret.UpdatedAt.String())
@@ -210,7 +210,7 @@ func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
+	log.Printf("[INFO] Deleting secret: %s", d.Id())
 	_, err := client.Actions.DeleteOrgSecret(ctx, orgName, d.Id())
 	return err
 }

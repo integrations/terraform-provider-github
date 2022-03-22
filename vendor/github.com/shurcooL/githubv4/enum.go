@@ -118,10 +118,10 @@ const (
 	ContributionLevelFourthQuartile ContributionLevel = "FOURTH_QUARTILE" // Highest 25% of days of contributions. More contributions than the third quartile.
 )
 
-// DefaultRepositoryPermissionField represents the possible default permissions for repositories.
+// DefaultRepositoryPermissionField represents the possible base permissions for repositories.
 type DefaultRepositoryPermissionField string
 
-// The possible default permissions for repositories.
+// The possible base permissions for repositories.
 const (
 	DefaultRepositoryPermissionFieldNone  DefaultRepositoryPermissionField = "NONE"  // No access.
 	DefaultRepositoryPermissionFieldRead  DefaultRepositoryPermissionField = "READ"  // Can read repos by default.
@@ -205,6 +205,18 @@ const (
 	DiscussionOrderFieldUpdatedAt DiscussionOrderField = "UPDATED_AT" // Order discussions by most recent modification time.
 )
 
+// DismissReason represents the possible reasons that a Dependabot alert was dismissed.
+type DismissReason string
+
+// The possible reasons that a Dependabot alert was dismissed.
+const (
+	DismissReasonFixStarted    DismissReason = "FIX_STARTED"    // A fix has already been started.
+	DismissReasonNoBandwidth   DismissReason = "NO_BANDWIDTH"   // No bandwidth to fix this.
+	DismissReasonTolerableRisk DismissReason = "TOLERABLE_RISK" // Risk is tolerable to this project.
+	DismissReasonInaccurate    DismissReason = "INACCURATE"     // This alert is inaccurate or incorrect.
+	DismissReasonNotUsed       DismissReason = "NOT_USED"       // Vulnerable code is not actually used.
+)
+
 // EnterpriseAdministratorInvitationOrderField represents properties by which enterprise administrator invitation connections can be ordered.
 type EnterpriseAdministratorInvitationOrderField string
 
@@ -222,12 +234,12 @@ const (
 	EnterpriseAdministratorRoleBillingManager EnterpriseAdministratorRole = "BILLING_MANAGER" // Represents a billing manager of the enterprise account.
 )
 
-// EnterpriseDefaultRepositoryPermissionSettingValue represents the possible values for the enterprise default repository permission setting.
+// EnterpriseDefaultRepositoryPermissionSettingValue represents the possible values for the enterprise base repository permission setting.
 type EnterpriseDefaultRepositoryPermissionSettingValue string
 
-// The possible values for the enterprise default repository permission setting.
+// The possible values for the enterprise base repository permission setting.
 const (
-	EnterpriseDefaultRepositoryPermissionSettingValueNoPolicy EnterpriseDefaultRepositoryPermissionSettingValue = "NO_POLICY" // Organizations in the enterprise choose default repository permissions for their members.
+	EnterpriseDefaultRepositoryPermissionSettingValueNoPolicy EnterpriseDefaultRepositoryPermissionSettingValue = "NO_POLICY" // Organizations in the enterprise choose base repository permissions for their members.
 	EnterpriseDefaultRepositoryPermissionSettingValueAdmin    EnterpriseDefaultRepositoryPermissionSettingValue = "ADMIN"     // Organization members will be able to clone, pull, push, and add new collaborators to all organization repositories.
 	EnterpriseDefaultRepositoryPermissionSettingValueWrite    EnterpriseDefaultRepositoryPermissionSettingValue = "WRITE"     // Organization members will be able to clone, pull, and push all organization repositories.
 	EnterpriseDefaultRepositoryPermissionSettingValueRead     EnterpriseDefaultRepositoryPermissionSettingValue = "READ"      // Organization members will be able to clone and pull all organization repositories.
@@ -494,6 +506,7 @@ const (
 	IssueTimelineItemsItemTypeCommentDeletedEvent        IssueTimelineItemsItemType = "COMMENT_DELETED_EVENT"          // Represents a 'comment_deleted' event on a given issue or pull request.
 	IssueTimelineItemsItemTypeConnectedEvent             IssueTimelineItemsItemType = "CONNECTED_EVENT"                // Represents a 'connected' event on a given issue or pull request.
 	IssueTimelineItemsItemTypeConvertedNoteToIssueEvent  IssueTimelineItemsItemType = "CONVERTED_NOTE_TO_ISSUE_EVENT"  // Represents a 'converted_note_to_issue' event on a given issue or pull request.
+	IssueTimelineItemsItemTypeConvertedToDiscussionEvent IssueTimelineItemsItemType = "CONVERTED_TO_DISCUSSION_EVENT"  // Represents a 'converted_to_discussion' event on a given issue.
 	IssueTimelineItemsItemTypeDemilestonedEvent          IssueTimelineItemsItemType = "DEMILESTONED_EVENT"             // Represents a 'demilestoned' event on a given issue or pull request.
 	IssueTimelineItemsItemTypeDisconnectedEvent          IssueTimelineItemsItemType = "DISCONNECTED_EVENT"             // Represents a 'disconnected' event on a given issue or pull request.
 	IssueTimelineItemsItemTypeLabeledEvent               IssueTimelineItemsItemType = "LABELED_EVENT"                  // Represents a 'labeled' event on a given issue or pull request.
@@ -585,6 +598,14 @@ const (
 	NotificationRestrictionSettingValueDisabled NotificationRestrictionSettingValue = "DISABLED" // The setting is disabled for the owner.
 )
 
+// OIDCProviderType represents the OIDC identity provider type.
+type OIDCProviderType string
+
+// The OIDC identity provider type.
+const (
+	OIDCProviderTypeAad OIDCProviderType = "AAD" // Azure Active Directory.
+)
+
 // OauthApplicationCreateAuditEntryState represents the state of an OAuth Application when it was created.
 type OauthApplicationCreateAuditEntryState string
 
@@ -637,6 +658,14 @@ const (
 	OrgCreateAuditEntryBillingPlanBusinessPlus  OrgCreateAuditEntryBillingPlan = "BUSINESS_PLUS"   // Enterprise Cloud Plan.
 	OrgCreateAuditEntryBillingPlanUnlimited     OrgCreateAuditEntryBillingPlan = "UNLIMITED"       // Legacy Unlimited Plan.
 	OrgCreateAuditEntryBillingPlanTieredPerSeat OrgCreateAuditEntryBillingPlan = "TIERED_PER_SEAT" // Tiered Per Seat Plan.
+)
+
+// OrgEnterpriseOwnerOrderField represents properties by which enterprise owners can be ordered.
+type OrgEnterpriseOwnerOrderField string
+
+// Properties by which enterprise owners can be ordered.
+const (
+	OrgEnterpriseOwnerOrderFieldLogin OrgEnterpriseOwnerOrderField = "LOGIN" // Order enterprise owners by login.
 )
 
 // OrgRemoveBillingManagerAuditEntryReason represents the reason a billing manager was removed from an Organization.
@@ -763,6 +792,7 @@ type OrganizationMembersCanCreateRepositoriesSettingValue string
 const (
 	OrganizationMembersCanCreateRepositoriesSettingValueAll      OrganizationMembersCanCreateRepositoriesSettingValue = "ALL"      // Members will be able to create public and private repositories.
 	OrganizationMembersCanCreateRepositoriesSettingValuePrivate  OrganizationMembersCanCreateRepositoriesSettingValue = "PRIVATE"  // Members will be able to create only private repositories.
+	OrganizationMembersCanCreateRepositoriesSettingValueInternal OrganizationMembersCanCreateRepositoriesSettingValue = "INTERNAL" // Members will be able to create only internal repositories.
 	OrganizationMembersCanCreateRepositoriesSettingValueDisabled OrganizationMembersCanCreateRepositoriesSettingValue = "DISABLED" // Members will not be able to create public or private repositories.
 )
 
@@ -880,6 +910,17 @@ const (
 	ProjectColumnPurposeTodo       ProjectColumnPurpose = "TODO"        // The column contains cards still to be worked on.
 	ProjectColumnPurposeInProgress ProjectColumnPurpose = "IN_PROGRESS" // The column contains cards which are currently being worked on.
 	ProjectColumnPurposeDone       ProjectColumnPurpose = "DONE"        // The column contains cards which are complete.
+)
+
+// ProjectNextOrderField represents properties by which the return project can be ordered.
+type ProjectNextOrderField string
+
+// Properties by which the return project can be ordered.
+const (
+	ProjectNextOrderFieldTitle     ProjectNextOrderField = "TITLE"      // The project's title.
+	ProjectNextOrderFieldNumber    ProjectNextOrderField = "NUMBER"     // The project's number.
+	ProjectNextOrderFieldUpdatedAt ProjectNextOrderField = "UPDATED_AT" // The project's date and time of update.
+	ProjectNextOrderFieldCreatedAt ProjectNextOrderField = "CREATED_AT" // The project's date and time of creation.
 )
 
 // ProjectOrderField represents properties by which project connections can be ordered.
@@ -1021,6 +1062,7 @@ const (
 	PullRequestTimelineItemsItemTypeCommentDeletedEvent               PullRequestTimelineItemsItemType = "COMMENT_DELETED_EVENT"                 // Represents a 'comment_deleted' event on a given issue or pull request.
 	PullRequestTimelineItemsItemTypeConnectedEvent                    PullRequestTimelineItemsItemType = "CONNECTED_EVENT"                       // Represents a 'connected' event on a given issue or pull request.
 	PullRequestTimelineItemsItemTypeConvertedNoteToIssueEvent         PullRequestTimelineItemsItemType = "CONVERTED_NOTE_TO_ISSUE_EVENT"         // Represents a 'converted_note_to_issue' event on a given issue or pull request.
+	PullRequestTimelineItemsItemTypeConvertedToDiscussionEvent        PullRequestTimelineItemsItemType = "CONVERTED_TO_DISCUSSION_EVENT"         // Represents a 'converted_to_discussion' event on a given issue.
 	PullRequestTimelineItemsItemTypeDemilestonedEvent                 PullRequestTimelineItemsItemType = "DEMILESTONED_EVENT"                    // Represents a 'demilestoned' event on a given issue or pull request.
 	PullRequestTimelineItemsItemTypeDisconnectedEvent                 PullRequestTimelineItemsItemType = "DISCONNECTED_EVENT"                    // Represents a 'disconnected' event on a given issue or pull request.
 	PullRequestTimelineItemsItemTypeLabeledEvent                      PullRequestTimelineItemsItemType = "LABELED_EVENT"                         // Represents a 'labeled' event on a given issue or pull request.
@@ -1308,6 +1350,16 @@ const (
 	RequestableCheckStatusStatePending    RequestableCheckStatusState = "PENDING"     // The check suite or run is in pending state.
 )
 
+// RoleInOrganization represents possible roles a user may have in relation to an organization.
+type RoleInOrganization string
+
+// Possible roles a user may have in relation to an organization.
+const (
+	RoleInOrganizationOwner        RoleInOrganization = "OWNER"         // A user with full administrative access to the organization.
+	RoleInOrganizationDirectMember RoleInOrganization = "DIRECT_MEMBER" // A user who is a direct member of the organization.
+	RoleInOrganizationUnaffiliated RoleInOrganization = "UNAFFILIATED"  // A user who is unaffiliated with the organization.
+)
+
 // SamlDigestAlgorithm represents the possible digest algorithms used to sign SAML requests for an identity provider.
 type SamlDigestAlgorithm string
 
@@ -1361,7 +1413,7 @@ const (
 	SecurityAdvisoryEcosystemNuget    SecurityAdvisoryEcosystem = "NUGET"    // .NET packages hosted at the NuGet Gallery.
 	SecurityAdvisoryEcosystemPip      SecurityAdvisoryEcosystem = "PIP"      // Python packages hosted at PyPI.org.
 	SecurityAdvisoryEcosystemRubygems SecurityAdvisoryEcosystem = "RUBYGEMS" // Ruby gems hosted at RubyGems.org.
-	SecurityAdvisoryEcosystemOther    SecurityAdvisoryEcosystem = "OTHER"    // Applications, runtimes, operating systems and other kinds of software.
+	SecurityAdvisoryEcosystemRust     SecurityAdvisoryEcosystem = "RUST"     // Rust crates.
 )
 
 // SecurityAdvisoryIdentifierType represents identifier formats available for advisories.
@@ -1399,6 +1451,15 @@ type SecurityVulnerabilityOrderField string
 // Properties by which security vulnerability connections can be ordered.
 const (
 	SecurityVulnerabilityOrderFieldUpdatedAt SecurityVulnerabilityOrderField = "UPDATED_AT" // Order vulnerability by update time.
+)
+
+// SponsorOrderField represents properties by which sponsor connections can be ordered.
+type SponsorOrderField string
+
+// Properties by which sponsor connections can be ordered.
+const (
+	SponsorOrderFieldLogin     SponsorOrderField = "LOGIN"     // Order sponsorable entities by login (username).
+	SponsorOrderFieldRelevance SponsorOrderField = "RELEVANCE" // Order sponsors by their relevance to the viewer.
 )
 
 // SponsorableOrderField represents properties by which sponsorable connections can be ordered.
@@ -1447,7 +1508,7 @@ type SponsorsGoalKind string
 // The different kinds of goals a GitHub Sponsors member can have.
 const (
 	SponsorsGoalKindTotalSponsorsCount       SponsorsGoalKind = "TOTAL_SPONSORS_COUNT"       // The goal is about reaching a certain number of sponsors.
-	SponsorsGoalKindMonthlySponsorshipAmount SponsorsGoalKind = "MONTHLY_SPONSORSHIP_AMOUNT" // The goal is about getting a certain dollar amount from sponsorships each month.
+	SponsorsGoalKindMonthlySponsorshipAmount SponsorsGoalKind = "MONTHLY_SPONSORSHIP_AMOUNT" // The goal is about getting a certain amount in USD from sponsorships each month.
 )
 
 // SponsorsTierOrderField represents properties by which Sponsors tiers connections can be ordered.
@@ -1457,6 +1518,14 @@ type SponsorsTierOrderField string
 const (
 	SponsorsTierOrderFieldCreatedAt           SponsorsTierOrderField = "CREATED_AT"             // Order tiers by creation time.
 	SponsorsTierOrderFieldMonthlyPriceInCents SponsorsTierOrderField = "MONTHLY_PRICE_IN_CENTS" // Order tiers by their monthly price in cents.
+)
+
+// SponsorshipNewsletterOrderField represents properties by which sponsorship update connections can be ordered.
+type SponsorshipNewsletterOrderField string
+
+// Properties by which sponsorship update connections can be ordered.
+const (
+	SponsorshipNewsletterOrderFieldCreatedAt SponsorshipNewsletterOrderField = "CREATED_AT" // Order sponsorship newsletters by when they were created.
 )
 
 // SponsorshipOrderField represents properties by which sponsorship connections can be ordered.

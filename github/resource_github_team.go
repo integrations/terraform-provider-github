@@ -99,7 +99,6 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating team: %s (%s)", name, ownerName)
 	githubTeam, _, err := client.Teams.CreateTeam(ctx,
 		ownerName, newTeam)
 	if err != nil {
@@ -146,7 +145,6 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team: %s", d.Id())
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -154,7 +152,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing team %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -205,7 +203,6 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating team: %s", d.Id())
 	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
 	if err != nil {
 		return err
@@ -241,8 +238,30 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting team: %s", d.Id())
 	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	/*
+		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
+		This could be the case when deleting nested teams via Terraform by looping through a module
+		or resource and the parent team might have been deleted already. If the parent team had
+		been deleted already (via parallel runs), the child team is also already gone (deleted by
+		GitHub automatically).
+		So we're checking if it still exists and if not, simply remove it from TF state.
+	*/
+	if err != nil {
+		// Fetch the team in order to see if it exists or not (http 404)
+		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
+		if err != nil {
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					// If team we failed to delete does not exist, remove it from TF state.
+					log.Printf("[WARN] Removing team: %s from state because it no longer exists",
+						d.Id())
+					d.SetId("")
+					return nil
+				}
+			}
+		}
+	}
 	return err
 }
 
@@ -276,7 +295,6 @@ func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
 	}
 
 	for _, user := range query.Organization.Team.Members.Nodes {
-		log.Printf("[DEBUG] Removing default maintainer from team: %s", user.Login)
 		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, teamSlug, string(user.Login))
 		if err != nil {
 			return err

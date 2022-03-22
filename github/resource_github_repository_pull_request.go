@@ -180,7 +180,7 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interf
 		d.Set("head_sha", head.GetSHA())
 	} else {
 		// Totally unexpected condition. Better do that than segfault, I guess?
-		log.Printf("[WARN] Head branch missing, expected %s", d.Get("head_ref"))
+		log.Printf("[INFO] Head branch missing, expected %s", d.Get("head_ref"))
 		d.SetId("")
 		return nil
 	}
@@ -190,7 +190,7 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interf
 		d.Set("base_sha", base.GetSHA())
 	} else {
 		// Seme logic as with the missing head branch.
-		log.Printf("[WARN] Base branch missing, expected %s", d.Get("base_ref"))
+		log.Printf("[INFO] Base branch missing, expected %s", d.Get("base_ref"))
 		d.SetId("")
 		return nil
 	}

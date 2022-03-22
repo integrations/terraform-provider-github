@@ -37,6 +37,14 @@ func githubv4IDSlice(ss []string) []githubv4.ID {
 	return vGh4
 }
 
+func githubv4IDSliceEmpty(ss []string) []githubv4.ID {
+	vGh4 := make([]githubv4.ID, 0)
+	for _, s := range ss {
+		vGh4 = append(vGh4, githubv4.ID(s))
+	}
+	return vGh4
+}
+
 func githubv4NewStringSlice(v []githubv4.String) *[]githubv4.String { return &v }
 
 func githubv4NewIDSlice(v []githubv4.ID) *[]githubv4.ID { return &v }

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -199,12 +201,18 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("One of %q or %q has to be provided", "full_name", "name")
+		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	log.Printf("[DEBUG] Reading GitHub repository %s/%s", owner, repoName)
 	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
