@@ -2,7 +2,7 @@
 
 Hi there! We're thrilled that you'd like to contribute to this project. Your help is essential for keeping it great.
 
-Contributions to this project are [released](https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license) to the public under the [project's open source license](LICENSE.md).
+Contributions to this project are [released](https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license) to the public under the [project's open source license](LICENSE).
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
@@ -58,6 +58,35 @@ TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
 Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests are rewritten to the latest format.
 
 Also note that there is no build / `terraform init` / `terraform plan` sequence here.  It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
+
+### Debugging the terraform provider
+
+Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, calls to `log.Printf("[DEBUG] your message here")` will be printed in the program's output.
+
+If a full debugger is desired, VSCode may be used. In order to do so,
+
+1. create a launch.json file with this configuration:
+```json
+{
+	"name": "Attach to Process",
+	"type": "go",
+	"request": "attach",
+	"mode": "local",
+	"processId": 0,
+}
+```
+Setting a `processId` of 0 allows a dropdown to select the process of the provider.
+
+2. Add a sleep call (e.g. `time.Sleep(15 * time.Second)`) in the [func providerConfigure(p *schema.Provider](https://github.com/integrations/terraform-provider-github/blob/main/github/provider.go#L176) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
+
+2. Build the terraform provider with debug flags enabled and copy it to a bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin`.
+
+3. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#building-the-provider) section.
+
+4. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
+
+5. The debugger is now connected! During a typical terraform command, the plugin may be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
+
 
 ## Automated And Manual Testing
 
@@ -127,13 +156,7 @@ $ $GOPATH/bin/terraform-provider-github
 ...
 ```
 
-In order to test the provider, you can simply run `make test`.
-
-```sh
-$ make test
-```
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
+In order to run the full suite of provider acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources, and often cost money to run.
 
@@ -171,6 +194,8 @@ export GITHUB_TEST_USER_TOKEN=
 ```
 
 See [this project](https://github.com/terraformtesting/acceptance-tests) for more information on how tests are run automatically.
+
+There are also a small amount of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
 
 ### GitHub Personal Access Token
 

@@ -16,6 +16,12 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 		return githubv4.ID(name), nil
 	}
 
+	// Interpret `name` as a legacy node ID
+	exists, _ = repositoryLegacyNodeIDExists(name, meta)
+	if exists {
+		return githubv4.ID(name), nil
+	}
+
 	// Could not find repo by node ID, interpret `name` as repo name
 	var query struct {
 		Repository struct {
@@ -41,6 +47,29 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 }
 
 func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {
+
+	// API check if node ID exists
+	var query struct {
+		Node struct {
+			ID githubv4.ID
+		} `graphql:"node(id:$id)"`
+	}
+	variables := map[string]interface{}{
+		"id": githubv4.ID(name),
+	}
+	ctx := context.Background()
+	client := meta.(*Owner).v4client
+	err := client.Query(ctx, &query, variables)
+	if err != nil {
+		return false, err
+	}
+
+	return query.Node.ID.(string) == name, nil
+}
+
+// Maintain compatibility with deprecated Global ID format
+// https://github.blog/2021-02-10-new-global-id-format-coming-to-graphql/
+func repositoryLegacyNodeIDExists(name string, meta interface{}) (bool, error) {
 	// Check if the name is a base 64 encoded node ID
 	_, err := base64.StdEncoding.DecodeString(name)
 	if err != nil {

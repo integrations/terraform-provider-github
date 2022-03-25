@@ -46,11 +46,21 @@ The following arguments are supported:
 
 * `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
 
-* `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`. `secret` is [the shared secret, see API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook). `content_type` may be either form or json.
+* `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
 
-* `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
+* `active` - (Optional) Indicate if the webhook should receive events. Defaults to `true`.
 
 * `name` - (Optional) The type of the webhook. `web` is the default and the only option.
+
+### configuration
+
+* `url` - (Required) The URL of the webhook.
+
+* `content_type` - (Required) The content type for the payload. Valid values are either `form` or `json`.
+
+* `secret` - (Optional) The shared secret for the webhook. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
+
+* `insecure_ssl` - (Optional) Insecure SSL boolean toggle. Defaults to `false`.
 
 ## Attributes Reference
 

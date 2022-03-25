@@ -25,9 +25,13 @@ website/node_modules
 *.iml
 *.tfvars
 .vscode/
+testdata/
 
 website/vendor
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+
+# do not commit secrets
+.env

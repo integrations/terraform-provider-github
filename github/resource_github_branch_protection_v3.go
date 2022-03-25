@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -101,7 +101,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      1,
-							ValidateFunc: validation.IntBetween(1, 6),
+							ValidateFunc: validation.IntBetween(0, 6),
 						},
 					},
 				},
@@ -140,6 +140,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"require_conversation_resolution": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -166,8 +171,6 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interfa
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
@@ -210,8 +213,6 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
@@ -223,7 +224,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
 					orgName, repoName, branch)
 				d.SetId("")
 				return nil
@@ -237,6 +238,9 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	d.Set("repository", repoName)
 	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	if rcr := githubProtection.GetRequiredConversationResolution(); rcr != nil {
+		d.Set("require_conversation_resolution", rcr.Enabled)
+	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
@@ -277,8 +281,6 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
@@ -328,7 +330,6 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
 	_, err = client.Repositories.RemoveBranchProtection(ctx,
 		orgName, repoName, branch)
 	return err

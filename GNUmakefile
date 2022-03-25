@@ -6,11 +6,11 @@ PKG_NAME=github
 default: build
 
 tools:
-	GO111MODULE=on go install github.com/client9/misspell/cmd/misspell
-	GO111MODULE=on go install github.com/golangci/golangci-lint/cmd/golangci-lint
+	go install github.com/client9/misspell/cmd/misspell
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
 build: fmtcheck
-	go install
+	go build ./...
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."
@@ -23,7 +23,8 @@ lint:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
 
-test: fmtcheck
+test:
+	go test ./...
 	# commenting this out for release tooling, please run testacc instead
 
 testacc: fmtcheck

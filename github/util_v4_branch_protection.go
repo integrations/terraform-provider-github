@@ -20,6 +20,13 @@ type DismissalActorTypes struct {
 	}
 }
 
+type BypassPullRequestActorTypes struct {
+	Actor struct {
+		Team Actor `graphql:"... on Team"`
+		User Actor `graphql:"... on User"`
+	}
+}
+
 type PushActorTypes struct {
 	Actor struct {
 		App  Actor `graphql:"... on App"`
@@ -39,44 +46,50 @@ type BranchProtectionRule struct {
 	ReviewDismissalAllowances struct {
 		Nodes []DismissalActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
-	AllowsDeletions              githubv4.Boolean
-	AllowsForcePushes            githubv4.Boolean
-	DismissesStaleReviews        githubv4.Boolean
-	ID                           githubv4.ID
-	IsAdminEnforced              githubv4.Boolean
-	Pattern                      githubv4.String
-	RequiredApprovingReviewCount githubv4.Int
-	RequiredStatusCheckContexts  []githubv4.String
-	RequiresApprovingReviews     githubv4.Boolean
-	RequiresCodeOwnerReviews     githubv4.Boolean
-	RequiresCommitSignatures     githubv4.Boolean
-	RequiresLinearHistory        githubv4.Boolean
-	RequiresStatusChecks         githubv4.Boolean
-	RequiresStrictStatusChecks   githubv4.Boolean
-	RestrictsPushes              githubv4.Boolean
-	RestrictsReviewDismissals    githubv4.Boolean
+	BypassPullRequestAllowances struct {
+		Nodes []BypassPullRequestActorTypes
+	} `graphql:"bypassPullRequestAllowances(first: 100)"`
+	AllowsDeletions                githubv4.Boolean
+	AllowsForcePushes              githubv4.Boolean
+	DismissesStaleReviews          githubv4.Boolean
+	ID                             githubv4.ID
+	IsAdminEnforced                githubv4.Boolean
+	Pattern                        githubv4.String
+	RequiredApprovingReviewCount   githubv4.Int
+	RequiredStatusCheckContexts    []githubv4.String
+	RequiresApprovingReviews       githubv4.Boolean
+	RequiresCodeOwnerReviews       githubv4.Boolean
+	RequiresCommitSignatures       githubv4.Boolean
+	RequiresLinearHistory          githubv4.Boolean
+	RequiresConversationResolution githubv4.Boolean
+	RequiresStatusChecks           githubv4.Boolean
+	RequiresStrictStatusChecks     githubv4.Boolean
+	RestrictsPushes                githubv4.Boolean
+	RestrictsReviewDismissals      githubv4.Boolean
 }
 
 type BranchProtectionResourceData struct {
-	AllowsDeletions              bool
-	AllowsForcePushes            bool
-	BranchProtectionRuleID       string
-	DismissesStaleReviews        bool
-	IsAdminEnforced              bool
-	Pattern                      string
-	PushActorIDs                 []string
-	RepositoryID                 string
-	RequiredApprovingReviewCount int
-	RequiredStatusCheckContexts  []string
-	RequiresApprovingReviews     bool
-	RequiresCodeOwnerReviews     bool
-	RequiresCommitSignatures     bool
-	RequiresLinearHistory        bool
-	RequiresStatusChecks         bool
-	RequiresStrictStatusChecks   bool
-	RestrictsPushes              bool
-	RestrictsReviewDismissals    bool
-	ReviewDismissalActorIDs      []string
+	AllowsDeletions                bool
+	AllowsForcePushes              bool
+	BranchProtectionRuleID         string
+	BypassPullRequestActorIDs      []string
+	DismissesStaleReviews          bool
+	IsAdminEnforced                bool
+	Pattern                        string
+	PushActorIDs                   []string
+	RepositoryID                   string
+	RequiredApprovingReviewCount   int
+	RequiredStatusCheckContexts    []string
+	RequiresApprovingReviews       bool
+	RequiresCodeOwnerReviews       bool
+	RequiresCommitSignatures       bool
+	RequiresLinearHistory          bool
+	RequiresConversationResolution bool
+	RequiresStatusChecks           bool
+	RequiresStrictStatusChecks     bool
+	RestrictsPushes                bool
+	RestrictsReviewDismissals      bool
+	ReviewDismissalActorIDs        []string
 }
 
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
@@ -112,6 +125,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_LINEAR_HISTORY); ok {
 		data.RequiresLinearHistory = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION); ok {
+		data.RequiresConversationResolution = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
@@ -151,10 +168,21 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.RestrictsReviewDismissals = true
 				}
 			}
+			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
+				bypassPullRequestActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, v.(string))
+				}
+				if len(bypassPullRequestActorIDs) > 0 {
+					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
+				}
+			}
 		}
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
+		data.RequiresStatusChecks = true
 		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
@@ -171,9 +199,6 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			}
 
 			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
-			if len(data.RequiredStatusCheckContexts) > 0 {
-				data.RequiresStatusChecks = true
-			}
 		}
 	}
 
@@ -206,6 +231,20 @@ func setDismissalActorIDs(actors []DismissalActorTypes) []string {
 	return pushActors
 }
 
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes) []string {
+	bypassActors := make([]string, 0, len(actors))
+	for _, a := range actors {
+		if a.Actor.Team != (Actor{}) {
+			bypassActors = append(bypassActors, a.Actor.Team.ID.(string))
+		}
+		if a.Actor.User != (Actor{}) {
+			bypassActors = append(bypassActors, a.Actor.User.ID.(string))
+		}
+	}
+
+	return bypassActors
+}
+
 func setPushActorIDs(actors []PushActorTypes) []string {
 	pushActors := make([]string, 0, len(actors))
 	for _, a := range actors {
@@ -230,6 +269,8 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
 	dismissalActors := setDismissalActorIDs(dismissalAllowances)
+	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
+	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances)
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -237,6 +278,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
+			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
 		},
 	}
 
@@ -317,29 +359,4 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 	}
 
 	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
-}
-
-func statusChecksDiffSuppression(k, old, new string, d *schema.ResourceData) bool {
-	data := BranchProtectionResourceData{}
-	checks := false
-
-	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
-		vL := v.([]interface{})
-		for _, v := range vL {
-			if v == nil {
-				break
-			}
-
-			m := v.(map[string]interface{})
-			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
-			if len(data.RequiredStatusCheckContexts) > 0 {
-				checks = true
-			}
-		}
-	}
-
-	if old == "0" && new == "1" && !checks {
-		return true
-	}
-	return false
 }

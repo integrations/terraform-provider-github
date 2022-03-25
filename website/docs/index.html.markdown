@@ -105,9 +105,11 @@ The following arguments are supported in the `provider` block:
 * `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
   * `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
-  * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable.
+  * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
 
 * `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Defaults to 1000ms or 1 second if not provided.
+
+* `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms.
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 

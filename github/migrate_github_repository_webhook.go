@@ -11,16 +11,16 @@ import (
 func resourceGithubWebhookMigrateState(v int, is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	switch v {
 	case 0:
-		log.Println("[INFO] Found GitHub Webhook State v0; migrating to v1")
+		log.Printf("[INFO] Found GitHub Webhook State v0; migrating to v1")
 		return migrateGithubWebhookStateV0toV1(is)
 	default:
-		return is, fmt.Errorf("Unexpected schema version: %d", v)
+		return is, fmt.Errorf("unexpected schema version: %d", v)
 	}
 }
 
 func migrateGithubWebhookStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
 	if is.Empty() {
-		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
+		log.Printf("[DEBUG] Empty InstanceState; nothing to migrate.")
 		return is, nil
 	}
 
@@ -48,7 +48,6 @@ func migrateGithubWebhookStateV0toV1(is *terraform.InstanceState) (*terraform.In
 	}
 
 	is.Attributes[prefix+"#"] = "1"
-
 	log.Printf("[DEBUG] GitHub Webhook Attributes after State Migration: %#v", is.Attributes)
 
 	return is, nil

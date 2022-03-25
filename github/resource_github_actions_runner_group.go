@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -96,7 +96,6 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization runner group: %s (%s)", name, orgName)
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
@@ -141,7 +140,6 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading organization runner group: %s (%s)", d.Id(), orgName)
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -149,7 +147,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
 				return nil
@@ -168,17 +166,28 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
 
-	log.Printf("[DEBUG] Reading organization runner group repositories: %s (%s)", d.Id(), orgName)
-	runnerGroupRepositories, _, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, nil)
-	if err != nil {
-		return err
+	selectedRepositoryIDs := []int64{}
+	options := github.ListOptions{
+		PerPage: maxPerPage,
 	}
 
-	selectedRepositoryIDs := []int64{}
-	for _, repo := range runnerGroupRepositories.Repositories {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, *repo.ID)
+	for {
+		runnerGroupRepositories, resp, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, &options)
+		if err != nil {
+			return err
+		}
+
+		for _, repo := range runnerGroupRepositories.Repositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, *repo.ID)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.Page = resp.NextPage
 	}
-	log.Printf("[DEBUG] Got selected_repository_ids: %v", selectedRepositoryIDs)
+
 	d.Set("selected_repository_ids", selectedRepositoryIDs)
 
 	return nil
@@ -207,8 +216,24 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating organization runner group: %s (%s)", d.Id(), orgName)
 	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
+		return err
+	}
+
+	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	selectedRepositoryIDs := []int64{}
+
+	if hasSelectedRepositories {
+		ids := selectedRepositories.(*schema.Set).List()
+
+		for _, id := range ids {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		}
+	}
+
+	reposOptions := github.SetRepoAccessRunnerGroupRequest{SelectedRepositoryIDs: selectedRepositoryIDs}
+
+	if _, err := client.Actions.SetRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, reposOptions); err != nil {
 		return err
 	}
 
@@ -229,7 +254,7 @@ func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta interfa
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting organization runner group: %s (%s)", d.Id(), orgName)
+	log.Printf("[INFO] Deleting organization runner group: %s (%s)", d.Id(), orgName)
 	_, err = client.Actions.DeleteOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
 	return err
 }

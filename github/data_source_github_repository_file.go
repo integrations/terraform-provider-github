@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -76,7 +76,6 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	log.Printf("[DEBUG] Data Source reading repository file: %s/%s/%s, branch: %s", owner, repo, file, branch)
 	opts := &github.RepositoryContentGetOptions{Ref: branch}
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {

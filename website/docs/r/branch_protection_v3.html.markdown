@@ -78,6 +78,7 @@ The following arguments are supported:
 * `branch` - (Required) The Git branch to protect.
 * `enforce_admins` - (Optional) Boolean, setting this to `true` enforces status checks for repository administrators.
 * `require_signed_commits` - (Optional) Boolean, setting this to `true` requires all commits to be signed with GPG.
+* `require_conversation_resolution` - (Optional) Boolean, setting this to `true` requires all conversations on code must be resolved before a pull request can be merged.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
 * `restrictions` - (Optional) Enforce restrictions for the users and teams that may push to the branch. See [Restrictions](#restrictions) below for details.
@@ -98,7 +99,7 @@ The following arguments are supported:
 * `dismissal_teams`: (Optional) The list of team slugs with dismissal access.
   Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
-* `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 1-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
+* `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
 
 ### Restrictions
 
@@ -116,5 +117,5 @@ The following arguments are supported:
 GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
 
 ```
-$ terraform import  github_branch_protection_v3.terraform terraform:main
+$ terraform import github_branch_protection_v3.terraform terraform:main
 ```

@@ -1,10 +1,9 @@
 package github
 
 import (
-	"log"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -16,6 +15,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"orgname": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"node_id": {
 				Type:     schema.TypeString,
@@ -53,7 +56,6 @@ func dataSourceGithubOrganization() *schema.Resource {
 
 func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
-	log.Printf("[INFO] Refreshing GitHub Organization: %s", name)
 
 	client := meta.(*Owner).v3client
 	ctx := meta.(*Owner).StopContext
@@ -63,7 +65,11 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	plan := organization.GetPlan()
+	var planName string
+
+	if plan := organization.GetPlan(); plan != nil {
+		planName = plan.GetName()
+	}
 
 	opts := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
@@ -116,8 +122,9 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
+	d.Set("orgname", name)
 	d.Set("description", organization.GetDescription())
-	d.Set("plan", plan.Name)
+	d.Set("plan", planName)
 	d.Set("repositories", repoList)
 	d.Set("members", memberList)
 
