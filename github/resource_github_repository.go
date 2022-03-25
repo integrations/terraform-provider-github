@@ -203,7 +203,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 			},
 			"ignore_vulnerability_alerts_during_read": {
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"full_name": {
