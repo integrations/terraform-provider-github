@@ -202,6 +202,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"ignore_vulnerability_alerts_during_read": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"full_name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -477,11 +481,13 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("template", []interface{}{})
 	}
 
-	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
-	if err != nil {
-		return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
+		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+		}
+		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
-	d.Set("vulnerability_alerts", vulnerabilityAlerts)
 
 	return nil
 }

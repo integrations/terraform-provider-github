@@ -18,11 +18,11 @@ data "github_users" "example" {
 }
 
 output "valid_users" {
-  value = "${data.github_user.example.logins}"
+  value = "${data.github_users.example.logins}"
 }
 
 output "invalid_users" {
-  value = "${data.github_user.example.unknown_logins}"
+  value = "${data.github_users.example.unknown_logins}"
 }
 ```
 

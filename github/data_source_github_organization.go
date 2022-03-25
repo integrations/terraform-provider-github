@@ -16,6 +16,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"orgname": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"node_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -118,6 +122,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
+	d.Set("orgname", name)
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", planName)
 	d.Set("repositories", repoList)
