@@ -18,6 +18,7 @@ const (
 	PROTECTION_RESTRICTS_PUSHES                 = "push_restrictions"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSALS      = "restrict_dismissals"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSERS      = "dismissal_restrictions"
+	PROTECTION_PULL_REQUESTS_BYPASSERS          = "pull_request_bypassers"
 
 	REPOSITORY_ID = "repository_id"
 )

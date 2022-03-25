@@ -87,7 +87,6 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating organization webhook: %d (%s)", webhookObj.GetID(), orgName)
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 
 	if err != nil {
@@ -124,7 +123,6 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading organization webhook: %s (%s)", d.Id(), orgName)
 	hook, resp, err := client.Organizations.GetHook(ctx, orgName, hookID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -132,7 +130,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing organization webhook %s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing organization webhook %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
 				return nil
@@ -181,8 +179,6 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interf
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating organization webhook: %s (%s)", d.Id(), orgName)
-
 	_, _, err = client.Organizations.EditHook(ctx,
 		orgName, hookID, webhookObj)
 	if err != nil {
@@ -207,7 +203,6 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interf
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting organization webhook: %s (%s)", d.Id(), orgName)
 	_, err = client.Organizations.DeleteHook(ctx, orgName, hookID)
 	return err
 }

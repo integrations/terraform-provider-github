@@ -1134,7 +1134,7 @@ func testSweepRepositories(region string) error {
 
 	for _, r := range repos {
 		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
-			log.Printf("Destroying Repository %s", name)
+			log.Printf("[DEBUG] Destroying Repository %s", name)
 
 			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
 				return err

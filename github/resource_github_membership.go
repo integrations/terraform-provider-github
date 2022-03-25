@@ -56,7 +56,6 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	log.Printf("[DEBUG] Creating membership: %s/%s", orgName, username)
 	_, _, err = client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
@@ -91,7 +90,6 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading membership: %s", d.Id())
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
 		username, orgName)
 	if err != nil {
@@ -100,7 +98,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing membership %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing membership %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -126,7 +124,6 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting membership: %s", d.Id())
 	_, err = client.Organizations.RemoveOrgMembership(ctx,
 		d.Get("username").(string), orgName)
 

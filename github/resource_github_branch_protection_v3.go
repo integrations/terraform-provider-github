@@ -171,8 +171,6 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interfa
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
@@ -215,8 +213,6 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
@@ -228,7 +224,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
 					orgName, repoName, branch)
 				d.SetId("")
 				return nil
@@ -285,8 +281,6 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating branch protection: %s/%s (%s)",
-		orgName, repoName, branch)
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
 		repoName,
@@ -336,7 +330,6 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting branch protection: %s/%s (%s)", orgName, repoName, branch)
 	_, err = client.Repositories.RemoveBranchProtection(ctx,
 		orgName, repoName, branch)
 	return err
