@@ -34,6 +34,7 @@ output "current_github_login" {
 
 ## Attributes Reference
 
+ * `id` - the ID of the user.
  * `node_id` - the Node ID of the user.
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.
@@ -53,3 +54,4 @@ output "current_github_login" {
  * `following` - the number of following users.
  * `created_at` - the creation date.
  * `updated_at` - the update date.
+ * `suspended_at` - the suspended date if the user is suspended.

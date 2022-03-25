@@ -3,9 +3,8 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -110,7 +109,6 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	var enabled []int64
 
 	config := d.Get("enabled_repositories_config").([]interface{})
-	log.Printf("[help] length of config in actopms enabled is %v", len(config))
 	if len(config) > 0 {
 		data := config[0].(map[string]interface{})
 		switch x := data["repository_ids"].(type) {

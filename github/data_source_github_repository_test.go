@@ -51,51 +51,6 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 	})
 
-	t.Run("raises expected errors when querying for a repository", func(t *testing.T) {
-
-		config := map[string]string{
-			"no_match_name": `
-				data "github_repository" "no_match_name" {
-					name = "owner/repo"
-				}
-			`,
-			"no_match_fullname": `
-				data "github_repository" "no_match_fullname" {
-					full_name = "owner/repo"
-				}
-			`,
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config["no_match_name"],
-						ExpectError: regexp.MustCompile(`Not Found`),
-					},
-					{
-						Config:      config["no_match_fullname"],
-						ExpectError: regexp.MustCompile(`Not Found`),
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			testCase(t, anonymous)
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
