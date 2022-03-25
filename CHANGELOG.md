@@ -1,4 +1,40 @@
-## 4.21.0 (Mar 3, 2022)
+# 4.23.0 (Mar 25, 2022)
+
+ENHANCEMENTS:
+
+* Add support for disabling the use of the vulnerability management endpoint by @enieuw in https://github.com/integrations/terraform-provider-github/pull/1022
+* Added orgname in github_orgranization attributes by @Kavinraja-G in https://github.com/integrations/terraform-provider-github/pull/1052
+* Add a data source for refs. by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1084
+* build(deps): bump actions/checkout from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1086
+
+BUG FIXES:
+
+* fix: use pagination to fetch all team members by @carocad in https://github.com/integrations/terraform-provider-github/pull/1092
+* docs: fix typos in d/users.html.markdown by @pallxk in https://github.com/integrations/terraform-provider-github/pull/1049
+
+# 4.22.0 (Mar 18, 2022)
+
+ENHANCEMENTS:
+
+* feat: add `tree` data source by @jasonwalsh in https://github.com/integrations/terraform-provider-github/pull/1027
+* feat: support for issues using github_issue resource by @ewilde in https://github.com/integrations/terraform-provider-github/pull/1047
+* feat: add configurable read_delay_ms by @morremeyer in https://github.com/integrations/terraform-provider-github/pull/1054
+
+## 4.21.0 (Mar 11, 2022)
+
+ENHANCEMENTS:
+
+* Adding BypassPullRequestActorIDs to branch protection by @jtyr in https://github.com/integrations/terraform-provider-github/pull/1030
+* Adding suspended_at attribute to github_user data source by @mrobinson-anaplan in https://github.com/integrations/terraform-provider-github/pull/1070
+* Documentation: Add id to github_user data dource by @kangaechu in https://github.com/integrations/terraform-provider-github/pull/1061
+
+BUG FIXES:
+
+* fix: use the appropriate ID when trying to import `github_team_members` objects by @bison-brandon in https://github.com/integrations/terraform-provider-github/pull/1074
+* Environment ID gets set incorrectly on update by @aceresia-bg in https://github.com/integrations/terraform-provider-github/pull/1058
+* Fix whitespace in documentation for branch_protection_v3 by @JCradock in https://github.com/integrations/terraform-provider-github/pull/1059
+
+## 4.20.1 (Mar 3, 2022)
 
 BUG FIXES:
 

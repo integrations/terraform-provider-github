@@ -49,8 +49,9 @@ func NewEtagTransport(rt http.RoundTripper) *etagTransport {
 // https://developer.github.com/v3/guides/best-practices-for-integrators/#dealing-with-abuse-rate-limits
 type RateLimitTransport struct {
 	transport        http.RoundTripper
-	delayNextRequest bool
+	nextRequestDelay time.Duration
 	writeDelay       time.Duration
+	readDelay        time.Duration
 
 	m sync.Mutex
 }
@@ -61,14 +62,14 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// and restoring bodies between retries below
 	rlt.lock(req)
 
-	// If you're making a large number of POST, PATCH, PUT, or DELETE requests
-	// for a single user or client ID, wait at least one second between each request.
-	if rlt.delayNextRequest {
-		log.Printf("[DEBUG] Sleeping %s between write operations", rlt.writeDelay)
-		time.Sleep(rlt.writeDelay)
+	// Sleep for the delay that the last request defined. This delay might be different
+	// for read and write requests. See isWriteMethod for the distinction between them.
+	if rlt.nextRequestDelay > 0 {
+		log.Printf("[DEBUG] Sleeping %s between operations", rlt.nextRequestDelay)
+		time.Sleep(rlt.nextRequestDelay)
 	}
 
-	rlt.delayNextRequest = isWriteMethod(req.Method)
+	rlt.nextRequestDelay = rlt.calculateNextDelay(req.Method)
 
 	resp, err := rlt.transport.RoundTrip(req)
 	if err != nil {
@@ -89,7 +90,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 	// When you have been limited, use the Retry-After response header to slow down.
 	if arlErr, ok := ghErr.(*github.AbuseRateLimitError); ok {
-		rlt.delayNextRequest = false
+		rlt.nextRequestDelay = 0
 		retryAfter := arlErr.GetRetryAfter()
 		log.Printf("[DEBUG] Abuse detection mechanism triggered, sleeping for %s before retrying",
 			retryAfter)
@@ -99,7 +100,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	}
 
 	if rlErr, ok := ghErr.(*github.RateLimitError); ok {
-		rlt.delayNextRequest = false
+		rlt.nextRequestDelay = 0
 		retryAfter := time.Until(rlErr.Rate.Reset.Time)
 		log.Printf("[DEBUG] Rate limit %d reached, sleeping for %s (until %s) before retrying",
 			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
@@ -121,6 +122,15 @@ func (rlt *RateLimitTransport) unlock(req *http.Request) {
 	rlt.m.Unlock()
 }
 
+// calculateNextDelay returns a time.Duration specifying the backoff before the next request
+// the actual value depends on the current method being a write or a read request
+func (rlt *RateLimitTransport) calculateNextDelay(method string) time.Duration {
+	if isWriteMethod(method) {
+		return rlt.writeDelay
+	}
+	return rlt.readDelay
+}
+
 type RateLimitTransportOption func(*RateLimitTransport)
 
 // NewRateLimitTransport takes in an http.RoundTripper and a variadic list of
@@ -128,7 +138,8 @@ type RateLimitTransportOption func(*RateLimitTransport)
 // may be used to alter the write delay in between requests, for example.
 func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOption) *RateLimitTransport {
 	// Default to 1 second of write delay if none is provided
-	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second}
+	// Default to no read delay if none is provided
+	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second, readDelay: 0 * time.Second}
 
 	for _, opt := range options {
 		opt(rlt)
@@ -141,6 +152,13 @@ func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOp
 func WithWriteDelay(d time.Duration) RateLimitTransportOption {
 	return func(rlt *RateLimitTransport) {
 		rlt.writeDelay = d
+	}
+}
+
+// WithReadDelay is used to set the delay between read requests
+func WithReadDelay(d time.Duration) RateLimitTransportOption {
+	return func(rlt *RateLimitTransport) {
+		rlt.readDelay = d
 	}
 }
 

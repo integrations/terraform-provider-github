@@ -185,6 +185,10 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
+	if teamIdString == "" && !d.IsNewResource() {
+		log.Printf("[DEBUG] Importing team with id %q", d.Id())
+		teamIdString = d.Id()
+	}
 
 	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
@@ -201,17 +205,52 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
+	etags := make([]string, 0)
 	// List members & maintainers as list 'all' drops role information
 	log.Printf("[DEBUG] Reading team members: %s", teamIdString)
-	members, resp1, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &github.TeamListTeamMembersOptions{Role: "member"})
-	if err != nil {
-		return err
+	memberOptions := github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{
+			PerPage: maxPerPage,
+		},
+		Role: "member",
+	}
+
+	var members []*github.User
+	for {
+		member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &memberOptions)
+		if err != nil {
+			return err
+		}
+
+		etags = append(etags, resp.Header.Get("ETag"))
+		members = append(members, member...)
+		if resp.NextPage == 0 {
+			break
+		}
+		memberOptions.Page = resp.NextPage
 	}
 
 	log.Printf("[DEBUG] Reading team maintainers: %s", teamIdString)
-	maintainers, resp2, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &github.TeamListTeamMembersOptions{Role: "maintainer"})
-	if err != nil {
-		return err
+	maintainerOptions := github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{
+			PerPage: maxPerPage,
+		},
+		Role: "maintainer",
+	}
+	var maintainers []*github.User
+	for {
+		maintaner, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &maintainerOptions)
+		if err != nil {
+			return err
+		}
+
+		etags = append(etags, resp.Header.Get("ETag"))
+		maintainers = append(maintainers, maintaner...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		maintainerOptions.Page = resp.NextPage
 	}
 
 	teamMembersAndMaintainers := make([]interface{}, len(members)+len(maintainers))
@@ -234,8 +273,8 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	// Combine etag of both requests
-	d.Set("etag", buildTwoPartID(resp1.Header.Get("ETag"), resp2.Header.Get("ETag")))
+	// Combine etag of all requests
+	d.Set("etag", buildChecksumID(etags))
 
 	return nil
 }
