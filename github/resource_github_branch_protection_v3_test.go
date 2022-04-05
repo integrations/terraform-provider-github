@@ -38,6 +38,9 @@ func TestAccGithubBranchProtectionV3_defaults(t *testing.T) {
 				"github_branch_protection_v3.test", "require_signed_commits", "false",
 			),
 			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "require_linear_history", "false",
+			),
+			resource.TestCheckResourceAttr(
 				"github_branch_protection_v3.test", "require_conversation_resolution", "false",
 			),
 			resource.TestCheckResourceAttr(
@@ -108,6 +111,9 @@ func TestAccGithubBranchProtectionV3_conversation_resolution(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection_v3.test", "require_signed_commits", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "require_linear_history", "false",
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection_v3.test", "require_conversation_resolution", "true",

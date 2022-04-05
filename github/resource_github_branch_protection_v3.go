@@ -140,6 +140,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"require_linear_history": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"require_conversation_resolution": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -238,6 +243,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	d.Set("repository", repoName)
 	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	d.Set("require_linear_history", githubProtection.GetRequireLinearHistory().Enabled)
 	if rcr := githubProtection.GetRequiredConversationResolution(); rcr != nil {
 		d.Set("require_conversation_resolution", rcr.Enabled)
 	}
