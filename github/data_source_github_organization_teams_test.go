@@ -1,7 +1,6 @@
 package github
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,9 +10,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 	t.Run("queries without error", func(t *testing.T) {
 
-		config := fmt.Sprintf(`
+		config := `
 			data "github_organization_teams" "all" {}
-		`)
+		`
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
@@ -49,11 +48,11 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 	t.Run("queries root teams only without error", func(t *testing.T) {
 
-		config := fmt.Sprintf(`
+		config := `
 			data "github_organization_teams" "root_teams" {
 				root_teams_only = true
 			}
-		`)
+		`
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.id"),

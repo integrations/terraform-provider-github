@@ -7,7 +7,7 @@ default: build
 
 tools:
 	go install github.com/client9/misspell/cmd/misspell
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
 
 build: fmtcheck
 	go build ./...
