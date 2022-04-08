@@ -81,7 +81,8 @@ func dataSourceGithubRepository() *schema.Resource {
 			},
 			"allow_forking": {
 				Type:     schema.TypeBool,
-				Computed: false,
+				Optional: true,
+				Default:  true,
 			},
 			"default_branch": {
 				Type:     schema.TypeString,
