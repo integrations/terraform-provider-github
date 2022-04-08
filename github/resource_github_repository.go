@@ -97,7 +97,7 @@ func resourceGithubRepository() *schema.Resource {
 			"allow_forking": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 			},
 			"delete_branch_on_merge": {
 				Type:     schema.TypeBool,
