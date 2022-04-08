@@ -66,6 +66,7 @@ type Repository struct {
 	AllowSquashMerge    *bool           `json:"allow_squash_merge,omitempty"`
 	AllowMergeCommit    *bool           `json:"allow_merge_commit,omitempty"`
 	AllowAutoMerge      *bool           `json:"allow_auto_merge,omitempty"`
+	AllowForking        *bool           `json:"allow_forking,omitempty"`
 	DeleteBranchOnMerge *bool           `json:"delete_branch_on_merge,omitempty"`
 	Topics              []string        `json:"topics,omitempty"`
 	Archived            *bool           `json:"archived,omitempty"`
@@ -363,6 +364,7 @@ type createRepoRequest struct {
 	AllowMergeCommit    *bool   `json:"allow_merge_commit,omitempty"`
 	AllowRebaseMerge    *bool   `json:"allow_rebase_merge,omitempty"`
 	AllowAutoMerge      *bool   `json:"allow_auto_merge,omitempty"`
+	AllowForking        *bool   `json:"allow_forking,omitempty"`
 	DeleteBranchOnMerge *bool   `json:"delete_branch_on_merge,omitempty"`
 }
 
@@ -406,6 +408,7 @@ func (s *RepositoriesService) Create(ctx context.Context, org string, repo *Repo
 		AllowMergeCommit:    repo.AllowMergeCommit,
 		AllowRebaseMerge:    repo.AllowRebaseMerge,
 		AllowAutoMerge:      repo.AllowAutoMerge,
+		AllowForking:        repo.AllowForking,
 		DeleteBranchOnMerge: repo.DeleteBranchOnMerge,
 	}
 
@@ -874,14 +877,33 @@ type RequiredStatusChecks struct {
 	// Require branches to be up to date before merging. (Required.)
 	Strict bool `json:"strict"`
 	// The list of status checks to require in order to merge into this
-	// branch. (Required; use []string{} instead of nil for empty list.)
-	Contexts []string `json:"contexts"`
+	// branch. (Deprecated. Note: only one of Contexts/Checks can be populated,
+	// but at least one must be populated).
+	Contexts []string `json:"contexts,omitempty"`
+	// The list of status checks to require in order to merge into this
+	// branch.
+	Checks []*RequiredStatusCheck `json:"checks,omitempty"`
 }
 
 // RequiredStatusChecksRequest represents a request to edit a protected branch's status checks.
 type RequiredStatusChecksRequest struct {
-	Strict   *bool    `json:"strict,omitempty"`
-	Contexts []string `json:"contexts,omitempty"`
+	Strict *bool `json:"strict,omitempty"`
+	// Note: if both Contexts and Checks are populated,
+	// the GitHub API will only use Checks.
+	Contexts []string               `json:"contexts,omitempty"`
+	Checks   []*RequiredStatusCheck `json:"checks,omitempty"`
+}
+
+// RequiredStatusCheck represents a status check of a protected branch.
+type RequiredStatusCheck struct {
+	// The name of the required check.
+	Context string `json:"context"`
+	// The ID of the GitHub App that must provide this check.
+	// Omit this field to automatically select the GitHub App
+	// that has recently provided this check,
+	// or any app if it was not set by a GitHub App.
+	// Pass -1 to explicitly allow any app to set the status.
+	AppID *int64 `json:"app_id,omitempty"`
 }
 
 // PullRequestReviewsEnforcement represents the pull request reviews enforcement of a protected branch.
@@ -922,10 +944,10 @@ type PullRequestReviewsEnforcementUpdate struct {
 	DismissalRestrictionsRequest *DismissalRestrictionsRequest `json:"dismissal_restrictions,omitempty"`
 	// Specifies if approved reviews can be dismissed automatically, when a new commit is pushed. Can be omitted.
 	DismissStaleReviews *bool `json:"dismiss_stale_reviews,omitempty"`
-	// RequireCodeOwnerReviews specifies if an approved review is required in pull requests including files with a designated code owner.
-	RequireCodeOwnerReviews bool `json:"require_code_owner_reviews,omitempty"`
+	// RequireCodeOwnerReviews specifies if merging pull requests is blocked until code owners have reviewed.
+	RequireCodeOwnerReviews *bool `json:"require_code_owner_reviews,omitempty"`
 	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
-	// Valid values are 1 - 6.
+	// Valid values are 1 - 6 or 0 to not require reviewers.
 	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
 }
 
