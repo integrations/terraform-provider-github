@@ -2,11 +2,12 @@ package github
 
 import (
 	"context"
-	"github.com/google/go-github/v42/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/google/go-github/v43/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubIssue() *schema.Resource {
