@@ -100,6 +100,9 @@ const (
 	// https://developer.github.com/changes/2018-03-16-protected-branches-required-approving-reviews/
 	mediaTypeRequiredApprovingReviewsPreview = "application/vnd.github.luke-cage-preview+json"
 
+	// https://developer.github.com/changes/2018-05-07-new-checks-api-public-beta/
+	mediaTypeCheckRunsPreview = "application/vnd.github.antiope-preview+json"
+
 	// https://developer.github.com/enterprise/2.13/v3/repos/pre_receive_hooks/
 	mediaTypePreReceiveHooksPreview = "application/vnd.github.eye-scream-preview"
 
@@ -196,6 +199,7 @@ type Client struct {
 	Repositories   *RepositoriesService
 	SCIM           *SCIMService
 	Search         *SearchService
+	SecretScanning *SecretScanningService
 	Teams          *TeamsService
 	Users          *UsersService
 }
@@ -325,6 +329,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Repositories = (*RepositoriesService)(&c.common)
 	c.SCIM = (*SCIMService)(&c.common)
 	c.Search = (*SearchService)(&c.common)
+	c.SecretScanning = (*SecretScanningService)(&c.common)
 	c.Teams = (*TeamsService)(&c.common)
 	c.Users = (*UsersService)(&c.common)
 	return c
@@ -653,9 +658,13 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 
 	response := newResponse(resp)
 
-	c.rateMu.Lock()
-	c.rateLimits[rateLimitCategory] = response.Rate
-	c.rateMu.Unlock()
+	// Don't update the rate limits if this was a cached response.
+	// X-From-Cache is set by https://github.com/gregjones/httpcache
+	if response.Header.Get("X-From-Cache") == "" {
+		c.rateMu.Lock()
+		c.rateLimits[rateLimitCategory] = response.Rate
+		c.rateMu.Unlock()
+	}
 
 	err = CheckResponse(resp)
 	if err != nil {
