@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v43/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -204,6 +204,10 @@ func resourceGithubRepository() *schema.Resource {
 				},
 			},
 			"vulnerability_alerts": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"ignore_vulnerability_alerts_during_read": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
@@ -484,11 +488,13 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("template", []interface{}{})
 	}
 
-	vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
-	if err != nil {
-		return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
+		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+		}
+		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
-	d.Set("vulnerability_alerts", vulnerabilityAlerts)
 
 	return nil
 }

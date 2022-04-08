@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func dataSourceGithubBranch() *schema.Resource {
+func dataSourceGithubRef() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchRead,
+		Read: dataSourceGithubRefRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -40,18 +40,17 @@ func dataSourceGithubBranch() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
-	branchName := d.Get("branch").(string)
-	branchRefName := "refs/heads/" + branchName
+	ref := d.Get("ref").(string)
 
-	ref, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, branchRefName)
+	refData, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, ref)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
+				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", orgName, repoName, ref)
 				d.SetId("")
 				return nil
 			}
@@ -59,10 +58,10 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repoName, branchName))
+	d.SetId(buildTwoPartID(repoName, ref))
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("ref", *ref.Ref)
-	d.Set("sha", *ref.Object.SHA)
+	d.Set("ref", *refData.Ref)
+	d.Set("sha", *refData.Object.SHA)
 
 	return nil
 }

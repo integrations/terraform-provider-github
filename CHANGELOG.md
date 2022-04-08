@@ -1,3 +1,17 @@
+# 4.23.0 (Mar 25, 2022)
+
+ENHANCEMENTS:
+
+* Add support for disabling the use of the vulnerability management endpoint by @enieuw in https://github.com/integrations/terraform-provider-github/pull/1022
+* Added orgname in github_orgranization attributes by @Kavinraja-G in https://github.com/integrations/terraform-provider-github/pull/1052
+* Add a data source for refs. by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1084
+* build(deps): bump actions/checkout from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1086
+
+BUG FIXES:
+
+* fix: use pagination to fetch all team members by @carocad in https://github.com/integrations/terraform-provider-github/pull/1092
+* docs: fix typos in d/users.html.markdown by @pallxk in https://github.com/integrations/terraform-provider-github/pull/1049
+
 # 4.22.0 (Mar 18, 2022)
 
 ENHANCEMENTS:

@@ -1,62 +1,36 @@
 package github
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
+func TestAccGithubRefDataSource(t *testing.T) {
 
-	t.Run("queries without error", func(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-		config := `
-			data "github_organization_teams" "all" {}
-		`
+	t.Run("queries an existing ref without error", func(t *testing.T) {
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-	})
-
-	t.Run("queries root teams only without error", func(t *testing.T) {
-
-		config := `
-			data "github_organization_teams" "root_teams" {
-				root_teams_only = true
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
 			}
-		`
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.node_id"),
+			data "github_ref" "test" {
+				repository = github_repository.test.id
+				ref = "/heads/main"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestMatchResourceAttr(
+				"data.github_ref.test", "id", regexp.MustCompile(randomID),
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -77,7 +51,7 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
+			testCase(t, individual)
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
@@ -86,4 +60,50 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 	})
 
+	t.Run("queries an invalid ref without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
+			}
+
+			data "github_ref" "test" {
+				repository = github_repository.test.id
+				ref = "heads/xxxxxx"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckNoResourceAttr(
+				"data.github_ref.test", "id",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }
