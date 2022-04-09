@@ -14,21 +14,17 @@ func dataSourceGithubRef() *schema.Resource {
 		Read: dataSourceGithubRefRead,
 
 		Schema: map[string]*schema.Schema{
+			"ref": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"branch": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"ref": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -60,7 +56,6 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(buildTwoPartID(repoName, ref))
 	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("ref", *refData.Ref)
 	d.Set("sha", *refData.Object.SHA)
 
 	return nil
