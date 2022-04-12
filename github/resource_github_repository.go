@@ -179,6 +179,11 @@ func resourceGithubRepository() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"public": {
+							Type:     schema.TypeBool,
+							Computed: true,
+							Default:  true,
+						},
 						"status": {
 							Type:     schema.TypeString,
 							Computed: true,
