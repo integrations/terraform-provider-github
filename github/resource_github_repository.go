@@ -689,6 +689,7 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap := make(map[string]interface{})
 	pagesMap["source"] = []interface{}{sourceMap}
 	pagesMap["url"] = pages.GetURL()
+	pagesMap["public"] = pages.GetPublic()
 	pagesMap["status"] = pages.GetStatus()
 	pagesMap["cname"] = pages.GetCNAME()
 	pagesMap["custom_404"] = pages.GetCustom404()
