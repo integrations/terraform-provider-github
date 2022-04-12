@@ -181,7 +181,7 @@ func resourceGithubRepository() *schema.Resource {
 						},
 						"public": {
 							Type:     schema.TypeBool,
-							Computed: true,
+							Optional: true,
 							Default:  true,
 						},
 						"status": {
