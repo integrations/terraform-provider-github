@@ -216,6 +216,8 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 
 func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) {
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
+	d.Set("release_id", release.GetID())
+	d.Set("node_id", release.GetNodeID())
 	d.Set("repository", repository)
 	d.Set("tag_name", release.GetTagName())
 	d.Set("target_commitish", release.GetTargetCommitish())
@@ -229,7 +231,7 @@ func transformResponseToResourceData(d *schema.ResourceData, release *github.Rep
 	d.Set("published_at", release.GetPublishedAt())
 	d.Set("url", release.GetURL())
 	d.Set("html_url", release.GetHTMLURL())
-	d.Set("asserts_url", release.GetAssetsURL())
+	d.Set("assets_url", release.GetAssetsURL())
 	d.Set("upload_url", release.GetUploadURL())
 	d.Set("zipball_url", release.GetZipballURL())
 	d.Set("tarball_url", release.GetTarballURL())

@@ -75,7 +75,7 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
-* `id` - The ID of the release.
+* `release_id` - The ID of the release.
 
 * `created_at` - This is the date of the commit used for the release, and not the date when the release was drafted or published.
 
