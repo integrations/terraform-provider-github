@@ -1,3 +1,11 @@
+# 4.24.0 (Apr 21, 2022)
+
+ENHANCEMENTS:
+
+* feat(release) Adding new resource `github_release` by @trentmillar in https://github.com/integrations/terraform-provider-github/pull/1122
+
+BUG FIXES:
+
 # 4.23.0 (Mar 25, 2022)
 
 ENHANCEMENTS:
