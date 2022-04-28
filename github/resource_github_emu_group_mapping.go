@@ -17,14 +17,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Delete: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				orgName := meta.(*Owner).name
-				teamSlug, ok := d.Get("team_slug").(string)
-				if !ok {
-					return nil, fmt.Errorf("could not get team slug from provided value when importing external group")
+				id, err := strconv.Atoi(d.Id())
+				if err != nil {
+					return nil, err
 				}
-
-				d.Set("team_slug", d.Id())
-				d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
+				if err := d.Set("group_id", id); err != nil {
+					return nil, err
+				}
+				d.SetId(fmt.Sprintf("teams/%s/external-groups", d.Id()))
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -110,7 +110,7 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("organizations/%s/team/%s/external-groups", orgName, teamSlug))
+	d.SetId(fmt.Sprintf("teams/%s/external-groups", teamSlug))
 	return resourceGithubEMUGroupMappingRead(d, meta)
 }
 
@@ -122,14 +122,14 @@ func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	teamSlug, ok := d.Get("team_slug").(string)
+	teamSlug, ok := d.GetOk("team_slug")
 	if !ok {
 		return fmt.Errorf("could not parse team slug from provided value")
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug)
+	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug.(string))
 	if err != nil {
 		return err
 	}
