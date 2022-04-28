@@ -1,3 +1,18 @@
+# 4.24.0 (Apr 28, 2022)
+
+ENHANCEMENTS:
+* Support for allow_forking on a repository/update to go-github v42 by @diogopms in https://github.com/integrations/terraform-provider-github/pull/1033
+* Upgrade go-github to v43.0.0 by @btkostner in https://github.com/integrations/terraform-provider-github/pull/1087
+
+BUG FIXES:
+
+* Fix go module path by @turkenh in https://github.com/integrations/terraform-provider-github/pull/961
+* fix: remove incorrect required schema key on ref data source by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1109
+* Bump Go version for Actions release CI to 1.18 by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1134
+* build(deps): bump actions/setup-go from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1110
+* Fix linting issues by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1107
+
+
 # 4.23.0 (Mar 25, 2022)
 
 ENHANCEMENTS:
