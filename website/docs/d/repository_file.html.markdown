@@ -31,8 +31,7 @@ The following arguments are supported:
 
 * `file` - (Required) The path of the file to manage.
 
-* `branch` - (Optional) Git branch (defaults to `main`).
-  The branch must already exist, it will not be created if it does not already exist.
+* `branch` - (Optional) Git branch (defaults to the repository's default branch).
 
 ## Attributes Reference
 
@@ -49,3 +48,5 @@ The following additional attributes are exported:
 * `commit_email` - Committer email address.
 
 * `commit_message` - Commit message when file was last updated.
+
+* `ref` - The name of the commit/branch/tag.
