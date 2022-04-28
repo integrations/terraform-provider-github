@@ -11,7 +11,6 @@ import (
 )
 
 func Provider() terraform.ResourceProvider {
-	time.Sleep(7 * time.Second)
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
