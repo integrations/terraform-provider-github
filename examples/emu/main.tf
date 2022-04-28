@@ -9,10 +9,6 @@ terraform {
   }
 }
 
-# resource "github_team" "emu-test-team" {
-# 	name = "emu-test-team"
-# }
-
 resource "github_emu_group_mapping" "example_emu_group_mapping" {
   team_slug = "emu-test-team"
   group_id = 28836
