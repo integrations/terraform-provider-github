@@ -7,7 +7,6 @@ package github
 
 import (
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -27,8 +26,6 @@ func (t Timestamp) String() string {
 // Time is expected in RFC3339 or Unix format.
 func (t *Timestamp) UnmarshalJSON(data []byte) (err error) {
 	str := string(data)
-	// try stripping characters?
-	str = strings.Trim(str, "\"")
 	i, err := strconv.ParseInt(str, 10, 64)
 	if err == nil {
 		t.Time = time.Unix(i, 0)
@@ -36,15 +33,7 @@ func (t *Timestamp) UnmarshalJSON(data []byte) (err error) {
 			t.Time = time.Unix(0, i*1e6)
 		}
 	} else {
-		// try parsing it as a string like "2021-02-22 11:25:55 -0800",
-		// which is what the current external-groups API returns
-		layout := "2006-01-02 15:04:05 -0800" // 2006-01-02T15:04:05.000Z
-		x, err := time.Parse(layout, str)
-		if err != nil {
-			t.Time, err = time.Parse(`"`+time.RFC3339+`"`, str)
-		}
-		t.Time = x
-		return nil
+		t.Time, err = time.Parse(`"`+time.RFC3339+`"`, str)
 	}
 	return
 }
