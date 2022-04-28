@@ -24,6 +24,19 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				if err := d.Set("group_id", id); err != nil {
 					return nil, err
 				}
+				ctx := context.WithValue(context.Background(), ctxId, d.Id())
+				client := meta.(*Owner).v3client
+				orgName := meta.(*Owner).name
+				group, _, err := client.Teams.GetExternalGroup(ctx, orgName, int64(id))
+				if err != nil {
+					return nil, err
+				}
+				if len(group.Teams) != 1 {
+					return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
+				}
+				if err := d.Set("team_slug", group.Teams[0].TeamName); err != nil {
+					return nil, err
+				}
 				d.SetId(fmt.Sprintf("teams/%s/external-groups", d.Id()))
 				return []*schema.ResourceData{d}, nil
 			},
@@ -87,7 +100,7 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	teamSlug, ok := d.Get("team_slug").(string)
+	teamSlug, ok := d.GetOk("team_slug")
 	if !ok {
 		return fmt.Errorf("could not get team slug from provided value")
 	}
@@ -105,7 +118,7 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 		GroupID: &id64,
 	}
 
-	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug.(string), eg)
 	if err != nil {
 		return err
 	}
