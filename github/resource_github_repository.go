@@ -94,11 +94,6 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"allow_forking": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
 			"delete_branch_on_merge": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -300,7 +295,6 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:      github.Bool(d.Get("allow_auto_merge").(bool)),
-		AllowForking:        github.Bool(d.Get("allow_forking").(bool)),
 		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
 		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
 		LicenseTemplate:     github.String(d.Get("license_template").(string)),
@@ -446,7 +440,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("allow_forking", repo.GetAllowForking())
 	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
