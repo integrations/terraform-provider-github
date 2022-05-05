@@ -37,6 +37,13 @@ func dataSourceGithubRepositories() *schema.Resource {
 				},
 				Computed: true,
 			},
+			"ids": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -52,7 +59,7 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 		},
 	}
 
-	fullNames, names, err := searchGithubRepositories(client, query, opt)
+	fullNames, names, idList, err := searchGithubRepositories(client, query, opt)
 	if err != nil {
 		return err
 	}
@@ -60,14 +67,17 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(query)
 	d.Set("full_names", fullNames)
 	d.Set("names", names)
+	d.Set("ids", idList)
 
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
+func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
 	fullNames := make([]string, 0)
 
 	names := make([]string, 0)
+
+	idList := make([]int64, 0)
 
 	for {
 		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
@@ -78,6 +88,7 @@ func searchGithubRepositories(client *github.Client, query string, opt *github.S
 		for _, repo := range results.Repositories {
 			fullNames = append(fullNames, repo.GetFullName())
 			names = append(names, repo.GetName())
+			idList = append(idList, int(repo.GetID()))
 		}
 
 		if resp.NextPage == 0 {
@@ -86,5 +97,5 @@ func searchGithubRepositories(client *github.Client, query string, opt *github.S
 		opt.Page = resp.NextPage
 	}
 
-	return fullNames, names, nil
+	return fullNames, names, idList, nil
 }

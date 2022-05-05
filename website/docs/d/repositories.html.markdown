@@ -32,3 +32,4 @@ The following arguments are supported:
 
 * `full_names` - A list of full names of found repositories (e.g. `hashicorp/terraform`)
 * `names` - A list of found repository names (e.g. `terraform`)
+* `ids` - A list of found repository ids (e.g. 543789)
