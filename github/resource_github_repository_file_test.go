@@ -162,7 +162,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 	})
 
-	t.Run("creates and manages files on default branch if branch is ommited", func(t *testing.T) {
+	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 
