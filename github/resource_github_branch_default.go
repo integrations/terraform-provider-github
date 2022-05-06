@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 
 	"github.com/google/go-github/v43/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -63,6 +65,14 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) e
 
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing branch_default for repository %s/%s from state because the repository no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
