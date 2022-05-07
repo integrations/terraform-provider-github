@@ -263,6 +263,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -309,6 +313,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
 		Archived:                 github.Bool(d.Get("archived").(bool)),
 		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 	}
 }
 
@@ -465,6 +470,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
