@@ -160,8 +160,18 @@ The following additional attributes are exported:
 
 ## Import
 
-Repositories can be imported using the `name`, e.g.
+Repositories can be imported using the `name` of the repository you wish to import. For example to import a repository named `repo1` into a resource named `terraform`:
 
+```sh
+$ terraform import github_repository.terraform repo1
 ```
-$ terraform import github_repository.terraform terraform
+
+Repositories created as part of a `for_each` can also be imported via:
+
+```sh
+terraform import 'github_repository.repos["test-repo1"]' repo1
 ```
+
+This would import the repository named `repo1` into the resource named `repos` with a key of `test-repo1`.
+
+~> **Note**: The exact syntax of a `for_each` import depends on your OS and shell. Refer to the [Terraform docs](https://www.terraform.io/cli/commands/import#example-import-into-resource-configured-with-for_each) for more information.
