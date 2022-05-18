@@ -148,7 +148,7 @@ func flattenTeamCollaborator(obj teamCollaborator) interface{} {
 	}
 	transformed := map[string]interface{}{
 		"permission": obj.permission,
-		"team_id":    obj.teamID,
+		"team_id":    strconv.FormatInt(obj.teamID, 10),
 	}
 
 	return transformed
@@ -491,10 +491,22 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 		invitationIds[i.username] = strconv.FormatInt(i.invitationID, 10)
 	}
 
-	d.Set("repository", repoName)
-	d.Set("user", flattenUserCollaborators(userCollaborators, invitedCollaborators))
-	d.Set("team", flattenTeamCollaborators(teamCollaborators))
-	d.Set("invitation_ids", invitationIds)
+	err = d.Set("repository", repoName)
+	if err != nil {
+		return err
+	}
+	err = d.Set("user", flattenUserCollaborators(userCollaborators, invitedCollaborators))
+	if err != nil {
+		return err
+	}
+	err = d.Set("team", flattenTeamCollaborators(teamCollaborators))
+	if err != nil {
+		return err
+	}
+	err = d.Set("invitation_ids", invitationIds)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
