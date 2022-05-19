@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
-var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
-var testOrganization string = testOrganizationFunc()
-var testOwner string = os.Getenv("GITHUB_OWNER")
-var testToken string = os.Getenv("GITHUB_TOKEN")
-var testBaseURLGHES string = os.Getenv("GHES_BASE_URL")
+var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
+var testOrganization = testOrganizationFunc()
+var testOwner = os.Getenv("GITHUB_OWNER")
+var testToken = os.Getenv("GITHUB_TOKEN")
+var testBaseURLGHES = os.Getenv("GHES_BASE_URL")
 
 func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TOKEN"); v == "" {
