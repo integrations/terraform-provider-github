@@ -48,11 +48,11 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.
 1. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
 ```sh
-TF_LOG=DEBUG TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
+TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 ```
 1. Align the resource's implementation to your test case and observe it pass:
 ```sh
-TF_ACC=1  go test -v   ./... -run ^TestAccGithubIssueLabel
+TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 ```
 
 Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests are rewritten to the latest format.
