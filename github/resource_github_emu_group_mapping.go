@@ -86,6 +86,13 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if len(group.Teams) < 1 {
+		// if there's not a team linked, that means it was removed outside of terraform
+		// and we should remove it from our state
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("group", group)
 	return nil
