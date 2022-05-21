@@ -20,7 +20,7 @@ const (
 
 func checkOrganization(meta interface{}) error {
 	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("This resource can only be used in the context of an organization, %q is a user.", meta.(*Owner).name)
+		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
 	}
 
 	return nil
