@@ -224,7 +224,7 @@ func validateTeamRepositoryPermissionFunc(v interface{}, keyName string, meta in
 	}
 
 	if !valid {
-		return nil, []error{fmt.Errorf("A custom role with the name %s does not exist in this GitHub organisation", roleName)}
+		return nil, []error{fmt.Errorf("A role with the name %s does not exist in this GitHub organisation", roleName)}
 	}
 
 	return we, errors
