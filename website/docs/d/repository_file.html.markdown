@@ -27,9 +27,9 @@ data "github_repository_file" "foo" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository to create the file in.
+* `repository` - (Required) The repository to read the file from.
 
-* `file` - (Required) The path of the file to manage.
+* `file` - (Required) The path of the file to read.
 
 * `branch` - (Optional) Git branch (defaults to `main`).
   The branch must already exist, it will not be created if it does not already exist.
