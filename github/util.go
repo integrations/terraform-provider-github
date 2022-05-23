@@ -194,31 +194,37 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 }
 
 func validateTeamRepositoryPermissionFunc(v interface{}, keyName string, meta interface{}) (we []string, errors []error) {
-	newRoleName, ok := v.(string)
+	roleName, ok := v.(string)
 	if !ok {
 		return nil, []error{fmt.Errorf("Expected type of %s to be string", keyName)}
 	}
+
+	roles := []string{"pull", "triage", "push", "maintain", "admin"}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	roles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
+	customRoles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 
 	if err != nil {
 		return nil, []error{fmt.Errorf("Error in response from github while checking for existing custom roles. Error: %s", err)}
 	}
 
+	for _, role := range customRoles.CustomRepoRoles {
+		roles = append(roles, *role.Name)
+	}
+
 	valid := false
-	for _, role := range roles.CustomRepoRoles {
-		if *role.Name == newRoleName {
+	for _, role := range roles {
+		if role == roleName {
 			valid = true
 			break
 		}
 	}
 
 	if !valid {
-		return nil, []error{fmt.Errorf("A custom role with the name %s does not exist in this GitHub organisation", newRoleName)}
+		return nil, []error{fmt.Errorf("A custom role with the name %s does not exist in this GitHub organisation", roleName)}
 	}
 
 	return we, errors
