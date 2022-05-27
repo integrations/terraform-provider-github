@@ -35,7 +35,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 			"permission": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "push",
+				Default:  "pull",
 			},
 			"etag": {
 				Type:     schema.TypeString,
