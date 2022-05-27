@@ -9,19 +9,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubActionsOrganizationSecret(t *testing.T) {
+func TestAccGithubDependabotOrganizationSecret(t *testing.T) {
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
 		config := fmt.Sprintf(`
-			resource "github_actions_organization_secret" "plaintext_secret" {
+			resource "github_dependabot_organization_secret" "plaintext_secret" {
 			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
 			  visibility       = "private"
 			}
 
-			resource "github_actions_organization_secret" "encrypted_secret" {
+			resource "github_dependabot_organization_secret" "encrypted_secret" {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
 			  visibility       = "private"
@@ -31,34 +31,34 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.plaintext_secret", "plaintext_value",
+					"github_dependabot_organization_secret.plaintext_secret", "plaintext_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.encrypted_secret", "encrypted_value",
+					"github_dependabot_organization_secret.encrypted_secret", "encrypted_value",
 					secretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.plaintext_secret", "created_at",
+					"github_dependabot_organization_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.plaintext_secret", "updated_at",
+					"github_dependabot_organization_secret.plaintext_secret", "updated_at",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.plaintext_secret", "plaintext_value",
+					"github_dependabot_organization_secret.plaintext_secret", "plaintext_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttr(
-					"github_actions_organization_secret.encrypted_secret", "encrypted_value",
+					"github_dependabot_organization_secret.encrypted_secret", "encrypted_value",
 					updatedSecretValue,
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.plaintext_secret", "created_at",
+					"github_dependabot_organization_secret.plaintext_secret", "created_at",
 				),
 				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_secret.plaintext_secret", "updated_at",
+					"github_dependabot_organization_secret.plaintext_secret", "updated_at",
 				),
 			),
 		}
@@ -97,12 +97,12 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
 		config := `
-				resource "github_actions_organization_secret" "plaintext_secret" {
+				resource "github_dependabot_organization_secret" "plaintext_secret" {
 					secret_name      = "test_plaintext_secret"
 					visibility       = "private"
 				}
 
-				resource "github_actions_organization_secret" "encrypted_secret" {
+				resource "github_dependabot_organization_secret" "encrypted_secret" {
 					secret_name      = "test_encrypted_secret"
 					visibility       = "private"
 				}
@@ -138,7 +138,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 		secretValue := "super_secret_value"
 
 		config := fmt.Sprintf(`
-			resource "github_actions_organization_secret" "test_secret" {
+			resource "github_dependabot_organization_secret" "test_secret" {
 				secret_name      = "test_plaintext_secret"
 				plaintext_value  = "%s"
 				visibility       = "private"
@@ -147,7 +147,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_actions_organization_secret.test_secret", "plaintext_value",
+				"github_dependabot_organization_secret.test_secret", "plaintext_value",
 				secretValue,
 			),
 		)
@@ -162,7 +162,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 						Check:  check,
 					},
 					{
-						ResourceName:            "github_actions_organization_secret.test_secret",
+						ResourceName:            "github_dependabot_organization_secret.test_secret",
 						ImportState:             true,
 						ImportStateVerify:       true,
 						ImportStateVerifyIgnore: []string{"plaintext_value"},
