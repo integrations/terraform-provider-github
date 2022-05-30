@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v44/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -33,10 +33,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				ForceNew: true,
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "pull",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "pull",
 			},
 			"etag": {
 				Type:     schema.TypeString,
