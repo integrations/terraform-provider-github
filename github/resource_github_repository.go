@@ -94,6 +94,11 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"delete_branch_on_merge": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -295,6 +300,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:      github.Bool(d.Get("allow_auto_merge").(bool)),
+		AllowUpdateBranch:   github.Bool(d.Get("allow_update_branch").(bool)),
 		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
 		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
 		LicenseTemplate:     github.String(d.Get("license_template").(string)),

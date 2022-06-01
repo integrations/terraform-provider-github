@@ -51,6 +51,8 @@ The following arguments are supported:
 
 * `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
 
+* `allow_update_branch` - Whether the repository allows users to be prompted to update their branches if there are new changes available in the base branch..
+
 * `has_downloads` - Whether the repository has Downloads feature enabled.
 
 * `default_branch` - The name of the default branch of the repository.
