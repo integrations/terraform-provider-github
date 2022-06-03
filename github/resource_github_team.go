@@ -19,7 +19,7 @@ func resourceGithubTeam() *schema.Resource {
 		Update: resourceGithubTeamUpdate,
 		Delete: resourceGithubTeamDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamImport,
 		},
 
 		CustomizeDiff: customdiff.Sequence(
@@ -293,6 +293,16 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	return err
+}
+
+func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	teamId, err := getTeamID(d.Id(), meta)
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(strconv.FormatInt(teamId, 10))
+	return []*schema.ResourceData{d}, nil
 }
 
 func removeDefaultMaintainer(teamSlug string, meta interface{}) error {

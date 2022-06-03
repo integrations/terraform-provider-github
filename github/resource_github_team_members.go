@@ -21,7 +21,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 		Update: resourceGithubTeamMembersUpdate,
 		Delete: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamImport,
 		},
 
 		Schema: map[string]*schema.Schema{
