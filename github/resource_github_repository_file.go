@@ -84,13 +84,13 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"commit_author": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
+				Computed:    false,
 				Description: "The commit author name, defaults to the authenticated user's name",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
+				Computed:    false,
 				Description: "The commit author email address, defaults to the authenticated user's email address",
 			},
 			"sha": {
