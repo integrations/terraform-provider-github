@@ -1,11 +1,12 @@
 package github
 
 import (
-	"context"
+	"fmt"
+	"sort"
 
-	"github.com/google/go-github/v44/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubRepositories() *schema.Resource {
@@ -23,6 +24,17 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"stars", "fork", "updated"}, false),
 			},
+			"include_repo_id": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
+			},
+			"results_per_page": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      100,
+				ValidateFunc: validation.IntBetween(0, 100),
+			},
 			"full_names": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
@@ -37,54 +49,100 @@ func dataSourceGithubRepositories() *schema.Resource {
 				},
 				Computed: true,
 			},
+			"repo_ids": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Computed: true,
+			},
 		},
 	}
 }
 
 func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-
-	query := d.Get("query").(string)
-	opt := &github.SearchOptions{
-		Sort: d.Get("sort").(string),
-		ListOptions: github.ListOptions{
-			PerPage: 100,
-		},
-	}
-
-	fullNames, names, err := searchGithubRepositories(client, query, opt)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(query)
-	d.Set("full_names", fullNames)
+	client := meta.(*Owner).v4client
+	searchQuery := d.Get("query").(string)
+	sortBy := d.Get("sort").(string)
+	includeRepoId := d.Get("include_repo_id").(bool)
+	resultsPerPage := d.Get("results_per_page").(int)
+
+	var query RepositoriesQuery
+
+	variables := map[string]interface{}{
+		"first":       githubv4.Int(resultsPerPage),
+		"cursor":      (*githubv4.String)(nil),
+		"searchQuery": githubv4.String(searchQuery),
+	}
+
+	var repos []RepositoryStruct
+
+	for {
+		err = client.Query(meta.(*Owner).StopContext, &query, variables)
+		if err != nil {
+			return err
+		}
+
+		additionalRepos := flattenGitHubRepos(query)
+		repos = append(repos, additionalRepos...)
+
+		if !query.Search.PageInfo.HasNextPage {
+			break
+		}
+		variables["cursor"] = githubv4.NewString(query.Search.PageInfo.EndCursor)
+	}
+
+	// Sort repos by stars/fork/updated (default)
+	if sortBy == "stars" {
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].StargazerCount > repos[j].StargazerCount
+		})
+	} else if sortBy == "fork" {
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].ForkCount > repos[j].ForkCount
+		})
+	} else {
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].UpdatedAt.Unix() > repos[j].UpdatedAt.Unix()
+		})
+	}
+
+	var names []string
+	var fullNames []string
+	var ids []int64
+
+	for _, v := range repos {
+		names = append(names, string(v.Name))
+		fullNames = append(fullNames, string(v.NameWithOwner))
+		ids = append(ids, int64(v.DatabaseID))
+	}
+
+	d.SetId(fmt.Sprintf("github-repositories/%s", searchQuery))
 	d.Set("names", names)
+	d.Set("full_names", fullNames)
+
+	if includeRepoId {
+		d.Set("repo_ids", ids)
+	}
 
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
-	fullNames := make([]string, 0)
-
-	names := make([]string, 0)
-
-	for {
-		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
-		if err != nil {
-			return fullNames, names, err
-		}
-
-		for _, repo := range results.Repositories {
-			fullNames = append(fullNames, repo.GetFullName())
-			names = append(names, repo.GetName())
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+func flattenGitHubRepos(rq RepositoriesQuery) []RepositoryStruct {
+	nodes := rq.Search.Nodes
+	if len(nodes) == 0 {
+		return make([]RepositoryStruct, 0)
 	}
 
-	return fullNames, names, nil
+	flatRepos := make([]RepositoryStruct, len(nodes))
+
+	for i, node := range nodes {
+		flatRepos[i] = node.RepositoryStruct
+	}
+	return flatRepos
 }
