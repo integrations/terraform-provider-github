@@ -23,6 +23,11 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"stars", "fork", "updated"}, false),
 			},
+			"include_repo_id": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
+			},
 			"full_names": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
@@ -34,6 +39,13 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+				Computed: true,
+			},
+			"repo_ids": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
 				},
 				Computed: true,
 			},
@@ -51,8 +63,9 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 			PerPage: 100,
 		},
 	}
+	include_repo_id := d.Get("include_repo_id").(bool)
 
-	fullNames, names, err := searchGithubRepositories(client, query, opt)
+	fullNames, names, repoIDs, err := searchGithubRepositories(client, query, opt)
 	if err != nil {
 		return err
 	}
@@ -60,24 +73,30 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(query)
 	d.Set("full_names", fullNames)
 	d.Set("names", names)
+	if include_repo_id {
+		d.Set("repo_ids", repoIDs)
+	}
 
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, error) {
+func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
 	fullNames := make([]string, 0)
 
 	names := make([]string, 0)
 
+	repoIDs := make([]int64, 0)
+
 	for {
 		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
 		if err != nil {
-			return fullNames, names, err
+			return fullNames, names, repoIDs, err
 		}
 
 		for _, repo := range results.Repositories {
 			fullNames = append(fullNames, repo.GetFullName())
 			names = append(names, repo.GetName())
+			repoIDs = append(repoIDs, repo.GetID())
 		}
 
 		if resp.NextPage == 0 {
@@ -86,5 +105,5 @@ func searchGithubRepositories(client *github.Client, query string, opt *github.S
 		opt.Page = resp.NextPage
 	}
 
-	return fullNames, names, nil
+	return fullNames, names, repoIDs, nil
 }
