@@ -33,10 +33,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				ForceNew: true,
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "pull",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "pull",
 			},
 			"etag": {
 				Type:     schema.TypeString,
