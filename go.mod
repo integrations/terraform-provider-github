@@ -10,10 +10,11 @@ require (
 	github.com/hashicorp/hcl/v2 v2.3.0 // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.7.0
-	github.com/shurcooL/githubv4 v0.0.0-20220106005112-0707a5a90543
+	github.com/shurcooL/githubv4 v0.0.0-20220520033151-0b4e3294ff00
 	github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/square/go-jose.v2 v2.5.1
 )
