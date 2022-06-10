@@ -137,6 +137,7 @@ func Provider() terraform.ResourceProvider {
 			"github_branch":                        dataSourceGithubBranch(),
 			"github_collaborators":                 dataSourceGithubCollaborators(),
 			"github_dependabot_public_key":         dataSourceGithubDependabotPublicKey(),
+			"github_emu_groups":                    dataSourceGithubEMUGroupMapping(),
 			"github_ip_ranges":                     dataSourceGithubIpRanges(),
 			"github_membership":                    dataSourceGithubMembership(),
 			"github_organization":                  dataSourceGithubOrganization(),
