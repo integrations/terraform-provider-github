@@ -82,9 +82,10 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"asserts_url": { // Deprecated, original version of assets_url
-				Type:     schema.TypeString,
-				Computed: true,
+			"asserts_url": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "use assets_url instead",
 			},
 			"upload_url": {
 				Type:     schema.TypeString,
