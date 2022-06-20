@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/google/go-github/v45/github"
@@ -35,6 +36,11 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 			},
 			"members": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"child_teams": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -87,6 +93,27 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		options.Page = resp.NextPage
 	}
 
+	listOptions := github.ListOptions{
+		PerPage: maxPerPage,
+	}
+
+	var childTeams []string
+	for {
+		subTeam, resp, err := client.Teams.ListChildTeamsByParentSlug(ctx, fmt.Sprint(orgId), slug, &listOptions)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range subTeam {
+			childTeams = append(childTeams, v.GetSlug())
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		options.Page = resp.NextPage
+	}
+
 	var repositories []string
 	for {
 		repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
@@ -107,6 +134,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 	d.Set("name", team.GetName())
 	d.Set("members", members)
+	d.Set("child_teams", childTeams)
 	d.Set("repositories", repositories)
 	d.Set("description", team.GetDescription())
 	d.Set("privacy", team.GetPrivacy())
