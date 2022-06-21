@@ -174,15 +174,15 @@ github.com/golangci/prealloc
 github.com/golangci/revgrep
 # github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4
 github.com/golangci/unconvert
-# github.com/google/go-cmp v0.5.7
+# github.com/google/go-cmp v0.5.8
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v43 v43.0.0
+# github.com/google/go-github/v45 v45.1.0
 ## explicit
-github.com/google/go-github/v43/github
+github.com/google/go-github/v45/github
 # github.com/google/go-querystring v1.1.0
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.1
@@ -373,7 +373,7 @@ github.com/securego/gosec/rules
 # github.com/shurcooL/githubv4 v0.0.0-20220106005112-0707a5a90543
 ## explicit
 github.com/shurcooL/githubv4
-# github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
+# github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29
 ## explicit
 github.com/shurcooL/graphql
 github.com/shurcooL/graphql/ident

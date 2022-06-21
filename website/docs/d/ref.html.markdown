@@ -5,7 +5,7 @@ description: |-
   Get information about a repository ref.
 ---
 
-# github\ref
+# github_ref
 
 Use this data source to retrieve information about a repository ref.
 
