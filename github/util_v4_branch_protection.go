@@ -13,21 +13,7 @@ type Actor struct {
 	Name githubv4.String
 }
 
-type DismissalActorTypes struct {
-	Actor struct {
-		Team Actor `graphql:"... on Team"`
-		User Actor `graphql:"... on User"`
-	}
-}
-
-type BypassPullRequestActorTypes struct {
-	Actor struct {
-		Team Actor `graphql:"... on Team"`
-		User Actor `graphql:"... on User"`
-	}
-}
-
-type PushActorTypes struct {
+type ActorTypes struct {
 	Actor struct {
 		App  Actor `graphql:"... on App"`
 		Team Actor `graphql:"... on Team"`
@@ -41,13 +27,13 @@ type BranchProtectionRule struct {
 		Name githubv4.String
 	}
 	PushAllowances struct {
-		Nodes []PushActorTypes
+		Nodes []ActorTypes
 	} `graphql:"pushAllowances(first: 100)"`
 	ReviewDismissalAllowances struct {
-		Nodes []DismissalActorTypes
+		Nodes []ActorTypes
 	} `graphql:"reviewDismissalAllowances(first: 100)"`
 	BypassPullRequestAllowances struct {
-		Nodes []BypassPullRequestActorTypes
+		Nodes []ActorTypes
 	} `graphql:"bypassPullRequestAllowances(first: 100)"`
 	AllowsDeletions                githubv4.Boolean
 	AllowsForcePushes              githubv4.Boolean
@@ -217,49 +203,21 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	return data, nil
 }
 
-func setDismissalActorIDs(actors []DismissalActorTypes) []string {
-	pushActors := make([]string, 0, len(actors))
+func setActorIDs(actors []ActorTypes) []string {
+	actorsIDs := make([]string, 0, len(actors))
 	for _, a := range actors {
 		if a.Actor.Team != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+			actorsIDs = append(actorsIDs, a.Actor.Team.ID.(string))
 		}
 		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.User.ID.(string))
-		}
-	}
-
-	return pushActors
-}
-
-func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes) []string {
-	bypassActors := make([]string, 0, len(actors))
-	for _, a := range actors {
-		if a.Actor.Team != (Actor{}) {
-			bypassActors = append(bypassActors, a.Actor.Team.ID.(string))
-		}
-		if a.Actor.User != (Actor{}) {
-			bypassActors = append(bypassActors, a.Actor.User.ID.(string))
-		}
-	}
-
-	return bypassActors
-}
-
-func setPushActorIDs(actors []PushActorTypes) []string {
-	pushActors := make([]string, 0, len(actors))
-	for _, a := range actors {
-		if a.Actor.Team != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
-		}
-		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.User.ID.(string))
+			actorsIDs = append(actorsIDs, a.Actor.User.ID.(string))
 		}
 		if a.Actor.App != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.App.ID.(string))
+			actorsIDs = append(actorsIDs, a.Actor.App.ID.(string))
 		}
 	}
 
-	return pushActors
+	return actorsIDs
 }
 
 func setApprovingReviews(protection BranchProtectionRule) interface{} {
@@ -268,9 +226,9 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 	}
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
-	dismissalActors := setDismissalActorIDs(dismissalAllowances)
+	dismissalActors := setActorIDs(dismissalAllowances)
 	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
-	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances)
+	bypassPullRequestActors := setActorIDs(bypassPullRequestAllowances)
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -305,7 +263,7 @@ func setPushes(protection BranchProtectionRule) []string {
 		return nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
-	pushActors := setPushActorIDs(pushAllowances)
+	pushActors := setActorIDs(pushAllowances)
 
 	return pushActors
 }
