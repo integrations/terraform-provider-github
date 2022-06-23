@@ -53,6 +53,8 @@ The following arguments are supported:
 
 * `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
 
+* `use_squash_pr_title_as_default` - Whether the repository defaults to using PR titles for squash merge commit messages.
+
 * `has_downloads` - Whether the repository has Downloads feature enabled.
 
 * `default_branch` - The name of the default branch of the repository.
