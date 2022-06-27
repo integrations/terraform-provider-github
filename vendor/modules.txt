@@ -180,7 +180,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v45 v45.1.0
+# github.com/google/go-github/v45 v45.2.0
 ## explicit
 github.com/google/go-github/v45/github
 # github.com/google/go-querystring v1.1.0
