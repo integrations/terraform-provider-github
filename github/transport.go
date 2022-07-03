@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	ctxEtag = ctxEtagType("etag")
-	ctxId   = ctxIdType("id")
+	ctxEtag        = ctxEtagType("etag")
+	ctxId          = ctxIdType("id")
+	packageVersion = "4.26.1"
 )
 
 // ctxIdType is used to avoid collisions between packages using context
@@ -185,4 +186,21 @@ func isWriteMethod(method string) bool {
 		return true
 	}
 	return false
+}
+
+type userAgentTransport struct {
+	transport http.RoundTripper
+}
+
+func (uat *userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// The transport is the mechanism "by which individual HTTP requests are made"
+	// (<https://pkg.go.dev/net/http>), so this will generally overwrite `User-Agent`
+	// headers set elsewhere.
+	req.Header.Set("User-Agent", "terraform-provider-github/"+packageVersion)
+
+	return uat.transport.RoundTrip(req)
+}
+
+func NewUserAgentTransport(rt http.RoundTripper) *userAgentTransport {
+	return &userAgentTransport{transport: rt}
 }

@@ -45,6 +45,39 @@ func TestEtagTransport(t *testing.T) {
 	}
 }
 
+func TestUserAgentTransport(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri: "/repos/test/blah",
+			ExpectedHeaders: map[string]string{
+				// TODO: Figure out if there is a way to make this test more dynamic
+				"User-Agent": "terraform-provider-github/4.26.1",
+			},
+
+			ResponseBody: `{"id": 1234}`,
+			StatusCode:   200,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewUserAgentTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.Background()
+	r, _, err := client.Repositories.Get(ctx, "test", "blah")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.GetID() != 1234 {
+		t.Fatalf("Expected ID to be 1234, got: %d", r.GetID())
+	}
+}
+
 func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 	position := github.Int(0)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

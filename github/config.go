@@ -32,9 +32,10 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration) *http.Client {
+func CustomizedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
+	client.Transport = NewUserAgentTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 
@@ -49,7 +50,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
+	return CustomizedHTTPClient(client, c.WriteDelay, c.ReadDelay)
 }
 
 func (c *Config) Anonymous() bool {
@@ -58,7 +59,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
+	return CustomizedHTTPClient(client, c.WriteDelay, c.ReadDelay)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
