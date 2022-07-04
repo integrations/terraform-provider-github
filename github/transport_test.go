@@ -50,8 +50,7 @@ func TestUserAgentTransport(t *testing.T) {
 		{
 			ExpectedUri: "/repos/test/blah",
 			ExpectedHeaders: map[string]string{
-				// TODO: Figure out if there is a way to make this test more dynamic
-				"User-Agent": "terraform-provider-github/4.26.1",
+				"User-Agent": "terraform-provider-github/" + Version,
 			},
 
 			ResponseBody: `{"id": 1234}`,

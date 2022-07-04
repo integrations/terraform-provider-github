@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	ctxEtag        = ctxEtagType("etag")
-	ctxId          = ctxIdType("id")
-	packageVersion = "4.26.1"
+	ctxEtag = ctxEtagType("etag")
+	ctxId   = ctxIdType("id")
 )
 
 // ctxIdType is used to avoid collisions between packages using context
@@ -196,7 +195,7 @@ func (uat *userAgentTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// The transport is the mechanism "by which individual HTTP requests are made"
 	// (<https://pkg.go.dev/net/http>), so this will generally overwrite `User-Agent`
 	// headers set elsewhere.
-	req.Header.Set("User-Agent", "terraform-provider-github/"+packageVersion)
+	req.Header.Set("User-Agent", "terraform-provider-github/"+Version)
 
 	return uat.transport.RoundTrip(req)
 }
