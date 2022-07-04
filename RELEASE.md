@@ -15,6 +15,7 @@ The release flow is as follows:
     ## BUG FIXES:
     ...
     ```
+1. Update the `Version` constant in `github/version.go`. (This is used to send a versioned `User-Agent` in requests to GitHub.)
 1. Tag the commit that adds the CHANGELOG entry with the release version and push:
     ```shell
     $ git tag x.y.z
