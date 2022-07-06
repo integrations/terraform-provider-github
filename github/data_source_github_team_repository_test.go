@@ -69,3 +69,68 @@ func TestAccGithubTeamRepositories(t *testing.T) {
 	})
 
 }
+
+func TestGithubTeamRepositoriesByPermission(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("Get Teams Repository By Permission", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+		resource "github_repository" "test" {
+			name      = "tf-acc-test-%s"
+			auto_init = true
+		  }
+
+		  resource "github_team" "test" {
+			name = "tf-acc-test-%[1]s"
+		  }
+			
+		  resource "github_team_repository" "test" {
+			team_id    = "${github_team.test.id}"
+			repository = "${github_repository.test.name}"
+			permission = "admin"
+		  }
+
+		  data "github_team_repository" "example" {
+			depends_on = ["github_repository.test", "github_team.test", "github_team_repository.test"]
+			team_id    = "${github_team.test.id}"
+  			repository = "${github_repository.test.name}"
+  			permission = "${github_team_repository.test.permission}"
+		  }
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr("data.github_team_repository.example", "permission", "admin"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:             config,
+						Check:              check,
+						ExpectNonEmptyPlan: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+}
