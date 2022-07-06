@@ -52,7 +52,6 @@ func dataSourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}
 	}
 
 	orgName := meta.(*Owner).name
-	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	var repoName string
 
@@ -84,18 +83,16 @@ func dataSourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}
 	if permErr != nil {
 		return permErr
 	}
-	if permName == permission {
-		d.Set("permission", permName)
 
-		d.Set("etag", resp.Header.Get("ETag"))
-		if d.Get("team_id") == "" {
-			// If team_id is empty, that means we are importing the resource.
-			// Set the team_id to be the id of the team.
-			d.Set("team_id", teamId)
-		}
-		d.Set("repository", repo.GetName())
+	d.Set("permission", permName)
 
+	d.Set("etag", resp.Header.Get("ETag"))
+	if d.Get("team_id") == "" {
+		// If team_id is empty, that means we are importing the resource.
+		// Set the team_id to be the id of the team.
+		d.Set("team_id", teamId)
 	}
+	d.Set("repository", repo.GetName())
 
 	return nil
 }

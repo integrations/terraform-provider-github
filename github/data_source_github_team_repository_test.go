@@ -97,7 +97,6 @@ func TestGithubTeamRepositoriesByPermission(t *testing.T) {
 			depends_on = ["github_repository.test", "github_team.test", "github_team_repository.test"]
 			team_id    = "${github_team.test.id}"
   			repository = "${github_repository.test.name}"
-  			permission = "${github_team_repository.test.permission}"
 		  }
 		`, randomID)
 
