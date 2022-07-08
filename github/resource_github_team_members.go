@@ -54,6 +54,9 @@ func resourceGithubTeamMembers() *schema.Resource {
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
+				DiffSuppressFunc: func(_, _, _ string, _ *schema.ResourceData) bool {
+					return true
+				},
 			},
 		},
 	}
