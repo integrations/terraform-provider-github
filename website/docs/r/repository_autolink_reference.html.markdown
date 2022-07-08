@@ -46,8 +46,16 @@ The following additional attributes are exported:
 
 ## Import
 
-Autolink references can be imported using the `name` of the repository, combined with the `id` of the autolink reference and a `/` character for separating components, e.g.
+Autolink references can be imported using the `name` of the repository, combined with the `id` or `key prefix` of the autolink reference and a `/` character for separating components, e.g.
+
+### Import by ID
 
 ```sh
 terraform import github_repository_autolink_reference.auto oof/123
+```
+
+### Import by key prefix
+
+```sh
+terraform import github_repository_autolink_reference.auto oof/OOF-
 ```
