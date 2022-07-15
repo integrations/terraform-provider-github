@@ -1,6 +1,7 @@
 package github
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -65,9 +66,8 @@ func TestAccGithubActionsSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
-
-		secretValue := "super_secret_value"
-		updatedSecretValue := "updated_super_secret_value"
+		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
+		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
