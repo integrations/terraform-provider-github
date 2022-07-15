@@ -438,6 +438,60 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 	})
 
+	t.Run("configures blocksCreations", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			data "github_user" "test" {
+			  username = "%s"
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id    = github_repository.test.name
+			  pattern          = "main"
+			  blocks_creations = true
+
+			}
+	`, randomID, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "blocks_creations", "true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("configures non-empty list of pull request bypassers", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
