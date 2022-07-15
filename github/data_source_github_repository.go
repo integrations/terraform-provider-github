@@ -28,6 +28,11 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
 			},
+			"only_protected_branches": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 
 			"description": {
 				Type:     schema.TypeString,
@@ -242,7 +247,12 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
 
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), owner, repoName, nil)
+	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
+	listBranchOptions := &github.BranchListOptions{
+		Protected: &onlyProtectedBranches,
+	}
+
+	branches, _, err := client.Repositories.ListBranches(context.TODO(), owner, repoName, listBranchOptions)
 	if err != nil {
 		return err
 	}
