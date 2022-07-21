@@ -113,7 +113,7 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
-* `public` - (Optional) If set to `true` (default) the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository. Note that setting this to `false` is only available to paid plans.
+* `public` - (Optional) If set to `true` (default) the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository. Note that setting this to `false` is only available for GitHub Enterprise Cloud repositories.
 
 #### GitHub Pages Source ####
 
