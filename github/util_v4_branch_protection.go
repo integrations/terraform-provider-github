@@ -239,7 +239,7 @@ func setDismissalActorIDs(actors []DismissalActorTypes, d *schema.ResourceData, 
 l:
 	for _, a := range actors {
 		for _, v := range data.ReviewDismissalActorIDs {
-			if a.Actor.Team.ID.(string) == v || a.Actor.User.ID.(string) == v {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
 				dismissalActors = append(dismissalActors, v)
 				continue l
 			}
@@ -262,7 +262,7 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, d *schem
 l:
 	for _, a := range actors {
 		for _, v := range data.BypassPullRequestActorIDs {
-			if a.Actor.Team.ID.(string) == v || a.Actor.User.ID.(string) == v {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
 				bypassActors = append(bypassActors, v)
 				continue l
 			}
@@ -285,7 +285,7 @@ func setPushActorIDs(actors []PushActorTypes, d *schema.ResourceData, meta inter
 l:
 	for _, a := range actors {
 		for _, v := range data.PushActorIDs {
-			if a.Actor.Team.ID.(string) == v || a.Actor.User.ID.(string) == v || a.Actor.App.ID.(string) == v {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
 				pushActors = append(pushActors, v)
 				continue l
 			}
