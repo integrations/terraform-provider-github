@@ -115,7 +115,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if invitation != nil {
 		username = invitation.GetInvitee().GetLogin()
 
-		permissionName, err := getInvitationPermission(invitation)
+		permissionName := getInvitationPermission(invitation.GetPermissions())
 		if err != nil {
 			return err
 		}
@@ -141,14 +141,9 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
-				permissionName, err := getRepoPermission(c.GetPermissions())
-				if err != nil {
-					return err
-				}
-
 				d.Set("repository", repoName)
 				d.Set("username", c.GetLogin())
-				d.Set("permission", permissionName)
+				d.Set("permission", getInvitationPermission(c.GetRoleName()))
 				return nil
 			}
 		}
