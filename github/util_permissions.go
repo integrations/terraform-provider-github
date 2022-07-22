@@ -1,13 +1,10 @@
 package github
 
 const (
-	pullPermission     string = "pull"
-	triagePermission   string = "triage"
-	pushPermission     string = "push"
-	maintainPermission string = "maintain"
-	adminPermission    string = "admin"
-	writePermission    string = "write"
-	readPermission     string = "read"
+	pullPermission  string = "pull"
+	pushPermission  string = "push"
+	writePermission string = "write"
+	readPermission  string = "read"
 )
 
 func getInvitationPermission(permission string) string {
