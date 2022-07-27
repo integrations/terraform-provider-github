@@ -51,6 +51,7 @@ type BranchProtectionRule struct {
 	} `graphql:"bypassPullRequestAllowances(first: 100)"`
 	AllowsDeletions                githubv4.Boolean
 	AllowsForcePushes              githubv4.Boolean
+	BlocksCreations                githubv4.Boolean
 	DismissesStaleReviews          githubv4.Boolean
 	ID                             githubv4.ID
 	IsAdminEnforced                githubv4.Boolean
@@ -71,6 +72,7 @@ type BranchProtectionRule struct {
 type BranchProtectionResourceData struct {
 	AllowsDeletions                bool
 	AllowsForcePushes              bool
+	BlocksCreations                bool
 	BranchProtectionRuleID         string
 	BypassPullRequestActorIDs      []string
 	DismissesStaleReviews          bool
@@ -113,6 +115,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 
 	if v, ok := d.GetOk(PROTECTION_ALLOWS_FORCE_PUSHES); ok {
 		data.AllowsForcePushes = v.(bool)
+	}
+
+	if v, ok := d.GetOk(PROTECTION_BLOCKS_CREATIONS); ok {
+		data.BlocksCreations = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {

@@ -25,6 +25,8 @@ The following arguments are supported:
 
 * `full_name` - (Optional) Full name of the repository (in `org/name` format).
 
+* `only_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with protected branches. Default: `false`.
+
 ## Attributes Reference
 
 * `node_id` - the Node ID of the repository.
