@@ -131,7 +131,13 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("team_id", teamIdString)
 	}
 	d.Set("repository", repo.GetName())
-	d.Set("permission", repo.GetRoleName())
+
+	permName, permErr := getRepoPermission(repo.GetPermissions())
+	if permErr != nil {
+		return permErr
+	}
+
+	d.Set("permission", permName)
 
 	return nil
 }
