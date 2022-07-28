@@ -179,7 +179,13 @@ func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, er
 		result["received_events_url"] = c.GetReceivedEventsURL()
 		result["type"] = c.GetType()
 		result["site_admin"] = c.GetSiteAdmin()
-		result["permission"] = c.GetRoleName()
+
+		permissionName, err := getRepoPermission(c.GetPermissions())
+		if err != nil {
+			return nil, err
+		}
+
+		result["permission"] = permissionName
 		results = append(results, result)
 	}
 
