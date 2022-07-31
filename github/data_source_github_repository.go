@@ -33,7 +33,6 @@ func dataSourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-
 			"description": {
 				Type:     schema.TypeString,
 				Default:  nil,
