@@ -20,6 +20,7 @@ data "github_team" "example" {
 ## Argument Reference
 
  * `slug` - (Required) The team slug.
+ * `membership_type` - (Optional) Type of membershp to be requested to fill the list of members. Can be either "all" or "immediate". Default: "all"
 
 ## Attributes Reference
 
