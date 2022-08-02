@@ -58,7 +58,7 @@ resource "github_team_members" "some_team_members" {
 The following arguments are supported:
 
 * `team_id` - (Required) The GitHub team id
-* `members` - (Optional) List of team members. See [Members](#members) below for details.
+* `members` - List of team members. See [Members](#members) below for details.
 
 ### Members
 
