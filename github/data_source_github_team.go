@@ -18,6 +18,16 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"fetch_members": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"fetch_repositories": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -64,44 +74,50 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	options := github.TeamListTeamMembersOptions{
-		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
-		},
+	listOptions := github.ListOptions{
+		PerPage: maxPerPage,
 	}
 
 	var members []string
-	for {
-		member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
-		if err != nil {
-			return err
+	if d.Get("fetch_members").(bool) == true {
+		options := github.TeamListTeamMembersOptions{
+			ListOptions: listOptions,
 		}
 
-		for _, v := range member {
-			members = append(members, v.GetLogin())
-		}
+		for {
+			member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
+			if err != nil {
+				return err
+			}
 
-		if resp.NextPage == 0 {
-			break
+			for _, v := range member {
+				members = append(members, v.GetLogin())
+			}
+
+			if resp.NextPage == 0 {
+				break
+			}
+			options.Page = resp.NextPage
 		}
-		options.Page = resp.NextPage
 	}
 
 	var repositories []string
-	for {
-		repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
-		if err != nil {
-			return err
-		}
+	if d.Get("fetch_repositories").(bool) == true {
+		for {
+			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &listOptions)
+			if err != nil {
+				return err
+			}
 
-		for _, v := range repository {
-			repositories = append(repositories, v.GetName())
-		}
+			for _, v := range repository {
+				repositories = append(repositories, v.GetName())
+			}
 
-		if resp.NextPage == 0 {
-			break
+			if resp.NextPage == 0 {
+				break
+			}
+			listOptions.Page = resp.NextPage
 		}
-		options.Page = resp.NextPage
 	}
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))

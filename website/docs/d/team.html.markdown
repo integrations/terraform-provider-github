@@ -20,6 +20,8 @@ data "github_team" "example" {
 ## Argument Reference
 
  * `slug` - (Required) The team slug.
+ * `fetch_members` - (Optional) Whether to also fetch the members of the team. Defaults to true.
+ * `fetch_repositories` - (Optional) Whether to also fetch the repositories that the team is associated with. Defaults to true.
 
 ## Attributes Reference
 
@@ -29,6 +31,6 @@ data "github_team" "example" {
  * `description` - the team's description.
  * `privacy` - the team's privacy type.
  * `permission` - the team's permission level.
- * `members` - List of team members
- * `repositories` - List of team repositories
+ * `members` - List of team members. Null if `fetch_members` is false.
+ * `repositories` - List of team repositories. Null if `fetch_repositories` is false.
  
