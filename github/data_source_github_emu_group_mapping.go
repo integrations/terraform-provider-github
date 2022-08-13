@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/google/go-github/v44/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -21,7 +21,11 @@ func dataSourceGithubEMUGroupMapping() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"team_slug": {
+						"group_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"updated_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -41,18 +45,31 @@ func dataSourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{
 	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	opts := &github.ListExternalGroupsOptions{
-		// could provide a DisplayName here
-	}
+	opts := &github.ListExternalGroupsOptions{}
 
-	groups, resp, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
+	groups, _, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("response: %v", resp)
+	// convert to JSON in order to martial to format we can return
+	jsonGroups, err := json.Marshal(groups.Groups)
+	if err != nil {
+		return err
+	}
 
-	// need to flatten/format first
-	d.Set("groups", groups)
+	ourGroups := make([]map[string]interface{}, 0)
+	err = json.Unmarshal(jsonGroups, &ourGroups)
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("groups", ourGroups); err != nil {
+		return err
+	}
+
+	// TODO: set unique identifier based on hash of data here?
+	d.SetId("xxx")
+
 	return nil
 }

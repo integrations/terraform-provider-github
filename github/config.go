@@ -99,7 +99,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
-
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
