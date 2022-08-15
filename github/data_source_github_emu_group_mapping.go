@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func dataSourceGithubEMUGroupMapping() *schema.Resource {
+func dataSourceGithubExternalGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEMUGroupMappingRead,
+		Read: dataSourceGithubExternalGroupsRead,
 		Schema: map[string]*schema.Schema{
-			"groups": {
+			"external_groups": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -36,7 +36,7 @@ func dataSourceGithubEMUGroupMapping() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -47,24 +47,24 @@ func dataSourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	opts := &github.ListExternalGroupsOptions{}
 
-	groups, _, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
+	externalGroups, _, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
 	if err != nil {
 		return err
 	}
 
 	// convert to JSON in order to martial to format we can return
-	jsonGroups, err := json.Marshal(groups.Groups)
+	jsonGroups, err := json.Marshal(externalGroups.Groups)
 	if err != nil {
 		return err
 	}
 
-	ourGroups := make([]map[string]interface{}, 0)
-	err = json.Unmarshal(jsonGroups, &ourGroups)
+	groupsState := make([]map[string]interface{}, 0)
+	err = json.Unmarshal(jsonGroups, &groupsState)
 	if err != nil {
 		return err
 	}
 
-	if err := d.Set("groups", ourGroups); err != nil {
+	if err := d.Set("external_groups", groupsState); err != nil {
 		return err
 	}
 
