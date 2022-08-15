@@ -13,8 +13,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("queries an existing ref without error", func(t *testing.T) {
-
+	t.Run("queries an existing branch ref without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -23,7 +22,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 
 			data "github_ref" "test" {
 				repository = github_repository.test.id
-				ref = "/heads/main"
+				ref = "heads/main"
 			}
 		`, randomID)
 
