@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/go-github/v45/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -68,8 +69,6 @@ func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	// TODO: set unique identifier based on hash of data here?
-	d.SetId("xxx")
-
+	d.SetId(fmt.Sprintf("/orgs/%v/external-groups", orgName))
 	return nil
 }
