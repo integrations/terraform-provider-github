@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	qs "github.com/google/go-querystring/query"
 )
@@ -19,8 +20,10 @@ import (
 // Each method takes a query string defining the search keywords and any search qualifiers.
 // For example, when searching issues, the query "gopher is:issue language:go" will search
 // for issues containing the word "gopher" in Go repositories. The method call
-//   opts :=  &github.SearchOptions{Sort: "created", Order: "asc"}
-//   cl.Search.Issues(ctx, "gopher is:issue language:go", opts)
+//
+//	opts :=  &github.SearchOptions{Sort: "created", Order: "asc"}
+//	cl.Search.Issues(ctx, "gopher is:issue language:go", opts)
+//
 // will search for such issues, sorting by creation date in ascending order
 // (i.e., oldest first).
 //
@@ -299,29 +302,32 @@ func (s *SearchService) search(ctx context.Context, searchType string, parameter
 	if err != nil {
 		return nil, err
 	}
-
+	var acceptHeaders []string
 	switch {
 	case searchType == "commits":
 		// Accept header for search commits preview endpoint
 		// TODO: remove custom Accept header when this API fully launches.
-		req.Header.Set("Accept", mediaTypeCommitSearchPreview)
+		acceptHeaders = append(acceptHeaders, mediaTypeCommitSearchPreview)
 	case searchType == "topics":
 		// Accept header for search repositories based on topics preview endpoint
 		// TODO: remove custom Accept header when this API fully launches.
-		req.Header.Set("Accept", mediaTypeTopicsPreview)
+		acceptHeaders = append(acceptHeaders, mediaTypeTopicsPreview)
 	case searchType == "repositories":
 		// Accept header for search repositories based on topics preview endpoint
 		// TODO: remove custom Accept header when this API fully launches.
-		req.Header.Set("Accept", mediaTypeTopicsPreview)
+		acceptHeaders = append(acceptHeaders, mediaTypeTopicsPreview)
 	case searchType == "issues":
 		// Accept header for search issues based on reactions preview endpoint
 		// TODO: remove custom Accept header when this API fully launches.
-		req.Header.Set("Accept", mediaTypeReactionsPreview)
-	case opts != nil && opts.TextMatch:
-		// Accept header defaults to "application/vnd.github.v3+json"
-		// We change it here to fetch back text-match metadata
-		req.Header.Set("Accept", "application/vnd.github.v3.text-match+json")
+		acceptHeaders = append(acceptHeaders, mediaTypeReactionsPreview)
 	}
+	// https://docs.github.com/en/rest/search#search-repositories
+	// Accept header defaults to "application/vnd.github.v3+json"
+	// We change it here to fetch back text-match metadata
+	if opts != nil && opts.TextMatch {
+		acceptHeaders = append(acceptHeaders, "application/vnd.github.v3.text-match+json")
+	}
+	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	return s.client.Do(ctx, req, result)
 }

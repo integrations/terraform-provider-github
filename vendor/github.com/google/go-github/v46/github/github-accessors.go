@@ -1030,6 +1030,14 @@ func (a *AuditEntry) GetRepositoryPublic() bool {
 	return *a.RepositoryPublic
 }
 
+// GetRunAttempt returns the RunAttempt field if it's non-nil, zero value otherwise.
+func (a *AuditEntry) GetRunAttempt() int64 {
+	if a == nil || a.RunAttempt == nil {
+		return 0
+	}
+	return *a.RunAttempt
+}
+
 // GetRunnerGroupID returns the RunnerGroupID field if it's non-nil, zero value otherwise.
 func (a *AuditEntry) GetRunnerGroupID() int64 {
 	if a == nil || a.RunnerGroupID == nil {
@@ -2284,6 +2292,14 @@ func (c *CodeOfConduct) GetURL() string {
 		return ""
 	}
 	return *c.URL
+}
+
+// GetSuggestion returns the Suggestion field if it's non-nil, zero value otherwise.
+func (c *CodeownersError) GetSuggestion() string {
+	if c == nil || c.Suggestion == nil {
+		return ""
+	}
+	return *c.Suggestion
 }
 
 // GetHTMLURL returns the HTMLURL field if it's non-nil, zero value otherwise.
@@ -7630,6 +7646,14 @@ func (i *IssueRequest) GetState() string {
 	return *i.State
 }
 
+// GetStateReason returns the StateReason field if it's non-nil, zero value otherwise.
+func (i *IssueRequest) GetStateReason() string {
+	if i == nil || i.StateReason == nil {
+		return ""
+	}
+	return *i.StateReason
+}
+
 // GetTitle returns the Title field if it's non-nil, zero value otherwise.
 func (i *IssueRequest) GetTitle() string {
 	if i == nil || i.Title == nil {
@@ -10782,12 +10806,12 @@ func (p *PagesUpdate) GetPublic() bool {
 	return *p.Public
 }
 
-// GetSource returns the Source field if it's non-nil, zero value otherwise.
-func (p *PagesUpdate) GetSource() string {
-	if p == nil || p.Source == nil {
-		return ""
+// GetSource returns the Source field.
+func (p *PagesUpdate) GetSource() *PagesSource {
+	if p == nil {
+		return nil
 	}
-	return *p.Source
+	return p.Source
 }
 
 // GetHook returns the Hook field.
@@ -12886,6 +12910,14 @@ func (p *PullRequestReviewRequest) GetNodeID() string {
 	return *p.NodeID
 }
 
+// GetBypassPullRequestAllowances returns the BypassPullRequestAllowances field.
+func (p *PullRequestReviewsEnforcement) GetBypassPullRequestAllowances() *BypassPullRequestAllowances {
+	if p == nil {
+		return nil
+	}
+	return p.BypassPullRequestAllowances
+}
+
 // GetDismissalRestrictions returns the DismissalRestrictions field.
 func (p *PullRequestReviewsEnforcement) GetDismissalRestrictions() *DismissalRestrictions {
 	if p == nil {
@@ -12894,12 +12926,28 @@ func (p *PullRequestReviewsEnforcement) GetDismissalRestrictions() *DismissalRes
 	return p.DismissalRestrictions
 }
 
+// GetBypassPullRequestAllowancesRequest returns the BypassPullRequestAllowancesRequest field.
+func (p *PullRequestReviewsEnforcementRequest) GetBypassPullRequestAllowancesRequest() *BypassPullRequestAllowancesRequest {
+	if p == nil {
+		return nil
+	}
+	return p.BypassPullRequestAllowancesRequest
+}
+
 // GetDismissalRestrictionsRequest returns the DismissalRestrictionsRequest field.
 func (p *PullRequestReviewsEnforcementRequest) GetDismissalRestrictionsRequest() *DismissalRestrictionsRequest {
 	if p == nil {
 		return nil
 	}
 	return p.DismissalRestrictionsRequest
+}
+
+// GetBypassPullRequestAllowancesRequest returns the BypassPullRequestAllowancesRequest field.
+func (p *PullRequestReviewsEnforcementUpdate) GetBypassPullRequestAllowancesRequest() *BypassPullRequestAllowancesRequest {
+	if p == nil {
+		return nil
+	}
+	return p.BypassPullRequestAllowancesRequest
 }
 
 // GetDismissalRestrictionsRequest returns the DismissalRestrictionsRequest field.
@@ -17276,6 +17324,22 @@ func (t *Tag) GetVerification() *SignatureVerification {
 		return nil
 	}
 	return t.Verification
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (t *TagProtection) GetID() int64 {
+	if t == nil || t.ID == nil {
+		return 0
+	}
+	return *t.ID
+}
+
+// GetPattern returns the Pattern field if it's non-nil, zero value otherwise.
+func (t *TagProtection) GetPattern() string {
+	if t == nil || t.Pattern == nil {
+		return ""
+	}
+	return *t.Pattern
 }
 
 // GetCompletedAt returns the CompletedAt field if it's non-nil, zero value otherwise.

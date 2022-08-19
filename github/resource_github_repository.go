@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v46/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -661,13 +661,14 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
-	source := pagesSource["branch"].(string)
+	sourceBranch := pagesSource["branch"].(string)
+	sourcePath := ""
 	if v, ok := pagesSource["path"].(string); ok {
 		if v != "" && v != "/" {
-			source += fmt.Sprintf(" %s", v)
+			sourcePath = v
 		}
 	}
-	update.Source = github.String(source)
+	update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 
 	return update
 }
