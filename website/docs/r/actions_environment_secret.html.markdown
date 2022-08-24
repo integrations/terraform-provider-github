@@ -23,12 +23,14 @@ in your code. See below for an example of this abstraction.
 
 ```hcl
 resource "github_actions_environment_secret" "example_secret" {
+  repository        = data.github_repository.repo.name
   environment       = "example_environment"
   secret_name       = "example_secret_name"
   plaintext_value   = var.some_secret_string
 }
 
 resource "github_actions_environment_secret" "example_secret" {
+  repository        = data.github_repository.repo.name
   environment       = "example_environment"
   secret_name       = "example_secret_name"
   encrypted_value   = var.some_encrypted_secret_string
