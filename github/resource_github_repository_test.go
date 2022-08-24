@@ -24,14 +24,16 @@ func TestAccGithubRepositories(t *testing.T) {
 			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 
-			  has_issues         = true
-			  has_wiki           = true
-			  has_downloads      = true
-			  allow_merge_commit = true
-			  allow_squash_merge = false
-			  allow_rebase_merge = false
-			  allow_auto_merge   = true
-			  auto_init          = false
+			  has_issues           = true
+			  has_wiki             = true
+			  has_downloads        = true
+			  allow_merge_commit   = true
+			  allow_squash_merge   = false
+			  allow_rebase_merge   = false
+			  allow_auto_merge     = true
+			  merge_commit_title   = "MERGE_MESSAGE"
+			  merge_commit_message = "PR_TITLE"
+			  auto_init            = false
 
 			}
 		`, randomID)
@@ -44,6 +46,10 @@ func TestAccGithubRepositories(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "allow_auto_merge",
 				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"MERGE_MESSAGE",
 			),
 		)
 
