@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +51,7 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Server", "GitHub.com")
 
-		bodyBytes, err := ioutil.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			log.Printf("[DEBUG] Error: %s", err)
 		}
