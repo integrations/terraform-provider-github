@@ -71,6 +71,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
+			resource.TestCheckResourceAttr("data.github_team.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -97,7 +98,6 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
