@@ -83,6 +83,7 @@ The following arguments are supported:
 * `push_restrictions` - (Optional) The list of actor IDs that may push to the branch.
 * `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
 * `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
+* `blocks_creations` - (Optional) Boolean, setting this to `true` to block creating the branch.
 
 ### Required Status Checks
 

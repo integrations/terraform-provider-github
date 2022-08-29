@@ -151,8 +151,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-
-			continue
 		}
 
 		if create {
@@ -170,12 +168,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-			continue
-		}
-
-		// no change
-		if reflect.DeepEqual(change.Old, change.New) {
-			continue
 		}
 	}
 
