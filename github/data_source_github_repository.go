@@ -84,6 +84,22 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"squash_merge_commit_title": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"squash_merge_commit_message": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"merge_commit_title": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"merge_commit_message": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"default_branch": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -234,6 +250,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
