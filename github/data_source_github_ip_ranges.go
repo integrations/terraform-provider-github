@@ -32,6 +32,11 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"pages": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"importer": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -169,12 +174,12 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	cidrWebIpv4, cidrWebIpv6, err := splitIpv4Ipv6Cidrs(&api.Api)
+	cidrWebIpv4, cidrWebIpv6, err := splitIpv4Ipv6Cidrs(&api.Web)
 	if err != nil {
 		return err
 	}
 
-	cidrApiIpv4, cidrApiIpv6, err := splitIpv4Ipv6Cidrs(&api.Api)
+	cidrApiIpv4, cidrApiIpv6, err := splitIpv4Ipv6Cidrs(&api.API)
 	if err != nil {
 		return err
 	}
@@ -217,8 +222,8 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("web_ipv4", cidrWebIpv4)
 		d.Set("web_ipv6", cidrWebIpv6)
 	}
-	if len(api.Api) > 0 {
-		d.Set("api", api.Api)
+	if len(api.API) > 0 {
+		d.Set("api", api.API)
 		d.Set("api_ipv4", cidrApiIpv4)
 		d.Set("api_ipv6", cidrApiIpv6)
 	}
