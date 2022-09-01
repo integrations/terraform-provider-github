@@ -15,7 +15,6 @@ import (
 
 const gochecknoinitsName = "gochecknoinits"
 
-//nolint:dupl
 func NewGochecknoinits() *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
@@ -42,6 +41,7 @@ func NewGochecknoinits() *goanalysis.Linter {
 			return nil, nil
 		},
 	}
+
 	return goanalysis.NewLinter(
 		gochecknoinitsName,
 		"Checks that no init functions are present in Go code",

@@ -84,7 +84,7 @@ func (cl *ContextLoader) buildArgs() []string {
 		if strings.HasPrefix(arg, ".") || filepath.IsAbs(arg) {
 			retArgs = append(retArgs, arg)
 		} else {
-			// go/packages doesn't work well if we don't have prefix ./ for local packages
+			// go/packages doesn't work well if we don't have the prefix ./ for local packages
 			retArgs = append(retArgs, fmt.Sprintf(".%c%s", filepath.Separator, arg))
 		}
 	}
@@ -98,12 +98,13 @@ func (cl *ContextLoader) makeBuildFlags() ([]string, error) {
 	if len(cl.cfg.Run.BuildTags) != 0 {
 		// go help build
 		buildFlags = append(buildFlags, "-tags", strings.Join(cl.cfg.Run.BuildTags, " "))
+		cl.log.Infof("Using build tags: %v", cl.cfg.Run.BuildTags)
 	}
 
 	mod := cl.cfg.Run.ModulesDownloadMode
 	if mod != "" {
 		// go help modules
-		allowedMods := []string{"release", "readonly", "vendor"}
+		allowedMods := []string{"mod", "readonly", "vendor"}
 		var ok bool
 		for _, am := range allowedMods {
 			if am == mod {
@@ -125,7 +126,7 @@ func stringifyLoadMode(mode packages.LoadMode) string {
 	m := map[packages.LoadMode]string{
 		packages.NeedCompiledGoFiles: "compiled_files",
 		packages.NeedDeps:            "deps",
-		packages.NeedExportsFile:     "exports_file",
+		packages.NeedExportFile:      "exports_file",
 		packages.NeedFiles:           "files",
 		packages.NeedImports:         "imports",
 		packages.NeedName:            "name",
@@ -191,14 +192,21 @@ func (cl *ContextLoader) loadPackages(ctx context.Context, loadMode packages.Loa
 		Context:    ctx,
 		BuildFlags: buildFlags,
 		Logf:       cl.debugf,
-		//TODO: use fset, parsefile, overlay
+		// TODO: use fset, parsefile, overlay
 	}
 
 	args := cl.buildArgs()
 	cl.debugf("Built loader args are %s", args)
 	pkgs, err := packages.Load(conf, args...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load program with go/packages")
+		return nil, errors.Wrap(err, "failed to load with go/packages")
+	}
+
+	// Currently, go/packages doesn't guarantee that error will be returned
+	// if context was canceled. See
+	// https://github.com/golang/tools/commit/c5cec6710e927457c3c29d6c156415e8539a5111#r39261855
+	if ctx.Err() != nil {
+		return nil, errors.Wrap(ctx.Err(), "timed out to load packages")
 	}
 
 	if loadMode&packages.NeedSyntax == 0 {
@@ -279,7 +287,7 @@ func (cl *ContextLoader) Load(ctx context.Context, linters []*linter.Config) (*l
 	loadMode := cl.findLoadMode(linters)
 	pkgs, err := cl.loadPackages(ctx, loadMode)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to load packages")
 	}
 
 	deduplicatedPkgs := cl.filterDuplicatePackages(pkgs)

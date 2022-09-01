@@ -1,3 +1,7 @@
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package imports
 
 import (
@@ -30,7 +34,8 @@ type ModuleResolver struct {
 	scannedRoots   map[gopathwalk.Root]bool
 
 	initialized   bool
-	main          *gocommand.ModuleJSON
+	mains         []*gocommand.ModuleJSON
+	mainByDir     map[string]*gocommand.ModuleJSON
 	modsByModPath []*gocommand.ModuleJSON // All modules, ordered by # of path components in module Path...
 	modsByDir     []*gocommand.ModuleJSON // ...or Dir.
 
@@ -65,30 +70,49 @@ func (r *ModuleResolver) init() error {
 		Logf:       r.env.Logf,
 		WorkingDir: r.env.WorkingDir,
 	}
-	mainMod, vendorEnabled, err := gocommand.VendorEnabled(context.TODO(), inv, r.env.GocmdRunner)
-	if err != nil {
-		return err
+
+	vendorEnabled := false
+	var mainModVendor *gocommand.ModuleJSON
+
+	// Module vendor directories are ignored in workspace mode:
+	// https://go.googlesource.com/proposal/+/master/design/45713-workspace.md
+	if len(r.env.Env["GOWORK"]) == 0 {
+		vendorEnabled, mainModVendor, err = gocommand.VendorEnabled(context.TODO(), inv, r.env.GocmdRunner)
+		if err != nil {
+			return err
+		}
 	}
 
-	if mainMod != nil && vendorEnabled {
+	if mainModVendor != nil && vendorEnabled {
 		// Vendor mode is on, so all the non-Main modules are irrelevant,
 		// and we need to search /vendor for everything.
-		r.main = mainMod
+		r.mains = []*gocommand.ModuleJSON{mainModVendor}
 		r.dummyVendorMod = &gocommand.ModuleJSON{
 			Path: "",
-			Dir:  filepath.Join(mainMod.Dir, "vendor"),
+			Dir:  filepath.Join(mainModVendor.Dir, "vendor"),
 		}
-		r.modsByModPath = []*gocommand.ModuleJSON{mainMod, r.dummyVendorMod}
-		r.modsByDir = []*gocommand.ModuleJSON{mainMod, r.dummyVendorMod}
+		r.modsByModPath = []*gocommand.ModuleJSON{mainModVendor, r.dummyVendorMod}
+		r.modsByDir = []*gocommand.ModuleJSON{mainModVendor, r.dummyVendorMod}
 	} else {
 		// Vendor mode is off, so run go list -m ... to find everything.
-		r.initAllMods()
+		err := r.initAllMods()
+		// We expect an error when running outside of a module with
+		// GO111MODULE=on. Other errors are fatal.
+		if err != nil {
+			if errMsg := err.Error(); !strings.Contains(errMsg, "working directory is not part of a module") && !strings.Contains(errMsg, "go.mod file not found") {
+				return err
+			}
+		}
 	}
 
 	if gmc := r.env.Env["GOMODCACHE"]; gmc != "" {
 		r.moduleCacheDir = gmc
 	} else {
-		r.moduleCacheDir = filepath.Join(filepath.SplitList(goenv["GOPATH"])[0], "/pkg/mod")
+		gopaths := filepath.SplitList(goenv["GOPATH"])
+		if len(gopaths) == 0 {
+			return fmt.Errorf("empty GOPATH")
+		}
+		r.moduleCacheDir = filepath.Join(gopaths[0], "/pkg/mod")
 	}
 
 	sort.Slice(r.modsByModPath, func(i, j int) bool {
@@ -107,8 +131,10 @@ func (r *ModuleResolver) init() error {
 	r.roots = []gopathwalk.Root{
 		{filepath.Join(goenv["GOROOT"], "/src"), gopathwalk.RootGOROOT},
 	}
-	if r.main != nil {
-		r.roots = append(r.roots, gopathwalk.Root{r.main.Dir, gopathwalk.RootCurrentModule})
+	r.mainByDir = make(map[string]*gocommand.ModuleJSON)
+	for _, main := range r.mains {
+		r.roots = append(r.roots, gopathwalk.Root{main.Dir, gopathwalk.RootCurrentModule})
+		r.mainByDir[main.Dir] = main
 	}
 	if vendorEnabled {
 		r.roots = append(r.roots, gopathwalk.Root{r.dummyVendorMod.Dir, gopathwalk.RootOther})
@@ -153,7 +179,7 @@ func (r *ModuleResolver) init() error {
 }
 
 func (r *ModuleResolver) initAllMods() error {
-	stdout, err := r.env.invokeGo(context.TODO(), "list", "-m", "-json", "...")
+	stdout, err := r.env.invokeGo(context.TODO(), "list", "-m", "-e", "-json", "...")
 	if err != nil {
 		return err
 	}
@@ -174,7 +200,7 @@ func (r *ModuleResolver) initAllMods() error {
 		r.modsByModPath = append(r.modsByModPath, mod)
 		r.modsByDir = append(r.modsByDir, mod)
 		if mod.Main {
-			r.main = mod
+			r.mains = append(r.mains, mod)
 		}
 	}
 	return nil
@@ -347,10 +373,11 @@ func (r *ModuleResolver) modInfo(dir string) (modDir string, modName string) {
 	}
 
 	if r.dirInModuleCache(dir) {
-		matches := modCacheRegexp.FindStringSubmatch(dir)
-		index := strings.Index(dir, matches[1]+"@"+matches[2])
-		modDir := filepath.Join(dir[:index], matches[1]+"@"+matches[2])
-		return modDir, readModName(filepath.Join(modDir, "go.mod"))
+		if matches := modCacheRegexp.FindStringSubmatch(dir); len(matches) == 3 {
+			index := strings.Index(dir, matches[1]+"@"+matches[2])
+			modDir := filepath.Join(dir[:index], matches[1]+"@"+matches[2])
+			return modDir, readModName(filepath.Join(modDir, "go.mod"))
+		}
 	}
 	for {
 		if info, ok := r.cacheLoad(dir); ok {
@@ -593,7 +620,7 @@ func (r *ModuleResolver) scanDirForPackage(root gopathwalk.Root, dir string) dir
 	}
 	switch root.Type {
 	case gopathwalk.RootCurrentModule:
-		importPath = path.Join(r.main.Path, filepath.ToSlash(subdir))
+		importPath = path.Join(r.mainByDir[root.Path].Path, filepath.ToSlash(subdir))
 	case gopathwalk.RootModuleCache:
 		matches := modCacheRegexp.FindStringSubmatch(subdir)
 		if len(matches) == 0 {
