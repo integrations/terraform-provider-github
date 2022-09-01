@@ -77,6 +77,14 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
+* `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title.
+
+* `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message.
+
+* `merge_commit_title` - Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title.
+
+* `merge_commit_message` - Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message.
+
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
