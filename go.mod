@@ -14,5 +14,5 @@ require (
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-	gopkg.in/square/go-jose.v2 v2.5.1
+	gopkg.in/square/go-jose.v2 v2.6.0
 )
