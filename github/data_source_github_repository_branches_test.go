@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubBranchesDataSource(t *testing.T) {
+func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	t.Run("manages branches of a new repository", func(t *testing.T) {
 		repoName := fmt.Sprintf("tf-acc-test-branches-%s", acctest.RandString(5))
 		config := fmt.Sprintf(`
