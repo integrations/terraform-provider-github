@@ -14,7 +14,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/golangci/golangci-lint/internal/renameio"
+	"github.com/golangci/golangci-lint/internal/robustio"
 )
 
 // An ActionID is a cache action key, the hash of a complete description of a
@@ -58,7 +58,7 @@ func Open(dir string) (*Cache, error) {
 		return nil, err
 	}
 	if !info.IsDir() {
-		return nil, &os.PathError{Op: "open", Path: dir, Err: fmt.Errorf("not a directory")}
+		return nil, &os.PathError{Op: "open", Path: dir, Err: errors.New("not a directory")}
 	}
 	for i := 0; i < 256; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("%02x", i))
@@ -81,7 +81,7 @@ func (c *Cache) fileName(id [HashSize]byte, key string) string {
 var errMissing = errors.New("cache entry not found")
 
 func IsErrMissing(err error) bool {
-	return err == errMissing
+	return errors.Cause(err) == errMissing
 }
 
 const (
@@ -199,26 +199,6 @@ func (c *Cache) get(id ActionID) (Entry, error) {
 	return Entry{buf, size, time.Unix(0, tm)}, nil
 }
 
-// GetFile looks up the action ID in the cache and returns
-// the name of the corresponding data file.
-func (c *Cache) GetFile(id ActionID) (file string, entry Entry, err error) {
-	entry, err = c.Get(id)
-	if err != nil {
-		return "", Entry{}, err
-	}
-
-	file, err = c.OutputFile(entry.OutputID)
-	if err != nil {
-		return "", Entry{}, err
-	}
-
-	info, err := os.Stat(file)
-	if err != nil || info.Size() != entry.Size {
-		return "", Entry{}, errMissing
-	}
-	return file, entry, nil
-}
-
 // GetBytes looks up the action ID in the cache and returns
 // the corresponding output bytes.
 // GetBytes should only be used for data that can be expected to fit in memory.
@@ -232,7 +212,7 @@ func (c *Cache) GetBytes(id ActionID) ([]byte, Entry, error) {
 		return nil, entry, err
 	}
 
-	data, err := ioutil.ReadFile(outputFile)
+	data, err := robustio.ReadFile(outputFile)
 	if err != nil {
 		return nil, entry, err
 	}
@@ -277,11 +257,14 @@ const (
 // and to reduce the amount of disk activity caused by using
 // cache entries, used only updates the mtime if the current
 // mtime is more than an hour old. This heuristic eliminates
-// nearly all of the mtime updates that would otherwise happen,
+// nearly all the mtime updates that would otherwise happen,
 // while still keeping the mtimes useful for cache trimming.
 func (c *Cache) used(file string) error {
 	info, err := os.Stat(file)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return errMissing
+		}
 		return errors.Wrapf(err, "failed to stat file %s", file)
 	}
 
@@ -328,7 +311,7 @@ func (c *Cache) trimSubdir(subdir string, cutoff time.Time) {
 	// Read all directory entries from subdir before removing
 	// any files, in case removing files invalidates the file offset
 	// in the directory scan. Also, ignore error from f.Readdirnames,
-	// because we don't care about reporting the error and we still
+	// because we don't care about reporting the error, and we still
 	// want to process any entries found before the error.
 	f, err := os.Open(subdir)
 	if err != nil {
@@ -387,7 +370,7 @@ func (c *Cache) putIndexEntry(id ActionID, out OutputID, size int64, allowVerify
 		// Truncate the file only *after* writing it.
 		// (This should be a no-op, but truncate just in case of previous corruption.)
 		//
-		// This differs from ioutil.WriteFile, which truncates to 0 *before* writing
+		// This differs from os.WriteFile, which truncates to 0 *before* writing
 		// via os.O_TRUNC. Truncating only after writing ensures that a second write
 		// of the same content to the same file is idempotent, and does not — even
 		// temporarily! — undo the effect of the first write.
@@ -521,7 +504,7 @@ func (c *Cache) copyFile(file io.ReadSeeker, out OutputID, size int64) error {
 	sum := h.Sum(nil)
 	if !bytes.Equal(sum, out[:]) {
 		_ = f.Truncate(0)
-		return fmt.Errorf("file content changed underfoot")
+		return errors.New("file content changed underfoot")
 	}
 
 	// Commit cache file entry.

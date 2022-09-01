@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	diffpkg "github.com/sourcegraph/go-diff/diff"
 
+	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
@@ -49,21 +50,20 @@ type hunkChangesParser struct {
 
 func (p *hunkChangesParser) parseDiffLines(h *diffpkg.Hunk) {
 	lines := bytes.Split(h.Body, []byte{'\n'})
-	currentOriginalLineNumer := int(h.OrigStartLine)
+	currentOriginalLineNumber := int(h.OrigStartLine)
 	var ret []diffLine
 
 	for i, line := range lines {
 		dl := diffLine{
-			originalNumber: currentOriginalLineNumer,
+			originalNumber: currentOriginalLineNumber,
 		}
 
 		lineStr := string(line)
 
-		//nolint:gocritic
 		if strings.HasPrefix(lineStr, "-") {
 			dl.typ = diffLineDeleted
 			dl.data = strings.TrimPrefix(lineStr, "-")
-			currentOriginalLineNumer++
+			currentOriginalLineNumber++
 		} else if strings.HasPrefix(lineStr, "+") {
 			dl.typ = diffLineAdded
 			dl.data = strings.TrimPrefix(lineStr, "+")
@@ -75,7 +75,7 @@ func (p *hunkChangesParser) parseDiffLines(h *diffpkg.Hunk) {
 
 			dl.typ = diffLineOriginal
 			dl.data = strings.TrimPrefix(lineStr, " ")
-			currentOriginalLineNumer++
+			currentOriginalLineNumber++
 		}
 
 		ret = append(ret, dl)
@@ -177,7 +177,7 @@ func (p *hunkChangesParser) parse(h *diffpkg.Hunk) []Change {
 	for i := 0; i < len(p.lines); {
 		line := p.lines[i]
 		if line.typ == diffLineOriginal {
-			p.handleOriginalLine(line, &i) //nolint:scopelint
+			p.handleOriginalLine(line, &i)
 			continue
 		}
 
@@ -208,7 +208,31 @@ func (p *hunkChangesParser) parse(h *diffpkg.Hunk) []Change {
 	return p.ret
 }
 
-func extractIssuesFromPatch(patch string, log logutils.Log, lintCtx *linter.Context, isGoimports bool) ([]result.Issue, error) {
+func getErrorTextForLinter(settings *config.LintersSettings, linterName string) string {
+	text := "File is not formatted"
+	switch linterName {
+	case gciName:
+		text = getErrorTextForGci(settings.Gci)
+	case gofumptName:
+		text = "File is not `gofumpt`-ed"
+		if settings.Gofumpt.ExtraRules {
+			text += " with `-extra`"
+		}
+	case gofmtName:
+		text = "File is not `gofmt`-ed"
+		if settings.Gofmt.Simplify {
+			text += " with `-s`"
+		}
+	case goimportsName:
+		text = "File is not `goimports`-ed"
+		if settings.Goimports.LocalPrefixes != "" {
+			text += " with -local " + settings.Goimports.LocalPrefixes
+		}
+	}
+	return text
+}
+
+func extractIssuesFromPatch(patch string, lintCtx *linter.Context, linterName string) ([]result.Issue, error) {
 	diffs, err := diffpkg.ParseMultiFileDiff([]byte(patch))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't parse patch")
@@ -218,43 +242,27 @@ func extractIssuesFromPatch(patch string, log logutils.Log, lintCtx *linter.Cont
 		return nil, fmt.Errorf("got no diffs from patch parser: %v", diffs)
 	}
 
-	issues := []result.Issue{}
+	var issues []result.Issue
 	for _, d := range diffs {
 		if len(d.Hunks) == 0 {
-			log.Warnf("Got no hunks in diff %+v", d)
+			lintCtx.Log.Warnf("Got no hunks in diff %+v", d)
 			continue
 		}
 
 		for _, hunk := range d.Hunks {
-			var text string
-			if isGoimports {
-				text = "File is not `goimports`-ed"
-				if lintCtx.Settings().Goimports.LocalPrefixes != "" {
-					text += " with -local " + lintCtx.Settings().Goimports.LocalPrefixes
-				}
-			} else {
-				text = "File is not `gofmt`-ed"
-				if lintCtx.Settings().Gofmt.Simplify {
-					text += " with `-s`"
-				}
-			}
-			p := hunkChangesParser{
-				log: log,
-			}
+			p := hunkChangesParser{log: lintCtx.Log}
+
 			changes := p.parse(hunk)
+
 			for _, change := range changes {
 				change := change // fix scope
-				linterName := gofmtName
-				if isGoimports {
-					linterName = goimportsName
-				}
 				i := result.Issue{
 					FromLinter: linterName,
 					Pos: token.Position{
 						Filename: d.NewName,
 						Line:     change.LineRange.From,
 					},
-					Text:        text,
+					Text:        getErrorTextForLinter(lintCtx.Settings(), linterName),
 					Replacement: &change.Replacement,
 				}
 				if change.LineRange.From != change.LineRange.To {
