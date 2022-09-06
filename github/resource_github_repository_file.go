@@ -93,12 +93,6 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Computed:    true,
 				Description: "The commit author email address, defaults to the authenticated user's email address",
 			},
-			"commit_as_token": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Ignores commit_author and commit_email details to sign commit as Token owner.",
-			},
 			"sha": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -261,9 +255,13 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	if !d.Get("commit_as_token").(bool) {
-		d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-		d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
+
+	commit_author := commit.Commit.GetCommitter().GetName()
+	commit_email := commit.Commit.GetCommitter().GetEmail()
+
+	if commit_author != "GitHub" && commit_email != "noreply@github.com" {
+		d.Set("commit_author", commit_author)
+		d.Set("commit_email", commit_email)
 	}
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
