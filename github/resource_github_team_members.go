@@ -123,7 +123,7 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	for username, change := range vals {
-		var create, delete bool
+		var create, delete, update bool
 
 		switch {
 		// create a new one if old is nil
@@ -132,13 +132,12 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 		// delete existing if new is nil
 		case change.New == nil:
 			delete = true
-			// no change
+		// no change
 		case reflect.DeepEqual(change.Old, change.New):
 			continue
-			// recreate - role changed
+		// update - role changed
 		default:
-			delete = true
-			create = true
+			update = true
 		}
 
 		if delete {
@@ -154,6 +153,24 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			role := change.New["role"].(string)
 
 			log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
+			_, _, err = client.Teams.AddTeamMembershipByID(ctx,
+				orgId,
+				teamId,
+				username,
+				&github.TeamAddTeamMembershipOptions{
+					Role: role,
+				},
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if update {
+			role := change.New["role"].(string)
+			from := change.Old["role"].(string)
+
+			log.Printf("[DEBUG] Updating team membership: %s/%s (%s -> %s)", teamIdString, username, from, role)
 			_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 				orgId,
 				teamId,
