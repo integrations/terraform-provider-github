@@ -140,7 +140,7 @@ func Provider() terraform.ResourceProvider {
 			"github_dependabot_public_key":           dataSourceGithubDependabotPublicKey(),
 			"github_dependabot_organization_secrets": dataSourceGithubDependabotOrganizationSecrets(),
 			"github_dependabot_secrets":              dataSourceGithubDependabotSecrets(),
-      "github_external_groups":               dataSourceGithubExternalGroups(),
+			"github_external_groups":                 dataSourceGithubExternalGroups(),
 			"github_ip_ranges":                       dataSourceGithubIpRanges(),
 			"github_membership":                      dataSourceGithubMembership(),
 			"github_organization":                    dataSourceGithubOrganization(),
