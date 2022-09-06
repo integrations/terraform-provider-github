@@ -1,71 +1,23 @@
 package golinters
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
-	"sync"
 
-	"golang.org/x/tools/go/analysis"
-
-	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const nakedretName = "nakedret"
+type Nakedret struct{}
 
-//nolint:dupl
-func NewNakedret(settings *config.NakedretSettings) *goanalysis.Linter {
-	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
-	analyzer := &analysis.Analyzer{
-		Name: nakedretName,
-		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues := runNakedRet(pass, settings)
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
-
-			return nil, nil
-		},
-	}
-
-	return goanalysis.NewLinter(
-		nakedretName,
-		"Finds naked returns in functions greater than a specified function length",
-		[]*analysis.Analyzer{analyzer},
-		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
-	}).WithLoadMode(goanalysis.LoadModeSyntax)
+func (Nakedret) Name() string {
+	return "nakedret"
 }
 
-func runNakedRet(pass *analysis.Pass, settings *config.NakedretSettings) []goanalysis.Issue {
-	var issues []goanalysis.Issue
-
-	for _, file := range pass.Files {
-		v := nakedretVisitor{
-			maxLength: settings.MaxFuncLines,
-			f:         pass.Fset,
-		}
-
-		ast.Walk(&v, file)
-
-		for i := range v.issues {
-			issues = append(issues, goanalysis.NewIssue(&v.issues[i], pass))
-		}
-	}
-
-	return issues
+func (Nakedret) Desc() string {
+	return "Finds naked returns in functions greater than a specified function length"
 }
 
 type nakedretVisitor struct {
@@ -98,7 +50,7 @@ func (v *nakedretVisitor) processFuncDecl(funcDecl *ast.FuncDecl) {
 		}
 
 		v.issues = append(v.issues, result.Issue{
-			FromLinter: nakedretName,
+			FromLinter: Nakedret{}.Name(),
 			Text: fmt.Sprintf("naked return in func `%s` with %d lines of code",
 				funcDecl.Name.Name, functionLineLength),
 			Pos: v.f.Position(s.Pos()),
@@ -131,4 +83,18 @@ func (v *nakedretVisitor) Visit(node ast.Node) ast.Visitor {
 
 	v.processFuncDecl(funcDecl)
 	return v
+}
+
+func (lint Nakedret) Run(ctx context.Context, lintCtx *linter.Context) ([]result.Issue, error) {
+	var res []result.Issue
+	for _, f := range lintCtx.ASTCache.GetAllValidFiles() {
+		v := nakedretVisitor{
+			maxLength: lintCtx.Settings().Nakedret.MaxFuncLines,
+			f:         f.Fset,
+		}
+		ast.Walk(&v, f.F)
+		res = append(res, v.issues...)
+	}
+
+	return res, nil
 }

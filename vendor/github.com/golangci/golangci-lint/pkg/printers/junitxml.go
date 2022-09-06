@@ -3,11 +3,9 @@ package printers
 import (
 	"context"
 	"encoding/xml"
-	"fmt"
-	"io"
-	"sort"
 	"strings"
 
+	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
@@ -19,9 +17,6 @@ type testSuitesXML struct {
 type testSuiteXML struct {
 	XMLName   xml.Name      `xml:"testsuite"`
 	Suite     string        `xml:"name,attr"`
-	Tests     int           `xml:"tests,attr"`
-	Errors    int           `xml:"errors,attr"`
-	Failures  int           `xml:"failures,attr"`
 	TestCases []testCaseXML `xml:"testcase"`
 }
 
@@ -33,37 +28,30 @@ type testCaseXML struct {
 
 type failureXML struct {
 	Message string `xml:"message,attr"`
-	Type    string `xml:"type,attr"`
 	Content string `xml:",cdata"`
 }
 
 type JunitXML struct {
-	w io.Writer
 }
 
-func NewJunitXML(w io.Writer) *JunitXML {
-	return &JunitXML{w: w}
+func NewJunitXML() *JunitXML {
+	return &JunitXML{}
 }
 
-func (p JunitXML) Print(ctx context.Context, issues []result.Issue) error {
+func (JunitXML) Print(ctx context.Context, issues <-chan result.Issue) error {
 	suites := make(map[string]testSuiteXML) // use a map to group by file
 
-	for ind := range issues {
-		i := &issues[ind]
+	for i := range issues {
 		suiteName := i.FilePath()
 		testSuite := suites[suiteName]
 		testSuite.Suite = i.FilePath()
-		testSuite.Tests++
-		testSuite.Failures++
 
 		tc := testCaseXML{
 			Name:      i.FromLinter,
 			ClassName: i.Pos.String(),
 			Failure: failureXML{
-				Type:    i.Severity,
-				Message: i.Pos.String() + ": " + i.Text,
-				Content: fmt.Sprintf("%s: %s\nCategory: %s\nFile: %s\nLine: %d\nDetails: %s",
-					i.Severity, i.Text, i.FromLinter, i.Pos.Filename, i.Pos.Line, strings.Join(i.SourceLines, "\n")),
+				Message: i.Text,
+				Content: strings.Join(i.SourceLines, "\n"),
 			},
 		}
 
@@ -76,11 +64,7 @@ func (p JunitXML) Print(ctx context.Context, issues []result.Issue) error {
 		res.TestSuites = append(res.TestSuites, val)
 	}
 
-	sort.Slice(res.TestSuites, func(i, j int) bool {
-		return res.TestSuites[i].Suite < res.TestSuites[j].Suite
-	})
-
-	enc := xml.NewEncoder(p.w)
+	enc := xml.NewEncoder(logutils.StdOut)
 	enc.Indent("", "  ")
 	if err := enc.Encode(res); err != nil {
 		return err

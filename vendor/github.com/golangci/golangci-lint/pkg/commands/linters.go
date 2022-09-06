@@ -1,7 +1,8 @@
 package commands
 
 import (
-	"fmt"
+	"log"
+	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -10,34 +11,41 @@ import (
 )
 
 func (e *Executor) initLinters() {
-	e.lintersCmd = &cobra.Command{
-		Use:               "linters",
-		Short:             "List current linters configuration",
-		Args:              cobra.NoArgs,
-		ValidArgsFunction: cobra.NoFileCompletions,
-		RunE:              e.executeLinters,
+	lintersCmd := &cobra.Command{
+		Use:   "linters",
+		Short: "List current linters configuration",
+		Run:   e.executeLinters,
 	}
-	e.rootCmd.AddCommand(e.lintersCmd)
-	e.initRunConfiguration(e.lintersCmd)
+	e.rootCmd.AddCommand(lintersCmd)
+	e.initRunConfiguration(lintersCmd)
 }
 
-// executeLinters runs the 'linters' CLI command, which displays the supported linters.
-func (e *Executor) executeLinters(_ *cobra.Command, _ []string) error {
-	enabledLintersMap, err := e.EnabledLintersSet.GetEnabledLintersMap()
+func IsLinterInConfigsList(name string, linters []*linter.Config) bool {
+	for _, lc := range linters {
+		if lc.Name() == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (e *Executor) executeLinters(_ *cobra.Command, args []string) {
+	if len(args) != 0 {
+		e.log.Fatalf("Usage: golangci-lint linters")
+	}
+
+	enabledLCs, err := e.EnabledLintersSet.Get(false)
 	if err != nil {
-		return fmt.Errorf("can't get enabled linters: %w", err)
+		log.Fatalf("Can't get enabled linters: %s", err)
 	}
 
 	color.Green("Enabled by your configuration linters:\n")
-	enabledLinters := make([]*linter.Config, 0, len(enabledLintersMap))
-	for _, linter := range enabledLintersMap {
-		enabledLinters = append(enabledLinters, linter)
-	}
-	printLinterConfigs(enabledLinters)
+	printLinterConfigs(enabledLCs)
 
 	var disabledLCs []*linter.Config
 	for _, lc := range e.DBManager.GetAllSupportedLinterConfigs() {
-		if enabledLintersMap[lc.Name()] == nil {
+		if !IsLinterInConfigsList(lc.Name(), enabledLCs) {
 			disabledLCs = append(disabledLCs, lc)
 		}
 	}
@@ -45,5 +53,5 @@ func (e *Executor) executeLinters(_ *cobra.Command, _ []string) error {
 	color.Red("\nDisabled by your configuration linters:\n")
 	printLinterConfigs(disabledLCs)
 
-	return nil
+	os.Exit(0)
 }

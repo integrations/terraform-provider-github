@@ -7,13 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 
-	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
-	"github.com/golangci/golangci-lint/pkg/sliceutil"
+
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 type FileReader struct {
@@ -46,11 +45,6 @@ func (r *FileReader) Read() error {
 
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
-
-		// Assume YAML if the file has no extension.
-		if filepath.Ext(configFile) == "" {
-			viper.SetConfigType("yaml")
-		}
 	} else {
 		r.setupConfigFileSearch()
 	}
@@ -77,11 +71,6 @@ func (r *FileReader) parseConfig() error {
 		r.log.Warnf("Can't pretty print config file path: %s", err)
 	}
 	r.log.Infof("Used config file %s", usedConfigFile)
-	usedConfigDir := filepath.Dir(usedConfigFile)
-	if usedConfigDir, err = filepath.Abs(usedConfigDir); err != nil {
-		return errors.New("can't get config directory")
-	}
-	r.cfg.cfgDir = usedConfigDir
 
 	if err := viper.Unmarshal(r.cfg); err != nil {
 		return fmt.Errorf("can't unmarshal config by viper: %s", err)
@@ -93,7 +82,7 @@ func (r *FileReader) parseConfig() error {
 
 	if r.cfg.InternalTest { // just for testing purposes: to detect config file usage
 		fmt.Fprintln(logutils.StdOut, "test")
-		os.Exit(exitcodes.Success)
+		os.Exit(0)
 	}
 
 	return nil
@@ -113,10 +102,6 @@ func (r *FileReader) validateConfig() error {
 		return errors.New("option run.memprofilepath in config isn't allowed")
 	}
 
-	if c.Run.TracePath != "" {
-		return errors.New("option run.tracepath in config isn't allowed")
-	}
-
 	if c.Run.IsVerbose {
 		return errors.New("can't set run.verbose option with config: only on command-line")
 	}
@@ -125,17 +110,7 @@ func (r *FileReader) validateConfig() error {
 			return fmt.Errorf("error in exclude rule #%d: %v", i, err)
 		}
 	}
-	if len(c.Severity.Rules) > 0 && c.Severity.Default == "" {
-		return errors.New("can't set severity rule option: no default severity defined")
-	}
-	for i, rule := range c.Severity.Rules {
-		if err := rule.Validate(); err != nil {
-			return fmt.Errorf("error in severity rule #%d: %v", i, err)
-		}
-	}
-	if err := c.LintersSettings.Govet.Validate(); err != nil {
-		return fmt.Errorf("error in govet config: %v", err)
-	}
+
 	return nil
 }
 
@@ -182,7 +157,6 @@ func (r *FileReader) setupConfigFileSearch() {
 
 	// find all dirs from it up to the root
 	configSearchPaths := []string{"./"}
-
 	for {
 		configSearchPaths = append(configSearchPaths, curDir)
 		newCurDir := filepath.Dir(curDir)
@@ -190,13 +164,6 @@ func (r *FileReader) setupConfigFileSearch() {
 			break
 		}
 		curDir = newCurDir
-	}
-
-	// find home directory for global config
-	if home, err := homedir.Dir(); err != nil {
-		r.log.Warnf("Can't get user's home directory: %s", err.Error())
-	} else if !sliceutil.Contains(configSearchPaths, home) {
-		configSearchPaths = append(configSearchPaths, home)
 	}
 
 	r.log.Infof("Config search paths: %s", configSearchPaths)
@@ -216,7 +183,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile := cfg.Run.Config
 	if cfg.Run.NoConfig && configFile != "" {
-		return "", errors.New("can't combine option --config and --no-config")
+		return "", fmt.Errorf("can't combine option --config and --no-config")
 	}
 
 	if cfg.Run.NoConfig {
@@ -225,7 +192,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
-		return "", errors.New("failed to expand configuration path")
+		return "", fmt.Errorf("failed to expand configuration path")
 	}
 
 	return configFile, nil

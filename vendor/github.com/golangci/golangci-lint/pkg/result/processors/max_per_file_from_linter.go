@@ -16,8 +16,9 @@ type MaxPerFileFromLinter struct {
 var _ Processor = &MaxPerFileFromLinter{}
 
 func NewMaxPerFileFromLinter(cfg *config.Config) *MaxPerFileFromLinter {
-	maxPerFileFromLinterConfig := map[string]int{}
-
+	maxPerFileFromLinterConfig := map[string]int{
+		"typecheck": 3,
+	}
 	if !cfg.Issues.NeedFix {
 		// if we don't fix we do this limiting to not annoy user;
 		// otherwise we need to fix all issues in the file at once
@@ -26,7 +27,7 @@ func NewMaxPerFileFromLinter(cfg *config.Config) *MaxPerFileFromLinter {
 	}
 
 	return &MaxPerFileFromLinter{
-		flc:                        fileToLinterToCountMap{},
+		flc:                        fileToLinterToCountMap{}, //nolint:goimports,gofmt
 		maxPerFileFromLinterConfig: maxPerFileFromLinterConfig,
 	}
 }

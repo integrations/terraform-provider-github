@@ -3,21 +3,20 @@ package printers
 import (
 	"context"
 	"encoding/json"
-	"io"
+	"fmt"
 
+	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/report"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
 type JSON struct {
 	rd *report.Data
-	w  io.Writer
 }
 
-func NewJSON(rd *report.Data, w io.Writer) *JSON {
+func NewJSON(rd *report.Data) *JSON {
 	return &JSON{
 		rd: rd,
-		w:  w,
 	}
 }
 
@@ -26,14 +25,22 @@ type JSONResult struct {
 	Report *report.Data
 }
 
-func (p JSON) Print(ctx context.Context, issues []result.Issue) error {
-	res := JSONResult{
-		Issues: issues,
-		Report: p.rd,
-	}
-	if res.Issues == nil {
-		res.Issues = []result.Issue{}
+func (p JSON) Print(ctx context.Context, issues <-chan result.Issue) error {
+	allIssues := []result.Issue{}
+	for i := range issues {
+		allIssues = append(allIssues, i)
 	}
 
-	return json.NewEncoder(p.w).Encode(res)
+	res := JSONResult{
+		Issues: allIssues,
+		Report: p.rd,
+	}
+
+	outputJSON, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprint(logutils.StdOut, string(outputJSON))
+	return nil
 }

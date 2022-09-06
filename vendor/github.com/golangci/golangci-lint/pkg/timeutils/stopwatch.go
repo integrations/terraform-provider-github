@@ -10,15 +10,13 @@ import (
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
-const noStagesText = "no stages"
-
 type Stopwatch struct {
 	name      string
 	startedAt time.Time
+	stages    map[string]time.Duration
 	log       logutils.Log
 
-	stages map[string]time.Duration
-	mu     sync.Mutex
+	sync.Mutex
 }
 
 func NewStopwatch(name string, log logutils.Log) *Stopwatch {
@@ -35,8 +33,8 @@ type stageDuration struct {
 	d    time.Duration
 }
 
-func (s *Stopwatch) stageDurationsSorted() []stageDuration {
-	stageDurations := make([]stageDuration, 0, len(s.stages))
+func (s *Stopwatch) sprintStages() string {
+	stageDurations := []stageDuration{}
 	for n, d := range s.stages {
 		stageDurations = append(stageDurations, stageDuration{
 			name: n,
@@ -46,38 +44,12 @@ func (s *Stopwatch) stageDurationsSorted() []stageDuration {
 	sort.Slice(stageDurations, func(i, j int) bool {
 		return stageDurations[i].d > stageDurations[j].d
 	})
-	return stageDurations
-}
-
-func (s *Stopwatch) sprintStages() string {
-	if len(s.stages) == 0 {
-		return noStagesText
-	}
-
-	stageDurations := s.stageDurationsSorted()
-
-	stagesStrings := make([]string, 0, len(stageDurations))
+	stagesStrings := []string{}
 	for _, s := range stageDurations {
 		stagesStrings = append(stagesStrings, fmt.Sprintf("%s: %s", s.name, s.d))
 	}
 
 	return fmt.Sprintf("stages: %s", strings.Join(stagesStrings, ", "))
-}
-
-func (s *Stopwatch) sprintTopStages(n int) string {
-	if len(s.stages) == 0 {
-		return noStagesText
-	}
-
-	stageDurations := s.stageDurationsSorted()
-
-	var stagesStrings []string
-	for i := 0; i < len(stageDurations) && i < n; i++ {
-		s := stageDurations[i]
-		stagesStrings = append(stagesStrings, fmt.Sprintf("%s: %s", s.name, s.d))
-	}
-
-	return fmt.Sprintf("top %d stages: %s", n, strings.Join(stagesStrings, ", "))
 }
 
 func (s *Stopwatch) Print() {
@@ -98,19 +70,11 @@ func (s *Stopwatch) PrintStages() {
 	s.log.Infof("%s took %s with %s", s.name, stagesDuration, s.sprintStages())
 }
 
-func (s *Stopwatch) PrintTopStages(n int) {
-	var stagesDuration time.Duration
-	for _, s := range s.stages {
-		stagesDuration += s
-	}
-	s.log.Infof("%s took %s with %s", s.name, stagesDuration, s.sprintTopStages(n))
-}
-
 func (s *Stopwatch) TrackStage(name string, f func()) {
 	startedAt := time.Now()
 	f()
 
-	s.mu.Lock()
+	s.Lock()
 	s.stages[name] += time.Since(startedAt)
-	s.mu.Unlock()
+	s.Unlock()
 }

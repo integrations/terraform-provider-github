@@ -1,83 +1,71 @@
 package golinters
 
 import (
+	"context"
 	"fmt"
-	"sync"
+	"go/ast"
+	"go/token"
 
 	lintAPI "github.com/golangci/lint-1"
-	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const golintName = "golint"
+type Golint struct{}
 
-//nolint:dupl
-func NewGolint(settings *config.GoLintSettings) *goanalysis.Linter {
-	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
-	analyzer := &analysis.Analyzer{
-		Name: golintName,
-		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues, err := runGoLint(pass, settings)
-			if err != nil {
-				return nil, err
-			}
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
-
-			return nil, nil
-		},
-	}
-
-	return goanalysis.NewLinter(
-		golintName,
-		"Golint differs from gofmt. Gofmt reformats Go source code, whereas golint prints out style mistakes",
-		[]*analysis.Analyzer{analyzer},
-		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
-	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
+func (Golint) Name() string {
+	return "golint"
 }
 
-func runGoLint(pass *analysis.Pass, settings *config.GoLintSettings) ([]goanalysis.Issue, error) {
-	l := new(lintAPI.Linter)
+func (Golint) Desc() string {
+	return "Golint differs from gofmt. Gofmt reformats Go source code, whereas golint prints out style mistakes"
+}
 
-	ps, err := l.LintPkg(pass.Files, pass.Fset, pass.Pkg, pass.TypesInfo)
+func (g Golint) Run(ctx context.Context, lintCtx *linter.Context) ([]result.Issue, error) {
+	var issues []result.Issue
+	var lintErr error
+	for _, pkg := range lintCtx.Packages {
+		files, fset, err := getASTFilesForGoPkg(lintCtx, pkg)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := g.lintPkg(lintCtx.Settings().Golint.MinConfidence, files, fset)
+		if err != nil {
+			lintErr = err
+			continue
+		}
+		issues = append(issues, i...)
+	}
+	if lintErr != nil {
+		lintCtx.Log.Warnf("Golint: %s", lintErr)
+	}
+
+	return issues, nil
+}
+
+func (g Golint) lintPkg(minConfidence float64, files []*ast.File, fset *token.FileSet) ([]result.Issue, error) {
+	l := new(lintAPI.Linter)
+	ps, err := l.LintASTFiles(files, fset)
 	if err != nil {
-		return nil, fmt.Errorf("can't lint %d files: %s", len(pass.Files), err)
+		return nil, fmt.Errorf("can't lint %d files: %s", len(files), err)
 	}
 
 	if len(ps) == 0 {
 		return nil, nil
 	}
 
-	lintIssues := make([]*result.Issue, 0, len(ps)) // This is worst case
+	issues := make([]result.Issue, 0, len(ps)) // This is worst case
 	for idx := range ps {
-		if ps[idx].Confidence >= settings.MinConfidence {
-			lintIssues = append(lintIssues, &result.Issue{
+		if ps[idx].Confidence >= minConfidence {
+			issues = append(issues, result.Issue{
 				Pos:        ps[idx].Position,
 				Text:       ps[idx].Text,
-				FromLinter: golintName,
+				FromLinter: g.Name(),
 			})
 			// TODO: use p.Link and p.Category
 		}
-	}
-
-	issues := make([]goanalysis.Issue, 0, len(lintIssues))
-	for _, issue := range lintIssues {
-		issues = append(issues, goanalysis.NewIssue(issue, pass))
 	}
 
 	return issues, nil

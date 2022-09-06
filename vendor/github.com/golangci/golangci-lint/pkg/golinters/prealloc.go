@@ -1,65 +1,40 @@
 package golinters
 
 import (
+	"context"
 	"fmt"
-	"sync"
+	"go/ast"
 
-	"github.com/alexkohler/prealloc/pkg"
-	"golang.org/x/tools/go/analysis"
+	"github.com/golangci/prealloc"
 
-	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const preallocName = "prealloc"
+type Prealloc struct{}
 
-//nolint:dupl
-func NewPreAlloc(settings *config.PreallocSettings) *goanalysis.Linter {
-	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
-	analyzer := &analysis.Analyzer{
-		Name: preallocName,
-		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues := runPreAlloc(pass, settings)
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
-
-			return nil, nil
-		},
-	}
-
-	return goanalysis.NewLinter(
-		preallocName,
-		"Finds slice declarations that could potentially be pre-allocated",
-		[]*analysis.Analyzer{analyzer},
-		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
-	}).WithLoadMode(goanalysis.LoadModeSyntax)
+func (Prealloc) Name() string {
+	return "prealloc"
 }
 
-func runPreAlloc(pass *analysis.Pass, settings *config.PreallocSettings) []goanalysis.Issue {
-	var issues []goanalysis.Issue
+func (Prealloc) Desc() string {
+	return "Finds slice declarations that could potentially be preallocated"
+}
 
-	hints := pkg.Check(pass.Files, settings.Simple, settings.RangeLoops, settings.ForLoops)
+func (lint Prealloc) Run(ctx context.Context, lintCtx *linter.Context) ([]result.Issue, error) {
+	var res []result.Issue
 
-	for _, hint := range hints {
-		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			Pos:        pass.Fset.Position(hint.Pos),
-			Text:       fmt.Sprintf("Consider pre-allocating %s", formatCode(hint.DeclaredSliceName, nil)),
-			FromLinter: preallocName,
-		}, pass))
+	s := &lintCtx.Settings().Prealloc
+	for _, f := range lintCtx.ASTCache.GetAllValidFiles() {
+		hints := prealloc.Check([]*ast.File{f.F}, s.Simple, s.RangeLoops, s.ForLoops)
+		for _, hint := range hints {
+			res = append(res, result.Issue{
+				Pos:        f.Fset.Position(hint.Pos),
+				Text:       fmt.Sprintf("Consider preallocating %s", formatCode(hint.DeclaredSliceName, lintCtx.Cfg)),
+				FromLinter: lint.Name(),
+			})
+		}
 	}
 
-	return issues
+	return res, nil
 }

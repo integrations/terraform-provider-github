@@ -2,17 +2,14 @@ package packages
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
+
+	"github.com/golangci/golangci-lint/pkg/lint/astcache"
 
 	"golang.org/x/tools/go/packages"
 )
 
-// reFile matches a line who starts with path and position.
-// ex: `/example/main.go:11:17: foobar`
-var reFile = regexp.MustCompile(`^.+\.go:\d+:\d+: .+`)
-
-func ExtractErrors(pkg *packages.Package) []packages.Error {
+//nolint:gocyclo
+func ExtractErrors(pkg *packages.Package, astCache *astcache.Cache) []packages.Error {
 	errors := extractErrorsImpl(pkg, map[*packages.Package]bool{})
 	if len(errors) == 0 {
 		return errors
@@ -21,30 +18,22 @@ func ExtractErrors(pkg *packages.Package) []packages.Error {
 	seenErrors := map[string]bool{}
 	var uniqErrors []packages.Error
 	for _, err := range errors {
-		msg := stackCrusher(err.Error())
-		if seenErrors[msg] {
+		if seenErrors[err.Msg] {
 			continue
 		}
-
-		if msg != err.Error() {
-			continue
-		}
-
-		seenErrors[msg] = true
-
+		seenErrors[err.Msg] = true
 		uniqErrors = append(uniqErrors, err)
 	}
 
 	if len(pkg.GoFiles) != 0 {
-		// errors were extracted from deps and have at least one file in package
+		// errors were extracted from deps and have at leat one file in package
 		for i := range uniqErrors {
-			if _, parseErr := ParseErrorPosition(uniqErrors[i].Pos); parseErr == nil {
-				continue
+			errPos, parseErr := ParseErrorPosition(uniqErrors[i].Pos)
+			if parseErr != nil || astCache.Get(errPos.Filename) == nil {
+				// change pos to local file to properly process it by processors (properly read line etc)
+				uniqErrors[i].Msg = fmt.Sprintf("%s: %s", uniqErrors[i].Pos, uniqErrors[i].Msg)
+				uniqErrors[i].Pos = fmt.Sprintf("%s:1", pkg.GoFiles[0])
 			}
-
-			// change pos to local file to properly process it by processors (properly read line etc.)
-			uniqErrors[i].Msg = fmt.Sprintf("%s: %s", uniqErrors[i].Pos, uniqErrors[i].Msg)
-			uniqErrors[i].Pos = fmt.Sprintf("%s:1", pkg.GoFiles[0])
 		}
 
 		// some errors like "code in directory  expects import" don't have Pos, set it here
@@ -65,11 +54,11 @@ func extractErrorsImpl(pkg *packages.Package, seenPackages map[*packages.Package
 	}
 	seenPackages[pkg] = true
 
-	if !pkg.IllTyped { // otherwise, it may take hours to traverse all deps many times
+	if !pkg.IllTyped { // otherwise it may take hours to traverse all deps many times
 		return nil
 	}
 
-	if len(pkg.Errors) > 0 {
+	if len(pkg.Errors) != 0 {
 		return pkg.Errors
 	}
 
@@ -82,21 +71,4 @@ func extractErrorsImpl(pkg *packages.Package, seenPackages map[*packages.Package
 	}
 
 	return errors
-}
-
-func stackCrusher(msg string) string {
-	index := strings.Index(msg, "(")
-	lastIndex := strings.LastIndex(msg, ")")
-
-	if index == -1 || index == len(msg)-1 || lastIndex == -1 || lastIndex != len(msg)-1 {
-		return msg
-	}
-
-	frag := msg[index+1 : lastIndex]
-
-	if !reFile.MatchString(frag) {
-		return msg
-	}
-
-	return stackCrusher(frag)
 }
