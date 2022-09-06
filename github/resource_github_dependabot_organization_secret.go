@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -89,13 +89,13 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		return fmt.Errorf("Cannot use selected_repository_ids without visibility being set to selected")
 	}
 
-	selectedRepositoryIDs := []int64{}
+	selectedRepositoryIDs := []string{}
 
 	if hasSelectedRepositories {
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, id.(string))
 		}
 	}
 
@@ -114,8 +114,8 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an EncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.EncryptedSecret{
+	// Create an DependabotEncryptedSecret and encrypt the plaintext value into it
+	eSecret := &github.DependabotEncryptedSecret{
 		Name:                  secretName,
 		KeyID:                 keyId,
 		Visibility:            visibility,
