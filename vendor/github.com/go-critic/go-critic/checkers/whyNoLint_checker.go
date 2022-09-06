@@ -5,32 +5,31 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-lintpack/lintpack"
-	"github.com/go-lintpack/lintpack/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/framework/linter"
 )
 
 func init() {
-	info := lintpack.CheckerInfo{
+	info := linter.CheckerInfo{
 		Name:    "whyNoLint",
 		Tags:    []string{"style", "experimental"},
 		Summary: "Ensures that `//nolint` comments include an explanation",
 		Before:  `//nolint`,
 		After:   `//nolint // reason`,
 	}
-	re := regexp.MustCompile(`^// *nolint(?::[^ ]+)? *(.*)$`)
 
-	collection.AddChecker(&info, func(ctx *lintpack.CheckerContext) lintpack.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		return astwalk.WalkerForComment(&whyNoLintChecker{
 			ctx: ctx,
-			re:  re,
-		})
+			re:  regexp.MustCompile(`^// *nolint(?::[^ ]+)? *(.*)$`),
+		}), nil
 	})
 }
 
 type whyNoLintChecker struct {
 	astwalk.WalkHandler
 
-	ctx *lintpack.CheckerContext
+	ctx *linter.CheckerContext
 	re  *regexp.Regexp
 }
 
@@ -44,7 +43,7 @@ func (c whyNoLintChecker) VisitComment(cg *ast.CommentGroup) {
 			continue
 		}
 
-		if s := sl[1]; !strings.HasPrefix(s, "//") || len(strings.TrimPrefix(s, "//")) == 0 {
+		if s := sl[1]; !strings.HasPrefix(s, "//") || strings.TrimPrefix(s, "//") == "" {
 			c.ctx.Warn(cg, "include an explanation for nolint directive")
 			return
 		}
