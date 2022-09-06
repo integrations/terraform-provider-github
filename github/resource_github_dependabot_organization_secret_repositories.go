@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -49,11 +49,11 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *sch
 	secretName := d.Get("secret_name").(string)
 	selectedRepositories := d.Get("selected_repository_ids")
 
-	selectedRepositoryIDs := []int64{}
+	selectedRepositoryIDs := []string{}
 
 	ids := selectedRepositories.(*schema.Set).List()
 	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		selectedRepositoryIDs = append(selectedRepositoryIDs, id.(string))
 	}
 
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)
@@ -110,7 +110,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesDelete(d *schema.Reso
 		return err
 	}
 
-	selectedRepositoryIDs := []int64{}
+	selectedRepositoryIDs := []string{}
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), selectedRepositoryIDs)
 	if err != nil {
 		return err
