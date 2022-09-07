@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_repository_teams"
 description: |-
-  Get teams which have permission on the give repo.
+  Get teams which have permission on the given repo.
 ---
 
 # github\_repository\_teams
@@ -24,8 +24,8 @@ data "github_repository_teams" "example" {
 
 ## Attributes Reference
 
- * `teams` - list of teams which have access to the repository
+ * `teams` - List of teams which have access to the repository
    * `name` - Team name
    * `slug` - Team slug
    * `permission` - Team permission
- 
+
