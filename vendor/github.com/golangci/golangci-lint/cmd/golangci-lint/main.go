@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/golangci/golangci-lint/pkg/commands"
-	"github.com/golangci/golangci-lint/pkg/exitcodes"
 )
 
 var (
@@ -20,6 +19,6 @@ func main() {
 
 	if err := e.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed executing command with error %v\n", err)
-		os.Exit(exitcodes.Failure)
+		os.Exit(1)
 	}
 }

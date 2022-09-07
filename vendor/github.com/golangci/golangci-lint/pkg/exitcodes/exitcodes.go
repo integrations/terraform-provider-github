@@ -30,5 +30,3 @@ var (
 		Code:    Failure,
 	}
 )
-
-// 1
