@@ -1,10 +1,6 @@
 package result
 
-import (
-	"go/token"
-
-	"golang.org/x/tools/go/packages"
-)
+import "go/token"
 
 type Range struct {
 	From, To int
@@ -25,22 +21,18 @@ type InlineFix struct {
 type Issue struct {
 	FromLinter string
 	Text       string
+	Pos        token.Position
+
+	LineRange *Range `json:",omitempty"`
+
+	// HunkPos is used only when golangci-lint is run over a diff
+	HunkPos int `json:",omitempty"`
 
 	// Source lines of a code with the issue to show
 	SourceLines []string
 
 	// If we know how to fix the issue we can provide replacement lines
 	Replacement *Replacement
-
-	// Pkg is needed for proper caching of linting results
-	Pkg *packages.Package `json:"-"`
-
-	LineRange *Range `json:",omitempty"`
-
-	Pos token.Position
-
-	// HunkPos is used only when golangci-lint is run over a diff
-	HunkPos int `json:",omitempty"`
 }
 
 func (i *Issue) FilePath() string {
