@@ -5,7 +5,7 @@ Terraform Provider GitHub
 
 <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
 
-This project is used to read and write changes on GitHub (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/4.31.0).
+This project is used to read and write to/from GitHub (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
 
 ## Requirements
 
