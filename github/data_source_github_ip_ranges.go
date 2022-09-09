@@ -22,6 +22,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"web": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"api": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -52,6 +62,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"web_ipv4": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"api_ipv4": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"pages_ipv4": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -78,6 +98,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"git_ipv6": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"web_ipv6": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"api_ipv6": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -144,6 +174,16 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	cidrWebIpv4, cidrWebIpv6, err := splitIpv4Ipv6Cidrs(&api.Web)
+	if err != nil {
+		return err
+	}
+
+	cidrApiIpv4, cidrApiIpv6, err := splitIpv4Ipv6Cidrs(&api.API)
+	if err != nil {
+		return err
+	}
+
 	if len(api.Hooks)+len(api.Git)+len(api.Pages)+len(api.Importer)+len(api.Actions)+len(api.Dependabot) > 0 {
 		d.SetId("github-ip-ranges")
 	}
@@ -176,6 +216,16 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("dependabot", api.Dependabot)
 		d.Set("dependabot_ipv4", cidrDependabotIpv4)
 		d.Set("dependabot_ipv6", cidrDependabotIpv6)
+	}
+	if len(api.Web) > 0 {
+		d.Set("web", api.Web)
+		d.Set("web_ipv4", cidrWebIpv4)
+		d.Set("web_ipv6", cidrWebIpv6)
+	}
+	if len(api.API) > 0 {
+		d.Set("api", api.API)
+		d.Set("api_ipv4", cidrApiIpv4)
+		d.Set("api_ipv6", cidrApiIpv6)
 	}
 
 	return nil

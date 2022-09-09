@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 )
@@ -81,8 +81,8 @@ func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta i
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an EncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.EncryptedSecret{
+	// Create an DependabotEncryptedSecret and encrypt the plaintext value into it
+	eSecret := &github.DependabotEncryptedSecret{
 		Name:           secretName,
 		KeyID:          keyId,
 		EncryptedValue: encryptedValue,
