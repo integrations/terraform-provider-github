@@ -3,8 +3,10 @@ package processors
 import (
 	"regexp"
 
-	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
+
+	"github.com/golangci/golangci-lint/pkg/fsutils"
+
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
@@ -37,29 +39,24 @@ func NewExcludeRules(rules []ExcludeRule, lineCache *fsutils.LineCache, log logu
 		lineCache: lineCache,
 		log:       log,
 	}
-	r.rules = createRules(rules, "(?i)")
 
-	return r
-}
-
-func createRules(rules []ExcludeRule, prefix string) []excludeRule {
-	parsedRules := make([]excludeRule, 0, len(rules))
 	for _, rule := range rules {
 		parsedRule := excludeRule{
 			linters: rule.Linters,
 		}
 		if rule.Text != "" {
-			parsedRule.text = regexp.MustCompile(prefix + rule.Text)
+			parsedRule.text = regexp.MustCompile("(?i)" + rule.Text)
 		}
 		if rule.Source != "" {
-			parsedRule.source = regexp.MustCompile(prefix + rule.Source)
+			parsedRule.source = regexp.MustCompile("(?i)" + rule.Source)
 		}
 		if rule.Path != "" {
 			parsedRule.path = regexp.MustCompile(rule.Path)
 		}
-		parsedRules = append(parsedRules, parsedRule)
+		r.rules = append(r.rules, parsedRule)
 	}
-	return parsedRules
+
+	return r
 }
 
 func (p ExcludeRules) Process(issues []result.Issue) ([]result.Issue, error) {
@@ -123,21 +120,3 @@ func (ExcludeRules) Name() string { return "exclude-rules" }
 func (ExcludeRules) Finish()      {}
 
 var _ Processor = ExcludeRules{}
-
-type ExcludeRulesCaseSensitive struct {
-	*ExcludeRules
-}
-
-func NewExcludeRulesCaseSensitive(rules []ExcludeRule, lineCache *fsutils.LineCache, log logutils.Log) *ExcludeRulesCaseSensitive {
-	r := &ExcludeRules{
-		lineCache: lineCache,
-		log:       log,
-	}
-	r.rules = createRules(rules, "")
-
-	return &ExcludeRulesCaseSensitive{r}
-}
-
-func (ExcludeRulesCaseSensitive) Name() string { return "exclude-rules-case-sensitive" }
-
-var _ Processor = ExcludeCaseSensitive{}

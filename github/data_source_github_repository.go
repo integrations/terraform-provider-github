@@ -108,22 +108,6 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"branches": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"protected": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-					},
-				},
-			},
 			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
