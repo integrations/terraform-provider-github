@@ -8,12 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceGithubTagProtection() *schema.Resource {
+func resourceGithubRepositoryTagProtection() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTagProtectionCreateOrUpdate,
-		Read:   resourceGithubTagProtectionRead,
-		//Update: resourceGithubTagProtectionCreateOrUpdate,
-		Delete: resourceGithubTagProtectionDelete,
+		Create: resourceGithubRepositoryTagProtectionCreateOrUpdate,
+		Read:   resourceGithubRepositoryTagProtectionRead,
+		//Update: resourceGithubRepositoryTagProtectionCreateOrUpdate,
+		Delete: resourceGithubRepositoryTagProtectionDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -37,7 +37,7 @@ func resourceGithubTagProtection() *schema.Resource {
 	}
 }
 
-func resourceGithubTagProtectionCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTagProtectionCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	owner := meta.(*Owner).name
@@ -50,10 +50,10 @@ func resourceGithubTagProtectionCreateOrUpdate(d *schema.ResourceData, meta inte
 	}
 	d.SetId(strconv.FormatInt(tagProtection.GetID(), 10))
 
-	return resourceGithubTagProtectionRead(d, meta)
+	return resourceGithubRepositoryTagProtectionRead(d, meta)
 }
 
-func resourceGithubTagProtectionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTagProtectionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	owner := meta.(*Owner).name
@@ -72,7 +72,7 @@ func resourceGithubTagProtectionRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubTagProtectionDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTagProtectionDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := meta.(*Owner).name
