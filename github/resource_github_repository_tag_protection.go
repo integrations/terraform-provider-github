@@ -16,7 +16,6 @@ func resourceGithubRepositoryTagProtection() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubRepositoryTagProtectionCreateOrUpdate,
 		Read:   resourceGithubRepositoryTagProtectionRead,
-		//Update: resourceGithubRepositoryTagProtectionCreateOrUpdate,
 		Delete: resourceGithubRepositoryTagProtectionDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
