@@ -27,8 +27,7 @@ func (lc *LineCache) GetLine(filePath string, index1 int) (string, error) {
 		index1 = 1
 	}
 
-	const index1To0Offset = -1
-	rawLine, err := lc.getRawLine(filePath, index1+index1To0Offset)
+	rawLine, err := lc.getRawLine(filePath, index1-1)
 	if err != nil {
 		return "", err
 	}

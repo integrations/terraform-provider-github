@@ -8,7 +8,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -99,7 +99,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
-
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {

@@ -25,6 +25,8 @@ The following arguments are supported:
 
 * `full_name` - (Optional) Full name of the repository (in `org/name` format).
 
+* `only_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with protected branches. Default: `false`.
+
 ## Attributes Reference
 
 * `node_id` - the Node ID of the repository.
@@ -51,6 +53,14 @@ The following arguments are supported:
 
 * `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
 
+* `squash_merge_commit_title` - The default value for a squash merge commit title.
+
+* `squash_merge_commit_message` - The default value for a squash merge commit message.
+
+* `merge_commit_title` - The default value for a merge commit title.
+
+* `merge_commit_message` - The default value for a merge commit message.
+
 * `has_downloads` - Whether the repository has Downloads feature enabled.
 
 * `default_branch` - The name of the default branch of the repository.
@@ -74,7 +84,3 @@ The following arguments are supported:
 * `node_id` - GraphQL global node id for use with v4 API
 
 * `repo_id` - GitHub ID for the repository
-
-* `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
- * `name` - Name of the branch.
- * `protected` - Whether the branch is protected.

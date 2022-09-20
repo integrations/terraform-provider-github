@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -148,8 +148,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-
-			continue
 		}
 
 		if create {
@@ -167,12 +165,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-			continue
-		}
-
-		// no change
-		if reflect.DeepEqual(change.Old, change.New) {
-			continue
 		}
 	}
 
