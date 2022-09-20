@@ -21,6 +21,10 @@ data "github_repository_branches" "example" {
 
 * `repository` - (Required) Name of the repository to retrieve the branches from.
 
+* `only_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with protected branches. Default: `false`.
+
+* `only_non_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with non protected branches. Default: `false`.
+
 ## Attributes Reference
 
 * `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:

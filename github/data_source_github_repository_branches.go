@@ -16,6 +16,16 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"only_protected_branches": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"only_non_protected_branches": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"branches": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -57,7 +67,22 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, nil)
+	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
+	onlyNonProtectedBranches := d.Get("only_non_protected_branches").(bool)
+	var listBranchOptions *github.BranchListOptions
+	if onlyProtectedBranches {
+		listBranchOptions = &github.BranchListOptions{
+			Protected: &onlyProtectedBranches,
+		}
+	} else if onlyNonProtectedBranches {
+		listBranchOptions = &github.BranchListOptions{
+			Protected: &onlyProtectedBranches,
+		}
+	} else {
+		listBranchOptions = &github.BranchListOptions{}
+	}
+
+	branches, _, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
 	if err != nil {
 		return err
 	}
