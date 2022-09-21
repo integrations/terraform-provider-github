@@ -21,7 +21,7 @@ func resourceGithubRepositoryTagProtection() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<webhook_id>")
+					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<tag_protection_id>")
 				}
 				d.Set("repository", parts[0])
 				d.Set("tag_protection_id", parts[1])
