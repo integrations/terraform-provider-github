@@ -213,12 +213,11 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
 	}
 
-	log.Printf("[DEBUG] Updating Organization Settings: %s", org)
-
 	orgPlan, _, err := client.Organizations.Edit(ctx, org, nil)
 	if err != nil {
 		return err
 	}
+
 	if orgPlan.GetPlan().GetName() == "free" {
 		orgSettings, _, err := client.Organizations.Edit(ctx, org, &settings)
 		if err != nil {
@@ -293,7 +292,6 @@ func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta inter
 	org := meta.(*Owner).name
 
 	// This will set org settings to default values
-
 	settings := github.Organization{
 		BillingEmail:                       github.String("email@example.com"),
 		Company:                            github.String(""),
@@ -352,7 +350,6 @@ func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta inter
 	}
 
 	log.Printf("[DEBUG] Reverting Organization Settings to default values: %s", org)
-
 	orgPlan, _, err := client.Organizations.Edit(ctx, org, nil)
 	if err != nil {
 		return err
