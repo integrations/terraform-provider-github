@@ -17,14 +17,16 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 				Required: true,
 			},
 			"only_protected_branches": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ConflictsWith: []string{"only_non_protected_branches"},
 			},
 			"only_non_protected_branches": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ConflictsWith: []string{"only_protected_branches"},
 			},
 			"branches": {
 				Type:     schema.TypeList,
