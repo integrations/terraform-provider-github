@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -51,23 +52,38 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta inter
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	keys, _, err := client.Repositories.ListKeys(ctx, owner, repository, nil)
-	if err != nil {
-		return err
+	options := &github.ListOptions{
+		PerPage: 100,
 	}
 
-	d.SetId(repository)
-	d.Set("keys", flattenGitHubDeployKeys(keys))
+	results := make([]map[string]interface{}, 0)
+	for {
+		keys, resp, err := client.Repositories.ListKeys(ctx, owner, repository, options)
+		if err != nil {
+			return err
+		}
+
+		results = append(results, flattenGitHubDeployKeys(keys)...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.Page = resp.NextPage
+	}
+
+	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
+	d.Set("keys", results)
 
 	return nil
 }
 
-func flattenGitHubDeployKeys(keys []*github.Key) []interface{} {
-	if keys == nil {
-		return make([]interface{}, 0)
-	}
+func flattenGitHubDeployKeys(keys []*github.Key) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
 
-	results := make([]interface{}, 0)
+	if keys == nil {
+		return results
+	}
 
 	for _, c := range keys {
 		result := make(map[string]interface{})
