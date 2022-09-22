@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -75,7 +76,7 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 		options.Page = resp.NextPage
 	}
 
-	d.SetId(repository)
+	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
 	d.Set("repository", repository)
 	d.Set("webhooks", results)
 
