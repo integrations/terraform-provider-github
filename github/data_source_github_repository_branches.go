@@ -48,20 +48,20 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 	}
 }
 
-func flattenBranches(branches []*github.Branch) []interface{} {
+func flattenBranches(branches []*github.Branch) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
 	if branches == nil {
-		return []interface{}{}
+		return results
 	}
 
-	branchList := make([]interface{}, 0, len(branches))
 	for _, branch := range branches {
 		branchMap := make(map[string]interface{})
 		branchMap["name"] = branch.GetName()
 		branchMap["protected"] = branch.GetProtected()
-		branchList = append(branchList, branchMap)
+		results = append(results, branchMap)
 	}
 
-	return branchList
+	return results
 }
 
 func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interface{}) error {
@@ -84,14 +84,24 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interfa
 		listBranchOptions = &github.BranchListOptions{}
 	}
 
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
-	if err != nil {
-		return err
+	results := make([]map[string]interface{}, 0)
+	for {
+		branches, resp, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
+		if err != nil {
+			return err
+		}
+		results = append(results, flattenBranches(branches)...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listBranchOptions.Page = resp.NextPage
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", orgName, repoName))
 	d.Set("repository", repoName)
-	d.Set("branches", flattenBranches(branches))
+	d.Set("branches", results)
 
 	return nil
 }
