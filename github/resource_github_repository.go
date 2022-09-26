@@ -54,6 +54,58 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:     true, // is affected by "private"
 				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
 			},
+			"security_and_analysis": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"advanced_security": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						},
+						"secret_scanning": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						}, /*TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
+						"secret_scanning_push_protection": {
+							Type:     schema.List,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						},*/
+					},
+				},
+			},
 			"has_issues": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -417,6 +469,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	securityAndAnalysis := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+	if securityAndAnalysis != nil {
+		_, _, err := client.Repositories.Edit(ctx, owner, repoName, securityAndAnalysis)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -512,6 +572,12 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
 
+	securityAndAnalysis, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{})
+	if err != nil {
+		return fmt.Errorf("Error reading repository security and analysis settings: %v", err)
+	}
+	d.Set("security_and_analysis", flattenSecurityAndAnalysis(securityAndAnalysis.GetSecurityAndAnalysis()))
+
 	return nil
 }
 
@@ -557,6 +623,27 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 		} else {
 			_, err := client.Repositories.DisablePages(ctx, owner, repoName)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if d.HasChange("security_and_analysis") && !d.IsNewResource() {
+		opts := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+		if opts != nil {
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, opts)
+			if err != nil {
+				return err
+			}
+		} else { // disable security and analysis
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled")},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled")}},
+			})
 			if err != nil {
 				return err
 			}
@@ -714,4 +801,50 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap["html_url"] = pages.GetHTMLURL()
 
 	return []interface{}{pagesMap}
+}
+
+func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis) []interface{} {
+	if securityAndAnalysis == nil {
+		return []interface{}{}
+	}
+
+	advancedSecurityMap := make(map[string]interface{})
+	advancedSecurityMap["status"] = securityAndAnalysis.GetAdvancedSecurity().GetStatus()
+	secretScanningMap := make(map[string]interface{})
+	secretScanningMap["status"] = securityAndAnalysis.GetSecretScanning().GetStatus()
+	//TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
+	//secretScanningPushProtectionMap := make(map[string]interface{})
+	//secretScanningPushProtectionMap["status"] = securityAndAnalysis.GetSecretScanningPushProtection().GetStatus()
+
+	securityAndAnalysisMap := make(map[string]interface{})
+	securityAndAnalysisMap["advanced_security"] = []interface{}{advancedSecurityMap}
+	securityAndAnalysisMap["secret_scanning"] = []interface{}{secretScanningMap}
+
+	return []interface{}{securityAndAnalysisMap}
+}
+
+func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
+	if len(input) == 0 || input[0] == nil {
+		return nil
+	}
+
+	securityAndAnalysis := input[0].(map[string]interface{})
+	update := &github.SecurityAndAnalysis{}
+
+	advancedSecurity := securityAndAnalysis["advanced_security"].([]interface{})[0].(map[string]interface{})
+	update.AdvancedSecurity = &github.AdvancedSecurity{
+		Status: github.String(advancedSecurity["status"].(string)),
+	}
+
+	secretScanning := securityAndAnalysis["secret_scanning"].([]interface{})[0].(map[string]interface{})
+	update.SecretScanning = &github.SecretScanning{
+		Status: github.String(secretScanning["status"].(string)),
+	}
+	//TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
+	//secretScanningPushProtection := securityAndAnalysis["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
+	//update.SecretScanningPushProtection = &github.SecretScanningPushProtection{
+	//	Status: github.String(secretScanningPushProtection["status"].(string)),
+	//}
+
+	return &github.Repository{SecurityAndAnalysis: update}
 }
