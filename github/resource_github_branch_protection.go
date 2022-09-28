@@ -113,6 +113,25 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						PROTECTION_REQUIRES_STATUS_CHECKS_CHECKS: {
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									PROTECTION_REQUIRES_STATUS_CHECKS_CHECKS_CONTEXT: {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									PROTECTION_REQUIRES_STATUS_CHECKS_CHECKS_APPID: {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      1,
+										ValidateFunc: validation.IntAtLeast(-1),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -173,6 +192,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		RequiresLinearHistory:          githubv4.NewBoolean(githubv4.Boolean(data.RequiresLinearHistory)),
 		RequiresStatusChecks:           githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
 		RequiresStrictStatusChecks:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
+		RequiresStatusChecksChecks:     githubv4NewStringSlice(githubv4StringSlice(data.RequiresStatusChecksChecks)),
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
@@ -307,6 +327,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		RequiresLinearHistory:          githubv4.NewBoolean(githubv4.Boolean(data.RequiresLinearHistory)),
 		RequiresStatusChecks:           githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
 		RequiresStrictStatusChecks:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
+		RequiresStatusChecksChecks:     githubv4NewStringSlice(githubv4StringSlice(data.RequiresStatusChecksChecks)),
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),

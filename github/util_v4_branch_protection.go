@@ -65,6 +65,7 @@ type BranchProtectionRule struct {
 	RequiresConversationResolution githubv4.Boolean
 	RequiresStatusChecks           githubv4.Boolean
 	RequiresStrictStatusChecks     githubv4.Boolean
+	RequiresStatusChecksChecks     []githubv4.String
 	RestrictsPushes                githubv4.Boolean
 	RestrictsReviewDismissals      githubv4.Boolean
 }
@@ -89,6 +90,7 @@ type BranchProtectionResourceData struct {
 	RequiresConversationResolution bool
 	RequiresStatusChecks           bool
 	RequiresStrictStatusChecks     bool
+	RequiresStatusChecksChecks     []string
 	RestrictsPushes                bool
 	RestrictsReviewDismissals      bool
 	ReviewDismissalActorIDs        []string
