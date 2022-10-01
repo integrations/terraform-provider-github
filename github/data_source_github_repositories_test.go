@@ -29,6 +29,9 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_repositories.test", "names.0",
 			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repositories.test", "repo_ids.0",
+			),
 			resource.TestCheckResourceAttr(
 				"data.github_repositories.test", "sort",
 				"updated",
@@ -80,6 +83,10 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"data.github_repositories.test", "names.#",
+				"0",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repositories.test", "repo_ids.#",
 				"0",
 			),
 		)
