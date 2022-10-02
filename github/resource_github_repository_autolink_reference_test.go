@@ -183,21 +183,21 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 						ResourceName:        "github_repository_autolink_reference.autolink_default",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+						ImportStateIdPrefix: fmt.Sprintf("test-%s:", randomID),
 					},
 					// autolink_alphanumeric
 					{
 						ResourceName:        "github_repository_autolink_reference.autolink_alphanumeric",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+						ImportStateIdPrefix: fmt.Sprintf("test-%s:", randomID),
 					},
 					// autolink_numeric
 					{
 						ResourceName:        "github_repository_autolink_reference.autolink_numeric",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+						ImportStateIdPrefix: fmt.Sprintf("test-%s:", randomID),
 					},
 				},
 			})

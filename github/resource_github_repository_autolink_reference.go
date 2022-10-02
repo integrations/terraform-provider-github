@@ -2,10 +2,8 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -20,12 +18,12 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<autolink_reference_id>")
+				repoName, autolinkRefID, err := parseTwoPartID(d.Id(), "repository", "autolink_reference_id")
+				if err != nil {
+					return nil, err
 				}
-				d.Set("repository", parts[0])
-				d.SetId(parts[1])
+				d.Set("repository", repoName)
+				d.SetId(autolinkRefID)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
