@@ -24,10 +24,6 @@ func resourceGithubOrganizationIpAllowList() *schema.Resource {
 
 		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -166,7 +162,7 @@ func resourceGithubOrganizationIpAllowListCreate(d *schema.ResourceData, meta in
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s", mutation.CreateIpAllowListEntryInput.IpAllowListEntry.ID))
+	d.SetId(string(mutation.CreateIpAllowListEntryInput.IpAllowListEntry.ID))
 
 	return resourceGithubOrganizationIpAllowListRead(d, meta)
 }
@@ -199,7 +195,7 @@ func resourceGithubOrganizationIpAllowListUpdate(d *schema.ResourceData, meta in
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s", mutation.UpdateIpAllowListEntryInput.IpAllowListEntry.ID))
+	d.SetId(string(mutation.UpdateIpAllowListEntryInput.IpAllowListEntry.ID))
 
 	return resourceGithubOrganizationIpAllowListRead(d, meta)
 }
