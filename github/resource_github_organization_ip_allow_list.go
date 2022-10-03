@@ -62,8 +62,9 @@ func resourceGithubOrganizationIpAllowListImport(d *schema.ResourceData, meta in
 		return nil, err
 	}
 
-	// We support importing by the actual ip allow list entry id or
-	// by the ip range itself because it must be unique.
+	// For user convenience, we support importing ip allow list entries
+	// by both their graphql node id or by their ip allow list value.
+	// For example, "IALE_kwHNBQk8ps2ADPDc" or "192.168.1.1/24"
 	valueToImport := d.Id()
 	ipAllowListEntryId := ""
 
@@ -137,17 +138,17 @@ func resourceGithubOrganizationIpAllowListCreate(d *schema.ResourceData, meta in
 	client := meta.(*Owner).v4client
 	ctx := context.Background()
 
-	orgId := meta.(*Owner).id
+	orgId := meta.(*Owner).nodeId
 	name := d.Get("name").(string)
 	allowListValue := d.Get("allow_list_value").(string)
 	isActive := d.Get("is_active").(bool)
 
-	var mutation struct {
-		CreateIpAllowListEntryInput struct {
+	var mutate struct {
+		CreateIpAllowListEntry struct {
 			IpAllowListEntry struct {
 				ID githubv4.String
-			}
-		} `graphql:"createIpAllowListEntryInput(input: $input)"`
+			} `graphql:"ipAllowListEntry"`
+		} `graphql:"createIpAllowListEntry(input: $input)"`
 	}
 
 	input := githubv4.CreateIpAllowListEntryInput{
@@ -157,12 +158,12 @@ func resourceGithubOrganizationIpAllowListCreate(d *schema.ResourceData, meta in
 		IsActive:       githubv4.Boolean(isActive),
 	}
 
-	err := client.Mutate(ctx, &mutation, input, nil)
+	err := client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(string(mutation.CreateIpAllowListEntryInput.IpAllowListEntry.ID))
+	d.SetId(string(mutate.CreateIpAllowListEntry.IpAllowListEntry.ID))
 
 	return resourceGithubOrganizationIpAllowListRead(d, meta)
 }
@@ -175,12 +176,12 @@ func resourceGithubOrganizationIpAllowListUpdate(d *schema.ResourceData, meta in
 	allowListValue := d.Get("allow_list_value").(string)
 	isActive := d.Get("is_active").(bool)
 
-	var mutation struct {
-		UpdateIpAllowListEntryInput struct {
+	var mutate struct {
+		UpdateIpAllowListEntry struct {
 			IpAllowListEntry struct {
 				ID githubv4.String
-			}
-		} `graphql:"updateIpAllowListEntryInput(input: $input)"`
+			} `graphql:"ipAllowListEntry"`
+		} `graphql:"updateIpAllowListEntry(input: $input)"`
 	}
 
 	input := githubv4.UpdateIpAllowListEntryInput{
@@ -190,12 +191,12 @@ func resourceGithubOrganizationIpAllowListUpdate(d *schema.ResourceData, meta in
 		IsActive:           githubv4.Boolean(isActive),
 	}
 
-	err := client.Mutate(ctx, &mutation, input, nil)
+	err := client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(string(mutation.UpdateIpAllowListEntryInput.IpAllowListEntry.ID))
+	d.SetId(string(mutate.UpdateIpAllowListEntry.IpAllowListEntry.ID))
 
 	return resourceGithubOrganizationIpAllowListRead(d, meta)
 }
@@ -204,18 +205,18 @@ func resourceGithubOrganizationIpAllowListDelete(d *schema.ResourceData, meta in
 	client := meta.(*Owner).v4client
 	ctx := context.Background()
 
-	var mutation struct {
-		DeleteIpAllowListEntryInput struct {
+	var mutate struct {
+		DeleteIpAllowListEntry struct {
 			IpAllowListEntry struct {
 				ID githubv4.String
-			}
-		} `graphql:"deleteIpAllowListEntryInput(input: $input)"`
+			} `graphql:"ipAllowListEntry"`
+		} `graphql:"deleteIpAllowListEntry(input: $input)"`
 	}
 
 	input := githubv4.DeleteIpAllowListEntryInput{
 		IPAllowListEntryID: d.Id(),
 	}
 
-	err := client.Mutate(ctx, &mutation, input, nil)
+	err := client.Mutate(ctx, &mutate, input, nil)
 	return err
 }
