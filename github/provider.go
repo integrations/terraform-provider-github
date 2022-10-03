@@ -108,6 +108,7 @@ func Provider() terraform.ResourceProvider {
 			"github_issue_label":                                 resourceGithubIssueLabel(),
 			"github_membership":                                  resourceGithubMembership(),
 			"github_organization_block":                          resourceOrganizationBlock(),
+			"github_organization_ip_allow_list":                  resourceGithubOrganizationIpAllowList(),
 			"github_organization_project":                        resourceGithubOrganizationProject(),
 			"github_organization_settings":                       resouceGithubOrganizationSettings(),
 			"github_organization_webhook":                        resourceGithubOrganizationWebhook(),
