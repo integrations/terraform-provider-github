@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -66,15 +64,19 @@ func resourceGithubOrganizationIpAllowListImport(d *schema.ResourceData, meta in
 
 	// We support importing by the actual ip allow list entry id or
 	// by the ip range itself because it must be unique.
-	valueToImport := githubv4.String(d.Id())
+	valueToImport := d.Id()
 	ipAllowListEntryId := ""
 
 	for index := range ipAllowListEntries {
 		ipAllowListEntry := ipAllowListEntries[index]
-		if ipAllowListEntry.id == valueToImport || ipAllowListEntry.allow_list_value == valueToImport {
-			ipAllowListEntryId = string(ipAllowListEntry.id)
+		if string(ipAllowListEntry.ID) == valueToImport || string(ipAllowListEntry.AllowListValue) == valueToImport {
+			ipAllowListEntryId = string(ipAllowListEntry.ID)
 			break
 		}
+	}
+
+	if ipAllowListEntryId == "" {
+		return nil, fmt.Errorf("Organization %s does not have an IP allow list entry for %s.", orgName, valueToImport)
 	}
 
 	d.SetId(ipAllowListEntryId)
@@ -114,12 +116,10 @@ func resourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta inte
 
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ip allow list entry %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if githubv4IsNodeNotFoundError(err) {
+			log.Printf("[INFO] Removing ip allow list entry %s from state because it no longer exists in GitHub", d.Id())
+			d.SetId("")
+			return nil
 		}
 		return err
 	}
