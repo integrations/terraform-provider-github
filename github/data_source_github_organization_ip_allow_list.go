@@ -1,6 +1,8 @@
 package github
 
 import (
+	"strconv"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -53,7 +55,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta in
 		return err
 	}
 
-	d.SetId(string(orgId))
+	d.SetId(strconv.FormatInt(orgId, 10))
 	d.Set("ip_allow_list", ipAllowListEntries)
 
 	return nil
