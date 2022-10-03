@@ -91,6 +91,17 @@ func buildChecksumID(v []string) string {
 	return fmt.Sprintf("%x", bs)
 }
 
+func expandNestedSet(m map[string]interface{}, target string) []string {
+	res := make([]string, 0)
+	if v, ok := m[target]; ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			res = append(res, v.(string))
+		}
+	}
+	return res
+}
+
 func expandStringList(configured []interface{}) []string {
 	vs := make([]string, 0, len(configured))
 	for _, v := range configured {
