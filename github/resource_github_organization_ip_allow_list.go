@@ -68,8 +68,7 @@ func resourceGithubOrganizationIpAllowListImport(d *schema.ResourceData, meta in
 	valueToImport := d.Id()
 	ipAllowListEntryId := ""
 
-	for index := range ipAllowListEntries {
-		ipAllowListEntry := ipAllowListEntries[index]
+	for _, ipAllowListEntry := range ipAllowListEntries {
 		if string(ipAllowListEntry.ID) == valueToImport || string(ipAllowListEntry.AllowListValue) == valueToImport {
 			ipAllowListEntryId = string(ipAllowListEntry.ID)
 			break
