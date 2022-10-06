@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -12,7 +13,7 @@ func TestAccGithubRepositoryMilestone(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates a repository milestone", func(t *testing.T) {
+	t.Run("creates and update repository milestone", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 
@@ -31,12 +32,28 @@ func TestAccGithubRepositoryMilestone(t *testing.T) {
 
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_milestone.test", "state",
-				"closed",
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_milestone.test", "state",
+					"closed",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_milestone.test", "due_date",
+					"2020-11-22",
+				),
 			),
-		)
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_milestone.test", "state",
+					"closed",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_milestone.test", "due_date",
+					"2022-11-22",
+				),
+			),
+		}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -45,7 +62,11 @@ func TestAccGithubRepositoryMilestone(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						Check:  check,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config, "2020-11-22", "2022-11-22", 1),
+						Check:  checks["after"],
 					},
 				},
 			})
