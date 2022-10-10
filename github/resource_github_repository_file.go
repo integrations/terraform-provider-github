@@ -85,7 +85,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    false,
-				Description: "The commit author name, defaults to the authenticated user's name",
+				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
