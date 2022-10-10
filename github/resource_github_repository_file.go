@@ -91,7 +91,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    false,
-				Description: "The commit author email address, defaults to the authenticated user's email address",
+				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 			},
 			"sha": {
 				Type:        schema.TypeString,
