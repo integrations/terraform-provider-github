@@ -49,7 +49,7 @@ The following arguments are supported:
 
 * `commit_author` - (Optional) Committer author name to use. **NOTE:** GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. This maybe useful when a branch protection rule requires signed commits.
 
-* `commit_email` - (Optional) Committer email address to use. **NOTE:** Github app users may omit author and email information so github can verify commits as the Github App. This is useful when a branch protection rule requires signed commits.
+* `commit_email` - (Optional) Committer email address to use. **NOTE:** GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. This may be useful when a branch protection rule requires signed commits.
 
 * `commit_message` - (Optional) Commit message when adding or updating the managed file.
 
