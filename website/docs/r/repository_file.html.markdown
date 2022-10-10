@@ -47,7 +47,7 @@ The following arguments are supported:
 * `branch` - (Optional) Git branch (defaults to `main`).
   The branch must already exist, it will not be created if it does not already exist.
 
-* `commit_author` - (Optional) Committer author name to use. **NOTE:** Github app users may omit author and email information so github can verify commits as the Github App. This is useful when a branch protection rule requires signed commits.
+* `commit_author` - (Optional) Committer author name to use. **NOTE:** GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. This maybe useful when a branch protection rule requires signed commits.
 
 * `commit_email` - (Optional) Committer email address to use. **NOTE:** Github app users may omit author and email information so github can verify commits as the Github App. This is useful when a branch protection rule requires signed commits.
 
