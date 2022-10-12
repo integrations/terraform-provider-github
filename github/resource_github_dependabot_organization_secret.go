@@ -96,7 +96,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, strconv.Itoa(id))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, strconv.Itoa(id.(int)))
 		}
 	}
 
