@@ -54,7 +54,7 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s", id, left, right)
+		return "", "", fmt.Errorf("unexpected ID format (%q); expected %s:%s", id, left, right)
 	}
 
 	return parts[0], parts[1], nil
@@ -69,7 +69,7 @@ func buildTwoPartID(a, b string) string {
 func parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
+		return "", "", "", fmt.Errorf("unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
 	}
 
 	return parts[0], parts[1], parts[2], nil
@@ -183,11 +183,11 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 	}
 
 	if !secretNameRegexp.MatchString(name) {
-		errs = append(errs, errors.New("Secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+		errs = append(errs, errors.New("secret names can only contain alphanumeric characters or underscores and must not start with a number"))
 	}
 
 	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
-		errs = append(errs, errors.New("Secret names must not start with the GITHUB_ prefix"))
+		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
 	}
 
 	return we, errs

@@ -676,11 +676,11 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 	return func(s *terraform.State) (string, error) {
 		repo := s.RootModule().Resources[repoLogicalName]
 		if repo == nil {
-			return "", fmt.Errorf("Cannot find %s in terraform state", repoLogicalName)
+			return "", fmt.Errorf("cannot find %s in terraform state", repoLogicalName)
 		}
 		repoID, found := repo.Primary.Attributes["node_id"]
 		if !found {
-			return "", fmt.Errorf("Repository %s does not have a node_id in terraform state", repo.Primary.ID)
+			return "", fmt.Errorf("repository %s does not have a node_id in terraform state", repo.Primary.ID)
 		}
 		return fmt.Sprintf("%s:%s", repoID, pattern), nil
 	}

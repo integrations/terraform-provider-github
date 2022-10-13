@@ -87,7 +87,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
 	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("Cannot use selected_repository_ids without visibility being set to selected")
+		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
 	}
 
 	selectedRepositoryIDs := []string{}

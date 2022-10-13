@@ -268,7 +268,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 func splitRepoFullName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected full name format (%q), expected owner/repo_name", fullName)
+		return "", "", fmt.Errorf("unexpected full name format (%q), expected owner/repo_name", fullName)
 	}
 	return parts[0], parts[1], nil
 }

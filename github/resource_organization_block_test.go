@@ -60,7 +60,7 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not Found: %s", n)
 		}
 
 		username := rs.Primary.ID
