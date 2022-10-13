@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -95,7 +96,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, id.(string))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, strconv.Itoa(id.(int)))
 		}
 	}
 

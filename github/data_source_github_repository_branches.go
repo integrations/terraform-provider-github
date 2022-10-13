@@ -16,6 +16,18 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"only_protected_branches": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ConflictsWith: []string{"only_non_protected_branches"},
+			},
+			"only_non_protected_branches": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ConflictsWith: []string{"only_protected_branches"},
+			},
 			"branches": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -36,20 +48,20 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 	}
 }
 
-func flattenBranches(branches []*github.Branch) []interface{} {
+func flattenBranches(branches []*github.Branch) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
 	if branches == nil {
-		return []interface{}{}
+		return results
 	}
 
-	branchList := make([]interface{}, 0, len(branches))
 	for _, branch := range branches {
 		branchMap := make(map[string]interface{})
 		branchMap["name"] = branch.GetName()
 		branchMap["protected"] = branch.GetProtected()
-		branchList = append(branchList, branchMap)
+		results = append(results, branchMap)
 	}
 
-	return branchList
+	return results
 }
 
 func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interface{}) error {
@@ -57,14 +69,39 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interfa
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, nil)
-	if err != nil {
-		return err
+	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
+	onlyNonProtectedBranches := d.Get("only_non_protected_branches").(bool)
+	var listBranchOptions *github.BranchListOptions
+	if onlyProtectedBranches {
+		listBranchOptions = &github.BranchListOptions{
+			Protected: &onlyProtectedBranches,
+		}
+	} else if onlyNonProtectedBranches {
+		listBranchOptions = &github.BranchListOptions{
+			Protected: &onlyProtectedBranches,
+		}
+	} else {
+		listBranchOptions = &github.BranchListOptions{}
+	}
+
+	results := make([]map[string]interface{}, 0)
+	for {
+		branches, resp, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
+		if err != nil {
+			return err
+		}
+		results = append(results, flattenBranches(branches)...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listBranchOptions.Page = resp.NextPage
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", orgName, repoName))
 	d.Set("repository", repoName)
-	d.Set("branches", flattenBranches(branches))
+	d.Set("branches", results)
 
 	return nil
 }

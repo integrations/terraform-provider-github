@@ -84,14 +84,14 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"commit_author": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author name, defaults to the authenticated user's name",
+				Computed:    false,
+				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author email address, defaults to the authenticated user's email address",
+				Computed:    false,
+				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 			},
 			"sha": {
 				Type:        schema.TypeString,
@@ -255,8 +255,14 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
+
+	commit_author := commit.Commit.GetCommitter().GetName()
+	commit_email := commit.Commit.GetCommitter().GetEmail()
+
+	if commit_author != "GitHub" && commit_email != "noreply@github.com" {
+		d.Set("commit_author", commit_author)
+		d.Set("commit_email", commit_email)
+	}
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil

@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -11,27 +13,34 @@ import (
 type Actor struct {
 	ID   githubv4.ID
 	Name githubv4.String
+	Slug githubv4.String
+}
+
+type ActorUser struct {
+	ID    githubv4.ID
+	Name  githubv4.String
+	Login githubv4.String
 }
 
 type DismissalActorTypes struct {
 	Actor struct {
-		Team Actor `graphql:"... on Team"`
-		User Actor `graphql:"... on User"`
+		Team Actor     `graphql:"... on Team"`
+		User ActorUser `graphql:"... on User"`
 	}
 }
 
 type BypassPullRequestActorTypes struct {
 	Actor struct {
-		Team Actor `graphql:"... on Team"`
-		User Actor `graphql:"... on User"`
+		Team Actor     `graphql:"... on Team"`
+		User ActorUser `graphql:"... on User"`
 	}
 }
 
 type PushActorTypes struct {
 	Actor struct {
-		App  Actor `graphql:"... on App"`
-		Team Actor `graphql:"... on Team"`
-		User Actor `graphql:"... on User"`
+		App  Actor     `graphql:"... on App"`
+		Team Actor     `graphql:"... on Team"`
+		User ActorUser `graphql:"... on User"`
 	}
 }
 
@@ -223,60 +232,116 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	return data, nil
 }
 
-func setDismissalActorIDs(actors []DismissalActorTypes) []string {
-	pushActors := make([]string, 0, len(actors))
+func setDismissalActorIDs(actors []DismissalActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
+	dismissalActors := make([]string, 0, len(actors))
+	data, err := branchProtectionResourceData(d, meta)
+	if err != nil {
+		return []string{}, err
+	}
+	orgName := meta.(*Owner).name
+
 	for _, a := range actors {
-		if a.Actor.Team != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		IsID := false
+		for _, v := range data.ReviewDismissalActorIDs {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+				dismissalActors = append(dismissalActors, v)
+				IsID = true
+				break
+			}
 		}
-		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.User.ID.(string))
+		if !IsID {
+			if a.Actor.Team.Slug != "" {
+				dismissalActors = append(dismissalActors, orgName+"/"+string(a.Actor.Team.Slug))
+				continue
+			}
+			if a.Actor.User.Login != "" {
+				dismissalActors = append(dismissalActors, "/"+string(a.Actor.User.Login))
+			}
 		}
 	}
-
-	return pushActors
+	return dismissalActors, nil
 }
 
-func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes) []string {
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
 	bypassActors := make([]string, 0, len(actors))
+	data, err := branchProtectionResourceData(d, meta)
+	if err != nil {
+		return []string{}, err
+	}
+	orgName := meta.(*Owner).name
+
 	for _, a := range actors {
-		if a.Actor.Team != (Actor{}) {
-			bypassActors = append(bypassActors, a.Actor.Team.ID.(string))
+		IsID := false
+		for _, v := range data.BypassPullRequestActorIDs {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+				bypassActors = append(bypassActors, v)
+				IsID = true
+				break
+			}
 		}
-		if a.Actor.User != (Actor{}) {
-			bypassActors = append(bypassActors, a.Actor.User.ID.(string))
+		if !IsID {
+			if a.Actor.Team.Slug != "" {
+				bypassActors = append(bypassActors, orgName+"/"+string(a.Actor.Team.Slug))
+				continue
+			}
+			if a.Actor.User.Login != "" {
+				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
+			}
 		}
 	}
-
-	return bypassActors
+	return bypassActors, nil
 }
 
-func setPushActorIDs(actors []PushActorTypes) []string {
+func setPushActorIDs(actors []PushActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
 	pushActors := make([]string, 0, len(actors))
+	data, err := branchProtectionResourceData(d, meta)
+	if err != nil {
+		return []string{}, err
+	}
+	orgName := meta.(*Owner).name
+
 	for _, a := range actors {
-		if a.Actor.Team != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		IsID := false
+		for _, v := range data.PushActorIDs {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
+				pushActors = append(pushActors, v)
+				IsID = true
+				break
+			}
 		}
-		if a.Actor.User != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.User.ID.(string))
-		}
-		if a.Actor.App != (Actor{}) {
-			pushActors = append(pushActors, a.Actor.App.ID.(string))
+		if !IsID {
+			if a.Actor.Team.Slug != "" {
+				pushActors = append(pushActors, orgName+"/"+string(a.Actor.Team.Slug))
+				continue
+			}
+			if a.Actor.User.Login != "" {
+				pushActors = append(pushActors, "/"+string(a.Actor.User.Login))
+				continue
+			}
+			if a.Actor.App != (Actor{}) {
+				pushActors = append(pushActors, a.Actor.App.ID.(string))
+			}
 		}
 	}
-
-	return pushActors
+	return pushActors, nil
 }
 
-func setApprovingReviews(protection BranchProtectionRule) interface{} {
+func setApprovingReviews(protection BranchProtectionRule, d *schema.ResourceData, meta interface{}) (interface{}, error) {
 	if !protection.RequiresApprovingReviews {
-		return nil
+		return nil, nil
 	}
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
-	dismissalActors := setDismissalActorIDs(dismissalAllowances)
+	dismissalActors, err := setDismissalActorIDs(dismissalAllowances, d, meta)
+	if err != nil {
+		return nil, err
+	}
 	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
-	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances)
+	bypassPullRequestActors, err := setBypassPullRequestActorIDs(bypassPullRequestAllowances, d, meta)
+	if err != nil {
+		return nil, err
+	}
+
 	approvalReviews := []interface{}{
 		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
@@ -288,7 +353,7 @@ func setApprovingReviews(protection BranchProtectionRule) interface{} {
 		},
 	}
 
-	return approvalReviews
+	return approvalReviews, nil
 }
 
 func setStatusChecks(protection BranchProtectionRule) interface{} {
@@ -306,14 +371,16 @@ func setStatusChecks(protection BranchProtectionRule) interface{} {
 	return statusChecks
 }
 
-func setPushes(protection BranchProtectionRule) []string {
+func setPushes(protection BranchProtectionRule, d *schema.ResourceData, meta interface{}) ([]string, error) {
 	if !protection.RestrictsPushes {
-		return nil
+		return nil, nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
-	pushActors := setPushActorIDs(pushAllowances)
-
-	return pushActors
+	pushActors, err := setPushActorIDs(pushAllowances, d, meta)
+	if err != nil {
+		return nil, err
+	}
+	return pushActors, nil
 }
 
 func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{}) (githubv4.ID, error) {
@@ -365,4 +432,72 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 	}
 
 	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
+}
+
+func getActorIds(data []string, meta interface{}) ([]string, error) {
+	var actors []string
+	for _, v := range data {
+		id, err := getNodeIDv4(v, meta)
+		if err != nil {
+			return []string{}, err
+		}
+		log.Printf("[DEBUG] Retrieved node ID for user/team : %s - node ID : %s", v, id)
+		actors = append(actors, id)
+	}
+
+	return actors, nil
+}
+
+// Given a string that is either a username or team slug, return the
+// node id of the user or team it is referring to. Team slugs must be provided
+// with the organization name as prefix (Ex.: exampleorg/exampleteam). Usernames
+// must be provided with the "/" prefix otherwise getNodeIDv4 assumes that
+// the provided string is a node ID.
+func getNodeIDv4(userOrSlug string, meta interface{}) (string, error) {
+	orgName := meta.(*Owner).name
+	ctx := context.Background()
+	client := meta.(*Owner).v4client
+
+	if strings.HasPrefix(userOrSlug, orgName+"/") {
+		var queryTeam struct {
+			Organization struct {
+				Team struct {
+					ID string
+				} `graphql:"team(slug: $slug)"`
+			} `graphql:"organization(login: $organization)"`
+		}
+		teamName := strings.TrimPrefix(userOrSlug, orgName+"/")
+		variablesTeam := map[string]interface{}{
+			"slug":         githubv4.String(teamName),
+			"organization": githubv4.String(orgName),
+		}
+
+		err := client.Query(ctx, &queryTeam, variablesTeam)
+		if err != nil {
+			return "", err
+		}
+		log.Printf("[DEBUG] Retrieved node ID for team %s. ID is %s", userOrSlug, queryTeam.Organization.Team.ID)
+		return queryTeam.Organization.Team.ID, nil
+	} else if strings.HasPrefix(userOrSlug, "/") {
+		// The "/" prefix indicates a username
+		var queryUser struct {
+			User struct {
+				ID string
+			} `graphql:"user(login: $user)"`
+		}
+		userName := strings.TrimPrefix(userOrSlug, "/")
+		variablesUser := map[string]interface{}{
+			"user": githubv4.String(userName),
+		}
+
+		err := client.Query(ctx, &queryUser, variablesUser)
+		if err != nil {
+			return "", err
+		}
+		log.Printf("[DEBUG] Retrieved node ID for user %s. ID is %s", userOrSlug, queryUser.User.ID)
+		return queryUser.User.ID, nil
+	} else {
+		// If userOrSlug does not contain the team or username prefix, assume it is a node ID
+		return userOrSlug, nil
+	}
 }
