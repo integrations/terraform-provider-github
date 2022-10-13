@@ -316,7 +316,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'main'.")
+		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'.")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -490,7 +490,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
-			return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+			return fmt.Errorf("error reading repository vulnerability alerts: %v", err)
 		}
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}

@@ -5,7 +5,7 @@ description: |-
   Get dependabot secrets for a repository
 ---
 
-# github\dependabot\_secrets
+# github\_dependabot\_secrets
 
 Use this data source to retrieve the list of dependabot secrets for a GitHub repository.
 
