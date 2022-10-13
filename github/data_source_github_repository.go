@@ -28,12 +28,6 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
 			},
-			"only_protected_branches": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			"description": {
 				Type:     schema.TypeString,
 				Default:  nil,
@@ -251,17 +245,6 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
 
-	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
-	listBranchOptions := &github.BranchListOptions{
-		Protected: &onlyProtectedBranches,
-	}
-
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), owner, repoName, listBranchOptions)
-	if err != nil {
-		return err
-	}
-	d.Set("branches", flattenBranches(branches))
-
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
 		if err != nil {
@@ -285,7 +268,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 func splitRepoFullName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected full name format (%q), expected owner/repo_name", fullName)
+		return "", "", fmt.Errorf("unexpected full name format (%q), expected owner/repo_name", fullName)
 	}
 	return parts[0], parts[1], nil
 }
