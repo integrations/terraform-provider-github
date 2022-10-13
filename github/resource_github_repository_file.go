@@ -23,7 +23,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				branch := "main"
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				if len(parts) == 2 {
@@ -128,11 +128,11 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && !hasCommitEmail {
-		return nil, fmt.Errorf("Cannot set commit_author without setting commit_email")
+		return nil, fmt.Errorf("cannot set commit_author without setting commit_email")
 	}
 
 	if hasCommitEmail && !hasCommitAuthor {
-		return nil, fmt.Errorf("Cannot set commit_email without setting commit_author")
+		return nil, fmt.Errorf("cannot set commit_email without setting commit_author")
 	}
 
 	if hasCommitAuthor && hasCommitEmail {

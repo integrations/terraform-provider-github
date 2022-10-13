@@ -238,7 +238,7 @@ func splitIpv4Ipv6Cidrs(cidrs *[]string) (*[]string, *[]string, error) {
 	for _, cidr := range *cidrs {
 		cidrHost, _, err := net.ParseCIDR(cidr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed parsing cidr %s (%v)", cidr, err)
+			return nil, nil, fmt.Errorf("failed parsing cidr %s (%v)", cidr, err)
 		}
 		if cidrHost.To4() != nil {
 			cidrIpv4 = append(cidrIpv4, cidr)
