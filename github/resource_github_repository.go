@@ -444,15 +444,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
@@ -465,6 +456,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	// GitHub API doesn't respond following parameters when repository is archived
+	if !d.Get("archived").(bool) {
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	}
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
