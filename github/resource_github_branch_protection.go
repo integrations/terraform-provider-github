@@ -276,11 +276,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	approvingReviews, err := setApprovingReviews(protection, d, meta)
+	data, err := branchProtectionResourceDataActors(d, meta)
 	if err != nil {
 		return err
 	}
 
+	approvingReviews := setApprovingReviews(protection, data, meta)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
@@ -292,10 +293,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	restrictsPushes, err := setPushes(protection, d, meta)
-	if err != nil {
-		return err
-	}
+	restrictsPushes := setPushes(protection, data, meta)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())

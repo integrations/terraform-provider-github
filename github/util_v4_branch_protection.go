@@ -232,12 +232,60 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	return data, nil
 }
 
-func setDismissalActorIDs(actors []DismissalActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
-	dismissalActors := make([]string, 0, len(actors))
-	data, err := branchProtectionResourceData(d, meta)
-	if err != nil {
-		return []string{}, err
+func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
+	data := BranchProtectionResourceData{}
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_APPROVING_REVIEWS)
+		}
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
+			m := v.(map[string]interface{})
+			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
+				reviewDismissalActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					reviewDismissalActorIDs = append(reviewDismissalActorIDs, v.(string))
+				}
+				if len(reviewDismissalActorIDs) > 0 {
+					data.ReviewDismissalActorIDs = reviewDismissalActorIDs
+					data.RestrictsReviewDismissals = true
+				}
+			}
+			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
+				bypassPullRequestActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, v.(string))
+				}
+				if len(bypassPullRequestActorIDs) > 0 {
+					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
+				}
+			}
+		}
 	}
+
+	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
+		pushActorIDs := make([]string, 0)
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			pushActorIDs = append(pushActorIDs, v.(string))
+		}
+		if len(pushActorIDs) > 0 {
+			data.PushActorIDs = pushActorIDs
+			data.RestrictsPushes = true
+		}
+	}
+	return data, nil
+}
+
+func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
+	dismissalActors := make([]string, 0, len(actors))
 	orgName := meta.(*Owner).name
 
 	for _, a := range actors {
@@ -259,15 +307,12 @@ func setDismissalActorIDs(actors []DismissalActorTypes, d *schema.ResourceData, 
 			}
 		}
 	}
-	return dismissalActors, nil
+	return dismissalActors
 }
 
-func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	bypassActors := make([]string, 0, len(actors))
-	data, err := branchProtectionResourceData(d, meta)
-	if err != nil {
-		return []string{}, err
-	}
+
 	orgName := meta.(*Owner).name
 
 	for _, a := range actors {
@@ -289,15 +334,12 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, d *schem
 			}
 		}
 	}
-	return bypassActors, nil
+	return bypassActors
 }
 
-func setPushActorIDs(actors []PushActorTypes, d *schema.ResourceData, meta interface{}) ([]string, error) {
+func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	pushActors := make([]string, 0, len(actors))
-	data, err := branchProtectionResourceData(d, meta)
-	if err != nil {
-		return []string{}, err
-	}
+
 	orgName := meta.(*Owner).name
 
 	for _, a := range actors {
@@ -323,24 +365,19 @@ func setPushActorIDs(actors []PushActorTypes, d *schema.ResourceData, meta inter
 			}
 		}
 	}
-	return pushActors, nil
+	return pushActors
 }
 
-func setApprovingReviews(protection BranchProtectionRule, d *schema.ResourceData, meta interface{}) (interface{}, error) {
+func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
 	if !protection.RequiresApprovingReviews {
-		return nil, nil
+		return nil
 	}
 
 	dismissalAllowances := protection.ReviewDismissalAllowances.Nodes
-	dismissalActors, err := setDismissalActorIDs(dismissalAllowances, d, meta)
-	if err != nil {
-		return nil, err
-	}
+	dismissalActors := setDismissalActorIDs(dismissalAllowances, data, meta)
+
 	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
-	bypassPullRequestActors, err := setBypassPullRequestActorIDs(bypassPullRequestAllowances, d, meta)
-	if err != nil {
-		return nil, err
-	}
+	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances, data, meta)
 
 	approvalReviews := []interface{}{
 		map[string]interface{}{
@@ -353,7 +390,7 @@ func setApprovingReviews(protection BranchProtectionRule, d *schema.ResourceData
 		},
 	}
 
-	return approvalReviews, nil
+	return approvalReviews
 }
 
 func setStatusChecks(protection BranchProtectionRule) interface{} {
@@ -371,16 +408,14 @@ func setStatusChecks(protection BranchProtectionRule) interface{} {
 	return statusChecks
 }
 
-func setPushes(protection BranchProtectionRule, d *schema.ResourceData, meta interface{}) ([]string, error) {
+func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
 	if !protection.RestrictsPushes {
-		return nil, nil
+		return nil
 	}
 	pushAllowances := protection.PushAllowances.Nodes
-	pushActors, err := setPushActorIDs(pushAllowances, d, meta)
-	if err != nil {
-		return nil, err
-	}
-	return pushActors, nil
+	pushActors := setPushActorIDs(pushAllowances, data, meta)
+
+	return pushActors
 }
 
 func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{}) (githubv4.ID, error) {
