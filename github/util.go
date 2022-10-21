@@ -5,11 +5,14 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/v43/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -191,4 +194,23 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 	}
 
 	return we, errs
+}
+
+// handleAPIError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
+// doesn't exist.
+// resourceDescription represents a formatting string that represents the resource
+// args will be passed to resourceDescription in `log.Printf`
+func handleAPIError(err error, d *schema.ResourceData, resourceDescription string, args ...interface{}) error {
+	if ghErr, ok := err.(*github.ErrorResponse); ok {
+		if ghErr.Response.StatusCode == http.StatusNotModified {
+			return nil
+		}
+		if ghErr.Response.StatusCode == http.StatusNotFound {
+			log.Printf("[INFO] Removing "+resourceDescription+" from state because it no longer exists in GitHub",
+				args...)
+			d.SetId("")
+			return nil
+		}
+	}
+	return err
 }

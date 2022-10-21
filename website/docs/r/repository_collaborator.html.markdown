@@ -14,7 +14,7 @@ organization or personal account. For organization repositories, collaborators c
 have explicit (and differing levels of) read, write, or administrator access to 
 specific repositories, without giving the user full organization membership. 
 For personal repositories, collaborators can only be granted write
-(implictly includes read) permission. 
+(implicitly includes read) permission. 
 
 When applied, an invitation will be sent to the user to become a collaborator
 on a repository. When destroyed, either the invitation will be cancelled or the
