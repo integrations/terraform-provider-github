@@ -7,6 +7,9 @@ description: |-
 
 # GitHub Provider
 
+~> **Note:** this is a fork of `integrations/github` with added support for authoritative binding for collaborators (https://github.com/integrations/terraform-provider-github/pull/1121).
+Version numbers beginning with `v1000` and above correspond to the forked repo, and mirror content from the main repo (e.g. `v1005.5.0` is `v5.5.0` from upstream + `collaborators` resource).
+
 The GitHub provider is used to interact with GitHub resources.
 
 The provider allows you to manage your GitHub organization's members and teams easily.
