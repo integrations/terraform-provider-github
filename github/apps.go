@@ -75,7 +75,7 @@ func getInstallationAccessToken(baseURL string, jwt string, installationID strin
 func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error) {
 	block, _ := pem.Decode(pemData)
 	if block == nil {
-		return "", errors.New("No decodeable PEM data found")
+		return "", errors.New("no decodeable PEM data found")
 	}
 
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
