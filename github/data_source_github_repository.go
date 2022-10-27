@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -28,12 +28,6 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
 			},
-			"only_protected_branches": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			"description": {
 				Type:     schema.TypeString,
 				Default:  nil,
@@ -84,6 +78,22 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"squash_merge_commit_title": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"squash_merge_commit_message": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"merge_commit_title": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"merge_commit_message": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"default_branch": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -91,22 +101,6 @@ func dataSourceGithubRepository() *schema.Resource {
 			"archived": {
 				Type:     schema.TypeBool,
 				Computed: true,
-			},
-			"branches": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"protected": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-					},
-				},
 			},
 			"pages": {
 				Type:     schema.TypeList,
@@ -234,6 +228,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
@@ -246,17 +244,6 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
-
-	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
-	listBranchOptions := &github.BranchListOptions{
-		Protected: &onlyProtectedBranches,
-	}
-
-	branches, _, err := client.Repositories.ListBranches(context.TODO(), owner, repoName, listBranchOptions)
-	if err != nil {
-		return err
-	}
-	d.Set("branches", flattenBranches(branches))
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
@@ -281,7 +268,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 func splitRepoFullName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected full name format (%q), expected owner/repo_name", fullName)
+		return "", "", fmt.Errorf("unexpected full name format (%q), expected owner/repo_name", fullName)
 	}
 	return parts[0], parts[1], nil
 }

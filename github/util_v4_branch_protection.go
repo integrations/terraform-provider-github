@@ -364,5 +364,5 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 		}
 	}
 
-	return nil, fmt.Errorf("Could not find a branch protection rule with the pattern '%s'.", pattern)
+	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'.", pattern)
 }
