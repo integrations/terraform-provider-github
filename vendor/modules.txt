@@ -240,9 +240,9 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v47 v47.1.0
+# github.com/google/go-github/v48 v48.0.0
 ## explicit
-github.com/google/go-github/v47/github
+github.com/google/go-github/v48/github
 # github.com/google/go-querystring v1.1.0
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.3.0
