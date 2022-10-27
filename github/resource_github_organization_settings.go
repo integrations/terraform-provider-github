@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resouceGithubOrganizationSettings() *schema.Resource {
+func resourceGithubOrganizationSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubOrganizationSettingsCreateOrUpdate,
 		Read:   resourceGithubOrganizationSettingsRead,
@@ -246,7 +246,7 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta interfa
 	ctx := context.Background()
 	org := meta.(*Owner).name
 
-	orgSettings, _, err := client.Organizations.Edit(ctx, org, nil)
+	orgSettings, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
 		return err
 	}
