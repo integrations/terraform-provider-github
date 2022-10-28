@@ -88,9 +88,9 @@ func resourceGithubRepository() *schema.Resource {
 									},
 								},
 							},
-						}, /*TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
+						},
 						"secret_scanning_push_protection": {
-							Type:     schema.List,
+							Type:     schema.TypeList,
 							Required: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
@@ -102,7 +102,7 @@ func resourceGithubRepository() *schema.Resource {
 									},
 								},
 							},
-						},*/
+						},
 					},
 				},
 			},
@@ -642,6 +642,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 					AdvancedSecurity: &github.AdvancedSecurity{
 						Status: github.String("disabled")},
 					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled")},
+					SecretScanningPushProtection: &github.SecretScanningPushProtection{
 						Status: github.String("disabled")}},
 			})
 			if err != nil {
@@ -812,9 +814,8 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 	advancedSecurityMap["status"] = securityAndAnalysis.GetAdvancedSecurity().GetStatus()
 	secretScanningMap := make(map[string]interface{})
 	secretScanningMap["status"] = securityAndAnalysis.GetSecretScanning().GetStatus()
-	//TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
-	//secretScanningPushProtectionMap := make(map[string]interface{})
-	//secretScanningPushProtectionMap["status"] = securityAndAnalysis.GetSecretScanningPushProtection().GetStatus()
+	secretScanningPushProtectionMap := make(map[string]interface{})
+	secretScanningPushProtectionMap["status"] = securityAndAnalysis.GetSecretScanningPushProtection().GetStatus()
 
 	securityAndAnalysisMap := make(map[string]interface{})
 	securityAndAnalysisMap["advanced_security"] = []interface{}{advancedSecurityMap}
@@ -840,11 +841,10 @@ func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
 	update.SecretScanning = &github.SecretScanning{
 		Status: github.String(secretScanning["status"].(string)),
 	}
-	//TODO: SecretScanningPushProtection is not yet supported by the Go GitHub Client Library
-	//secretScanningPushProtection := securityAndAnalysis["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
-	//update.SecretScanningPushProtection = &github.SecretScanningPushProtection{
-	//	Status: github.String(secretScanningPushProtection["status"].(string)),
-	//}
+	secretScanningPushProtection := securityAndAnalysis["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
+	update.SecretScanningPushProtection = &github.SecretScanningPushProtection{
+		Status: github.String(secretScanningPushProtection["status"].(string)),
+	}
 
 	return &github.Repository{SecurityAndAnalysis: update}
 }
