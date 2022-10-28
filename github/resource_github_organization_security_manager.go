@@ -16,7 +16,9 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 		Read:   resourceGithubOrganizationSecurityManagerRead,
 		Update: resourceGithubOrganizationSecurityManagerUpdate,
 		Delete: resourceGithubOrganizationSecurityManagerDelete,
-		// TODO import
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
