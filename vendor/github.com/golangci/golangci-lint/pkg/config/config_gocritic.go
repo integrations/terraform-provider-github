@@ -15,18 +15,10 @@ import (
 
 const gocriticDebugKey = "gocritic"
 
-var (
-	gocriticDebugf        = logutils.Debug(gocriticDebugKey)
-	isGocriticDebug       = logutils.HaveDebugTag(gocriticDebugKey)
-	allGocriticCheckers   = lintpack.GetCheckersInfo()
-	allGocriticCheckerMap = func() map[string]*lintpack.CheckerInfo {
-		checkInfoMap := make(map[string]*lintpack.CheckerInfo)
-		for _, checkInfo := range allGocriticCheckers {
-			checkInfoMap[checkInfo.Name] = checkInfo
-		}
-		return checkInfoMap
-	}()
-)
+var gocriticDebugf = logutils.Debug(gocriticDebugKey)
+var isGocriticDebug = logutils.HaveDebugTag(gocriticDebugKey)
+
+var allGocriticCheckers = lintpack.GetCheckersInfo()
 
 type GocriticCheckSettings map[string]interface{}
 
@@ -34,7 +26,6 @@ type GocriticSettings struct {
 	EnabledChecks    []string                         `mapstructure:"enabled-checks"`
 	DisabledChecks   []string                         `mapstructure:"disabled-checks"`
 	EnabledTags      []string                         `mapstructure:"enabled-tags"`
-	DisabledTags     []string                         `mapstructure:"disabled-tags"`
 	SettingsPerCheck map[string]GocriticCheckSettings `mapstructure:"settings"`
 
 	inferredEnabledChecks map[string]bool
@@ -106,6 +97,7 @@ func (s *GocriticSettings) gocriticDisabledCheckersDebugf() {
 	}
 }
 
+//nolint:gocyclo
 func (s *GocriticSettings) InferEnabledChecks(log logutils.Log) {
 	gocriticCheckerTagsDebugf()
 
@@ -116,8 +108,6 @@ func (s *GocriticSettings) InferEnabledChecks(log logutils.Log) {
 	debugChecksListf(disabledByDefaultChecks, "Disabled by default")
 
 	var enabledChecks []string
-
-	// EnabledTags
 	if len(s.EnabledTags) != 0 {
 		tagToCheckers := buildGocriticTagToCheckersMap()
 		for _, tag := range s.EnabledTags {
@@ -131,12 +121,6 @@ func (s *GocriticSettings) InferEnabledChecks(log logutils.Log) {
 		enabledChecks = append(enabledChecks, enabledByDefaultChecks...)
 	}
 
-	// DisabledTags
-	if len(s.DisabledTags) != 0 {
-		enabledChecks = filterByDisableTags(enabledChecks, s.DisabledTags, log)
-	}
-
-	// EnabledChecks
 	if len(s.EnabledChecks) != 0 {
 		debugChecksListf(s.EnabledChecks, "Enabled by config")
 
@@ -150,15 +134,14 @@ func (s *GocriticSettings) InferEnabledChecks(log logutils.Log) {
 		}
 	}
 
-	// DisabledChecks
 	if len(s.DisabledChecks) != 0 {
 		debugChecksListf(s.DisabledChecks, "Disabled by config")
 
 		enabledChecksSet := stringsSliceToSet(enabledChecks)
 		for _, disabledCheck := range s.DisabledChecks {
 			if !enabledChecksSet[disabledCheck] {
-				log.Warnf("Gocritic check %q was explicitly disabled via config. However, as this check"+
-					"is disabled by default, there is no need to explicitly disable it via config.", disabledCheck)
+				log.Warnf("Gocritic check %q was disabled by config, was it's not enabled, no need to disable it",
+					disabledCheck)
 				continue
 			}
 			delete(enabledChecksSet, disabledCheck)
@@ -192,22 +175,7 @@ func validateStringsUniq(ss []string) error {
 	return nil
 }
 
-func intersectStringSlice(s1, s2 []string) []string {
-	s1Map := make(map[string]struct{})
-	for _, s := range s1 {
-		s1Map[s] = struct{}{}
-	}
-
-	result := make([]string, 0)
-	for _, s := range s2 {
-		if _, exists := s1Map[s]; exists {
-			result = append(result, s)
-		}
-	}
-
-	return result
-}
-
+//nolint:gocyclo
 func (s *GocriticSettings) Validate(log logutils.Log) error {
 	if len(s.EnabledTags) == 0 {
 		if len(s.EnabledChecks) != 0 && len(s.DisabledChecks) != 0 {
@@ -221,16 +189,7 @@ func (s *GocriticSettings) Validate(log logutils.Log) error {
 		tagToCheckers := buildGocriticTagToCheckersMap()
 		for _, tag := range s.EnabledTags {
 			if _, ok := tagToCheckers[tag]; !ok {
-				return fmt.Errorf("gocritic [enabled]tag %q doesn't exist", tag)
-			}
-		}
-	}
-
-	if len(s.DisabledTags) > 0 {
-		tagToCheckers := buildGocriticTagToCheckersMap()
-		for _, tag := range s.EnabledTags {
-			if _, ok := tagToCheckers[tag]; !ok {
-				return fmt.Errorf("gocritic [disabled]tag %q doesn't exist", tag)
+				return fmt.Errorf("gocritic tag %q doesn't exist", tag)
 			}
 		}
 	}
@@ -343,25 +302,4 @@ func (s *GocriticSettings) GetLowercasedParams() map[string]GocriticCheckSetting
 		ret[strings.ToLower(checker)] = params
 	}
 	return ret
-}
-
-func filterByDisableTags(enabledChecks, disableTags []string, log logutils.Log) []string {
-	enabledChecksSet := stringsSliceToSet(enabledChecks)
-	for _, enabledCheck := range enabledChecks {
-		checkInfo, checkInfoExists := allGocriticCheckerMap[enabledCheck]
-		if !checkInfoExists {
-			log.Warnf("Gocritic check %q was not exists via filtering disabled tags", enabledCheck)
-			continue
-		}
-		hitTags := intersectStringSlice(checkInfo.Tags, disableTags)
-		if len(hitTags) != 0 {
-			delete(enabledChecksSet, enabledCheck)
-		}
-		debugChecksListf(enabledChecks, "Disabled by config tags %s", sprintStrings(disableTags))
-	}
-	enabledChecks = nil
-	for enabledCheck := range enabledChecksSet {
-		enabledChecks = append(enabledChecks, enabledCheck)
-	}
-	return enabledChecks
 }

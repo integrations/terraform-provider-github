@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/shurcooL/githubv4"

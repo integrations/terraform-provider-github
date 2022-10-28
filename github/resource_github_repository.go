@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -94,6 +94,26 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"squash_merge_commit_title": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "COMMIT_OR_PR_TITLE",
+			},
+			"squash_merge_commit_message": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "COMMIT_MESSAGES",
+			},
+			"merge_commit_title": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "MERGE_MESSAGE",
+			},
+			"merge_commit_message": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "PR_TITLE",
+			},
 			"delete_branch_on_merge": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -126,22 +146,6 @@ func resourceGithubRepository() *schema.Resource {
 			"archive_on_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
-			},
-			"branches": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"protected": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-					},
-				},
 			},
 			"pages": {
 				Type:     schema.TypeList,
@@ -259,6 +263,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -282,25 +290,30 @@ func calculateVisibility(d *schema.ResourceData) string {
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return &github.Repository{
-		Name:                github.String(d.Get("name").(string)),
-		Description:         github.String(d.Get("description").(string)),
-		Homepage:            github.String(d.Get("homepage_url").(string)),
-		Visibility:          github.String(calculateVisibility(d)),
-		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
-		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
-		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
-		HasWiki:             github.Bool(d.Get("has_wiki").(bool)),
-		IsTemplate:          github.Bool(d.Get("is_template").(bool)),
-		AllowMergeCommit:    github.Bool(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:      github.Bool(d.Get("allow_auto_merge").(bool)),
-		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
-		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
-		LicenseTemplate:     github.String(d.Get("license_template").(string)),
-		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
-		Archived:            github.Bool(d.Get("archived").(bool)),
-		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
+		Name:                     github.String(d.Get("name").(string)),
+		Description:              github.String(d.Get("description").(string)),
+		Homepage:                 github.String(d.Get("homepage_url").(string)),
+		Visibility:               github.String(calculateVisibility(d)),
+		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
+		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
+		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
+		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
+		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
+		AllowMergeCommit:         github.Bool(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
+		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
+		SquashMergeCommitTitle:   github.String(d.Get("squash_merge_commit_title").(string)),
+		SquashMergeCommitMessage: github.String(d.Get("squash_merge_commit_message").(string)),
+		MergeCommitTitle:         github.String(d.Get("merge_commit_title").(string)),
+		MergeCommitMessage:       github.String(d.Get("merge_commit_message").(string)),
+		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
+		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
+		LicenseTemplate:          github.String(d.Get("license_template").(string)),
+		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
+		Archived:                 github.Bool(d.Get("archived").(bool)),
+		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 	}
 }
 
@@ -308,7 +321,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'main'.")
+		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -436,11 +449,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
@@ -453,12 +461,20 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
-	branches, _, err := client.Repositories.ListBranches(ctx, owner, repoName, nil)
-	if err != nil {
-		return err
+	// GitHub API doesn't respond following parameters when repository is archived
+	if !d.Get("archived").(bool) {
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
-	d.Set("branches", flattenBranches(branches))
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
@@ -484,7 +500,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
-			return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+			return fmt.Errorf("error reading repository vulnerability alerts: %v", err)
 		}
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
@@ -661,13 +677,14 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
-	source := pagesSource["branch"].(string)
+	sourceBranch := pagesSource["branch"].(string)
+	sourcePath := ""
 	if v, ok := pagesSource["path"].(string); ok {
 		if v != "" && v != "/" {
-			source += fmt.Sprintf(" %s", v)
+			sourcePath = v
 		}
 	}
-	update.Source = github.String(source)
+	update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 
 	return update
 }
@@ -690,21 +707,4 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap["html_url"] = pages.GetHTMLURL()
 
 	return []interface{}{pagesMap}
-}
-
-func flattenBranches(branches []*github.Branch) []interface{} {
-	if branches == nil {
-		return []interface{}{}
-	}
-
-	branchList := make([]interface{}, 0, len(branches))
-
-	for _, branch := range branches {
-		branchMap := make(map[string]interface{})
-		branchMap["name"] = branch.Name
-		branchMap["protected"] = branch.Protected
-		branchList = append(branchList, branchMap)
-	}
-
-	return branchList
 }

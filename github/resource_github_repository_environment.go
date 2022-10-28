@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -134,9 +134,13 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 			for _, r := range pr.Reviewers {
 				switch *r.Type {
 				case "Team":
-					teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					if r.Reviewer.(*github.Team).ID != nil {
+						teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					}
 				case "User":
-					users = append(users, *r.Reviewer.(*github.User).ID)
+					if r.Reviewer.(*github.User).ID != nil {
+						users = append(users, *r.Reviewer.(*github.User).ID)
+					}
 				}
 			}
 			d.Set("reviewers", []interface{}{

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v48/github"
 )
 
 const (
@@ -34,7 +34,7 @@ func getRepoPermission(p map[string]bool) (string, error) {
 		if (p)[pullPermission] {
 			return pullPermission, nil
 		}
-		return "", errors.New("At least one permission expected from permissions map.")
+		return "", errors.New("at least one permission expected from permissions map")
 	}
 }
 
