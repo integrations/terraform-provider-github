@@ -138,19 +138,25 @@ The `source` block supports the following:
 
 The `security_and_analysis` block supports the following:
 
-* `advanced_security` - (Optional) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details.
+* `advanced_security` - (Required) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details.
 
-* `secret_scanning` - (Optional) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
+* `secret_scanning` - (Required) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
+
+* `secret_scanning_push_protection` - (Required) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
 
 #### Advanced Security Configuration ####
 
 The `advanced_security` block supports the following:
 
-* `status` - (Optional) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
+* `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
 
 #### Secret Scanning Configuration ####
 
-* `status` - (Optional) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`.
+
+#### Secret Scanning Push Protection Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`.
 
 ### Template Repositories
 
