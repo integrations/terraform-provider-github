@@ -5,7 +5,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"runtime/trace"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -38,16 +37,6 @@ func (e *Executor) persistentPreRun(_ *cobra.Command, _ []string) {
 			runtime.MemProfileRate, _ = strconv.Atoi(rate)
 		}
 	}
-
-	if e.cfg.Run.TracePath != "" {
-		f, err := os.Create(e.cfg.Run.TracePath)
-		if err != nil {
-			e.log.Fatalf("Can't create file %s: %s", e.cfg.Run.TracePath, err)
-		}
-		if err = trace.Start(f); err != nil {
-			e.log.Fatalf("Can't start tracing: %s", err)
-		}
-	}
 }
 
 func (e *Executor) persistentPostRun(_ *cobra.Command, _ []string) {
@@ -69,11 +58,7 @@ func (e *Executor) persistentPostRun(_ *cobra.Command, _ []string) {
 		}
 		f.Close()
 	}
-	if e.cfg.Run.TracePath != "" {
-		trace.Stop()
-	}
 
-	e.releaseFileLock()
 	os.Exit(e.exitCode)
 }
 
@@ -93,23 +78,18 @@ func printMemStats(ms *runtime.MemStats, logger logutils.Log) {
 }
 
 func formatMemory(memBytes uint64) string {
-	const Kb = 1024
-	const Mb = Kb * 1024
-
-	if memBytes < Kb {
+	if memBytes < 1024 {
 		return fmt.Sprintf("%db", memBytes)
 	}
-	if memBytes < Mb {
-		return fmt.Sprintf("%dkb", memBytes/Kb)
+	if memBytes < 1024*1024 {
+		return fmt.Sprintf("%dkb", memBytes/1024)
 	}
-	return fmt.Sprintf("%dmb", memBytes/Mb)
+	return fmt.Sprintf("%dmb", memBytes/1024/1024)
 }
 
 func getDefaultConcurrency() int {
 	if os.Getenv("HELP_RUN") == "1" {
-		// Make stable concurrency for README help generating builds.
-		const prettyConcurrency = 8
-		return prettyConcurrency
+		return 8 // to make stable concurrency for README help generating builds
 	}
 
 	return runtime.NumCPU()
@@ -156,7 +136,6 @@ func initRootFlagSet(fs *pflag.FlagSet, cfg *config.Config, needVersionOption bo
 
 	fs.StringVar(&cfg.Run.CPUProfilePath, "cpu-profile-path", "", wh("Path to CPU profile output file"))
 	fs.StringVar(&cfg.Run.MemProfilePath, "mem-profile-path", "", wh("Path to memory profile output file"))
-	fs.StringVar(&cfg.Run.TracePath, "trace-path", "", wh("Path to trace output file"))
 	fs.IntVarP(&cfg.Run.Concurrency, "concurrency", "j", getDefaultConcurrency(), wh("Concurrency (default NumCPU)"))
 	if needVersionOption {
 		fs.BoolVar(&cfg.Run.PrintVersion, "version", false, wh("Print version"))

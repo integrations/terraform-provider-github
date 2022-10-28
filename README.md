@@ -5,8 +5,7 @@ Terraform Provider GitHub
 
 <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
 
-- Website: https://www.terraform.io
-- Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
+This project is used to read and write to/from GitHub (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
 
 ## Requirements
 
@@ -23,7 +22,7 @@ Detailed documentation for contributing to the GitHub provider can be found [her
 
 ## Roadmap
 
-This project leverages [Milestones](https://github.com/integrations/terraform-provider-github/milestones) to scope upcoming features and bug fixes. Issues that receive the most recent discussion or the most reactions will be more likely to be included in an upcoming release.
+This project uses [Milestones](https://github.com/integrations/terraform-provider-github/milestones) to scope upcoming features and bug fixes. Issues that receive the most recent discussion or the most reactions will be more likely to be included in an upcoming release.
 
 ## Support
 

@@ -56,6 +56,50 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	})
 
+	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name = "tf-acc-test-%s"
+			}
+
+			data "github_team" "test" {
+				slug            = github_team.test.slug
+				membership_type = "immediate"
+			}
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
+			resource.TestCheckResourceAttr("data.github_team.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
 
 		config := `
