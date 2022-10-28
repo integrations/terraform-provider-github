@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v48/github"
@@ -46,9 +47,14 @@ func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, met
 
 	_, err = client.Organizations.AddSecurityManagerTeam(ctx, orgName, teamSlug)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusConflict {
+				log.Printf("[WARN] Organization %s has reached the maximum number of security manager teams", orgName)
+				return nil
+			}
+		}
 		return err
 	}
-	// TODO handle 409 too many security manager teams
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 
