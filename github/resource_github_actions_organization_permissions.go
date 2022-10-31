@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -99,7 +99,7 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
 		return &github.ActionsAllowed{},
-			errors.New("The allowed_actions_config {} block must be specified if allowed_actions == 'selected'.")
+			errors.New("the allowed_actions_config {} block must be specified if allowed_actions == 'selected'")
 	}
 
 	return allowed, nil
@@ -118,7 +118,7 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 			}
 		}
 	} else {
-		return nil, errors.New("The enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'.")
+		return nil, errors.New("the enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'")
 	}
 	return enabled, nil
 }

@@ -11,7 +11,7 @@ This resource allows you to create and manage GitHub Actions secrets within your
 You must have write access to a repository to use this resource.
 
 Secret values are encrypted using the [Go '/crypto/box' module](https://godoc.org/golang.org/x/crypto/nacl/box) which is
-interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is used by GitHub to decrypt secret values. 
+interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is used by GitHub to decrypt secret values.
 
 For the purposes of security, the contents of the `plaintext_value` field have been marked as `sensitive` to Terraform,
 but it is important to note that **this does not hide it from state files**. You should treat state as sensitive always.
@@ -71,12 +71,4 @@ The following arguments are supported:
 
 ## Import
 
-This resource can be imported using an ID made up of the secret name:
-
-```
-$ terraform import github_actions_environment_secret.test_secret test_secret_name
-```
-
-NOTE: the implementation is limited in that it won't fetch the value of the
-`plaintext_value` field when importing. You may need to ignore changes for the
-`plaintext_value` as a workaround.
+This resource does not support importing. If you'd like to help contribute it, please visit our [GitHub page](https://github.com/integrations/terraform-provider-github)!

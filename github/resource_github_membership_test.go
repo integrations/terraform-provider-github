@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -105,7 +105,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 		if err == nil {
 			if membership != nil &&
 				buildTwoPartID(orgName, username) == rs.Primary.ID {
-				return fmt.Errorf("Organization membership %q still exists", rs.Primary.ID)
+				return fmt.Errorf("organization membership %q still exists", rs.Primary.ID)
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -120,11 +120,11 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not Found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No membership ID is set")
+			return fmt.Errorf("no membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -146,11 +146,11 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not Found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No membership ID is set")
+			return fmt.Errorf("no membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -168,7 +168,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		actualRole := githubMembership.GetRole()
 
 		if resourceRole != actualRole {
-			return fmt.Errorf("Membership role %v in resource does match actual state of %v",
+			return fmt.Errorf("membership role %v in resource does match actual state of %v",
 				resourceRole, actualRole)
 		}
 		return nil

@@ -86,6 +86,14 @@ func (a *ActionsPermissionsRepository) GetSelectedActionsURL() string {
 	return *a.SelectedActionsURL
 }
 
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (a *AdminEnforcedChanges) GetFrom() bool {
+	if a == nil || a.From == nil {
+		return false
+	}
+	return *a.From
+}
+
 // GetURL returns the URL field if it's non-nil, zero value otherwise.
 func (a *AdminEnforcement) GetURL() string {
 	if a == nil || a.URL == nil {
@@ -412,6 +420,14 @@ func (a *Alert) GetURL() string {
 		return ""
 	}
 	return *a.URL
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (a *AllowDeletionsEnforcementLevelChanges) GetFrom() string {
+	if a == nil || a.From == nil {
+		return ""
+	}
+	return *a.From
 }
 
 // GetRef returns the Ref field if it's non-nil, zero value otherwise.
@@ -1360,6 +1376,14 @@ func (a *AuthorizationUpdateRequest) GetNoteURL() string {
 
 // GetFrom returns the From field if it's non-nil, zero value otherwise.
 func (a *AuthorizedActorsOnly) GetFrom() bool {
+	if a == nil || a.From == nil {
+		return false
+	}
+	return *a.From
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (a *AuthorizedDismissalActorsOnlyChanges) GetFrom() bool {
 	if a == nil || a.From == nil {
 		return false
 	}
@@ -3542,6 +3566,38 @@ func (c *CreateOrgInvitationOptions) GetRole() string {
 	return *c.Role
 }
 
+// GetBaseRole returns the BaseRole field if it's non-nil, zero value otherwise.
+func (c *CreateOrUpdateCustomRoleOptions) GetBaseRole() string {
+	if c == nil || c.BaseRole == nil {
+		return ""
+	}
+	return *c.BaseRole
+}
+
+// GetDescription returns the Description field if it's non-nil, zero value otherwise.
+func (c *CreateOrUpdateCustomRoleOptions) GetDescription() string {
+	if c == nil || c.Description == nil {
+		return ""
+	}
+	return *c.Description
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (c *CreateOrUpdateCustomRoleOptions) GetName() string {
+	if c == nil || c.Name == nil {
+		return ""
+	}
+	return *c.Name
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (c *CreateProtectedChanges) GetFrom() bool {
+	if c == nil || c.From == nil {
+		return false
+	}
+	return *c.From
+}
+
 // GetAllowsPublicRepositories returns the AllowsPublicRepositories field if it's non-nil, zero value otherwise.
 func (c *CreateRunnerGroupRequest) GetAllowsPublicRepositories() bool {
 	if c == nil || c.AllowsPublicRepositories == nil {
@@ -3588,6 +3644,22 @@ func (c *CreateUserProjectOptions) GetBody() string {
 		return ""
 	}
 	return *c.Body
+}
+
+// GetBaseRole returns the BaseRole field if it's non-nil, zero value otherwise.
+func (c *CustomRepoRoles) GetBaseRole() string {
+	if c == nil || c.BaseRole == nil {
+		return ""
+	}
+	return *c.BaseRole
+}
+
+// GetDescription returns the Description field if it's non-nil, zero value otherwise.
+func (c *CustomRepoRoles) GetDescription() string {
+	if c == nil || c.Description == nil {
+		return ""
+	}
+	return *c.Description
 }
 
 // GetID returns the ID field if it's non-nil, zero value otherwise.
@@ -4532,6 +4604,14 @@ func (d *DismissedReview) GetState() string {
 		return ""
 	}
 	return *d.State
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (d *DismissStaleReviewsOnPushChanges) GetFrom() bool {
+	if d == nil || d.From == nil {
+		return false
+	}
+	return *d.From
 }
 
 // GetClientPayload returns the ClientPayload field if it's non-nil, zero value otherwise.
@@ -8174,6 +8254,14 @@ func (l *License) GetURL() string {
 	return *l.URL
 }
 
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (l *LinearHistoryRequirementEnforcementLevelChanges) GetFrom() string {
+	if l == nil || l.From == nil {
+		return ""
+	}
+	return *l.From
+}
+
 // GetAppID returns the AppID field if it's non-nil, zero value otherwise.
 func (l *ListCheckRunsOptions) GetAppID() int64 {
 	if l == nil || l.AppID == nil {
@@ -11806,6 +11894,22 @@ func (p *Protection) GetRestrictions() *BranchRestrictions {
 	return p.Restrictions
 }
 
+// GetAdminEnforced returns the AdminEnforced field.
+func (p *ProtectionChanges) GetAdminEnforced() *AdminEnforcedChanges {
+	if p == nil {
+		return nil
+	}
+	return p.AdminEnforced
+}
+
+// GetAllowDeletionsEnforcementLevel returns the AllowDeletionsEnforcementLevel field.
+func (p *ProtectionChanges) GetAllowDeletionsEnforcementLevel() *AllowDeletionsEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.AllowDeletionsEnforcementLevel
+}
+
 // GetAuthorizedActorNames returns the AuthorizedActorNames field.
 func (p *ProtectionChanges) GetAuthorizedActorNames() *AuthorizedActorNames {
 	if p == nil {
@@ -11820,6 +11924,94 @@ func (p *ProtectionChanges) GetAuthorizedActorsOnly() *AuthorizedActorsOnly {
 		return nil
 	}
 	return p.AuthorizedActorsOnly
+}
+
+// GetAuthorizedDismissalActorsOnly returns the AuthorizedDismissalActorsOnly field.
+func (p *ProtectionChanges) GetAuthorizedDismissalActorsOnly() *AuthorizedDismissalActorsOnlyChanges {
+	if p == nil {
+		return nil
+	}
+	return p.AuthorizedDismissalActorsOnly
+}
+
+// GetCreateProtected returns the CreateProtected field.
+func (p *ProtectionChanges) GetCreateProtected() *CreateProtectedChanges {
+	if p == nil {
+		return nil
+	}
+	return p.CreateProtected
+}
+
+// GetDismissStaleReviewsOnPush returns the DismissStaleReviewsOnPush field.
+func (p *ProtectionChanges) GetDismissStaleReviewsOnPush() *DismissStaleReviewsOnPushChanges {
+	if p == nil {
+		return nil
+	}
+	return p.DismissStaleReviewsOnPush
+}
+
+// GetLinearHistoryRequirementEnforcementLevel returns the LinearHistoryRequirementEnforcementLevel field.
+func (p *ProtectionChanges) GetLinearHistoryRequirementEnforcementLevel() *LinearHistoryRequirementEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.LinearHistoryRequirementEnforcementLevel
+}
+
+// GetPullRequestReviewsEnforcementLevel returns the PullRequestReviewsEnforcementLevel field.
+func (p *ProtectionChanges) GetPullRequestReviewsEnforcementLevel() *PullRequestReviewsEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.PullRequestReviewsEnforcementLevel
+}
+
+// GetRequireCodeOwnerReview returns the RequireCodeOwnerReview field.
+func (p *ProtectionChanges) GetRequireCodeOwnerReview() *RequireCodeOwnerReviewChanges {
+	if p == nil {
+		return nil
+	}
+	return p.RequireCodeOwnerReview
+}
+
+// GetRequiredConversationResolutionLevel returns the RequiredConversationResolutionLevel field.
+func (p *ProtectionChanges) GetRequiredConversationResolutionLevel() *RequiredConversationResolutionLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.RequiredConversationResolutionLevel
+}
+
+// GetRequiredDeploymentsEnforcementLevel returns the RequiredDeploymentsEnforcementLevel field.
+func (p *ProtectionChanges) GetRequiredDeploymentsEnforcementLevel() *RequiredDeploymentsEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.RequiredDeploymentsEnforcementLevel
+}
+
+// GetRequiredStatusChecks returns the RequiredStatusChecks field.
+func (p *ProtectionChanges) GetRequiredStatusChecks() *RequiredStatusChecksChanges {
+	if p == nil {
+		return nil
+	}
+	return p.RequiredStatusChecks
+}
+
+// GetRequiredStatusChecksEnforcementLevel returns the RequiredStatusChecksEnforcementLevel field.
+func (p *ProtectionChanges) GetRequiredStatusChecksEnforcementLevel() *RequiredStatusChecksEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.RequiredStatusChecksEnforcementLevel
+}
+
+// GetSignatureRequirementEnforcementLevel returns the SignatureRequirementEnforcementLevel field.
+func (p *ProtectionChanges) GetSignatureRequirementEnforcementLevel() *SignatureRequirementEnforcementLevelChanges {
+	if p == nil {
+		return nil
+	}
+	return p.SignatureRequirementEnforcementLevel
 }
 
 // GetAllowDeletions returns the AllowDeletions field if it's non-nil, zero value otherwise.
@@ -13012,6 +13204,14 @@ func (p *PullRequestReviewsEnforcement) GetDismissalRestrictions() *DismissalRes
 		return nil
 	}
 	return p.DismissalRestrictions
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (p *PullRequestReviewsEnforcementLevelChanges) GetFrom() string {
+	if p == nil || p.From == nil {
+		return ""
+	}
+	return *p.From
 }
 
 // GetBypassPullRequestAllowancesRequest returns the BypassPullRequestAllowancesRequest field.
@@ -16134,6 +16334,30 @@ func (r *RepoStatus) GetURL() string {
 	return *r.URL
 }
 
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (r *RequireCodeOwnerReviewChanges) GetFrom() bool {
+	if r == nil || r.From == nil {
+		return false
+	}
+	return *r.From
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (r *RequiredConversationResolutionLevelChanges) GetFrom() string {
+	if r == nil || r.From == nil {
+		return ""
+	}
+	return *r.From
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (r *RequiredDeploymentsEnforcementLevelChanges) GetFrom() string {
+	if r == nil || r.From == nil {
+		return ""
+	}
+	return *r.From
+}
+
 // GetType returns the Type field if it's non-nil, zero value otherwise.
 func (r *RequiredReviewer) GetType() string {
 	if r == nil || r.Type == nil {
@@ -16148,6 +16372,14 @@ func (r *RequiredStatusCheck) GetAppID() int64 {
 		return 0
 	}
 	return *r.AppID
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (r *RequiredStatusChecksEnforcementLevelChanges) GetFrom() string {
+	if r == nil || r.From == nil {
+		return ""
+	}
+	return *r.From
 }
 
 // GetStrict returns the Strict field if it's non-nil, zero value otherwise.
@@ -16582,6 +16814,62 @@ func (s *ScanningAnalysis) GetWarning() string {
 	return *s.Warning
 }
 
+// GetCreated returns the Created field if it's non-nil, zero value otherwise.
+func (s *SCIMMeta) GetCreated() Timestamp {
+	if s == nil || s.Created == nil {
+		return Timestamp{}
+	}
+	return *s.Created
+}
+
+// GetLastModified returns the LastModified field if it's non-nil, zero value otherwise.
+func (s *SCIMMeta) GetLastModified() Timestamp {
+	if s == nil || s.LastModified == nil {
+		return Timestamp{}
+	}
+	return *s.LastModified
+}
+
+// GetLocation returns the Location field if it's non-nil, zero value otherwise.
+func (s *SCIMMeta) GetLocation() string {
+	if s == nil || s.Location == nil {
+		return ""
+	}
+	return *s.Location
+}
+
+// GetResourceType returns the ResourceType field if it's non-nil, zero value otherwise.
+func (s *SCIMMeta) GetResourceType() string {
+	if s == nil || s.ResourceType == nil {
+		return ""
+	}
+	return *s.ResourceType
+}
+
+// GetItemsPerPage returns the ItemsPerPage field if it's non-nil, zero value otherwise.
+func (s *SCIMProvisionedIdentities) GetItemsPerPage() int {
+	if s == nil || s.ItemsPerPage == nil {
+		return 0
+	}
+	return *s.ItemsPerPage
+}
+
+// GetStartIndex returns the StartIndex field if it's non-nil, zero value otherwise.
+func (s *SCIMProvisionedIdentities) GetStartIndex() int {
+	if s == nil || s.StartIndex == nil {
+		return 0
+	}
+	return *s.StartIndex
+}
+
+// GetTotalResults returns the TotalResults field if it's non-nil, zero value otherwise.
+func (s *SCIMProvisionedIdentities) GetTotalResults() int {
+	if s == nil || s.TotalResults == nil {
+		return 0
+	}
+	return *s.TotalResults
+}
+
 // GetActive returns the Active field if it's non-nil, zero value otherwise.
 func (s *SCIMUserAttributes) GetActive() bool {
 	if s == nil || s.Active == nil {
@@ -16604,6 +16892,22 @@ func (s *SCIMUserAttributes) GetExternalID() string {
 		return ""
 	}
 	return *s.ExternalID
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (s *SCIMUserAttributes) GetID() string {
+	if s == nil || s.ID == nil {
+		return ""
+	}
+	return *s.ID
+}
+
+// GetMeta returns the Meta field.
+func (s *SCIMUserAttributes) GetMeta() *SCIMMeta {
+	if s == nil {
+		return nil
+	}
+	return s.Meta
 }
 
 // GetPrimary returns the Primary field if it's non-nil, zero value otherwise.
@@ -16894,6 +17198,14 @@ func (s *SecretScanningAlertUpdateOptions) GetState() string {
 	return *s.State
 }
 
+// GetStatus returns the Status field if it's non-nil, zero value otherwise.
+func (s *SecretScanningPushProtection) GetStatus() string {
+	if s == nil || s.Status == nil {
+		return ""
+	}
+	return *s.Status
+}
+
 // GetDescription returns the Description field if it's non-nil, zero value otherwise.
 func (s *SecurityAdvisory) GetDescription() string {
 	if s == nil || s.Description == nil {
@@ -16982,6 +17294,14 @@ func (s *SecurityAndAnalysis) GetSecretScanning() *SecretScanning {
 	return s.SecretScanning
 }
 
+// GetSecretScanningPushProtection returns the SecretScanningPushProtection field.
+func (s *SecurityAndAnalysis) GetSecretScanningPushProtection() *SecretScanningPushProtection {
+	if s == nil {
+		return nil
+	}
+	return s.SecretScanningPushProtection
+}
+
 // GetTotalCount returns the TotalCount field if it's non-nil, zero value otherwise.
 func (s *SelectedReposList) GetTotalCount() int {
 	if s == nil || s.TotalCount == nil {
@@ -16996,6 +17316,14 @@ func (s *ServiceHook) GetName() string {
 		return ""
 	}
 	return *s.Name
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (s *SignatureRequirementEnforcementLevelChanges) GetFrom() string {
+	if s == nil || s.From == nil {
+		return ""
+	}
+	return *s.From
 }
 
 // GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
@@ -17140,6 +17468,38 @@ func (s *SourceImportAuthor) GetURL() string {
 		return ""
 	}
 	return *s.URL
+}
+
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (s *SSHSigningKey) GetCreatedAt() Timestamp {
+	if s == nil || s.CreatedAt == nil {
+		return Timestamp{}
+	}
+	return *s.CreatedAt
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (s *SSHSigningKey) GetID() int64 {
+	if s == nil || s.ID == nil {
+		return 0
+	}
+	return *s.ID
+}
+
+// GetKey returns the Key field if it's non-nil, zero value otherwise.
+func (s *SSHSigningKey) GetKey() string {
+	if s == nil || s.Key == nil {
+		return ""
+	}
+	return *s.Key
+}
+
+// GetTitle returns the Title field if it's non-nil, zero value otherwise.
+func (s *SSHSigningKey) GetTitle() string {
+	if s == nil || s.Title == nil {
+		return ""
+	}
+	return *s.Title
 }
 
 // GetAction returns the Action field if it's non-nil, zero value otherwise.

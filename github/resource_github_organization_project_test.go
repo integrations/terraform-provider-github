@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -62,7 +62,7 @@ func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
 		if err == nil {
 			if project != nil &&
 				project.GetID() == projectID {
-				return fmt.Errorf("Organization project still exists")
+				return fmt.Errorf("organization project still exists")
 			}
 		}
 		if res.StatusCode != 404 {
@@ -77,7 +77,7 @@ func testAccCheckGithubOrganizationProjectExists(n string, project *github.Proje
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not Found: %s", n)
 		}
 
 		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)

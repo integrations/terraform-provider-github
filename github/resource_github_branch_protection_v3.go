@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -219,7 +219,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
-					return fmt.Errorf("Error setting signed commit restriction: %v", err)
+					return fmt.Errorf("error setting signed commit restriction: %v", err)
 				}
 				return nil
 			}
@@ -243,19 +243,19 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_status_checks: %v", err)
+		return fmt.Errorf("error setting required_status_checks: %v", err)
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting required_pull_request_reviews: %v", err)
+		return fmt.Errorf("error setting required_pull_request_reviews: %v", err)
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("Error setting restrictions: %v", err)
+		return fmt.Errorf("error setting restrictions: %v", err)
 	}
 
 	if err := requireSignedCommitsRead(d, meta); err != nil {
-		return fmt.Errorf("Error setting signed commit restriction: %v", err)
+		return fmt.Errorf("error setting signed commit restriction: %v", err)
 	}
 
 	return nil
