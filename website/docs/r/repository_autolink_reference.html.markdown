@@ -48,10 +48,10 @@ The following additional attributes are exported:
 
 ## Import
 
-Autolink references can be imported using the `name` of the repository, combined with the `id` of the autolink reference and a `:` character for separating components, e.g.
+Autolink references can be imported using the `name` of the repository, combined with the `id` of the autolink reference and a `/` character for separating components, e.g.
 
 ```sh
-terraform import github_repository_autolink_reference.auto my-repo:123
+terraform import github_repository_autolink_reference.auto my-repo/123
 ```
 
 See the GitHub documentation for how to [list all autolinks of a repository](https://docs.github.com/en/rest/repos/autolinks#list-all-autolinks-of-a-repository) to learn the autolink ids to use with the import command.
