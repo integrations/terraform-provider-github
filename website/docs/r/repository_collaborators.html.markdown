@@ -9,6 +9,9 @@ description: |-
 
 Provides a GitHub repository collaborators resource.
 
+~> Note: github_repository_collaborators cannot be used in conjunction with github_repository_collaborator and
+github_team_repository or they will fight over what your policy should be.
+
 This resource allows you to manage all collaborators for repositories in your
 organization or personal account. For organization repositories, collaborators can
 have explicit (and differing levels of) read, write, or administrator access to 
@@ -20,15 +23,15 @@ When applied, an invitation will be sent to the user to become a collaborators
 on a repository. When destroyed, either the invitation will be cancelled or the
 collaborators will be removed from the repository.
 
+This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
+instead.
+
 Further documentation on GitHub collaborators:
 
 - [Adding outside collaborators to your personal repositories](https://help.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-access-to-your-personal-repositories)
 - [Adding outside collaborators to repositories in your organization](https://help.github.com/articles/adding-outside-collaborators-to-repositories-in-your-organization/)
 - [Converting an organization member to an outside collaborators](https://help.github.com/articles/converting-an-organization-member-to-an-outside-collaborator/)
  
-~> Note: github_repository_collaborators cannot be used in conjunction with github_repository_collaborator and 
-github_team_repository or they will fight over what your policy should be.
-
 ## Example Usage
 
 ```hcl
