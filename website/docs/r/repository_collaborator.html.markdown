@@ -44,7 +44,7 @@ The following arguments are supported:
 * `repository` - (Required) The GitHub repository
 * `username` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
-            Must be one of `pull`, `push`, `maintain`, `triage` or `admin` for organization-owned repositories.
+            Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories.
             Must be `push` for personal repositories. Defaults to `push`.
 * `permission_diff_suppression` - (Optional) Suppress plan diffs for `triage` and `maintain`.  Defaults to `false`.
 

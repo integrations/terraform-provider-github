@@ -35,11 +35,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				ForceNew: true,
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Default:      "push",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "push",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if d.Get("permission_diff_suppression").(bool) {
 						if new == "triage" || new == "maintain" {
