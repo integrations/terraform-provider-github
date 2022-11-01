@@ -111,13 +111,20 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	enabled := d.Get("enabled").(bool)
 	log.Printf("[DEBUG] Actions enabled: %t", enabled)
 
+	repoActionPermissions := github.ActionsPermissionsRepository{
+		Enabled: &enabled,
+	}
+
+	// Only specify `allowed_actions` if actions are enabled
+	if enabled {
+		repoActionPermissions.AllowedActions = &allowedActions
+	}
+
 	_, _, err := client.Repositories.EditActionsPermissions(ctx,
 		owner,
 		repoName,
-		github.ActionsPermissionsRepository{
-			AllowedActions: &allowedActions,
-			Enabled:        &enabled,
-		})
+		repoActionPermissions,
+	)
 	if err != nil {
 		return err
 	}
@@ -174,6 +181,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 
 	d.Set("allowed_actions", actionsPermissions.GetAllowedActions())
 	d.Set("enabled", actionsPermissions.GetEnabled())
+	d.Set("repository", repoName)
 
 	return nil
 }
@@ -185,16 +193,17 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	enabled := d.Get("enabled").(bool)
+	// Reset the repo to "default" settings
+	repoActionPermissions := github.ActionsPermissionsRepository{
+		AllowedActions: github.String("all"),
+		Enabled:        github.Bool(true),
+	}
 
-	// This will nullify any allowedActions elements
 	_, _, err := client.Repositories.EditActionsPermissions(ctx,
 		owner,
 		repoName,
-		github.ActionsPermissionsRepository{
-			AllowedActions: github.String("all"),
-			Enabled:        &enabled,
-		})
+		repoActionPermissions,
+	)
 	if err != nil {
 		return err
 	}
