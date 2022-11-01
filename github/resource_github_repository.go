@@ -812,14 +812,17 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 
 	advancedSecurityMap := make(map[string]interface{})
 	advancedSecurityMap["status"] = securityAndAnalysis.GetAdvancedSecurity().GetStatus()
+
 	secretScanningMap := make(map[string]interface{})
 	secretScanningMap["status"] = securityAndAnalysis.GetSecretScanning().GetStatus()
+
 	secretScanningPushProtectionMap := make(map[string]interface{})
 	secretScanningPushProtectionMap["status"] = securityAndAnalysis.GetSecretScanningPushProtection().GetStatus()
 
 	securityAndAnalysisMap := make(map[string]interface{})
 	securityAndAnalysisMap["advanced_security"] = []interface{}{advancedSecurityMap}
 	securityAndAnalysisMap["secret_scanning"] = []interface{}{secretScanningMap}
+	securityAndAnalysisMap["secret_scanning_push_protection"] = []interface{}{secretScanningPushProtectionMap}
 
 	return []interface{}{securityAndAnalysisMap}
 }
@@ -841,6 +844,7 @@ func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
 	update.SecretScanning = &github.SecretScanning{
 		Status: github.String(secretScanning["status"].(string)),
 	}
+
 	secretScanningPushProtection := securityAndAnalysis["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
 	update.SecretScanningPushProtection = &github.SecretScanningPushProtection{
 		Status: github.String(secretScanningPushProtection["status"].(string)),
