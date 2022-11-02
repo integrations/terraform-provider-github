@@ -7,7 +7,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -23,7 +23,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				branch := "main"
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				if len(parts) == 2 {
@@ -84,14 +84,14 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"commit_author": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author name, defaults to the authenticated user's name",
+				Computed:    false,
+				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author email address, defaults to the authenticated user's email address",
+				Computed:    false,
+				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 			},
 			"sha": {
 				Type:        schema.TypeString,
@@ -128,11 +128,11 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && !hasCommitEmail {
-		return nil, fmt.Errorf("Cannot set commit_author without setting commit_email")
+		return nil, fmt.Errorf("cannot set commit_author without setting commit_email")
 	}
 
 	if hasCommitEmail && !hasCommitAuthor {
-		return nil, fmt.Errorf("Cannot set commit_email without setting commit_author")
+		return nil, fmt.Errorf("cannot set commit_email without setting commit_author")
 	}
 
 	if hasCommitAuthor && hasCommitEmail {
@@ -255,8 +255,14 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
+
+	commit_author := commit.Commit.GetCommitter().GetName()
+	commit_email := commit.Commit.GetCommitter().GetEmail()
+
+	if commit_author != "GitHub" && commit_email != "noreply@github.com" {
+		d.Set("commit_author", commit_author)
+		d.Set("commit_email", commit_email)
+	}
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
