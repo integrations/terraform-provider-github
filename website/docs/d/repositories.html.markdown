@@ -26,7 +26,7 @@ data "github_repositories" "example" {
 The following arguments are supported:
 
 * `query` - (Required) Search query. See [documentation for the search syntax](https://help.github.com/articles/understanding-the-search-syntax/).
-* `sort` - (Optional) Sorts the repositories returned by the specified attribute. Valid values include `stars`, `fork`, `name`, and `updated`. Defaults to `updated`.
+* `sort` - (Optional) Sorts the repositories returned by the specified attribute. Valid values include `stars`, `fork`, and `updated`. Defaults to `updated`.
 * `include_repo_id` - (Optional) Returns a list of found repository IDs
 
 ## Attributes Reference
