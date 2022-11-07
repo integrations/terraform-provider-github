@@ -118,6 +118,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
 	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
@@ -173,6 +175,8 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("runners_url", runnerGroup.GetRunnersURL())
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
