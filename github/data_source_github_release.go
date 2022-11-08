@@ -78,9 +78,14 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"asserts_url": {
+			"assets_url": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"asserts_url": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "use assets_url instead",
 			},
 			"upload_url": {
 				Type:     schema.TypeString,
@@ -192,7 +197,8 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("published_at", release.GetPublishedAt())
 	d.Set("url", release.GetURL())
 	d.Set("html_url", release.GetHTMLURL())
-	d.Set("asserts_url", release.GetAssetsURL())
+	d.Set("assets_url", release.GetAssetsURL())
+	d.Set("asserts_url", release.GetAssetsURL()) // Deprecated, original version of assets_url
 	d.Set("upload_url", release.GetUploadURL())
 	d.Set("zipball_url", release.GetZipballURL())
 	d.Set("tarball_url", release.GetTarballURL())
