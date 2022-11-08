@@ -72,7 +72,7 @@ data "github_release" "example" {
  * `upload_url` - URL that can be used to upload Assets to the release
  * `zipball_url` - Download URL of a specific release in `zip` format
  * `tarball_url` - Download URL of a specific release in `tar.gz` format
- * `assets` - Colleciton of assets for the release. Each asset conforms to the following schema:
+ * `assets` - Collection of assets for the release. Each asset conforms to the following schema:
     * `id` - ID of the asset
     * `url` - URL of the asset
     * `node_id` - Node ID of the asset
