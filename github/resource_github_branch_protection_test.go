@@ -380,6 +380,60 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 	})
 
+	t.Run("configures branch push restrictions with username", func(t *testing.T) {
+
+		user := fmt.Sprintf("/%s", testOwnerFunc())
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id   = github_repository.test.name
+			  pattern       	= "main"
+
+			  push_restrictions = [
+			    "%s",
+			  ]
+
+			}
+	`, randomID, user)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "push_restrictions.#", "1",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("configures force pushes and deletions", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
@@ -408,6 +462,60 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "allows_force_pushes", "true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("configures blocksCreations", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			data "github_user" "test" {
+			  username = "%s"
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id    = github_repository.test.name
+			  pattern          = "main"
+			  blocks_creations = true
+
+			}
+	`, randomID, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "blocks_creations", "true",
 			),
 		)
 
@@ -568,11 +676,11 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 	return func(s *terraform.State) (string, error) {
 		repo := s.RootModule().Resources[repoLogicalName]
 		if repo == nil {
-			return "", fmt.Errorf("Cannot find %s in terraform state", repoLogicalName)
+			return "", fmt.Errorf("cannot find %s in terraform state", repoLogicalName)
 		}
 		repoID, found := repo.Primary.Attributes["node_id"]
 		if !found {
-			return "", fmt.Errorf("Repository %s does not have a node_id in terraform state", repo.Primary.ID)
+			return "", fmt.Errorf("repository %s does not have a node_id in terraform state", repo.Primary.ID)
 		}
 		return fmt.Sprintf("%s:%s", repoID, pattern), nil
 	}
