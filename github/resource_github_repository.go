@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -244,6 +244,11 @@ func resourceGithubRepository() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"include_all_branches": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 						"owner": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -262,6 +267,10 @@ func resourceGithubRepository() *schema.Resource {
 			"repo_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
+			},
+			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 		},
 	}
@@ -309,6 +318,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
 		Archived:                 github.Bool(d.Get("archived").(bool)),
 		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 	}
 }
 
@@ -316,7 +326,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'.")
+		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -354,12 +364,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
+			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
 
 			templateRepoReq := github.TemplateRepoRequest{
-				Name:        &repoName,
-				Owner:       &owner,
-				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(isPrivate),
+				Name:               &repoName,
+				Owner:              &owner,
+				Description:        github.String(d.Get("description").(string)),
+				Private:            github.Bool(isPrivate),
+				IncludeAllBranches: github.Bool(includeAllBranches),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
@@ -444,15 +456,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
@@ -465,6 +468,20 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+
+	// GitHub API doesn't respond following parameters when repository is archived
+	if !d.Get("archived").(bool) {
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	}
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)

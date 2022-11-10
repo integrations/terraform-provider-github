@@ -7,8 +7,8 @@ Run `terraform -v` to show the version. If you are not running the latest versio
 
 ### Affected Resource(s)
 Please list the resources as a list, for example:
-- opc_instance
-- opc_storage_volume
+- github_repository
+- github_branch_protection
 
 If this issue appears to affect multiple resources, it may be an issue with Terraform's core, so please mention this.
 

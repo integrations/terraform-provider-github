@@ -20,8 +20,9 @@ resource "github_repository" "example" {
   visibility = "public"
 
   template {
-    owner      = "github"
-    repository = "terraform-module-template"
+    owner                = "github"
+    repository           = "terraform-module-template"
+    include_all_branches = true
   }
 }
 ```
@@ -113,6 +114,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
 
+* `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
+
 ### GitHub Pages Configuration
 
 The `pages` block supports the following:
@@ -135,6 +138,7 @@ The `source` block supports the following:
 
 * `owner`: The GitHub organization or user the template repository is owned by.
 * `repository`: The name of the template repository.
+* `include_all_branches`: Whether the new repository should include all the branches from the template repository (defaults to false, which includes only the default branch from the template).
 
 ## Attributes Reference
 

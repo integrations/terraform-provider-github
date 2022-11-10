@@ -27,8 +27,11 @@ data "github_organization_teams" "root_teams" {
 
 ## Attributes Reference
 
-* `root_teams_only` - Only return teams that are at the organization's root, i.e. no nested teams. Defaults to `false`.
-* `teams` - An Array of GitHub Teams.  Each `team` block consists of the fields documented below.
+* `teams` - (Required) An Array of GitHub Teams.  Each `team` block consists of the fields documented below.
+* `root_teams_only` - (Optional) Only return teams that are at the organization's root, i.e. no nested teams. Defaults to `false`.
+* `summary_only` - (Optional) Exclude the members and repositories of the team from the returned result. Defaults to `false`.
+* `results_per_page` - (Optional) Set the number of results per graphql query. Reducing this number can alleviate timeout errors. Accepts a value between 0 - 100. Defaults to `100`.
+
 ___
 
 The `team` block consists of:
@@ -39,5 +42,5 @@ The `team` block consists of:
  * `name` - the team's full name.
  * `description` - the team's description.
  * `privacy` - the team's privacy type.
- * `members` - List of team members.
- * `repositories` - List of team repositories.
+ * `members` - List of team members. Not returned if `summary_only = true`
+ * `repositories` - List of team repositories. Not returned if `summary_only = true`
