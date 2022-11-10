@@ -20,8 +20,9 @@ resource "github_repository" "example" {
   visibility = "public"
 
   template {
-    owner      = "github"
-    repository = "terraform-module-template"
+    owner                = "github"
+    repository           = "terraform-module-template"
+    include_all_branches = true
   }
 }
 ```
@@ -137,6 +138,7 @@ The `source` block supports the following:
 
 * `owner`: The GitHub organization or user the template repository is owned by.
 * `repository`: The name of the template repository.
+* `include_all_branches`: Whether the new repository should include all the branches from the template repository (defaults to false, which includes only the default branch from the template).
 
 ## Attributes Reference
 

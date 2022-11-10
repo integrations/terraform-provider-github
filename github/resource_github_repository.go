@@ -244,6 +244,11 @@ func resourceGithubRepository() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"include_all_branches": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 						"owner": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -359,12 +364,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
+			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
 
 			templateRepoReq := github.TemplateRepoRequest{
-				Name:        &repoName,
-				Owner:       &owner,
-				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(isPrivate),
+				Name:               &repoName,
+				Owner:              &owner,
+				Description:        github.String(d.Get("description").(string)),
+				Private:            github.Bool(isPrivate),
+				IncludeAllBranches: github.Bool(includeAllBranches),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
