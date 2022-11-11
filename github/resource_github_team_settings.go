@@ -174,9 +174,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 
 		var mutation struct {
 			UpdateTeamReviewAssignment struct {
-				Team struct {
-					ClientMutationId githubv4.ID
-				} `graphql:"team"`
+				ClientMutationId githubv4.ID `graphql:"clientMutationId"`
 			} `graphql:"updateTeamReviewAssignment(input:$input)"`
 		}
 
@@ -202,9 +200,7 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) 
 
 	var mutation struct {
 		UpdateTeamReviewAssignment struct {
-			Team struct {
-				ClientMutationId githubv4.ID
-			} `graphql:"team"`
+			ClientMutationId githubv4.ID `graphql:"clientMutationId"`
 		} `graphql:"updateTeamReviewAssignment(input:$input)"`
 	}
 
