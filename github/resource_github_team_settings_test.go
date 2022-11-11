@@ -106,13 +106,13 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 			),
 			"review_count": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "review_request_count",
+					"github_team_settings.test", "review_request_count",
 					"3",
 				),
 			),
 			"notify": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "review_request_notify",
+					"github_team_settings.test", "review_request_notify",
 					"false",
 				),
 			),
