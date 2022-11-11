@@ -1,10 +1,16 @@
 package github
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"strconv"
 
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubTeamSettings() *schema.Resource {
@@ -76,17 +82,87 @@ func resourceGithubTeamSettings() *schema.Resource {
 }
 
 func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	return resourceGithubTeamSettingsRead(d, meta)
 
 }
 
 func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
+	graphql := meta.(*Owner).v4client
+	rest := meta.(*Owner).v3client
+	orgId := meta.(*Owner).id
+
+	id, ok := d.Get("team_id").(string)
+	if !ok {
+		return errors.New("team_id must be provided as a string")
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
+
+	teamSlug := ""
+	teamId, err := strconv.ParseInt(id, 10, 64)
+	if err == nil {
+		// If err != nil then team_id was provided with the numerical ID, this must be converted to the team slug
+		team, _, err := rest.Teams.GetTeamByID(ctx, orgId, teamId)
+		if err != nil {
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
+				if ghErr.Response.StatusCode == http.StatusNotModified {
+					return nil
+				}
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					log.Printf("[INFO] Removing team %s from state because it no longer exists in GitHub",
+						d.Id())
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		}
+		teamSlug = *team.Slug
+	} else {
+		teamSlug = id
+	}
+
+	orgName := meta.(*Owner).name
+
+	var query struct {
+		Organization struct {
+			Team struct {
+				Name                             string `graphql:"name"`
+				ReviewRequestDelegation          bool   `graphql:"reviewRequestDelegationEnabled"`
+				ReviewRequestDelegationAlgorithm string `graphql:"reviewRequestDelegationAlgorithm"`
+				ReviewRequestDelegationCount     int    `graphql:"reviewRequestDelegationMemberCount"`
+				ReviewRequestDelegationNotifyAll bool   `graphql:"reviewRequestDelegationNotifyTeam"`
+			} `graphql:"team(slug:$slug)"`
+		} `graphql:"organization(login:$login)"`
+	}
+	variables := map[string]interface{}{
+		"slug":  githubv4.String(teamSlug),
+		"login": githubv4.String(orgName),
+	}
+
+	e := graphql.Query(meta.(*Owner).StopContext, &query, variables)
+	if e != nil {
+		return e
+	}
+
+	d.Set("review_request_algorithm", query.Organization.Team.ReviewRequestDelegationAlgorithm)
+	d.Set("review_request_delegation", query.Organization.Team.ReviewRequestDelegation)
+	d.Set("review_request_count", query.Organization.Team.ReviewRequestDelegationCount)
+	d.Set("review_request_notify", query.Organization.Team.ReviewRequestDelegationNotifyAll)
+
 	return nil
 
 }
 
 func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	return resourceGithubTeamSettingsRead(d, meta)
 
 }
 
