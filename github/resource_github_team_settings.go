@@ -31,6 +31,16 @@ func resourceGithubTeamSettings() *schema.Resource {
 				ForceNew:    true,
 				Description: "ID or slug of team",
 			},
+			"team_slug": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The slug of the Team within the Organization",
+			},
+			"team_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The unique ID of the Team on GitHub. Corresponds to the ID of the github_team_settings resource",
+			},
 			"review_request_algorithm": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -212,4 +222,18 @@ type updateTeamReviewAssignment struct {
 	ReviewRequestDelegationAlgorithm string `graphql:"algorithm"`
 	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount"`
 	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam"`
+}
+
+type queryTeamSettings struct {
+	Organization struct {
+		Team struct {
+			Name                             string `graphql:"name"`
+			Slug                             string `graphql:"slug"`
+			ID                               string `graphql:"id"`
+			ReviewRequestDelegation          bool   `graphql:"reviewRequestDelegationEnabled"`
+			ReviewRequestDelegationAlgorithm string `graphql:"reviewRequestDelegationAlgorithm"`
+			ReviewRequestDelegationCount     int    `graphql:"reviewRequestDelegationMemberCount"`
+			ReviewRequestDelegationNotifyAll bool   `graphql:"reviewRequestDelegationNotifyTeam"`
+		} `graphql:"team(slug:$slug)"`
+	} `graphql:"organization(login:$login)"`
 }
