@@ -28,6 +28,7 @@ The following arguments are supported:
 * `query` - (Required) Search query. See [documentation for the search syntax](https://help.github.com/articles/understanding-the-search-syntax/).
 * `sort` - (Optional) Sorts the repositories returned by the specified attribute. Valid values include `stars`, `fork`, and `updated`. Defaults to `updated`.
 * `include_repo_id` - (Optional) Returns a list of found repository IDs
+* `results_per_page` - (Optional) Set the number of repositories requested per API call. Can be useful to decrease if requests are timing out or to increase to reduce the number of API calls. Defaults to 100.
 
 ## Attributes Reference
 

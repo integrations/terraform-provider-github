@@ -28,6 +28,12 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Default:  false,
 				Optional: true,
 			},
+			"results_per_page": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      100,
+				ValidateFunc: validation.IntBetween(0, 100),
+			},
 			"full_names": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
@@ -56,14 +62,16 @@ func dataSourceGithubRepositories() *schema.Resource {
 func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
+	includeRepoId := d.Get("include_repo_id").(bool)
+	resultsPerPage := d.Get("results_per_page").(int)
+
 	query := d.Get("query").(string)
 	opt := &github.SearchOptions{
 		Sort: d.Get("sort").(string),
 		ListOptions: github.ListOptions{
-			PerPage: 100,
+			PerPage: resultsPerPage,
 		},
 	}
-	include_repo_id := d.Get("include_repo_id").(bool)
 
 	fullNames, names, repoIDs, err := searchGithubRepositories(client, query, opt)
 	if err != nil {
@@ -73,7 +81,7 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(query)
 	d.Set("full_names", fullNames)
 	d.Set("names", names)
-	if include_repo_id {
+	if includeRepoId {
 		d.Set("repo_ids", repoIDs)
 	}
 
