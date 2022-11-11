@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -93,7 +90,46 @@ func resourceGithubTeamSettings() *schema.Resource {
 }
 
 func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) error {
-	return resourceGithubTeamSettingsRead(d, meta)
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
+	// Given a string that is either a team id or team slug, return the
+	// get the basic details of the team including node_id and slug
+	ctx := context.Background()
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	orgId := meta.(*Owner).id
+
+	teamIDString, _ := d.Get("team_id").(string)
+
+	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	if parseIntErr != nil {
+		// The given id not an integer, assume it is a team slug
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		if slugErr != nil {
+			return errors.New(parseIntErr.Error() + slugErr.Error())
+		}
+		d.SetId(team.GetNodeID())
+		d.Set("team_slug", team.GetSlug())
+	} else {
+		// The given id is an integer, assume it is a team id
+		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
+		if teamIdErr != nil {
+			// There isn't a team with the given ID, assume it is a teamslug
+			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+			if slugErr != nil {
+				return errors.New(teamIdErr.Error() + slugErr.Error())
+			}
+			d.SetId(team.GetNodeID())
+			d.Set("team_slug", team.GetSlug())
+		}
+		d.SetId(team.GetNodeID())
+		d.Set("team_slug", team.GetSlug())
+	}
+
+	return resourceGithubTeamSettingsUpdate(d, meta)
 
 }
 
@@ -104,55 +140,11 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	graphql := meta.(*Owner).v4client
-	rest := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-
-	id, ok := d.Get("team_id").(string)
-	if !ok {
-		return errors.New("team_id must be provided as a string")
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
-
-	teamSlug := ""
-	teamId, err := strconv.ParseInt(id, 10, 64)
-	if err == nil {
-		// If err != nil then team_id was provided with the numerical ID, this must be converted to the team slug
-		team, _, err := rest.Teams.GetTeamByID(ctx, orgId, teamId)
-		if err != nil {
-			if ghErr, ok := err.(*github.ErrorResponse); ok {
-				if ghErr.Response.StatusCode == http.StatusNotModified {
-					return nil
-				}
-				if ghErr.Response.StatusCode == http.StatusNotFound {
-					log.Printf("[INFO] Removing team %s from state because it no longer exists in GitHub",
-						d.Id())
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		}
-		teamSlug = *team.Slug
-	} else {
-		teamSlug = id
-	}
-
 	orgName := meta.(*Owner).name
 
-	var query struct {
-		Organization struct {
-			Team struct {
-				Name                             string `graphql:"name"`
-				ReviewRequestDelegation          bool   `graphql:"reviewRequestDelegationEnabled"`
-				ReviewRequestDelegationAlgorithm string `graphql:"reviewRequestDelegationAlgorithm"`
-				ReviewRequestDelegationCount     int    `graphql:"reviewRequestDelegationMemberCount"`
-				ReviewRequestDelegationNotifyAll bool   `graphql:"reviewRequestDelegationNotifyTeam"`
-			} `graphql:"team(slug:$slug)"`
-		} `graphql:"organization(login:$login)"`
-	}
+	teamSlug := d.Get("team_slug").(string)
+
+	var query = queryTeamSettings{}
 	variables := map[string]interface{}{
 		"slug":  githubv4.String(teamSlug),
 		"login": githubv4.String(orgName),
@@ -177,7 +169,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 		"review_request_algorithm",
 		"review_request_delegation",
 		"review_request_count",
-		"review_request_notify") {
+		"review_request_notify") || d.IsNewResource() {
 		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		graphql := meta.(*Owner).v4client
 
@@ -194,7 +186,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 			} `graphql:"updateTeamReviewAssignment(input:$input)"`
 		}
 
-		e := graphql.Mutate(ctx, mutation, updateTeamReviewAssignment{
+		e := graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
 			MutationID:                       uuid.NewString(),
 			TeamID:                           d.Id(),
 			ReviewRequestDelegation:          d.Get("review_request_delegation").(bool),
@@ -215,13 +207,13 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-type updateTeamReviewAssignment struct {
-	MutationID                       string `graphql:"clientMutationId"`
-	TeamID                           string `graphql:"id"`
-	ReviewRequestDelegation          bool   `graphql:"enabled"`
-	ReviewRequestDelegationAlgorithm string `graphql:"algorithm"`
-	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount"`
-	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam"`
+type UpdateTeamReviewAssignmentInput struct {
+	MutationID                       string `graphql:"clientMutationId" json:"clientMutationId"`
+	TeamID                           string `graphql:"id" json:"id"`
+	ReviewRequestDelegation          bool   `graphql:"enabled" json:"enabled"`
+	ReviewRequestDelegationAlgorithm string `graphql:"algorithm" json:"algorithm"`
+	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount" json:"teamMemberCount"`
+	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam" json:"notifyTeam"`
 }
 
 type queryTeamSettings struct {
