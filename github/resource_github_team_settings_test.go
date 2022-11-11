@@ -197,10 +197,6 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 							`review_request_algorithm = "invalid"`, 1),
 						ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
 					},
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile("review request delegation algorithm cannot be specified when review request delegation is disabled"),
-					},
 				},
 			})
 		}
