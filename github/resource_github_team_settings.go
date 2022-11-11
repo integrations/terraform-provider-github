@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -176,18 +175,12 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 		var mutation struct {
 			UpdateTeamReviewAssignment struct {
 				Team struct {
-					Name                             string `graphql:"name"`
-					ID                               string `graphql:"id"`
-					ReviewRequestDelegation          bool   `graphql:"reviewRequestDelegationEnabled"`
-					ReviewRequestDelegationAlgorithm string `graphql:"reviewRequestDelegationAlgorithm"`
-					ReviewRequestDelegationCount     int    `graphql:"reviewRequestDelegationMemberCount"`
-					ReviewRequestDelegationNotifyAll bool   `graphql:"reviewRequestDelegationNotifyTeam"`
+					ClientMutationId githubv4.ID
 				} `graphql:"team"`
 			} `graphql:"updateTeamReviewAssignment(input:$input)"`
 		}
 
 		e := graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
-			MutationID:                       uuid.NewString(),
 			TeamID:                           d.Id(),
 			ReviewRequestDelegation:          d.Get("review_request_delegation").(bool),
 			ReviewRequestDelegationAlgorithm: d.Get("review_request_algorithm").(string),
@@ -204,11 +197,29 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	graphql := meta.(*Owner).v4client
+
+	var mutation struct {
+		UpdateTeamReviewAssignment struct {
+			Team struct {
+				ClientMutationId githubv4.ID
+			} `graphql:"team"`
+		} `graphql:"updateTeamReviewAssignment(input:$input)"`
+	}
+
+	return graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
+		TeamID:                           d.Id(),
+		ReviewRequestDelegation:          false,
+		ReviewRequestDelegationAlgorithm: "ROUND_ROBIN",
+		ReviewRequestDelegationCount:     1,
+		ReviewRequestDelegationNotifyAll: true,
+	}, nil)
+
 }
 
 type UpdateTeamReviewAssignmentInput struct {
-	MutationID                       string `graphql:"clientMutationId" json:"clientMutationId"`
+	ClientMutationID                 string `json:"clientMutationId,omitempty"`
 	TeamID                           string `graphql:"id" json:"id"`
 	ReviewRequestDelegation          bool   `graphql:"enabled" json:"enabled"`
 	ReviewRequestDelegationAlgorithm string `graphql:"algorithm" json:"algorithm"`
