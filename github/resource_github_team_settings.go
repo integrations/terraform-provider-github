@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v48/github"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -162,10 +163,53 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) error {
+	if d.HasChanges(
+		"review_request_algorithm",
+		"review_request_delegation",
+		"review_request_count",
+		"review_request_notify") {
+		ctx := context.WithValue(context.Background(), ctxId, d.Id())
+		graphql := meta.(*Owner).v4client
+
+		var mutation struct {
+			UpdateTeamReviewAssignment struct {
+				Team struct {
+					Name                             string `graphql:"name"`
+					ID                               string `graphql:"id"`
+					ReviewRequestDelegation          bool   `graphql:"reviewRequestDelegationEnabled"`
+					ReviewRequestDelegationAlgorithm string `graphql:"reviewRequestDelegationAlgorithm"`
+					ReviewRequestDelegationCount     int    `graphql:"reviewRequestDelegationMemberCount"`
+					ReviewRequestDelegationNotifyAll bool   `graphql:"reviewRequestDelegationNotifyTeam"`
+				} `graphql:"team"`
+			} `graphql:"updateTeamReviewAssignment(input:$input)"`
+		}
+
+		e := graphql.Mutate(ctx, mutation, updateTeamReviewAssignment{
+			MutationID:                       uuid.NewString(),
+			TeamID:                           d.Id(),
+			ReviewRequestDelegation:          d.Get("review_request_delegation").(bool),
+			ReviewRequestDelegationAlgorithm: d.Get("review_request_algorithm").(string),
+			ReviewRequestDelegationCount:     d.Get("review_request_count").(int),
+			ReviewRequestDelegationNotifyAll: d.Get("review_request_notify").(bool),
+		}, nil)
+		if e != nil {
+			return e
+		}
+	}
+
 	return resourceGithubTeamSettingsRead(d, meta)
 
 }
 
 func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
+}
+
+type updateTeamReviewAssignment struct {
+	MutationID                       string `graphql:"clientMutationId"`
+	TeamID                           string `graphql:"id"`
+	ReviewRequestDelegation          bool   `graphql:"enabled"`
+	ReviewRequestDelegationAlgorithm string `graphql:"algorithm"`
+	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount"`
+	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam"`
 }
