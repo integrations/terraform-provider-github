@@ -17,9 +17,8 @@ func resourceGithubTeamSettings() *schema.Resource {
 		Update: resourceGithubTeamSettingsUpdate,
 		Delete: resourceGithubTeamSettingsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamSettingsImport,
 		},
-
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeString,
@@ -97,37 +96,16 @@ func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) 
 	// Given a string that is either a team id or team slug, return the
 	// get the basic details of the team including node_id and slug
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
 
 	teamIDString, _ := d.Get("team_id").(string)
 
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		d.SetId(team.GetNodeID())
-		d.Set("team_slug", team.GetSlug())
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-			if slugErr != nil {
-				return errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-			d.SetId(team.GetNodeID())
-			d.Set("team_slug", team.GetSlug())
-		}
-		d.SetId(team.GetNodeID())
-		d.Set("team_slug", team.GetSlug())
+	nodeId, slug, err := resolveTeamIDs(teamIDString, meta.(*Owner), ctx)
+	if err != nil {
+		return err
 	}
-
+	d.SetId(nodeId)
+	d.Set("team_slug", slug)
+	d.Set("team_uid", nodeId)
 	return resourceGithubTeamSettingsUpdate(d, meta)
 
 }
@@ -212,6 +190,48 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) 
 		ReviewRequestDelegationNotifyAll: true,
 	}, nil)
 
+}
+
+func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	nodeId, slug, err := resolveTeamIDs(d.Id(), meta.(*Owner), context.Background())
+	if err != nil {
+		return nil, err
+	}
+	d.Set("team_id", d.Id())
+	d.SetId(nodeId)
+	d.Set("team_slug", slug)
+	d.Set("team_uid", nodeId)
+	return []*schema.ResourceData{d}, resourceGithubTeamSettingsRead(d, meta)
+}
+
+func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId string, slug string, err error) {
+	client := meta.v3client
+	orgName := meta.name
+	orgId := meta.id
+
+	teamId, parseIntErr := strconv.ParseInt(idOrSlug, 10, 64)
+	if parseIntErr != nil {
+		// The given id not an integer, assume it is a team slug
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
+		if slugErr != nil {
+			return "", "", errors.New(parseIntErr.Error() + slugErr.Error())
+		}
+		return team.GetNodeID(), team.GetSlug(), nil
+	} else {
+		// The given id is an integer, assume it is a team id
+		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
+		if teamIdErr != nil {
+			// There isn't a team with the given ID, assume it is a teamslug
+			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
+			if slugErr != nil {
+				return "", "", errors.New(teamIdErr.Error() + slugErr.Error())
+			}
+
+			return team.GetNodeID(), team.GetSlug(), nil
+		}
+
+		return team.GetNodeID(), team.GetSlug(), nil
+	}
 }
 
 type UpdateTeamReviewAssignmentInput struct {
