@@ -193,8 +193,8 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("body", release.GetBody())
 	d.Set("draft", release.GetDraft())
 	d.Set("prerelease", release.GetPrerelease())
-	d.Set("created_at", release.GetCreatedAt())
-	d.Set("published_at", release.GetPublishedAt())
+	d.Set("created_at", release.GetCreatedAt().String())
+	d.Set("published_at", release.GetPublishedAt().String())
 	d.Set("url", release.GetURL())
 	d.Set("html_url", release.GetHTMLURL())
 	d.Set("assets_url", release.GetAssetsURL())
@@ -217,8 +217,8 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 			"label":                releaseAsset.GetLabel(),
 			"content_type":         releaseAsset.GetContentType(),
 			"size":                 releaseAsset.GetSize(),
-			"created_at":           releaseAsset.GetCreatedAt(),
-			"updated_at":           releaseAsset.GetUpdatedAt(),
+			"created_at":           releaseAsset.GetCreatedAt().String(),
+			"updated_at":           releaseAsset.GetUpdatedAt().String(),
 			"browser_download_url": releaseAsset.GetBrowserDownloadURL(),
 		})
 	}
