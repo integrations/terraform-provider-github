@@ -24,10 +24,6 @@ func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
 
 			resource "github_team_settings" "test" {
 				team_id    = "${github_team.test.id}"
-				review_request_algorithm = "ROUND_ROBIN"
-				review_request_delegation = true
-				review_request_count = 1
-				review_request_notify = true
 			}
 		`, randomID)
 
@@ -84,35 +80,36 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 
 			resource "github_team_settings" "test" {
 				team_id    = "${github_team.test.id}"
-				review_request_algorithm = "ROUND_ROBIN"
-				review_request_delegation = true
-				review_request_count = 1
-				review_request_notify = true
+				review_request_delegation {
+					algorithm = "ROUND_ROBIN"
+					member_count = 1
+					notify = true
+				}
 			}
 		`, randomID)
 
 		checks := map[string]resource.TestCheckFunc{
 			"round_robin": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_settings.test", "review_request_algorithm",
+					"github_team_settings.test", "review_request_delegation.0.algorithm",
 					"ROUND_ROBIN",
 				),
 			),
 			"load_balance": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_settings.test", "review_request_algorithm",
+					"github_team_settings.test", "review_request_delegation.0.algorithm",
 					"LOAD_BALANCE",
 				),
 			),
 			"review_count": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_settings.test", "review_request_count",
+					"github_team_settings.test", "review_request_delegation.0.member_count",
 					"3",
 				),
 			),
 			"notify": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_settings.test", "review_request_notify",
+					"github_team_settings.test", "review_request_delegation.0.notify",
 					"false",
 				),
 			),
@@ -129,20 +126,20 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 					},
 					{
 						Config: strings.Replace(config,
-							`review_request_algorithm = "ROUND_ROBIN"`,
-							`review_request_algorithm = "LOAD_BALANCE"`, 1),
+							`algorithm = "ROUND_ROBIN"`,
+							`algorithm = "LOAD_BALANCE"`, 1),
 						Check: checks["load_balance"],
 					},
 					{
 						Config: strings.Replace(config,
-							`review_request_count = 1`,
-							`review_request_count = 3`, 1),
+							`member_count = 1`,
+							`member_count = 3`, 1),
 						Check: checks["review_count"],
 					},
 					{
 						Config: strings.Replace(config,
-							`review_request_notify = true`,
-							`review_request_notify = false`, 1),
+							`notify = true`,
+							`notify = false`, 1),
 						Check: checks["notify"],
 					},
 				},
@@ -179,10 +176,11 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 
 			resource "github_team_settings" "test" {
 				team_id    = "${github_team.test.id}"
-				review_request_algorithm = "ROUND_ROBIN"
-				review_request_delegation = false
-				review_request_count = 1
-				review_request_notify = true
+				review_request_delegation {
+					algorithm = "ROUND_ROBIN"
+					member_count = 1
+					notify = true
+				}
 			}
 		`, randomID)
 
@@ -193,8 +191,8 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: strings.Replace(config,
-							`review_request_algorithm = "ROUND_ROBIN"`,
-							`review_request_algorithm = "invalid"`, 1),
+							`algorithm = "ROUND_ROBIN"`,
+							`algorithm = "invalid"`, 1),
 						ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
 					},
 				},
