@@ -140,6 +140,8 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
 		d.Set("review_request_delegation", []interface{}{reviewRequestDelegation})
+	} else {
+		d.Set("review_request_delegation", []interface{}{})
 	}
 
 	return nil
