@@ -21,13 +21,14 @@ func NewLineCache(fc *FileCache) *LineCache {
 	}
 }
 
-// GetLine returns a index1-th (1-based index) line from the file on filePath
+// GetLine returns the index1-th (1-based index) line from the file on filePath
 func (lc *LineCache) GetLine(filePath string, index1 int) (string, error) {
 	if index1 == 0 { // some linters, e.g. gosec can do it: it really means first line
 		index1 = 1
 	}
 
-	rawLine, err := lc.getRawLine(filePath, index1-1)
+	const index1To0Offset = -1
+	rawLine, err := lc.getRawLine(filePath, index1+index1To0Offset)
 	if err != nil {
 		return "", err
 	}
