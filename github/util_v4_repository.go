@@ -94,3 +94,21 @@ func repositoryLegacyNodeIDExists(name string, meta interface{}) (bool, error) {
 
 	return query.Node.ID.(string) == name, nil
 }
+
+type RepositoriesQuery struct {
+	Search struct {
+		Nodes []struct {
+			RepositoryStruct `graphql:"... on Repository"`
+		}
+		PageInfo PageInfo
+	} `graphql:"search(first:$first, after:$cursor, type:REPOSITORY, query:$searchQuery)"`
+}
+
+type RepositoryStruct struct {
+	DatabaseID     githubv4.Int
+	Name           githubv4.String
+	NameWithOwner  githubv4.String
+	StargazerCount githubv4.Int
+	ForkCount      githubv4.Int
+	UpdatedAt      githubv4.DateTime
+}
