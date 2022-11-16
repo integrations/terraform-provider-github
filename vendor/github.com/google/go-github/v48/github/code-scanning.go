@@ -87,6 +87,7 @@ type Alert struct {
 	DismissedBy        *User                 `json:"dismissed_by,omitempty"`
 	DismissedAt        *Timestamp            `json:"dismissed_at,omitempty"`
 	DismissedReason    *string               `json:"dismissed_reason,omitempty"`
+	DismissedComment   *string               `json:"dismissed_comment,omitempty"`
 	InstancesURL       *string               `json:"instances_url,omitempty"`
 }
 
@@ -121,6 +122,10 @@ type AlertListOptions struct {
 	// Return code scanning alerts for a specific branch reference. The ref must be formatted as heads/<branch name>.
 	Ref string `url:"ref,omitempty"`
 
+	ListCursorOptions
+
+	// Add ListOptions so offset pagination with integer type "page" query parameter is accepted
+	// since ListCursorOptions accepts "page" as string only.
 	ListOptions
 }
 
