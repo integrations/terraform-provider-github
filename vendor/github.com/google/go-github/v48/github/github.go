@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -236,6 +235,14 @@ type ListCursorOptions struct {
 
 	// For paginated result sets, the number of results to include per page.
 	PerPage int `url:"per_page,omitempty"`
+
+	// For paginated result sets, the number of results per page (max 100), starting from the first matching result.
+	// This parameter must not be used in combination with last.
+	First int `url:"first,omitempty"`
+
+	// For paginated result sets, the number of results per page (max 100), starting from the last matching result.
+	// This parameter must not be used in combination with first.
+	Last int `url:"last,omitempty"`
 
 	// A cursor, as given in the Link header. If specified, the query only searches for events after this cursor.
 	After string `url:"after,omitempty"`
@@ -710,7 +717,7 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 		// Issue #1022
 		aerr, ok := err.(*AcceptedError)
 		if ok {
-			b, readErr := ioutil.ReadAll(resp.Body)
+			b, readErr := io.ReadAll(resp.Body)
 			if readErr != nil {
 				return response, readErr
 			}
@@ -770,7 +777,7 @@ func (c *Client) checkRateLimitBeforeDo(req *http.Request, rateLimitCategory rat
 			StatusCode: http.StatusForbidden,
 			Request:    req,
 			Header:     make(http.Header),
-			Body:       ioutil.NopCloser(strings.NewReader("")),
+			Body:       io.NopCloser(strings.NewReader("")),
 		}
 		return &RateLimitError{
 			Rate:     rate,
@@ -1032,14 +1039,14 @@ func CheckResponse(r *http.Response) error {
 	}
 
 	errorResponse := &ErrorResponse{Response: r}
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err == nil && data != nil {
 		json.Unmarshal(data, errorResponse)
 	}
 	// Re-populate error response body because GitHub error responses are often
 	// undocumented and inconsistent.
 	// Issue #1136, #540.
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(data))
+	r.Body = io.NopCloser(bytes.NewBuffer(data))
 	switch {
 	case r.StatusCode == http.StatusUnauthorized && strings.HasPrefix(r.Header.Get(headerOTP), "required"):
 		return (*TwoFactorAuthError)(errorResponse)

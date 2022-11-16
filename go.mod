@@ -18,7 +18,7 @@ require (
 	github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0 // indirect
 	github.com/golangci/misspell v0.3.5 // indirect
 	github.com/golangci/revgrep v0.0.0-20220804021717-745bb2f7c2e6 // indirect
-	github.com/google/go-github/v48 v48.0.0
+	github.com/google/go-github/v48 v48.1.0
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/testutil v0.4.0 // indirect
@@ -50,9 +50,7 @@ require (
 	github.com/timakin/bodyclose v0.0.0-20210704033933-f49887972144 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/ultraware/funlen v0.0.3 // indirect
-	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	google.golang.org/api v0.81.0 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
