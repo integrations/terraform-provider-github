@@ -106,6 +106,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `pages` - (Optional) The repository's GitHub Pages configuration. See [GitHub Pages Configuration](#github-pages-configuration) below for details.
 
+* `security_and_analysis` - (Optional) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. See [Security and Analysis Configuration](#security-and-analysis-configuration) below for details.
+
 * `topics` - (Optional) The list of topics of the repository.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
@@ -131,6 +133,30 @@ The `source` block supports the following:
 * `branch` - (Required) The repository branch used to publish the site's source files. (i.e. `main` or `gh-pages`.
 
 * `path` - (Optional) The repository directory from which the site publishes (Default: `/`).
+
+### Security and Analysis Configuration
+
+The `security_and_analysis` block supports the following:
+
+* `advanced_security` - (Required) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details.
+
+* `secret_scanning` - (Required) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
+
+* `secret_scanning_push_protection` - (Required) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
+
+#### Advanced Security Configuration ####
+
+The `advanced_security` block supports the following:
+
+* `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
+
+#### Secret Scanning Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`.
+
+#### Secret Scanning Push Protection Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`.
 
 ### Template Repositories
 
