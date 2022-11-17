@@ -16,6 +16,6 @@ func getPermission(permission string) string {
 	} else if permission == writePermission {
 		return pushPermission
 	}
-	// custom role
+
 	return permission
 }
