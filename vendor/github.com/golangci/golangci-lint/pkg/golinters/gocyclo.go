@@ -1,52 +1,76 @@
 package golinters
 
 import (
-	"context"
 	"fmt"
-	"sort"
+	"sync"
 
-	gocycloAPI "github.com/golangci/gocyclo/pkg/gocyclo"
+	"github.com/fzipp/gocyclo"
+	"golang.org/x/tools/go/analysis"
 
+	"github.com/golangci/golangci-lint/pkg/config"
+	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-type Gocyclo struct{}
+const gocycloName = "gocyclo"
 
-func (Gocyclo) Name() string {
-	return "gocyclo"
+//nolint:dupl
+func NewGocyclo(settings *config.GoCycloSettings) *goanalysis.Linter {
+	var mu sync.Mutex
+	var resIssues []goanalysis.Issue
+
+	analyzer := &analysis.Analyzer{
+		Name: gocycloName,
+		Doc:  goanalysis.TheOnlyanalyzerDoc,
+		Run: func(pass *analysis.Pass) (interface{}, error) {
+			issues := runGoCyclo(pass, settings)
+
+			if len(issues) == 0 {
+				return nil, nil
+			}
+
+			mu.Lock()
+			resIssues = append(resIssues, issues...)
+			mu.Unlock()
+
+			return nil, nil
+		},
+	}
+
+	return goanalysis.NewLinter(
+		gocycloName,
+		"Computes and checks the cyclomatic complexity of functions",
+		[]*analysis.Analyzer{analyzer},
+		nil,
+	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
+		return resIssues
+	}).WithLoadMode(goanalysis.LoadModeSyntax)
 }
 
-func (Gocyclo) Desc() string {
-	return "Computes and checks the cyclomatic complexity of functions"
-}
-
-func (g Gocyclo) Run(ctx context.Context, lintCtx *linter.Context) ([]result.Issue, error) {
-	var stats []gocycloAPI.Stat
-	for _, f := range lintCtx.ASTCache.GetAllValidFiles() {
-		stats = gocycloAPI.BuildStats(f.F, f.Fset, stats)
+func runGoCyclo(pass *analysis.Pass, settings *config.GoCycloSettings) []goanalysis.Issue {
+	var stats gocyclo.Stats
+	for _, f := range pass.Files {
+		stats = gocyclo.AnalyzeASTFile(f, pass.Fset, stats)
 	}
 	if len(stats) == 0 {
-		return nil, nil
+		return nil
 	}
 
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].Complexity > stats[j].Complexity
-	})
+	stats = stats.SortAndFilter(-1, settings.MinComplexity)
 
-	res := make([]result.Issue, 0, len(stats))
+	issues := make([]goanalysis.Issue, 0, len(stats))
+
 	for _, s := range stats {
-		if s.Complexity <= lintCtx.Settings().Gocyclo.MinComplexity {
-			break // Break as the stats is already sorted from greatest to least
-		}
+		text := fmt.Sprintf("cyclomatic complexity %d of func %s is high (> %d)",
+			s.Complexity, formatCode(s.FuncName, nil), settings.MinComplexity)
 
-		res = append(res, result.Issue{
-			Pos: s.Pos,
-			Text: fmt.Sprintf("cyclomatic complexity %d of func %s is high (> %d)",
-				s.Complexity, formatCode(s.FuncName, lintCtx.Cfg), lintCtx.Settings().Gocyclo.MinComplexity),
-			FromLinter: g.Name(),
-		})
+		issues = append(issues, goanalysis.NewIssue(&result.Issue{
+			Pos:        s.Pos,
+			Text:       text,
+			FromLinter: gocycloName,
+		}, pass))
 	}
 
-	return res, nil
+	return issues
 }
