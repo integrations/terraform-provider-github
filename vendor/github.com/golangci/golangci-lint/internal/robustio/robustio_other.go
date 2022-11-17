@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !windows && !darwin
+//+build !windows,!darwin
 
 package robustio
 
 import (
+	"io/ioutil"
 	"os"
 )
 
@@ -15,7 +16,7 @@ func rename(oldpath, newpath string) error {
 }
 
 func readFile(filename string) ([]byte, error) {
-	return os.ReadFile(filename)
+	return ioutil.ReadFile(filename)
 }
 
 func removeAll(path string) error {

@@ -8,10 +8,14 @@ import (
 )
 
 func NewWastedAssign() *goanalysis.Linter {
+	analyzers := []*analysis.Analyzer{
+		wastedassign.Analyzer,
+	}
+
 	return goanalysis.NewLinter(
 		"wastedassign",
 		"wastedassign finds wasted assignment statements.",
-		[]*analysis.Analyzer{wastedassign.Analyzer},
+		analyzers,
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

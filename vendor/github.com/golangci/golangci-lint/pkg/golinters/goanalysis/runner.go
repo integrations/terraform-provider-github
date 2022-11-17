@@ -28,17 +28,17 @@ import (
 )
 
 var (
-	debugf = logutils.Debug(logutils.DebugKeyGoAnalysis)
+	debugf = logutils.Debug("goanalysis")
 
-	analyzeDebugf     = logutils.Debug(logutils.DebugKeyGoAnalysisAnalyze)
-	isMemoryDebug     = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisMemory)
-	issuesCacheDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisIssuesCache)
+	analyzeDebugf     = logutils.Debug("goanalysis/analyze")
+	isMemoryDebug     = logutils.HaveDebugTag("goanalysis/memory")
+	issuesCacheDebugf = logutils.Debug("goanalysis/issues/cache")
 
-	factsDebugf        = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
-	factsCacheDebugf   = logutils.Debug(logutils.DebugKeyGoAnalysisFactsCache)
-	factsInheritDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisFactsInherit)
-	factsExportDebugf  = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
-	isFactsExportDebug = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsExport)
+	factsDebugf        = logutils.Debug("goanalysis/facts")
+	factsCacheDebugf   = logutils.Debug("goanalysis/facts/cache")
+	factsInheritDebugf = logutils.Debug("goanalysis/facts/inherit")
+	factsExportDebugf  = logutils.Debug("goanalysis/facts")
+	isFactsExportDebug = logutils.HaveDebugTag("goanalysis/facts/export")
 )
 
 type Diagnostic struct {
@@ -185,7 +185,7 @@ func (r *runner) prepareAnalysis(pkgs []*packages.Package,
 	// and analysis-to-analysis (horizontal) dependencies.
 
 	// This place is memory-intensive: e.g. Istio project has 120k total actions.
-	// Therefore, optimize it carefully.
+	// Therefore optimize it carefully.
 	markedActions := make(map[actKey]struct{}, len(analyzers)*len(pkgs))
 	for _, a := range analyzers {
 		for _, pkg := range pkgs {

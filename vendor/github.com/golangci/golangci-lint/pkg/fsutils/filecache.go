@@ -2,7 +2,7 @@ package fsutils
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -24,7 +24,7 @@ func (fc *FileCache) GetFileBytes(filePath string) ([]byte, error) {
 		return cachedBytes.([]byte), nil
 	}
 
-	fileBytes, err := os.ReadFile(filePath)
+	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't read file %s", filePath)
 	}

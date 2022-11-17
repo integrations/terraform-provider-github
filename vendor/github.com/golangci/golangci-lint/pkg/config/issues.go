@@ -97,7 +97,7 @@ var DefaultExcludePatterns = []ExcludePattern{
 	},
 	{
 		ID:      "EXC0015",
-		Pattern: `should have a package comment`,
+		Pattern: `should have a package comment, unless it's in another file for this package`,
 		Linter:  "revive",
 		Why:     "Annoying issue about not having a comment. The rare codebase has such comments",
 	},
@@ -115,7 +115,6 @@ type Issues struct {
 
 	DiffFromRevision  string `mapstructure:"new-from-rev"`
 	DiffPatchFilePath string `mapstructure:"new-from-patch"`
-	WholeFiles        bool   `mapstructure:"whole-files"`
 	Diff              bool   `mapstructure:"new"`
 
 	NeedFix bool `mapstructure:"fix"`
@@ -188,16 +187,15 @@ func GetDefaultExcludePatternsStrings() []string {
 	return ret
 }
 
-// TODO(ldez): this behavior must be changed in v2, because this is confusing.
 func GetExcludePatterns(include []string) []ExcludePattern {
-	includeMap := make(map[string]struct{}, len(include))
+	includeMap := make(map[string]bool, len(include))
 	for _, inc := range include {
-		includeMap[inc] = struct{}{}
+		includeMap[inc] = true
 	}
 
 	var ret []ExcludePattern
 	for _, p := range DefaultExcludePatterns {
-		if _, ok := includeMap[p.ID]; !ok {
+		if !includeMap[p.ID] {
 			ret = append(ret, p)
 		}
 	}

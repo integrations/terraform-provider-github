@@ -1,4 +1,4 @@
-package golinters
+package golinters // nolint:dupl
 
 import (
 	"fmt"
@@ -7,66 +7,49 @@ import (
 	varcheckAPI "github.com/golangci/check/cmd/varcheck"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const varcheckName = "varcheck"
-
-func NewVarcheck(settings *config.VarCheckSettings) *goanalysis.Linter {
+func NewVarcheck() *goanalysis.Linter {
+	const linterName = "varcheck"
 	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
+	var res []goanalysis.Issue
 	analyzer := &analysis.Analyzer{
-		Name: varcheckName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run:  goanalysis.DummyRun,
 	}
-
 	return goanalysis.NewLinter(
-		varcheckName,
+		linterName,
 		"Finds unused global variables and constants",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
+		checkExported := lintCtx.Settings().Varcheck.CheckExportedFields
 		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			issues := runVarCheck(pass, settings)
+			prog := goanalysis.MakeFakeLoaderProgram(pass)
 
-			if len(issues) == 0 {
+			varcheckIssues := varcheckAPI.Run(prog, checkExported)
+			if len(varcheckIssues) == 0 {
 				return nil, nil
 			}
 
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
+			issues := make([]goanalysis.Issue, 0, len(varcheckIssues))
+			for _, i := range varcheckIssues {
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
+					Pos:        i.Pos,
+					Text:       fmt.Sprintf("%s is unused", formatCode(i.VarName, lintCtx.Cfg)),
+					FromLinter: linterName,
+				}, pass))
+			}
 
+			mu.Lock()
+			res = append(res, issues...)
+			mu.Unlock()
 			return nil, nil
 		}
 	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
+		return res
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
-}
-
-//nolint:dupl
-func runVarCheck(pass *analysis.Pass, settings *config.VarCheckSettings) []goanalysis.Issue {
-	prog := goanalysis.MakeFakeLoaderProgram(pass)
-
-	lintIssues := varcheckAPI.Run(prog, settings.CheckExportedFields)
-	if len(lintIssues) == 0 {
-		return nil
-	}
-
-	issues := make([]goanalysis.Issue, 0, len(lintIssues))
-
-	for _, i := range lintIssues {
-		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			Pos:        i.Pos,
-			Text:       fmt.Sprintf("%s is unused", formatCode(i.VarName, nil)),
-			FromLinter: varcheckName,
-		}, pass))
-	}
-
-	return issues
 }

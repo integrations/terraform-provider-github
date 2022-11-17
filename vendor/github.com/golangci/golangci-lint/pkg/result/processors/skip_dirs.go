@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
@@ -25,14 +24,14 @@ type SkipDirs struct {
 	skippedDirsCache map[string]bool
 }
 
-var _ Processor = (*SkipDirs)(nil)
+var _ Processor = SkipFiles{}
 
 const goFileSuffix = ".go"
 
 func NewSkipDirs(patterns []string, log logutils.Log, runArgs []string) (*SkipDirs, error) {
 	var patternsRe []*regexp.Regexp
 	for _, p := range patterns {
-		p = fsutils.NormalizePathInRegex(p)
+		p = normalizePathInRegex(p)
 		patternRe, err := regexp.Compile(p)
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't compile regexp %q", p)

@@ -8,22 +8,17 @@ import (
 )
 
 func MakeFakeLoaderProgram(pass *analysis.Pass) *loader.Program {
-	var info types.Info
-	if pass.TypesInfo != nil {
-		info = *pass.TypesInfo
-	}
-
 	prog := &loader.Program{
 		Fset: pass.Fset,
 		Created: []*loader.PackageInfo{
 			{
 				Pkg:                   pass.Pkg,
 				Importable:            true, // not used
-				TransitivelyErrorFree: true, // TODO ???
+				TransitivelyErrorFree: true, // TODO
 
 				Files:  pass.Files,
 				Errors: nil,
-				Info:   info,
+				Info:   *pass.TypesInfo,
 			},
 		},
 		AllPackages: map[*types.Package]*loader.PackageInfo{
@@ -33,7 +28,7 @@ func MakeFakeLoaderProgram(pass *analysis.Pass) *loader.Program {
 				TransitivelyErrorFree: true,
 				Files:                 pass.Files,
 				Errors:                nil,
-				Info:                  info,
+				Info:                  *pass.TypesInfo,
 			},
 		},
 	}

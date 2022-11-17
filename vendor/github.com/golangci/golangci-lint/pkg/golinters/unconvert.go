@@ -11,57 +11,43 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const unconvertName = "unconvert"
-
-//nolint:dupl
 func NewUnconvert() *goanalysis.Linter {
+	const linterName = "unconvert"
 	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
+	var res []goanalysis.Issue
 	analyzer := &analysis.Analyzer{
-		Name: unconvertName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues := runUnconvert(pass)
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
-
-			return nil, nil
-		},
 	}
-
 	return goanalysis.NewLinter(
-		unconvertName,
+		linterName,
 		"Remove unnecessary type conversions",
 		[]*analysis.Analyzer{analyzer},
 		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
+	).WithContextSetter(func(lintCtx *linter.Context) {
+		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+			prog := goanalysis.MakeFakeLoaderProgram(pass)
+
+			positions := unconvertAPI.Run(prog)
+			if len(positions) == 0 {
+				return nil, nil
+			}
+
+			issues := make([]goanalysis.Issue, 0, len(positions))
+			for _, pos := range positions {
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
+					Pos:        pos,
+					Text:       "unnecessary conversion",
+					FromLinter: linterName,
+				}, pass))
+			}
+
+			mu.Lock()
+			res = append(res, issues...)
+			mu.Unlock()
+			return nil, nil
+		}
+	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
+		return res
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
-}
-
-func runUnconvert(pass *analysis.Pass) []goanalysis.Issue {
-	prog := goanalysis.MakeFakeLoaderProgram(pass)
-
-	positions := unconvertAPI.Run(prog)
-	if len(positions) == 0 {
-		return nil
-	}
-
-	issues := make([]goanalysis.Issue, 0, len(positions))
-	for _, pos := range positions {
-		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			Pos:        pos,
-			Text:       "unnecessary conversion",
-			FromLinter: unconvertName,
-		}, pass))
-	}
-
-	return issues
 }

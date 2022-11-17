@@ -8,12 +8,14 @@ import (
 )
 
 func NewSQLCloseCheck() *goanalysis.Linter {
+	analyzers := []*analysis.Analyzer{
+		analyzer.NewAnalyzer(),
+	}
+
 	return goanalysis.NewLinter(
 		"sqlclosecheck",
 		"Checks that sql.Rows and sql.Stmt are closed.",
-		[]*analysis.Analyzer{
-			analyzer.NewAnalyzer(),
-		},
+		analyzers,
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

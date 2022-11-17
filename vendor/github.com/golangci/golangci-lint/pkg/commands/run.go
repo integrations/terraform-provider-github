@@ -3,7 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -24,15 +24,6 @@ import (
 	"github.com/golangci/golangci-lint/pkg/printers"
 	"github.com/golangci/golangci-lint/pkg/result"
 	"github.com/golangci/golangci-lint/pkg/result/processors"
-)
-
-const defaultFileMode = 0644
-
-const (
-	// envFailOnWarnings value: "1"
-	envFailOnWarnings = "FAIL_ON_WARNINGS"
-	// envMemLogEvery value: "1"
-	envMemLogEvery = "GL_MEM_LOG_EVERY"
 )
 
 func getDefaultIssueExcludeHelp() string {
@@ -62,7 +53,7 @@ func wh(text string) string {
 
 const defaultTimeout = time.Minute
 
-//nolint:funlen,gomnd
+//nolint:funlen
 func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager, isFinalInit bool) {
 	hideFlag := func(name string) {
 		if err := fs.MarkHidden(name); err != nil {
@@ -102,7 +93,6 @@ func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager, is
 		"Modules download mode. If not empty, passed as -mod=<mode> to go tools")
 	fs.IntVar(&rc.ExitCodeIfIssuesFound, "issues-exit-code",
 		exitcodes.IssuesFound, wh("Exit code when issues were found"))
-	fs.StringVar(&rc.Go, "go", "", wh("Targeted Go version"))
 	fs.StringSliceVar(&rc.BuildTags, "build-tags", nil, wh("Build tags"))
 
 	fs.DurationVar(&rc.Timeout, "deadline", defaultTimeout, wh("Deadline for total work"))
@@ -210,6 +200,9 @@ func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager, is
 	fs.StringSliceVarP(&lc.Enable, "enable", "E", nil, wh("Enable specific linter"))
 	fs.StringSliceVarP(&lc.Disable, "disable", "D", nil, wh("Disable specific linter"))
 	fs.BoolVar(&lc.EnableAll, "enable-all", false, wh("Enable all linters"))
+	if err := fs.MarkHidden("enable-all"); err != nil {
+		panic(err)
+	}
 
 	fs.BoolVar(&lc.DisableAll, "disable-all", false, wh("Disable all linters"))
 	fs.StringSliceVarP(&lc.Presets, "presets", "p", nil,
@@ -240,8 +233,6 @@ func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager, is
 		wh("Show only new issues created after git revision `REV`"))
 	fs.StringVar(&ic.DiffPatchFilePath, "new-from-patch", "",
 		wh("Show only new issues created in git patch with file path `PATH`"))
-	fs.BoolVar(&ic.WholeFiles, "whole-files", false,
-		wh("Show issues in any part of update files (requires new-from-rev or new-from-patch)"))
 	fs.BoolVar(&ic.NeedFix, "fix", false, "Fix found issues (if it's supported by the linter)")
 }
 
@@ -253,7 +244,7 @@ func (e *Executor) initRunConfiguration(cmd *cobra.Command) {
 
 func (e *Executor) getConfigForCommandLine() (*config.Config, error) {
 	// We use another pflag.FlagSet here to not set `changed` flag
-	// on cmd.Flags() options. Otherwise, string slice options will be duplicated.
+	// on cmd.Flags() options. Otherwise string slice options will be duplicated.
 	fs := pflag.NewFlagSet("config flag set", pflag.ContinueOnError)
 
 	var cfg config.Config
@@ -269,7 +260,7 @@ func (e *Executor) getConfigForCommandLine() (*config.Config, error) {
 	// cfg vs e.cfg.
 	initRootFlagSet(fs, &cfg, true)
 
-	fs.Usage = func() {} // otherwise, help text will be printed twice
+	fs.Usage = func() {} // otherwise help text will be printed twice
 	if err := fs.Parse(os.Args); err != nil {
 		if err == pflag.ErrHelp {
 			return nil, err
@@ -286,11 +277,10 @@ func (e *Executor) initRun() {
 		Use:   "run",
 		Short: "Run the linters",
 		Run:   e.executeRun,
-		PreRunE: func(_ *cobra.Command, _ []string) error {
+		PreRun: func(_ *cobra.Command, _ []string) {
 			if ok := e.acquireFileLock(); !ok {
-				return errors.New("parallel golangci-lint is running")
+				e.log.Fatalf("Parallel golangci-lint is running")
 			}
-			return nil
 		},
 		PostRun: func(_ *cobra.Command, _ []string) {
 			e.releaseFileLock()
@@ -334,7 +324,6 @@ func fixSlicesFlags(fs *pflag.FlagSet) {
 	})
 }
 
-// runAnalysis executes the linters that have been enabled in the configuration.
 func (e *Executor) runAnalysis(ctx context.Context, args []string) ([]result.Issue, error) {
 	e.cfg.Run.Args = args
 
@@ -357,9 +346,9 @@ func (e *Executor) runAnalysis(ctx context.Context, args []string) ([]result.Iss
 	if err != nil {
 		return nil, errors.Wrap(err, "context loading failed")
 	}
-	lintCtx.Log = e.log.Child(logutils.DebugKeyLintersContext)
+	lintCtx.Log = e.log.Child("linters context")
 
-	runner, err := lint.NewRunner(e.cfg, e.log.Child(logutils.DebugKeyRunner),
+	runner, err := lint.NewRunner(e.cfg, e.log.Child("runner"),
 		e.goenv, e.EnabledLintersSet, e.lineCache, e.DBManager, lintCtx.Packages)
 	if err != nil {
 		return nil, err
@@ -397,9 +386,9 @@ func (e *Executor) runAndPrint(ctx context.Context, args []string) error {
 		e.log.Warnf("Failed to discover go env: %s", err)
 	}
 
-	if !logutils.HaveDebugTag(logutils.DebugKeyLintersOutput) {
+	if !logutils.HaveDebugTag("linters_output") {
 		// Don't allow linters and loader to print anything
-		log.SetOutput(io.Discard)
+		log.SetOutput(ioutil.Discard)
 		savedStdout, savedStderr := e.setOutputToDevNull()
 		defer func() {
 			os.Stdout, os.Stderr = savedStdout, savedStderr
@@ -411,89 +400,44 @@ func (e *Executor) runAndPrint(ctx context.Context, args []string) error {
 		return err // XXX: don't loose type
 	}
 
-	formats := strings.Split(e.cfg.Output.Format, ",")
-	for _, format := range formats {
-		out := strings.SplitN(format, ":", 2)
-		if len(out) < 2 {
-			out = append(out, "")
-		}
-
-		err := e.printReports(ctx, issues, out[1], out[0])
-		if err != nil {
-			return err
-		}
+	p, err := e.createPrinter()
+	if err != nil {
+		return err
 	}
 
 	e.setExitCodeIfIssuesFound(issues)
+
+	if err = p.Print(ctx, issues); err != nil {
+		return fmt.Errorf("can't print %d issues: %s", len(issues), err)
+	}
 
 	e.fileCache.PrintStats(e.log)
 
 	return nil
 }
 
-func (e *Executor) printReports(ctx context.Context, issues []result.Issue, path, format string) error {
-	w, shouldClose, err := e.createWriter(path)
-	if err != nil {
-		return fmt.Errorf("can't create output for %s: %w", path, err)
-	}
-
-	p, err := e.createPrinter(format, w)
-	if err != nil {
-		if file, ok := w.(io.Closer); shouldClose && ok {
-			_ = file.Close()
-		}
-		return err
-	}
-
-	if err = p.Print(ctx, issues); err != nil {
-		if file, ok := w.(io.Closer); shouldClose && ok {
-			_ = file.Close()
-		}
-		return fmt.Errorf("can't print %d issues: %s", len(issues), err)
-	}
-
-	if file, ok := w.(io.Closer); shouldClose && ok {
-		_ = file.Close()
-	}
-
-	return nil
-}
-
-func (e *Executor) createWriter(path string) (io.Writer, bool, error) {
-	if path == "" || path == "stdout" {
-		return logutils.StdOut, false, nil
-	}
-	if path == "stderr" {
-		return logutils.StdErr, false, nil
-	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultFileMode)
-	if err != nil {
-		return nil, false, err
-	}
-	return f, true, nil
-}
-
-func (e *Executor) createPrinter(format string, w io.Writer) (printers.Printer, error) {
+func (e *Executor) createPrinter() (printers.Printer, error) {
 	var p printers.Printer
+	format := e.cfg.Output.Format
 	switch format {
 	case config.OutFormatJSON:
-		p = printers.NewJSON(&e.reportData, w)
+		p = printers.NewJSON(&e.reportData)
 	case config.OutFormatColoredLineNumber, config.OutFormatLineNumber:
 		p = printers.NewText(e.cfg.Output.PrintIssuedLine,
 			format == config.OutFormatColoredLineNumber, e.cfg.Output.PrintLinterName,
-			e.log.Child(logutils.DebugKeyTextPrinter), w)
+			e.log.Child("text_printer"))
 	case config.OutFormatTab:
-		p = printers.NewTab(e.cfg.Output.PrintLinterName, e.log.Child(logutils.DebugKeyTabPrinter), w)
+		p = printers.NewTab(e.cfg.Output.PrintLinterName, e.log.Child("tab_printer"))
 	case config.OutFormatCheckstyle:
-		p = printers.NewCheckstyle(w)
+		p = printers.NewCheckstyle()
 	case config.OutFormatCodeClimate:
-		p = printers.NewCodeClimate(w)
+		p = printers.NewCodeClimate()
 	case config.OutFormatHTML:
-		p = printers.NewHTML(w)
+		p = printers.NewHTML()
 	case config.OutFormatJunitXML:
-		p = printers.NewJunitXML(w)
+		p = printers.NewJunitXML()
 	case config.OutFormatGithubActions:
-		p = printers.NewGithub(w)
+		p = printers.NewGithub()
 	default:
 		return nil, fmt.Errorf("unknown output format %s", format)
 	}
@@ -501,7 +445,6 @@ func (e *Executor) createPrinter(format string, w io.Writer) (printers.Printer, 
 	return p, nil
 }
 
-// executeRun executes the 'run' CLI command, which runs the linters.
 func (e *Executor) executeRun(_ *cobra.Command, args []string) {
 	needTrackResources := e.cfg.Run.IsVerbose || e.cfg.Run.PrintResourcesUsage
 	trackResourcesEndCh := make(chan struct{})
@@ -535,6 +478,7 @@ func (e *Executor) executeRun(_ *cobra.Command, args []string) {
 
 // to be removed when deadline is finally decommissioned
 func (e *Executor) setTimeoutToDeadlineIfOnlyDeadlineIsSet() {
+	// nolint:staticcheck
 	deadlineValue := e.cfg.Run.Deadline
 	if deadlineValue != 0 && e.cfg.Run.Timeout == defaultTimeout {
 		e.cfg.Run.Timeout = deadlineValue
@@ -552,7 +496,7 @@ func (e *Executor) setupExitCode(ctx context.Context) {
 		return
 	}
 
-	needFailOnWarnings := os.Getenv(lintersdb.EnvTestRun) == "1" || os.Getenv(envFailOnWarnings) == "1"
+	needFailOnWarnings := (os.Getenv("GL_TEST_RUN") == "1" || os.Getenv("FAIL_ON_WARNINGS") == "1")
 	if needFailOnWarnings && len(e.reportData.Warnings) != 0 {
 		e.exitCode = exitcodes.WarningInTest
 		return
@@ -576,7 +520,7 @@ func watchResources(ctx context.Context, done chan struct{}, logger logutils.Log
 	ticker := time.NewTicker(intervalMS * time.Millisecond)
 	defer ticker.Stop()
 
-	logEveryRecord := os.Getenv(envMemLogEvery) == "1"
+	logEveryRecord := os.Getenv("GL_MEM_LOG_EVERY") == "1"
 	const MB = 1024 * 1024
 
 	track := func() {

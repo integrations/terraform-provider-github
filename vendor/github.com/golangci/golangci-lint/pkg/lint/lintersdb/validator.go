@@ -1,7 +1,6 @@
 package lintersdb
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -22,7 +21,7 @@ func (v Validator) validateLintersNames(cfg *config.Linters) error {
 	allNames := append([]string{}, cfg.Enable...)
 	allNames = append(allNames, cfg.Disable...)
 
-	var unknownNames []string
+	unknownNames := []string{}
 
 	for _, name := range allNames {
 		if v.m.GetLinterConfigs(name) == nil {
@@ -31,7 +30,7 @@ func (v Validator) validateLintersNames(cfg *config.Linters) error {
 	}
 
 	if len(unknownNames) > 0 {
-		return fmt.Errorf("unknown linters: '%v', run 'golangci-lint help linters' to see the list of supported linters",
+		return fmt.Errorf("unknown linters: '%v', run 'golangci-lint linters' to see the list of supported linters",
 			strings.Join(unknownNames, ","))
 	}
 
@@ -48,7 +47,7 @@ func (v Validator) validatePresets(cfg *config.Linters) error {
 	}
 
 	if len(cfg.Presets) != 0 && cfg.EnableAll {
-		return errors.New("--presets is incompatible with --enable-all")
+		return fmt.Errorf("--presets is incompatible with --enable-all")
 	}
 
 	return nil
@@ -56,12 +55,12 @@ func (v Validator) validatePresets(cfg *config.Linters) error {
 
 func (v Validator) validateAllDisableEnableOptions(cfg *config.Linters) error {
 	if cfg.EnableAll && cfg.DisableAll {
-		return errors.New("--enable-all and --disable-all options must not be combined")
+		return fmt.Errorf("--enable-all and --disable-all options must not be combined")
 	}
 
 	if cfg.DisableAll {
 		if len(cfg.Enable) == 0 && len(cfg.Presets) == 0 {
-			return errors.New("all linters were disabled, but no one linter was enabled: must enable at least one")
+			return fmt.Errorf("all linters were disabled, but no one linter was enabled: must enable at least one")
 		}
 
 		if len(cfg.Disable) != 0 {

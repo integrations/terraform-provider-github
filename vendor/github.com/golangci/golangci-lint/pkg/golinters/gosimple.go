@@ -14,7 +14,7 @@ func NewGosimple(settings *config.StaticCheckSettings) *goanalysis.Linter {
 
 	return goanalysis.NewLinter(
 		"gosimple",
-		"Linter for Go source code that specializes in simplifying code",
+		"Linter for Go source code that specializes in simplifying a code",
 		analyzers,
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)

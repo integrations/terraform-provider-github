@@ -7,76 +7,64 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const forbidigoName = "forbidigo"
-
-//nolint:dupl
-func NewForbidigo(settings *config.ForbidigoSettings) *goanalysis.Linter {
+func NewForbidigo() *goanalysis.Linter {
+	const linterName = "forbidigo"
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
 
 	analyzer := &analysis.Analyzer{
-		Name: forbidigoName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues, err := runForbidigo(pass, settings)
+	}
+	return goanalysis.NewLinter(
+		linterName,
+		"Forbids identifiers",
+		[]*analysis.Analyzer{analyzer},
+		nil,
+	).WithContextSetter(func(lintCtx *linter.Context) {
+		s := &lintCtx.Settings().Forbidigo
+
+		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+			var res []goanalysis.Issue
+			options := []forbidigo.Option{
+				forbidigo.OptionExcludeGodocExamples(s.ExcludeGodocExamples),
+				// disable "//permit" directives so only "//nolint" directives matters within golangci lint
+				forbidigo.OptionIgnorePermitDirectives(true),
+			}
+			forbid, err := forbidigo.NewLinter(s.Forbid, options...)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "failed to create linter %q", linterName)
 			}
 
-			if len(issues) == 0 {
+			for _, file := range pass.Files {
+				hints, err := forbid.Run(pass.Fset, file)
+				if err != nil {
+					return nil, errors.Wrapf(err, "forbidigo linter failed on file %q", file.Name.String())
+				}
+				for _, hint := range hints {
+					res = append(res, goanalysis.NewIssue(&result.Issue{
+						Pos:        hint.Position(),
+						Text:       hint.Details(),
+						FromLinter: linterName,
+					}, pass))
+				}
+			}
+
+			if len(res) == 0 {
 				return nil, nil
 			}
 
 			mu.Lock()
-			resIssues = append(resIssues, issues...)
+			resIssues = append(resIssues, res...)
 			mu.Unlock()
 			return nil, nil
-		},
-	}
-
-	return goanalysis.NewLinter(
-		forbidigoName,
-		"Forbids identifiers",
-		[]*analysis.Analyzer{analyzer},
-		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
+		}
+	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
 		return resIssues
 	}).WithLoadMode(goanalysis.LoadModeSyntax)
-}
-
-func runForbidigo(pass *analysis.Pass, settings *config.ForbidigoSettings) ([]goanalysis.Issue, error) {
-	options := []forbidigo.Option{
-		forbidigo.OptionExcludeGodocExamples(settings.ExcludeGodocExamples),
-		// disable "//permit" directives so only "//nolint" directives matters within golangci-lint
-		forbidigo.OptionIgnorePermitDirectives(true),
-	}
-
-	forbid, err := forbidigo.NewLinter(settings.Forbid, options...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create linter %q", forbidigoName)
-	}
-
-	var issues []goanalysis.Issue
-	for _, file := range pass.Files {
-		hints, err := forbid.Run(pass.Fset, file)
-		if err != nil {
-			return nil, errors.Wrapf(err, "forbidigo linter failed on file %q", file.Name.String())
-		}
-
-		for _, hint := range hints {
-			issues = append(issues, goanalysis.NewIssue(&result.Issue{
-				Pos:        hint.Position(),
-				Text:       hint.Details(),
-				FromLinter: forbidigoName,
-			}, pass))
-		}
-	}
-
-	return issues, nil
 }

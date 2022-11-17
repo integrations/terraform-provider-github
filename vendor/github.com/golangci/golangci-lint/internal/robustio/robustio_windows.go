@@ -5,20 +5,23 @@
 package robustio
 
 import (
-	"errors"
+	"os"
 	"syscall"
 )
 
 const errFileNotFound = syscall.ERROR_FILE_NOT_FOUND
 
-// ERROR_SHARING_VIOLATION (ldez) extract from go1.19.1/src/internal/syscall/windows/syscall_windows.go.
-// This is the only modification of this file.
-const ERROR_SHARING_VIOLATION syscall.Errno = 32
-
 // isEphemeralError returns true if err may be resolved by waiting.
 func isEphemeralError(err error) bool {
-	var errno syscall.Errno
-	if errors.As(err, &errno) {
+	switch werr := err.(type) {
+	case *os.PathError:
+		err = werr.Err
+	case *os.LinkError:
+		err = werr.Err
+	case *os.SyscallError:
+		err = werr.Err
+	}
+	if errno, ok := err.(syscall.Errno); ok {
 		switch errno {
 		case syscall.ERROR_ACCESS_DENIED,
 			syscall.ERROR_FILE_NOT_FOUND,

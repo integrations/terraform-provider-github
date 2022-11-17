@@ -6,13 +6,12 @@ package cache
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sync"
 )
-
-const envGolangciLintCache = "GOLANGCI_LINT_CACHE"
 
 // Default returns the default cache to use.
 func Default() (*Cache, error) {
@@ -40,7 +39,7 @@ func initDefaultCache() {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "README")); err != nil {
 		// Best effort.
-		if wErr := os.WriteFile(filepath.Join(dir, "README"), []byte(cacheREADME), 0666); wErr != nil {
+		if wErr := ioutil.WriteFile(filepath.Join(dir, "README"), []byte(cacheREADME), 0666); wErr != nil {
 			log.Fatalf("Failed to write README file to cache dir %s: %s", dir, err)
 		}
 	}
@@ -66,19 +65,19 @@ func DefaultDir() string {
 	// otherwise distinguish between an explicit "off" and a UserCacheDir error.
 
 	defaultDirOnce.Do(func() {
-		defaultDir = os.Getenv(envGolangciLintCache)
+		defaultDir = os.Getenv("GOLANGCI_LINT_CACHE")
 		if filepath.IsAbs(defaultDir) {
 			return
 		}
 		if defaultDir != "" {
-			defaultDirErr = fmt.Errorf("%s is not an absolute path", envGolangciLintCache)
+			defaultDirErr = fmt.Errorf("GOLANGCI_LINT_CACHE is not an absolute path")
 			return
 		}
 
 		// Compute default location.
 		dir, err := os.UserCacheDir()
 		if err != nil {
-			defaultDirErr = fmt.Errorf("%s is not defined and %w", envGolangciLintCache, err)
+			defaultDirErr = fmt.Errorf("GOLANGCI_LINT_CACHE is not defined and %v", err)
 			return
 		}
 		defaultDir = filepath.Join(dir, "golangci-lint")

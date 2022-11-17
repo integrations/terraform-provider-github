@@ -3,7 +3,6 @@ package printers
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/fatih/color"
@@ -18,16 +17,14 @@ type Text struct {
 	printLinterName bool
 
 	log logutils.Log
-	w   io.Writer
 }
 
-func NewText(printIssuedLine, useColors, printLinterName bool, log logutils.Log, w io.Writer) *Text {
+func NewText(printIssuedLine, useColors, printLinterName bool, log logutils.Log) *Text {
 	return &Text{
 		printIssuedLine: printIssuedLine,
 		useColors:       useColors,
 		printLinterName: printLinterName,
 		log:             log,
-		w:               w,
 	}
 }
 
@@ -64,12 +61,12 @@ func (p Text) printIssue(i *result.Issue) {
 	if i.Pos.Column != 0 {
 		pos += fmt.Sprintf(":%d", i.Pos.Column)
 	}
-	fmt.Fprintf(p.w, "%s: %s\n", pos, text)
+	fmt.Fprintf(logutils.StdOut, "%s: %s\n", pos, text)
 }
 
 func (p Text) printSourceCode(i *result.Issue) {
 	for _, line := range i.SourceLines {
-		fmt.Fprintln(p.w, line)
+		fmt.Fprintln(logutils.StdOut, line)
 	}
 }
 
@@ -90,5 +87,5 @@ func (p Text) printUnderLinePointer(i *result.Issue) {
 		}
 	}
 
-	fmt.Fprintf(p.w, "%s%s\n", string(prefixRunes), p.SprintfColored(color.FgYellow, "^"))
+	fmt.Fprintf(logutils.StdOut, "%s%s\n", string(prefixRunes), p.SprintfColored(color.FgYellow, "^"))
 }

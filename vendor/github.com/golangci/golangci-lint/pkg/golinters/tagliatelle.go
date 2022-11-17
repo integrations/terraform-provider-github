@@ -25,10 +25,6 @@ func NewTagliatelle(settings *config.TagliatelleSettings) *goanalysis.Linter {
 
 	a := tagliatelle.New(cfg)
 
-	return goanalysis.NewLinter(
-		a.Name,
-		a.Doc,
-		[]*analysis.Analyzer{a},
-		nil,
-	).WithLoadMode(goanalysis.LoadModeSyntax)
+	return goanalysis.NewLinter(a.Name, a.Doc, []*analysis.Analyzer{a}, nil).
+		WithLoadMode(goanalysis.LoadModeSyntax)
 }

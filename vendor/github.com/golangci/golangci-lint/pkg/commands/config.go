@@ -15,26 +15,26 @@ func (e *Executor) initConfig() {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Config",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return cmd.Help()
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) != 0 {
+				e.log.Fatalf("Usage: golangci-lint config")
+			}
+			if err := cmd.Help(); err != nil {
+				e.log.Fatalf("Can't run help: %s", err)
+			}
 		},
 	}
 	e.rootCmd.AddCommand(cmd)
 
 	pathCmd := &cobra.Command{
-		Use:               "path",
-		Short:             "Print used config path",
-		Args:              cobra.NoArgs,
-		ValidArgsFunction: cobra.NoFileCompletions,
-		Run:               e.executePathCmd,
+		Use:   "path",
+		Short: "Print used config path",
+		Run:   e.executePathCmd,
 	}
 	e.initRunConfiguration(pathCmd) // allow --config
 	cmd.AddCommand(pathCmd)
 }
 
-// getUsedConfig returns the resolved path to the golangci config file, or the empty string
-// if no configuration could be found.
 func (e *Executor) getUsedConfig() string {
 	usedConfigFile := viper.ConfigFileUsed()
 	if usedConfigFile == "" {
@@ -50,7 +50,11 @@ func (e *Executor) getUsedConfig() string {
 	return prettyUsedConfigFile
 }
 
-func (e *Executor) executePathCmd(_ *cobra.Command, _ []string) {
+func (e *Executor) executePathCmd(_ *cobra.Command, args []string) {
+	if len(args) != 0 {
+		e.log.Fatalf("Usage: golangci-lint config path")
+	}
+
 	usedConfigFile := e.getUsedConfig()
 	if usedConfigFile == "" {
 		e.log.Warnf("No config file detected")
@@ -58,4 +62,5 @@ func (e *Executor) executePathCmd(_ *cobra.Command, _ []string) {
 	}
 
 	fmt.Println(usedConfigFile)
+	os.Exit(0)
 }

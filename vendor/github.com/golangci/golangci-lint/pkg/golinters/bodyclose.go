@@ -8,10 +8,14 @@ import (
 )
 
 func NewBodyclose() *goanalysis.Linter {
+	analyzers := []*analysis.Analyzer{
+		bodyclose.Analyzer,
+	}
+
 	return goanalysis.NewLinter(
 		"bodyclose",
 		"checks whether HTTP response body is closed successfully",
-		[]*analysis.Analyzer{bodyclose.Analyzer},
+		analyzers,
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

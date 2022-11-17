@@ -12,7 +12,7 @@ import (
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
-var debugf = logutils.Debug(logutils.DebugKeyMegacheck)
+var debugf = logutils.Debug("megacheck")
 
 func getGoVersion(settings *config.StaticCheckSettings) string {
 	var goVersion string
@@ -24,7 +24,8 @@ func getGoVersion(settings *config.StaticCheckSettings) string {
 		return goVersion
 	}
 
-	return "1.17"
+	// TODO: uses "1.13" for backward compatibility, but in the future (v2) must be set by using build.Default.ReleaseTags like staticcheck.
+	return "1.13"
 }
 
 func setupStaticCheckAnalyzers(src []*lint.Analyzer, goVersion string, checks []string) []*analysis.Analyzer {
@@ -98,8 +99,7 @@ func staticCheckConfig(settings *config.StaticCheckSettings) *scconfig.Config {
 }
 
 // https://github.com/dominikh/go-tools/blob/9bf17c0388a65710524ba04c2d821469e639fdc2/lintcmd/lint.go#L437-L477
-//
-//nolint:gocritic // Keep the original source code.
+// nolint // Keep the original source code.
 func filterAnalyzerNames(analyzers []string, checks []string) map[string]bool {
 	allowedChecks := map[string]bool{}
 

@@ -15,14 +15,12 @@ import (
 type Tab struct {
 	printLinterName bool
 	log             logutils.Log
-	w               io.Writer
 }
 
-func NewTab(printLinterName bool, log logutils.Log, w io.Writer) *Tab {
+func NewTab(printLinterName bool, log logutils.Log) *Tab {
 	return &Tab{
 		printLinterName: printLinterName,
 		log:             log,
-		w:               w,
 	}
 }
 
@@ -32,7 +30,7 @@ func (p Tab) SprintfColored(ca color.Attribute, format string, args ...interface
 }
 
 func (p *Tab) Print(ctx context.Context, issues []result.Issue) error {
-	w := tabwriter.NewWriter(p.w, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(logutils.StdOut, 0, 0, 2, ' ', 0)
 
 	for i := range issues {
 		p.printIssue(&issues[i], w)

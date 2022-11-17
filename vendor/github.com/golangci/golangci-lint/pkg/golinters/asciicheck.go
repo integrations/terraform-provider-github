@@ -11,7 +11,9 @@ func NewAsciicheck() *goanalysis.Linter {
 	return goanalysis.NewLinter(
 		"asciicheck",
 		"Simple linter to check that your code does not contain non-ASCII identifiers",
-		[]*analysis.Analyzer{asciicheck.NewAnalyzer()},
+		[]*analysis.Analyzer{
+			asciicheck.NewAnalyzer(),
+		},
 		nil,
 	).WithLoadMode(goanalysis.LoadModeSyntax)
 }

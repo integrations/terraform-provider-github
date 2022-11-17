@@ -3,15 +3,13 @@ package lintersdb
 import (
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
-
-// EnvTestRun value: "1"
-const EnvTestRun = "GL_TEST_RUN"
 
 type EnabledSet struct {
 	m      *Manager
@@ -27,7 +25,7 @@ func NewEnabledSet(m *Manager, v *Validator, log logutils.Log, cfg *config.Confi
 		v:      v,
 		log:    log,
 		cfg:    cfg,
-		debugf: logutils.Debug(logutils.DebugKeyEnabledLinters),
+		debugf: logutils.Debug("enabled_linters"),
 	}
 }
 
@@ -87,7 +85,7 @@ func (es EnabledSet) GetEnabledLintersMap() (map[string]*linter.Config, error) {
 	}
 
 	enabledLinters := es.build(&es.cfg.Linters, es.m.GetAllEnabledByDefaultLinters())
-	if os.Getenv(EnvTestRun) == "1" {
+	if os.Getenv("GL_TEST_RUN") == "1" {
 		es.verbosePrintLintersStatus(enabledLinters)
 	}
 	return enabledLinters, nil
@@ -125,7 +123,7 @@ func (es EnabledSet) GetOptimizedLinters() ([]*linter.Config, error) {
 		if a.DoesChangeTypes != b.DoesChangeTypes {
 			return b.DoesChangeTypes // move type-changing linters to the end to optimize speed
 		}
-		return a.Name() < b.Name()
+		return strings.Compare(a.Name(), b.Name()) < 0
 	})
 
 	return resultLinters, nil
@@ -170,7 +168,7 @@ func (es EnabledSet) combineGoAnalysisLinters(linters map[string]*linter.Config)
 			return false
 		}
 
-		return a.Name() <= b.Name()
+		return strings.Compare(a.Name(), b.Name()) <= 0
 	})
 
 	ml := goanalysis.NewMetaLinter(goanalysisLinters)

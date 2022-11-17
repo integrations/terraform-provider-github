@@ -12,36 +12,28 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const deadcodeName = "deadcode"
-
 func NewDeadcode() *goanalysis.Linter {
+	const linterName = "deadcode"
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
 
 	analyzer := &analysis.Analyzer{
-		Name: deadcodeName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
 		Run: func(pass *analysis.Pass) (interface{}, error) {
 			prog := goanalysis.MakeFakeLoaderProgram(pass)
-
 			issues, err := deadcodeAPI.Run(prog)
 			if err != nil {
 				return nil, err
 			}
-
 			res := make([]goanalysis.Issue, 0, len(issues))
 			for _, i := range issues {
 				res = append(res, goanalysis.NewIssue(&result.Issue{
 					Pos:        i.Pos,
 					Text:       fmt.Sprintf("%s is unused", formatCode(i.UnusedIdentName, nil)),
-					FromLinter: deadcodeName,
+					FromLinter: linterName,
 				}, pass))
 			}
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
 			mu.Lock()
 			resIssues = append(resIssues, res...)
 			mu.Unlock()
@@ -49,9 +41,8 @@ func NewDeadcode() *goanalysis.Linter {
 			return nil, nil
 		},
 	}
-
 	return goanalysis.NewLinter(
-		deadcodeName,
+		linterName,
 		"Finds unused code",
 		[]*analysis.Analyzer{analyzer},
 		nil,

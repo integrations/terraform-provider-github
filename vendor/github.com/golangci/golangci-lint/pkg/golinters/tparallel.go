@@ -8,10 +8,14 @@ import (
 )
 
 func NewTparallel() *goanalysis.Linter {
+	analyzers := []*analysis.Analyzer{
+		tparallel.Analyzer,
+	}
+
 	return goanalysis.NewLinter(
 		"tparallel",
 		"tparallel detects inappropriate usage of t.Parallel() method in your Go test codes",
-		[]*analysis.Analyzer{tparallel.Analyzer},
+		analyzers,
 		nil,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

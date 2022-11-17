@@ -10,7 +10,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 
-	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/sliceutil"
@@ -46,11 +45,6 @@ func (r *FileReader) Read() error {
 
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
-
-		// Assume YAML if the file has no extension.
-		if filepath.Ext(configFile) == "" {
-			viper.SetConfigType("yaml")
-		}
 	} else {
 		r.setupConfigFileSearch()
 	}
@@ -77,11 +71,6 @@ func (r *FileReader) parseConfig() error {
 		r.log.Warnf("Can't pretty print config file path: %s", err)
 	}
 	r.log.Infof("Used config file %s", usedConfigFile)
-	usedConfigDir := filepath.Dir(usedConfigFile)
-	if usedConfigDir, err = filepath.Abs(usedConfigDir); err != nil {
-		return errors.New("can't get config directory")
-	}
-	r.cfg.cfgDir = usedConfigDir
 
 	if err := viper.Unmarshal(r.cfg); err != nil {
 		return fmt.Errorf("can't unmarshal config by viper: %s", err)
@@ -93,7 +82,7 @@ func (r *FileReader) parseConfig() error {
 
 	if r.cfg.InternalTest { // just for testing purposes: to detect config file usage
 		fmt.Fprintln(logutils.StdOut, "test")
-		os.Exit(exitcodes.Success)
+		os.Exit(0)
 	}
 
 	return nil
@@ -216,7 +205,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile := cfg.Run.Config
 	if cfg.Run.NoConfig && configFile != "" {
-		return "", errors.New("can't combine option --config and --no-config")
+		return "", fmt.Errorf("can't combine option --config and --no-config")
 	}
 
 	if cfg.Run.NoConfig {
@@ -225,7 +214,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
-		return "", errors.New("failed to expand configuration path")
+		return "", fmt.Errorf("failed to expand configuration path")
 	}
 
 	return configFile, nil

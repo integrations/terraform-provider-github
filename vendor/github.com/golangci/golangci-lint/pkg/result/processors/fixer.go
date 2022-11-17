@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/golangci/golangci-lint/internal/robustio"
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
@@ -105,13 +104,13 @@ func (f Fixer) fixIssuesInFile(filePath string, issues []result.Issue) error {
 
 	if err = f.writeFixedFile(origFileLines, issues, tmpOutFile); err != nil {
 		tmpOutFile.Close()
-		_ = robustio.RemoveAll(tmpOutFile.Name())
+		os.Remove(tmpOutFile.Name())
 		return err
 	}
 
 	tmpOutFile.Close()
-	if err = robustio.Rename(tmpOutFile.Name(), filePath); err != nil {
-		_ = robustio.RemoveAll(tmpOutFile.Name())
+	if err = os.Rename(tmpOutFile.Name(), filePath); err != nil {
+		os.Remove(tmpOutFile.Name())
 		return errors.Wrapf(err, "failed to rename %s -> %s", tmpOutFile.Name(), filePath)
 	}
 

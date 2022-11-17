@@ -41,7 +41,6 @@ func NewGochecknoinits() *goanalysis.Linter {
 			return nil, nil
 		},
 	}
-
 	return goanalysis.NewLinter(
 		gochecknoinitsName,
 		"Checks that no init functions are present in Go code",

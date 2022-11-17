@@ -1,4 +1,4 @@
-package golinters
+package golinters // nolint:dupl
 
 import (
 	"fmt"
@@ -7,65 +7,49 @@ import (
 	structcheckAPI "github.com/golangci/check/cmd/structcheck"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const structcheckName = "structcheck"
-
-//nolint:dupl
-func NewStructcheck(settings *config.StructCheckSettings) *goanalysis.Linter {
+func NewStructcheck() *goanalysis.Linter {
+	const linterName = "structcheck"
 	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
-
+	var res []goanalysis.Issue
 	analyzer := &analysis.Analyzer{
-		Name: structcheckName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues := runStructCheck(pass, settings)
-
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
-
-			return nil, nil
-		},
 	}
-
 	return goanalysis.NewLinter(
-		structcheckName,
+		linterName,
 		"Finds unused struct fields",
 		[]*analysis.Analyzer{analyzer},
 		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
+	).WithContextSetter(func(lintCtx *linter.Context) {
+		checkExported := lintCtx.Settings().Structcheck.CheckExportedFields
+		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+			prog := goanalysis.MakeFakeLoaderProgram(pass)
+
+			structcheckIssues := structcheckAPI.Run(prog, checkExported)
+			if len(structcheckIssues) == 0 {
+				return nil, nil
+			}
+
+			issues := make([]goanalysis.Issue, 0, len(structcheckIssues))
+			for _, i := range structcheckIssues {
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
+					Pos:        i.Pos,
+					Text:       fmt.Sprintf("%s is unused", formatCode(i.FieldName, lintCtx.Cfg)),
+					FromLinter: linterName,
+				}, pass))
+			}
+
+			mu.Lock()
+			res = append(res, issues...)
+			mu.Unlock()
+			return nil, nil
+		}
+	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
+		return res
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
-}
-
-//nolint:dupl
-func runStructCheck(pass *analysis.Pass, settings *config.StructCheckSettings) []goanalysis.Issue {
-	prog := goanalysis.MakeFakeLoaderProgram(pass)
-
-	lintIssues := structcheckAPI.Run(prog, settings.CheckExportedFields)
-	if len(lintIssues) == 0 {
-		return nil
-	}
-
-	issues := make([]goanalysis.Issue, 0, len(lintIssues))
-
-	for _, i := range lintIssues {
-		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			Pos:        i.Pos,
-			Text:       fmt.Sprintf("%s is unused", formatCode(i.FieldName, nil)),
-			FromLinter: structcheckName,
-		}, pass))
-	}
-
-	return issues
 }

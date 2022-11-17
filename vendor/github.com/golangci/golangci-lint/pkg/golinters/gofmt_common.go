@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	diffpkg "github.com/sourcegraph/go-diff/diff"
 
-	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 	"github.com/golangci/golangci-lint/pkg/result"
@@ -50,12 +49,12 @@ type hunkChangesParser struct {
 
 func (p *hunkChangesParser) parseDiffLines(h *diffpkg.Hunk) {
 	lines := bytes.Split(h.Body, []byte{'\n'})
-	currentOriginalLineNumber := int(h.OrigStartLine)
+	currentOriginalLineNumer := int(h.OrigStartLine)
 	var ret []diffLine
 
 	for i, line := range lines {
 		dl := diffLine{
-			originalNumber: currentOriginalLineNumber,
+			originalNumber: currentOriginalLineNumer,
 		}
 
 		lineStr := string(line)
@@ -63,7 +62,7 @@ func (p *hunkChangesParser) parseDiffLines(h *diffpkg.Hunk) {
 		if strings.HasPrefix(lineStr, "-") {
 			dl.typ = diffLineDeleted
 			dl.data = strings.TrimPrefix(lineStr, "-")
-			currentOriginalLineNumber++
+			currentOriginalLineNumer++
 		} else if strings.HasPrefix(lineStr, "+") {
 			dl.typ = diffLineAdded
 			dl.data = strings.TrimPrefix(lineStr, "+")
@@ -75,7 +74,7 @@ func (p *hunkChangesParser) parseDiffLines(h *diffpkg.Hunk) {
 
 			dl.typ = diffLineOriginal
 			dl.data = strings.TrimPrefix(lineStr, " ")
-			currentOriginalLineNumber++
+			currentOriginalLineNumer++
 		}
 
 		ret = append(ret, dl)
@@ -208,34 +207,40 @@ func (p *hunkChangesParser) parse(h *diffpkg.Hunk) []Change {
 	return p.ret
 }
 
-func getErrorTextForLinter(settings *config.LintersSettings, linterName string) string {
+func getErrorTextForLinter(lintCtx *linter.Context, linterName string) string {
 	text := "File is not formatted"
 	switch linterName {
-	case gciName:
-		text = getErrorTextForGci(settings.Gci)
 	case gofumptName:
 		text = "File is not `gofumpt`-ed"
-		if settings.Gofumpt.ExtraRules {
+		if lintCtx.Settings().Gofumpt.ExtraRules {
 			text += " with `-extra`"
 		}
 	case gofmtName:
 		text = "File is not `gofmt`-ed"
-		if settings.Gofmt.Simplify {
+		if lintCtx.Settings().Gofmt.Simplify {
 			text += " with `-s`"
-		}
-		for _, rule := range settings.Gofmt.RewriteRules {
-			text += fmt.Sprintf(" `-r '%s -> %s'`", rule.Pattern, rule.Replacement)
 		}
 	case goimportsName:
 		text = "File is not `goimports`-ed"
-		if settings.Goimports.LocalPrefixes != "" {
-			text += " with -local " + settings.Goimports.LocalPrefixes
+		if lintCtx.Settings().Goimports.LocalPrefixes != "" {
+			text += " with -local " + lintCtx.Settings().Goimports.LocalPrefixes
+		}
+	case gciName:
+		text = "File is not `gci`-ed"
+		localPrefixes := lintCtx.Settings().Gci.LocalPrefixes
+		goimportsFlag := lintCtx.Settings().Goimports.LocalPrefixes
+		if localPrefixes == "" && goimportsFlag != "" {
+			localPrefixes = goimportsFlag
+		}
+
+		if localPrefixes != "" {
+			text += " with -local " + localPrefixes
 		}
 	}
 	return text
 }
 
-func extractIssuesFromPatch(patch string, lintCtx *linter.Context, linterName string) ([]result.Issue, error) {
+func extractIssuesFromPatch(patch string, log logutils.Log, lintCtx *linter.Context, linterName string) ([]result.Issue, error) {
 	diffs, err := diffpkg.ParseMultiFileDiff([]byte(patch))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't parse patch")
@@ -245,18 +250,18 @@ func extractIssuesFromPatch(patch string, lintCtx *linter.Context, linterName st
 		return nil, fmt.Errorf("got no diffs from patch parser: %v", diffs)
 	}
 
-	var issues []result.Issue
+	issues := []result.Issue{}
 	for _, d := range diffs {
 		if len(d.Hunks) == 0 {
-			lintCtx.Log.Warnf("Got no hunks in diff %+v", d)
+			log.Warnf("Got no hunks in diff %+v", d)
 			continue
 		}
 
 		for _, hunk := range d.Hunks {
-			p := hunkChangesParser{log: lintCtx.Log}
-
+			p := hunkChangesParser{
+				log: log,
+			}
 			changes := p.parse(hunk)
-
 			for _, change := range changes {
 				change := change // fix scope
 				i := result.Issue{
@@ -265,7 +270,7 @@ func extractIssuesFromPatch(patch string, lintCtx *linter.Context, linterName st
 						Filename: d.NewName,
 						Line:     change.LineRange.From,
 					},
-					Text:        getErrorTextForLinter(lintCtx.Settings(), linterName),
+					Text:        getErrorTextForLinter(lintCtx, linterName),
 					Replacement: &change.Replacement,
 				}
 				if change.LineRange.From != change.LineRange.To {

@@ -9,7 +9,7 @@ import (
 )
 
 // Base propose of this functionality to sort results (issues)
-// produced by various linters by analyzing code. We're achieving this
+// produced by various linters by analyzing code. We achieving this
 // by sorting results.Issues using processor step, and chain based
 // rules that can compare different properties of the Issues struct.
 
@@ -63,6 +63,7 @@ func (c compareResult) isNeutral() bool {
 	return c == None || c == Equal
 }
 
+//nolint:exhaustive
 func (c compareResult) String() string {
 	switch c {
 	case Less:
@@ -90,8 +91,10 @@ var (
 
 type ByName struct{ next comparator }
 
+//nolint:golint
 func (cmp ByName) Next() comparator { return cmp.next }
 
+//nolint:golint
 func (cmp ByName) Compare(a, b *result.Issue) compareResult {
 	var res compareResult
 
@@ -108,8 +111,10 @@ func (cmp ByName) Compare(a, b *result.Issue) compareResult {
 
 type ByLine struct{ next comparator }
 
+//nolint:golint
 func (cmp ByLine) Next() comparator { return cmp.next }
 
+//nolint:golint
 func (cmp ByLine) Compare(a, b *result.Issue) compareResult {
 	var res compareResult
 
@@ -126,8 +131,10 @@ func (cmp ByLine) Compare(a, b *result.Issue) compareResult {
 
 type ByColumn struct{ next comparator }
 
+//nolint:golint
 func (cmp ByColumn) Next() comparator { return cmp.next }
 
+//nolint:golint
 func (cmp ByColumn) Compare(a, b *result.Issue) compareResult {
 	var res compareResult
 

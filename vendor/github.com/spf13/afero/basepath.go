@@ -83,13 +83,6 @@ func (b *BasePathFs) Chmod(name string, mode os.FileMode) (err error) {
 	return b.source.Chmod(name, mode)
 }
 
-func (b *BasePathFs) Chown(name string, uid, gid int) (err error) {
-	if name, err = b.RealPath(name); err != nil {
-		return &os.PathError{Op: "chown", Path: name, Err: err}
-	}
-	return b.source.Chown(name, uid, gid)
-}
-
 func (b *BasePathFs) Name() string {
 	return "BasePathFs"
 }
@@ -209,3 +202,5 @@ func (b *BasePathFs) ReadlinkIfPossible(name string) (string, error) {
 	}
 	return "", &os.PathError{Op: "readlink", Path: name, Err: ErrNoReadlink}
 }
+
+// vim: ts=4 sw=4 noexpandtab nolist syn=go

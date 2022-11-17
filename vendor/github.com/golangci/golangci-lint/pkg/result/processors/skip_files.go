@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
@@ -12,12 +11,12 @@ type SkipFiles struct {
 	patterns []*regexp.Regexp
 }
 
-var _ Processor = (*SkipFiles)(nil)
+var _ Processor = SkipFiles{}
 
 func NewSkipFiles(patterns []string) (*SkipFiles, error) {
 	var patternsRe []*regexp.Regexp
 	for _, p := range patterns {
-		p = fsutils.NormalizePathInRegex(p)
+		p = normalizePathInRegex(p)
 		patternRe, err := regexp.Compile(p)
 		if err != nil {
 			return nil, fmt.Errorf("can't compile regexp %q: %s", p, err)

@@ -22,27 +22,26 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const errcheckName = "errcheck"
+func NewErrcheck() *goanalysis.Linter {
+	const linterName = "errcheck"
 
-func NewErrcheck(settings *config.ErrcheckSettings) *goanalysis.Linter {
 	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
+	var res []goanalysis.Issue
 
 	analyzer := &analysis.Analyzer{
-		Name: errcheckName,
+		Name: linterName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run:  goanalysis.DummyRun,
 	}
 
 	return goanalysis.NewLinter(
-		errcheckName,
+		linterName,
 		"Errcheck is a program for checking for unchecked errors "+
 			"in go programs. These unchecked errors can be critical bugs in some cases",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
 		// copied from errcheck
-		checker, err := getChecker(settings)
+		checker, err := getChecker(&lintCtx.Settings().Errcheck)
 		if err != nil {
 			lintCtx.Log.Errorf("failed to get checker: %v", err)
 			return
@@ -51,64 +50,49 @@ func NewErrcheck(settings *config.ErrcheckSettings) *goanalysis.Linter {
 		checker.Tags = lintCtx.Cfg.Run.BuildTags
 
 		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			issues := runErrCheck(lintCtx, pass, checker)
-			if err != nil {
-				return nil, err
+			pkg := &packages.Package{
+				Fset:      pass.Fset,
+				Syntax:    pass.Files,
+				Types:     pass.Pkg,
+				TypesInfo: pass.TypesInfo,
 			}
 
-			if len(issues) == 0 {
+			errcheckIssues := checker.CheckPackage(pkg).Unique()
+			if len(errcheckIssues.UncheckedErrors) == 0 {
 				return nil, nil
 			}
 
+			issues := make([]goanalysis.Issue, len(errcheckIssues.UncheckedErrors))
+			for i, err := range errcheckIssues.UncheckedErrors {
+				var text string
+				if err.FuncName != "" {
+					text = fmt.Sprintf(
+						"Error return value of %s is not checked",
+						formatCode(err.SelectorName, lintCtx.Cfg),
+					)
+				} else {
+					text = "Error return value is not checked"
+				}
+
+				issues[i] = goanalysis.NewIssue(
+					&result.Issue{
+						FromLinter: linterName,
+						Text:       text,
+						Pos:        err.Pos,
+					},
+					pass,
+				)
+			}
+
 			mu.Lock()
-			resIssues = append(resIssues, issues...)
+			res = append(res, issues...)
 			mu.Unlock()
 
 			return nil, nil
 		}
 	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
+		return res
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
-}
-
-func runErrCheck(lintCtx *linter.Context, pass *analysis.Pass, checker *errcheck.Checker) []goanalysis.Issue {
-	pkg := &packages.Package{
-		Fset:      pass.Fset,
-		Syntax:    pass.Files,
-		Types:     pass.Pkg,
-		TypesInfo: pass.TypesInfo,
-	}
-
-	lintIssues := checker.CheckPackage(pkg).Unique()
-	if len(lintIssues.UncheckedErrors) == 0 {
-		return nil
-	}
-
-	issues := make([]goanalysis.Issue, len(lintIssues.UncheckedErrors))
-
-	for i, err := range lintIssues.UncheckedErrors {
-		text := "Error return value is not checked"
-
-		if err.FuncName != "" {
-			code := err.SelectorName
-			if err.SelectorName == "" {
-				code = err.FuncName
-			}
-
-			text = fmt.Sprintf("Error return value of %s is not checked", formatCode(code, lintCtx.Cfg))
-		}
-
-		issues[i] = goanalysis.NewIssue(
-			&result.Issue{
-				FromLinter: errcheckName,
-				Text:       text,
-				Pos:        err.Pos,
-			},
-			pass,
-		)
-	}
-
-	return issues
 }
 
 // parseIgnoreConfig was taken from errcheck in order to keep the API identical.
@@ -151,11 +135,8 @@ func getChecker(errCfg *config.ErrcheckSettings) (*errcheck.Checker, error) {
 			BlankAssignments:       !errCfg.CheckAssignToBlank,
 			TypeAssertions:         !errCfg.CheckTypeAssertions,
 			SymbolRegexpsByPackage: map[string]*regexp.Regexp{},
+			Symbols:                append([]string{}, errcheck.DefaultExcludedSymbols...),
 		},
-	}
-
-	if !errCfg.DisableDefaultExclusions {
-		checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, errcheck.DefaultExcludedSymbols...)
 	}
 
 	for pkg, re := range ignoreConfig {
@@ -170,8 +151,6 @@ func getChecker(errCfg *config.ErrcheckSettings) (*errcheck.Checker, error) {
 
 		checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, exclude...)
 	}
-
-	checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, errCfg.ExcludeFunctions...)
 
 	return &checker, nil
 }

@@ -6,81 +6,78 @@ import (
 	"github.com/bombsimon/wsl/v3"
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-const wslName = "wsl"
+const (
+	name = "wsl"
+)
 
 // NewWSL returns a new WSL linter.
-func NewWSL(settings *config.WSLSettings) *goanalysis.Linter {
-	var mu sync.Mutex
-	var resIssues []goanalysis.Issue
+func NewWSL() *goanalysis.Linter {
+	var (
+		issues   []goanalysis.Issue
+		mu       = sync.Mutex{}
+		analyzer = &analysis.Analyzer{
+			Name: goanalysis.TheOnlyAnalyzerName,
+			Doc:  goanalysis.TheOnlyanalyzerDoc,
+		}
+	)
 
-	conf := wsl.DefaultConfig()
+	return goanalysis.NewLinter(
+		name,
+		"Whitespace Linter - Forces you to use empty lines!",
+		[]*analysis.Analyzer{analyzer},
+		nil,
+	).WithContextSetter(func(lintCtx *linter.Context) {
+		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+			var (
+				files        = []string{}
+				linterCfg    = lintCtx.Cfg.LintersSettings.WSL
+				processorCfg = wsl.Configuration{
+					StrictAppend:                     linterCfg.StrictAppend,
+					AllowAssignAndCallCuddle:         linterCfg.AllowAssignAndCallCuddle,
+					AllowAssignAndAnythingCuddle:     linterCfg.AllowAssignAndAnythingCuddle,
+					AllowMultiLineAssignCuddle:       linterCfg.AllowMultiLineAssignCuddle,
+					AllowCuddleDeclaration:           linterCfg.AllowCuddleDeclaration,
+					AllowTrailingComment:             linterCfg.AllowTrailingComment,
+					AllowSeparatedLeadingComment:     linterCfg.AllowSeparatedLeadingComment,
+					ForceCuddleErrCheckAndAssign:     linterCfg.ForceCuddleErrCheckAndAssign,
+					ForceCaseTrailingWhitespaceLimit: linterCfg.ForceCaseTrailingWhitespaceLimit,
+					ForceExclusiveShortDeclarations:  linterCfg.ForceExclusiveShortDeclarations,
+					AllowCuddleWithCalls:             []string{"Lock", "RLock"},
+					AllowCuddleWithRHS:               []string{"Unlock", "RUnlock"},
+					ErrorVariableNames:               []string{"err"},
+				}
+			)
 
-	if settings != nil {
-		conf.StrictAppend = settings.StrictAppend
-		conf.AllowAssignAndCallCuddle = settings.AllowAssignAndCallCuddle
-		conf.AllowAssignAndAnythingCuddle = settings.AllowAssignAndAnythingCuddle
-		conf.AllowMultiLineAssignCuddle = settings.AllowMultiLineAssignCuddle
-		conf.ForceCaseTrailingWhitespaceLimit = settings.ForceCaseTrailingWhitespaceLimit
-		conf.AllowTrailingComment = settings.AllowTrailingComment
-		conf.AllowSeparatedLeadingComment = settings.AllowSeparatedLeadingComment
-		conf.AllowCuddleDeclaration = settings.AllowCuddleDeclaration
-		conf.AllowCuddleWithCalls = settings.AllowCuddleWithCalls
-		conf.AllowCuddleWithRHS = settings.AllowCuddleWithRHS
-	}
+			for _, file := range pass.Files {
+				files = append(files, pass.Fset.PositionFor(file.Pos(), false).Filename)
+			}
 
-	analyzer := &analysis.Analyzer{
-		Name: goanalysis.TheOnlyAnalyzerName,
-		Doc:  goanalysis.TheOnlyanalyzerDoc,
-		Run: func(pass *analysis.Pass) (interface{}, error) {
-			issues := runWSL(pass, &conf)
+			wslErrors, _ := wsl.NewProcessorWithConfig(processorCfg).
+				ProcessFiles(files)
 
-			if len(issues) == 0 {
+			if len(wslErrors) == 0 {
 				return nil, nil
 			}
 
 			mu.Lock()
-			resIssues = append(resIssues, issues...)
-			mu.Unlock()
+			defer mu.Unlock()
+
+			for _, err := range wslErrors {
+				issues = append(issues, goanalysis.NewIssue(&result.Issue{
+					FromLinter: name,
+					Pos:        err.Position,
+					Text:       err.Reason,
+				}, pass))
+			}
 
 			return nil, nil
-		},
-	}
-
-	return goanalysis.NewLinter(
-		wslName,
-		"Whitespace Linter - Forces you to use empty lines!",
-		[]*analysis.Analyzer{analyzer},
-		nil,
-	).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return resIssues
+		}
+	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
+		return issues
 	}).WithLoadMode(goanalysis.LoadModeSyntax)
-}
-
-func runWSL(pass *analysis.Pass, conf *wsl.Configuration) []goanalysis.Issue {
-	if conf == nil {
-		return nil
-	}
-
-	files := getFileNames(pass)
-	wslErrors, _ := wsl.NewProcessorWithConfig(*conf).ProcessFiles(files)
-	if len(wslErrors) == 0 {
-		return nil
-	}
-
-	var issues []goanalysis.Issue
-	for _, err := range wslErrors {
-		issues = append(issues, goanalysis.NewIssue(&result.Issue{
-			FromLinter: wslName,
-			Pos:        err.Position,
-			Text:       err.Reason,
-		}, pass))
-	}
-
-	return issues
 }
