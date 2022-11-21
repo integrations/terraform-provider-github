@@ -37,10 +37,11 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
-	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
-		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
-		"Accept": "application/vnd.github.stone-crop-preview+json",
-	}, client.Transport)
+	// Deactivate until a better solution, linked to https://github.com/integrations/terraform-provider-github/issues/1373
+	// client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
+	// 	// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
+	// 	//"Accept": "application/vnd.github.stone-crop-preview+json",
+	// }, client.Transport)
 
 	return client
 }
