@@ -10,6 +10,8 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+const stoneCropPreview = "application/vnd.github.stone-crop-preview+json"
+
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubTeamSettingsCreate,
@@ -129,7 +131,8 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 		"login": githubv4.String(orgName),
 	}
 
-	e := graphql.Query(meta.(*Owner).StopContext, &query, variables)
+	ctx := WithPreviewHeader(meta.(*Owner).StopContext, stoneCropPreview)
+	e := graphql.Query(ctx, &query, variables)
 	if e != nil {
 		return e
 	}
@@ -151,7 +154,7 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("review_request_delegation") || d.IsNewResource() {
 
-		ctx := context.WithValue(context.Background(), ctxId, d.Id())
+		ctx := WithPreviewHeader(context.WithValue(context.Background(), ctxId, d.Id()), stoneCropPreview)
 		graphql := meta.(*Owner).v4client
 		if setting := d.Get("review_request_delegation").([]interface{}); len(setting) == 0 {
 			var mutation struct {
@@ -185,7 +188,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx := WithPreviewHeader(context.WithValue(context.Background(), ctxId, d.Id()), stoneCropPreview)
 	graphql := meta.(*Owner).v4client
 
 	var mutation struct {

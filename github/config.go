@@ -37,10 +37,7 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
-	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
-		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
-		"Accept": "application/vnd.github.stone-crop-preview+json",
-	}, client.Transport)
+	client.Transport = newPreviewHeaderInjectorTransport(client.Transport)
 
 	return client
 }
@@ -163,21 +160,30 @@ func (c *Config) Meta() (interface{}, error) {
 	}
 }
 
-type previewHeaderInjectorTransport struct {
-	rt             http.RoundTripper
-	previewHeaders map[string]string
+func WithPreviewHeader(ctx context.Context, version string) context.Context {
+	return context.WithValue(ctx, previewHeaderInjectorKeyVersion, version)
 }
 
-func newPreviewHeaderInjectorTransport(headers map[string]string, rt http.RoundTripper) *previewHeaderInjectorTransport {
+type previewHeaderInjectorKey string
+
+const (
+	previewHeaderInjectorKeyVersion previewHeaderInjectorKey = "version"
+)
+
+type previewHeaderInjectorTransport struct {
+	rt http.RoundTripper
+}
+
+func newPreviewHeaderInjectorTransport(rt http.RoundTripper) *previewHeaderInjectorTransport {
 	return &previewHeaderInjectorTransport{
-		rt:             rt,
-		previewHeaders: headers,
+		rt: rt,
 	}
 }
 
 func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	for name, value := range injector.previewHeaders {
-		req.Header.Set(name, value)
+	maybeVersion := req.Context().Value(previewHeaderInjectorKeyVersion)
+	if version, ok := maybeVersion.(string); ok {
+		req.Header.Set("Accept", version)
 	}
 	return injector.rt.RoundTrip(req)
 }
