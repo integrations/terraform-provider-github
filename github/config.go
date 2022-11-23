@@ -39,6 +39,7 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
+		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
 	}, client.Transport)
 
