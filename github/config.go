@@ -38,7 +38,6 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
-		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
 	}, client.Transport)
 
@@ -177,7 +176,9 @@ func newPreviewHeaderInjectorTransport(headers map[string]string, rt http.RoundT
 
 func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for name, value := range injector.previewHeaders {
-		req.Header.Set(name, value)
+		header := req.Header.Get(name)
+		header += value
+		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
 }
