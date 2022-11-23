@@ -179,7 +179,11 @@ func newPreviewHeaderInjectorTransport(headers map[string]string, rt http.RoundT
 func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for name, value := range injector.previewHeaders {
 		header := req.Header.Get(name)
-		header = strings.Join([]string{header, value}, ",")
+		if header == "" {
+			header = value
+		} else {
+			header = strings.Join([]string{header, value}, ",")
+		}
 		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
