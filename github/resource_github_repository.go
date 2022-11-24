@@ -572,11 +572,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
 
-	securityAndAnalysis, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{})
-	if err != nil {
-		return fmt.Errorf("Error reading repository security and analysis settings: %v", err)
-	}
-	d.Set("security_and_analysis", flattenSecurityAndAnalysis(securityAndAnalysis.GetSecurityAndAnalysis()))
+	d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis()))
 
 	return nil
 }
