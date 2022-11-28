@@ -19,17 +19,18 @@ data "github_team" "example" {
 
 ## Argument Reference
 
- * `slug` - (Required) The team slug.
- * `membership_type` - (Optional) Type of membershp to be requested to fill the list of members. Can be either "all" or "immediate". Default: "all"
+* `slug` - (Required) The team slug.
+* `membership_type` - (Optional) Type of membershp to be requested to fill the list of members. Can be either "all" or "immediate". Default: "all"
+* `summary_only` - (Optional) Exclude the members and repositories of the team from the returned result. Defaults to `false`.
+* `results_per_page` - (Optional) Set the number of results per graphql query. Reducing this number can alleviate timeout errors. Accepts a value between 0 - 100. Defaults to `100`.
 
 ## Attributes Reference
 
- * `id` - the ID of the team.
- * `node_id` - the Node ID of the team.
- * `name` - the team's full name.
- * `description` - the team's description.
- * `privacy` - the team's privacy type.
- * `permission` - the team's permission level.
- * `members` - List of team members (list of GitHub usernames)
- * `repositories` - List of team repositories (list of repo names)
-
+* `id` - the ID of the team.
+* `node_id` - the Node ID of the team.
+* `name` - the team's full name.
+* `description` - the team's description.
+* `privacy` - the team's privacy type.
+* `permission` - the team's permission level.
+* `members` - List of team members (list of GitHub usernames). Not returned if `summary_only = true`
+* `repositories` - List of team repositories (list of repo names). Not returned if `summary_only = true`
