@@ -113,6 +113,9 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	orgId := meta.(*Owner).id
 	orgName := meta.(*Owner).name
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
