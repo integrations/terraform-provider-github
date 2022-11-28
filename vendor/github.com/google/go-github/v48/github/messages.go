@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -68,6 +67,7 @@ var (
 		"marketplace_purchase":           "MarketplacePurchaseEvent",
 		"member":                         "MemberEvent",
 		"membership":                     "MembershipEvent",
+		"merge_group":                    "MergeGroupEvent",
 		"meta":                           "MetaEvent",
 		"milestone":                      "MilestoneEvent",
 		"organization":                   "OrganizationEvent",
@@ -170,7 +170,7 @@ func ValidatePayloadFromBody(contentType string, readable io.Reader, signature s
 	switch contentType {
 	case "application/json":
 		var err error
-		if body, err = ioutil.ReadAll(readable); err != nil {
+		if body, err = io.ReadAll(readable); err != nil {
 			return nil, err
 		}
 
@@ -184,7 +184,7 @@ func ValidatePayloadFromBody(contentType string, readable io.Reader, signature s
 		const payloadFormParam = "payload"
 
 		var err error
-		if body, err = ioutil.ReadAll(readable); err != nil {
+		if body, err = io.ReadAll(readable); err != nil {
 			return nil, err
 		}
 
