@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v48/github"
@@ -177,7 +178,13 @@ func newPreviewHeaderInjectorTransport(headers map[string]string, rt http.RoundT
 
 func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for name, value := range injector.previewHeaders {
-		req.Header.Set(name, value)
+		header := req.Header.Get(name)
+		if header == "" {
+			header = value
+		} else {
+			header = strings.Join([]string{header, value}, ",")
+		}
+		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
 }

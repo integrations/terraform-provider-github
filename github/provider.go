@@ -110,6 +110,7 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":                                  resourceGithubMembership(),
 			"github_organization_block":                          resourceOrganizationBlock(),
 			"github_organization_project":                        resourceGithubOrganizationProject(),
+			"github_organization_security_manager":               resourceGithubOrganizationSecurityManager(),
 			"github_organization_settings":                       resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                        resourceGithubOrganizationWebhook(),
 			"github_project_card":                                resourceGithubProjectCard(),
