@@ -25,3 +25,5 @@ jobs:
           exempt-issue-labels: 'Status: Pinned'
           exempt-pr-labels: 'Status: Pinned'
           operations-per-run: 100
+          stale-issue-label: 'Status: Stale'
+          stale-pr-label: 'Status: Stale'
