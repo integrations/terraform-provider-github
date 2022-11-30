@@ -8,7 +8,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v4
+      - uses: actions/stale@v6
         with:
           stale-issue-message: >
             👋 Hey Friends, this issue has been automatically marked as `stale` because it has no recent activity.
@@ -24,3 +24,4 @@ jobs:
           days-before-close: 7
           exempt-issue-labels: 'Status: Pinned'
           exempt-pr-labels: 'Status: Pinned'
+          operations-per-run: 100
