@@ -20,8 +20,9 @@ resource "github_repository" "example" {
   visibility = "public"
 
   template {
-    owner      = "github"
-    repository = "terraform-module-template"
+    owner                = "github"
+    repository           = "terraform-module-template"
+    include_all_branches = true
   }
 }
 ```
@@ -77,6 +78,14 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
+* `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title.
+
+* `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message.
+
+* `merge_commit_title` - Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title.
+
+* `merge_commit_message` - Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message.
+
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
@@ -97,6 +106,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `pages` - (Optional) The repository's GitHub Pages configuration. See [GitHub Pages Configuration](#github-pages-configuration) below for details.
 
+* `security_and_analysis` - (Optional) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. See [Security and Analysis Configuration](#security-and-analysis-configuration) below for details.
+
 * `topics` - (Optional) The list of topics of the repository.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
@@ -104,6 +115,8 @@ initial repository creation and create the target branch inside of the repositor
 * `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
 
 * `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
+
+* `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
 ### GitHub Pages Configuration
 
@@ -121,12 +134,37 @@ The `source` block supports the following:
 
 * `path` - (Optional) The repository directory from which the site publishes (Default: `/`).
 
+### Security and Analysis Configuration
+
+The `security_and_analysis` block supports the following:
+
+* `advanced_security` - (Required) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details.
+
+* `secret_scanning` - (Required) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
+
+* `secret_scanning_push_protection` - (Required) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
+
+#### Advanced Security Configuration ####
+
+The `advanced_security` block supports the following:
+
+* `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
+
+#### Secret Scanning Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`.
+
+#### Secret Scanning Push Protection Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`.
+
 ### Template Repositories
 
 `template` supports the following arguments:
 
 * `owner`: The GitHub organization or user the template repository is owned by.
 * `repository`: The name of the template repository.
+* `include_all_branches`: Whether the new repository should include all the branches from the template repository (defaults to false, which includes only the default branch from the template).
 
 ## Attributes Reference
 
@@ -152,11 +190,6 @@ The following additional attributes are exported:
  * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
  * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
  * `status` - The GitHub Pages site's build status e.g. `building` or `built`.
-
-* `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
- * `name` - Name of the branch.
- * `protected` - Whether the branch is protected.
-
 
 ## Import
 

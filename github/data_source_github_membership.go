@@ -27,6 +27,10 @@ func dataSourceGithubMembership() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"state": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -55,5 +59,6 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("username", membership.GetUser().GetLogin())
 	d.Set("role", membership.GetRole())
 	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("state", membership.GetState())
 	return nil
 }

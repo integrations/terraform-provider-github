@@ -23,7 +23,7 @@ terraform {
   required_providers {
     github = {
       source  = "integrations/github"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -42,7 +42,7 @@ Terraform 0.12 and earlier:
 ```terraform
 # Configure the GitHub Provider
 provider "github" {
-  version = "~> 4.0"
+  version = "~> 5.0"
 }
 
 # Add a user to the organization

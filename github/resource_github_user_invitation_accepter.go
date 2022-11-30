@@ -30,7 +30,7 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 	invitationIdString := d.Get("invitation_id").(string)
 	invitationId, err := strconv.Atoi(invitationIdString)
 	if err != nil {
-		return fmt.Errorf("Failed to parse invitation ID: %s", err)
+		return fmt.Errorf("failed to parse invitation ID: %s", err)
 	}
 	ctx := context.Background()
 

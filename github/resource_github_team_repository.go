@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -33,10 +33,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				ForceNew: true,
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "pull",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "pull",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -132,13 +131,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("team_id", teamIdString)
 	}
 	d.Set("repository", repo.GetName())
-
-	permName, permErr := getRepoPermission(repo.GetPermissions())
-	if permErr != nil {
-		return permErr
-	}
-
-	d.Set("permission", permName)
+	d.Set("permission", getPermission(repo.GetRoleName()))
 
 	return nil
 }
