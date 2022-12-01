@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,7 +15,8 @@ import (
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
 
-	var inOrgUser, inOrgUser2 string
+	inOrgUser := os.Getenv("GITHUB_IN_ORG_USER")
+	inOrgUser2 := os.Getenv("GITHUB_IN_ORG_USER2")
 
 	if inOrgUser == "" || inOrgUser2 == "" {
 		t.Skip("set inOrgUser and inOrgUser2 to unskip this test run")
