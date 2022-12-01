@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -127,8 +127,6 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Querying GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -136,13 +134,13 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing branch %s/%s (%s) from state because it no longer exists in Github",
+				log.Printf("[INFO] Removing branch %s/%s (%s) from state because it no longer exists in GitHub",
 					orgName, repoName, branchName)
 				d.SetId("")
 				return nil
 			}
 		}
-		return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -167,11 +165,9 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Deleting GitHub branch reference %s/%s (%s)",
-		orgName, repoName, branchRefName)
 	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error deleting GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -202,7 +198,7 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 
 	// resourceGithubBranchRead calls d.SetId("") if the branch does not exist
 	if d.Id() == "" {
-		return nil, fmt.Errorf("Repository %s does not have a branch named %s.", repoName, branchName)
+		return nil, fmt.Errorf("repository %s does not have a branch named %s.", repoName, branchName)
 	}
 
 	return []*schema.ResourceData{d}, nil

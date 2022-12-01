@@ -75,7 +75,7 @@ func testAccCheckOrganization() error {
 	if owner == "" {
 		organization := os.Getenv("GITHUB_ORGANIZATION")
 		if organization == "" {
-			return fmt.Errorf("Neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
+			return fmt.Errorf("neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
 		}
 		owner = organization
 	}
@@ -98,11 +98,11 @@ func testAccCheckOrganization() error {
 
 func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		log.Printf("[DEBUG] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
 		return organization, nil
 	}
 	owner := os.Getenv("GITHUB_OWNER")
-	log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
 	return owner, nil
 }
 

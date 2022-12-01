@@ -1,8 +1,94 @@
+# NOTE: CHANGELOG.md is deprecated
+
+After the release of v4.24.0, please see the [GitHub release notes](https://github.com/integrations/terraform-provider-github/releases) for the provider in order to view the most up-to-date changes.
+
+# 4.24.0 (Apr 28, 2022)
+
+ENHANCEMENTS:
+* Support for allow_forking on a repository/update to go-github v42 by @diogopms in https://github.com/integrations/terraform-provider-github/pull/1033
+* Upgrade go-github to v43.0.0 by @btkostner in https://github.com/integrations/terraform-provider-github/pull/1087
+
+BUG FIXES:
+
+* Fix go module path by @turkenh in https://github.com/integrations/terraform-provider-github/pull/961
+* fix: remove incorrect required schema key on ref data source by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1109
+* Bump Go version for Actions release CI to 1.18 by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1134
+* build(deps): bump actions/setup-go from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1110
+* Fix linting issues by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1107
+
+
+# 4.23.0 (Mar 25, 2022)
+
+ENHANCEMENTS:
+
+* Add support for disabling the use of the vulnerability management endpoint by @enieuw in https://github.com/integrations/terraform-provider-github/pull/1022
+* Added orgname in github_orgranization attributes by @Kavinraja-G in https://github.com/integrations/terraform-provider-github/pull/1052
+* Add a data source for refs. by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1084
+* build(deps): bump actions/checkout from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1086
+
+BUG FIXES:
+
+* fix: use pagination to fetch all team members by @carocad in https://github.com/integrations/terraform-provider-github/pull/1092
+* docs: fix typos in d/users.html.markdown by @pallxk in https://github.com/integrations/terraform-provider-github/pull/1049
+
+# 4.22.0 (Mar 18, 2022)
+
+ENHANCEMENTS:
+
+* feat: add `tree` data source by @jasonwalsh in https://github.com/integrations/terraform-provider-github/pull/1027
+* feat: support for issues using github_issue resource by @ewilde in https://github.com/integrations/terraform-provider-github/pull/1047
+* feat: add configurable read_delay_ms by @morremeyer in https://github.com/integrations/terraform-provider-github/pull/1054
+
+## 4.21.0 (Mar 11, 2022)
+
+ENHANCEMENTS:
+
+* Adding BypassPullRequestActorIDs to branch protection by @jtyr in https://github.com/integrations/terraform-provider-github/pull/1030
+* Adding suspended_at attribute to github_user data source by @mrobinson-anaplan in https://github.com/integrations/terraform-provider-github/pull/1070
+* Documentation: Add id to github_user data dource by @kangaechu in https://github.com/integrations/terraform-provider-github/pull/1061
+
+BUG FIXES:
+
+* fix: use the appropriate ID when trying to import `github_team_members` objects by @bison-brandon in https://github.com/integrations/terraform-provider-github/pull/1074
+* Environment ID gets set incorrectly on update by @aceresia-bg in https://github.com/integrations/terraform-provider-github/pull/1058
+* Fix whitespace in documentation for branch_protection_v3 by @JCradock in https://github.com/integrations/terraform-provider-github/pull/1059
+
+## 4.20.1 (Mar 3, 2022)
+
+BUG FIXES:
+
+* Remove team from state if deletion failed and it does not exist by @cytopia in https://github.com/integrations/terraform-provider-github/pull/1039
+    * Note that this is a behavior change from previous GitHub Terraform provider releases: now, if a GitHub team deletion operation fails and the team does not exist, the team will be automatically removed from state.
+* Make data_github_repository work with non-existing repositories by @tobiassjosten in https://github.com/integrations/terraform-provider-github/pull/1031
+* Standardize logs by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1053
+
+## 4.20.0 (Feb 3, 2022)
+
+ENHANCEMENTS:
+
+* Add new resource `github_team_members` to allow authoritative team management by @stawik-mesa in https://github.com/integrations/terraform-provider-github/pull/975
+
+BUG FIXES:
+
+* test: checkout pull request via sha instead of ref by @jcudit in https://github.com/integrations/terraform-provider-github/pull/1043
+* Small CI cleanup by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1048
+
+**Full Changelog**: https://github.com/integrations/terraform-provider-github/compare/v4.19.2...v4.20.0
+
+
+## 4.19.2 (Jan 20, 2022)
+
+BUG FIXES:
+
+- Update `go-github` to v42.0.0 ([#1035](https://github.com/integrations/terraform-provider-github/pull/1035))
+- Adjust count requirement of `required_approving_review_count` option for `github_branch_protection` ([#971](https://github.com/integrations/terraform-provider-github/pull/971))
+- Add `nil` check for `require_conversation_resolution` field of `github_branch_protection` resource ([#1032](https://github.com/integrations/terraform-provider-github/pull/1032))
+
 ## 4.19.1 (Jan 5, 2022)
 
 BUG FIXES:
 
-- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/905))
+- Update `go-github` to v41.0.0 ([#993](https://github.com/integrations/terraform-provider-github/pull/993))
 - Add `nil` check for `plan` field of `github_organization` data source ([#1016](https://github.com/integrations/terraform-provider-github/pull/1016))
 
 

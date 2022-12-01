@@ -3,9 +3,8 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -100,7 +99,7 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
 		return &github.ActionsAllowed{},
-			errors.New("The allowed_actions_config {} block must be specified if allowed_actions == 'selected'.")
+			errors.New("the allowed_actions_config {} block must be specified if allowed_actions == 'selected'")
 	}
 
 	return allowed, nil
@@ -110,7 +109,6 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	var enabled []int64
 
 	config := d.Get("enabled_repositories_config").([]interface{})
-	log.Printf("[help] length of config in actopms enabled is %v", len(config))
 	if len(config) > 0 {
 		data := config[0].(map[string]interface{})
 		switch x := data["repository_ids"].(type) {
@@ -120,7 +118,7 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 			}
 		}
 	} else {
-		return nil, errors.New("The enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'.")
+		return nil, errors.New("the enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'")
 	}
 	return enabled, nil
 }

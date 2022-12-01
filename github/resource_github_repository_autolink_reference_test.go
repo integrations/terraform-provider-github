@@ -15,25 +15,65 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Run("creates repository autolink reference without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "oof" {
-			  name         = "oof-%s"
-			  description  = "Test autolink creation"
+			resource "github_repository" "test" {
+				name		= "test-%s"
+				description	= "Test autolink creation"
 			}
 
-			resource "github_repository_autolink_reference" "autolink" {
-			  repository = github_repository.oof.name
+			resource "github_repository_autolink_reference" "autolink_default" {
+				repository = github_repository.test.name
 
-			  key_prefix 		  = "OOF-"
-			  target_url_template = "https://awesome.com/find/OOF-<num>"
+				key_prefix			= "TEST1-"
+				target_url_template = "https://example.com/TEST-<num>"
+			}
+
+			resource "github_repository_autolink_reference" "autolink_alphanumeric" {
+				repository = github_repository.test.name
+
+				key_prefix 		    = "TEST2-"
+				target_url_template = "https://example.com/TEST-<num>"
+				is_alphanumeric     = true
+			}
+
+			resource "github_repository_autolink_reference" "autolink_numeric" {
+				repository = github_repository.test.name
+
+				key_prefix 		    = "TEST3-"
+				target_url_template = "https://example.com/TEST-<num>"
+				is_alphanumeric     = false
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
+			// autolink_default
 			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink", "key_prefix", "OOF-",
+				"github_repository_autolink_reference.autolink_default", "key_prefix", "TEST1-",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink", "target_url_template", "https://awesome.com/find/OOF-<num>",
+				"github_repository_autolink_reference.autolink_default", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_default", "is_alphanumeric", "true",
+			),
+			// autolink_alphanumeric
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "key_prefix", "TEST2-",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "is_alphanumeric", "true",
+			),
+			// autolink_numeric
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "key_prefix", "TEST3-",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "is_alphanumeric", "false",
 			),
 		)
 
@@ -67,18 +107,67 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Run("imports repository autolink reference without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "oof" {
-			  name         = "oof-%s"
-			  description  = "Test autolink creation"
+			resource "github_repository" "test" {
+				name		= "test-%s"
+				description	= "Test autolink creation"
 			}
 
-			resource "github_repository_autolink_reference" "autolink" {
-			  repository = github_repository.oof.name
+			resource "github_repository_autolink_reference" "autolink_default" {
+				repository = github_repository.test.name
 
-			  key_prefix 		  = "OOF-"
-			  target_url_template = "https://awesome.com/find/OOF-<num>"
+				key_prefix			= "TEST1-"
+				target_url_template = "https://example.com/TEST-<num>"
+			}
+
+			resource "github_repository_autolink_reference" "autolink_alphanumeric" {
+				repository = github_repository.test.name
+
+				key_prefix 		    = "TEST2-"
+				target_url_template = "https://example.com/TEST-<num>"
+				is_alphanumeric     = true
+			}
+
+			resource "github_repository_autolink_reference" "autolink_numeric" {
+				repository = github_repository.test.name
+
+				key_prefix 		    = "TEST3-"
+				target_url_template = "https://example.com/TEST-<num>"
+				is_alphanumeric     = false
 			}
 		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			// autolink_default
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_default", "key_prefix", "TEST1-",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_default", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_default", "is_alphanumeric", "true",
+			),
+			// autolink_alphanumeric
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "key_prefix", "TEST2-",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_alphanumeric", "is_alphanumeric", "true",
+			),
+			// autolink_numeric
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "key_prefix", "TEST3-",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "target_url_template", "https://example.com/TEST-<num>",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_autolink_reference.autolink_numeric", "is_alphanumeric", "false",
+			),
+		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -87,12 +176,28 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
+						Check:  check,
 					},
+					// autolink_default
 					{
-						ResourceName:        "github_repository_autolink_reference.autolink",
+						ResourceName:        "github_repository_autolink_reference.autolink_default",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("oof-%s/", randomID),
+						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+					},
+					// autolink_alphanumeric
+					{
+						ResourceName:        "github_repository_autolink_reference.autolink_alphanumeric",
+						ImportState:         true,
+						ImportStateVerify:   true,
+						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+					},
+					// autolink_numeric
+					{
+						ResourceName:        "github_repository_autolink_reference.autolink_numeric",
+						ImportState:         true,
+						ImportStateVerify:   true,
+						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
 					},
 				},
 			})
@@ -115,16 +220,16 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "oof" {
-			  name         = "oof-%s"
-			  description  = "Test autolink creation"
+			resource "github_repository" "test" {
+				name		= "test-%s"
+				description	= "Test autolink creation"
 			}
 
-			resource "github_repository_autolink_reference" "autolink" {
-			  repository = github_repository.oof.name
+			resource "github_repository_autolink_reference" "autolink_default" {
+				repository = github_repository.test.name
 
-			  key_prefix 		  = "OOF-"
-			  target_url_template = "https://awesome.com/find/OOF-<num>"
+				key_prefix			= "TEST1-"
+				target_url_template = "https://example.com/TEST-<num>"
 			}
 		`, randomID)
 

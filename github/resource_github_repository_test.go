@@ -24,14 +24,16 @@ func TestAccGithubRepositories(t *testing.T) {
 			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 
-			  has_issues         = true
-			  has_wiki           = true
-			  has_downloads      = true
-			  allow_merge_commit = true
-			  allow_squash_merge = false
-			  allow_rebase_merge = false
-			  allow_auto_merge   = true
-			  auto_init          = false
+			  has_issues           = true
+			  has_wiki             = true
+			  has_downloads        = true
+			  allow_merge_commit   = true
+			  allow_squash_merge   = false
+			  allow_rebase_merge   = false
+			  allow_auto_merge     = true
+			  merge_commit_title   = "MERGE_MESSAGE"
+			  merge_commit_message = "PR_TITLE"
+			  auto_init            = false
 
 			}
 		`, randomID)
@@ -44,6 +46,10 @@ func TestAccGithubRepositories(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "allow_auto_merge",
 				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"MERGE_MESSAGE",
 			),
 		)
 
@@ -803,6 +809,67 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 }
 
+func TestAccGithubRepositorySecurity(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("manages the security feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name        = "tf-acc-%s"
+			description = "A repository created by Terraform to test security features"
+			visibility  = "internal"
+			security_and_analysis {
+			  advanced_security {
+				status = "enabled"
+			  }
+			  secret_scanning {
+				status = "enabled"
+			  }
+			  secret_scanning_push_protection {
+				status = "enabled"
+			}
+		  }
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
+				"enabled",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+				"enabled",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
 func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1134,7 +1201,7 @@ func testSweepRepositories(region string) error {
 
 	for _, r := range repos {
 		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
-			log.Printf("Destroying Repository %s", name)
+			log.Printf("[DEBUG] Destroying Repository %s", name)
 
 			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
 				return err
