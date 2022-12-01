@@ -79,7 +79,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The commit message when creating or updating the file",
+				Description: "The commit message when creating, updating or deleting the file",
 			},
 			"commit_author": {
 				Type:        schema.TypeString,
@@ -311,8 +311,12 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
 	branch := d.Get("branch").(string)
-
 	message := fmt.Sprintf("Delete %s", file)
+
+	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
+		message = commitMessage.(string)
+	}
+
 	sha := d.Get("sha").(string)
 	opts := &github.RepositoryContentFileOptions{
 		Message: &message,

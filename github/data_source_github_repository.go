@@ -62,6 +62,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"is_template": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"allow_merge_commit": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -171,6 +175,23 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"template": {
+				Type:     schema.TypeList,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"owner": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"repository": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"node_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -224,6 +245,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
 	d.Set("has_wiki", repo.GetHasWiki())
+	d.Set("is_template", repo.GetIsTemplate())
 	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
@@ -255,6 +277,17 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		}
 	} else {
 		d.Set("pages", flattenPages(nil))
+	}
+
+	if repo.TemplateRepository != nil {
+		d.Set("template", []interface{}{
+			map[string]interface{}{
+				"owner":      repo.TemplateRepository.Owner.Login,
+				"repository": repo.TemplateRepository.Name,
+			},
+		})
+	} else {
+		d.Set("template", []interface{}{})
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
