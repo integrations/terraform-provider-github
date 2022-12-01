@@ -103,7 +103,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %s",
 			repoOwner, repoName, branchRefName, err)
 	}
 
