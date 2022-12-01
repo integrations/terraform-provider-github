@@ -262,7 +262,7 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	_, hasCommitAuthor := d.GetOk("commit_author")
 	_, hasCommitEmail := d.GetOk("commit_email")
 
-	//save to state if author+email is set explicitly, and if it was not github signing it for you previously
+	//read from state if author+email is set explicitly, and if it was not github signing it for you previously
 	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
 		d.Set("commit_author", commit_author)
 		d.Set("commit_email", commit_email)
