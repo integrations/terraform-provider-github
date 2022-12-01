@@ -3,6 +3,7 @@ package github
 const (
 	PROTECTION_ALLOWS_DELETIONS                 = "allows_deletions"
 	PROTECTION_ALLOWS_FORCE_PUSHES              = "allows_force_pushes"
+	PROTECTION_BLOCKS_CREATIONS                 = "blocks_creations"
 	PROTECTION_DISMISSES_STALE_REVIEWS          = "dismiss_stale_reviews"
 	PROTECTION_IS_ADMIN_ENFORCED                = "enforce_admins"
 	PROTECTION_PATTERN                          = "pattern"
@@ -18,6 +19,7 @@ const (
 	PROTECTION_RESTRICTS_PUSHES                 = "push_restrictions"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSALS      = "restrict_dismissals"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSERS      = "dismissal_restrictions"
+	PROTECTION_PULL_REQUESTS_BYPASSERS          = "pull_request_bypassers"
 
 	REPOSITORY_ID = "repository_id"
 )

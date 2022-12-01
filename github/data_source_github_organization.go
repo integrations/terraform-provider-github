@@ -3,7 +3,7 @@ package github
 import (
 	"strconv"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -15,6 +15,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"orgname": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"node_id": {
 				Type:     schema.TypeString,
@@ -118,6 +122,8 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
+	d.Set("orgname", name)
+	d.Set("node_id", organization.GetNodeID())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", planName)
 	d.Set("repositories", repoList)
