@@ -31,3 +31,4 @@ data "github_membership" "membership_for_some_user" {
  * `username` - The username.
  * `role` - `admin` or `member` -- the role the user has within the organization.
  * `etag` - An etag representing the membership object.
+ * `state` - `active` or `pending` -- the state of membership within the organization.  `active` if the member has accepted the invite, or `pending` if the invite is still pending.

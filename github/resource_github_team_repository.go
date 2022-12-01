@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -131,13 +131,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("team_id", teamIdString)
 	}
 	d.Set("repository", repo.GetName())
-
-	permName, permErr := getRepoPermission(repo.GetPermissions())
-	if permErr != nil {
-		return permErr
-	}
-
-	d.Set("permission", permName)
+	d.Set("permission", getPermission(repo.GetRoleName()))
 
 	return nil
 }

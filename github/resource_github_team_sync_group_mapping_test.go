@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -156,7 +156,7 @@ func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
 		groupList, resp, err := conn.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 		if err == nil {
 			if groupList != nil && len(groupList.Groups) > 0 {
-				return fmt.Errorf("Team Sync Group Mapping still exists for team slug %s", slug)
+				return fmt.Errorf("team Sync Group Mapping still exists for team slug %s", slug)
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -171,7 +171,7 @@ func testAccCheckGithubTeamSyncGroupMappingDisappears(resourceName string) resou
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("not found: %s", resourceName)
 		}
 		conn := testAccProvider.Meta().(*Owner).v3client
 		orgName := testAccProvider.Meta().(*Owner).name
@@ -188,7 +188,7 @@ func testAccGithubTeamSyncGroupMappingImportStateIdFunc(resourceName string) res
 	return func(s *terraform.State) (string, error) {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return "", fmt.Errorf("Not found: %s", resourceName)
+			return "", fmt.Errorf("not found: %s", resourceName)
 		}
 
 		return rs.Primary.Attributes["team_slug"], nil

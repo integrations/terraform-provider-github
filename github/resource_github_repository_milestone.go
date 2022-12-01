@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -24,7 +24,7 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
-					return nil, fmt.Errorf("Invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
+					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
 				}
 				d.Set("owner", parts[0])
 				d.Set("repository", parts[1])

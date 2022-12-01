@@ -4,8 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -81,11 +82,12 @@ func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
+	escapedEnvName := url.QueryEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
 
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
 
 	if err != nil {
 		return err
@@ -101,13 +103,14 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
+	escapedEnvName := url.QueryEscape(envName)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
+	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, escapedEnvName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -134,9 +137,13 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 			for _, r := range pr.Reviewers {
 				switch *r.Type {
 				case "Team":
-					teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					if r.Reviewer.(*github.Team).ID != nil {
+						teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					}
 				case "User":
-					users = append(users, *r.Reviewer.(*github.User).ID)
+					if r.Reviewer.(*github.User).ID != nil {
+						users = append(users, *r.Reviewer.(*github.User).ID)
+					}
 				}
 			}
 			d.Set("reviewers", []interface{}{
@@ -166,11 +173,12 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
+	escapedEnvName := url.QueryEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
 
-	resultKey, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
+	resultKey, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
 	if err != nil {
 		return err
 	}
@@ -185,13 +193,14 @@ func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta inte
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
+	escapedEnvName := url.QueryEscape(envName)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
+	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, escapedEnvName)
 	return err
 }
 

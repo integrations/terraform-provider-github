@@ -6,6 +6,8 @@ Contributions to this project are [released](https://help.github.com/articles/gi
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
+Before submitting an issue or a pull request, please search the repository for existing content. Issues and PRs with multiple comments/experience reports increase the likelihood of a merged change.
+
 ## Submitting a pull request
 
 0. Fork and clone the repository

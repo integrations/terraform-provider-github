@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -22,7 +22,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<autolink_reference_id>")
+					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
 				}
 				d.Set("repository", parts[0])
 				d.SetId(parts[1])
@@ -41,15 +41,22 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 			"key_prefix": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
 				ForceNew:    true,
+				Description: "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
 			},
 			"target_url_template": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				Description:  "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
 				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
-				ForceNew:     true,
+			},
+			"is_alphanumeric": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     true,
+				Description: "Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -66,11 +73,13 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	repoName := d.Get("repository").(string)
 	keyPrefix := d.Get("key_prefix").(string)
 	targetURLTemplate := d.Get("target_url_template").(string)
+	isAlphanumeric := d.Get("is_alphanumeric").(bool)
 	ctx := context.Background()
 
 	opts := &github.AutolinkOptions{
-		KeyPrefix:   &keyPrefix,
-		URLTemplate: &targetURLTemplate,
+		KeyPrefix:      &keyPrefix,
+		URLTemplate:    &targetURLTemplate,
+		IsAlphanumeric: &isAlphanumeric,
 	}
 
 	autolinkRef, _, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
@@ -106,6 +115,7 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 	d.Set("repository", repoName)
 	d.Set("key_prefix", autolinkRef.KeyPrefix)
 	d.Set("target_url_template", autolinkRef.URLTemplate)
+	d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric)
 
 	return nil
 }

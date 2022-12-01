@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -89,7 +89,7 @@ func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 			orgId, teamId, nil)
 		if err == nil {
 			if len(members) > 0 {
-				return fmt.Errorf("Team has still members: %v", members)
+				return fmt.Errorf("team has still members: %v", members)
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -104,11 +104,11 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team ID is set")
+			return fmt.Errorf("no team ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -126,7 +126,7 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 		}
 
 		if len(members) != 1 {
-			return fmt.Errorf("Team has not one member: %d", len(members))
+			return fmt.Errorf("team has not one member: %d", len(members))
 		}
 
 		TeamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, *members[0].Login)
@@ -143,11 +143,11 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team ID is set")
+			return fmt.Errorf("no team ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -165,7 +165,7 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 		}
 
 		if len(members) != 1 {
-			return fmt.Errorf("Team has not one member: %d", len(members))
+			return fmt.Errorf("team has not one member: %d", len(members))
 		}
 
 		TeamMembers, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
@@ -178,11 +178,11 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 		actualRole := TeamMembers.GetRole()
 
 		if resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
+			return fmt.Errorf("team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
 		if resourceRole != actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
+			return fmt.Errorf("team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}

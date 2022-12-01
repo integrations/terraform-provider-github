@@ -7,7 +7,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -23,7 +23,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				branch := "main"
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				if len(parts) == 2 {
@@ -79,7 +79,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The commit message when creating or updating the file",
+				Description: "The commit message when creating, updating or deleting the file",
 			},
 			"commit_author": {
 				Type:        schema.TypeString,
@@ -128,11 +128,11 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && !hasCommitEmail {
-		return nil, fmt.Errorf("Cannot set commit_author without setting commit_email")
+		return nil, fmt.Errorf("cannot set commit_author without setting commit_email")
 	}
 
 	if hasCommitEmail && !hasCommitAuthor {
-		return nil, fmt.Errorf("Cannot set commit_email without setting commit_author")
+		return nil, fmt.Errorf("cannot set commit_email without setting commit_author")
 	}
 
 	if hasCommitAuthor && hasCommitEmail {
@@ -315,8 +315,12 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
 	branch := d.Get("branch").(string)
-
 	message := fmt.Sprintf("Delete %s", file)
+
+	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
+		message = commitMessage.(string)
+	}
+
 	sha := d.Get("sha").(string)
 	opts := &github.RepositoryContentFileOptions{
 		Message: &message,

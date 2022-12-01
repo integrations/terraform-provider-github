@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -124,7 +124,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			orgId, teamId, username)
 		if err == nil {
 			if membership != nil {
-				return fmt.Errorf("Team membership still exists")
+				return fmt.Errorf("team membership still exists")
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -139,11 +139,11 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team membership ID is set")
+			return fmt.Errorf("no team membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -172,11 +172,11 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team membership ID is set")
+			return fmt.Errorf("no team membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -200,11 +200,11 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		actualRole := teamMembership.GetRole()
 
 		if resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
+			return fmt.Errorf("team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
 		if resourceRole != actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
+			return fmt.Errorf("team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}

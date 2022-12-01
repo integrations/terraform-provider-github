@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -35,11 +35,10 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				ForceNew: true,
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Default:      "push",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "push",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if d.Get("permission_diff_suppression").(bool) {
 						if new == "triage" || new == "maintain" {
@@ -115,10 +114,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	if invitation != nil {
 		username = invitation.GetInvitee().GetLogin()
 
-		permissionName, err := getInvitationPermission(invitation)
-		if err != nil {
-			return err
-		}
+		permissionName := getPermission(invitation.GetPermissions())
 
 		d.Set("repository", repoName)
 		d.Set("username", username)
@@ -141,14 +137,9 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
-				permissionName, err := getRepoPermission(c.GetPermissions())
-				if err != nil {
-					return err
-				}
-
 				d.Set("repository", repoName)
 				d.Set("username", c.GetLogin())
-				d.Set("permission", permissionName)
+				d.Set("permission", getPermission(c.GetRoleName()))
 				return nil
 			}
 		}
