@@ -8,42 +8,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccGithubRepositoryEnvironment(t *testing.T) {
+func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates a repository environment", func(t *testing.T) {
+	t.Run("get a repository registration token without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
-			data "github_user" "current" {
-				username = ""
-			}
-
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
 			}
 
-			resource "github_repository_environment" "test" {
-				repository 	= github_repository.test.name
-				environment	= "environment/test"
-				wait_timer	= 10000
-				reviewers {
-					users = [data.github_user.current.id]
-				}
-				deployment_branch_policy {
-					protected_branches     = true
-					custom_branch_policies = false
-				}
+			data "github_actions_registration_token" "test" {
+				repository = github_repository.test.id
 			}
-
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_environment.test", "environment",
-				"environment/test",
-			),
+			resource.TestCheckResourceAttr("data.github_actions_registration_token.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "token"),
+			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "expires_at"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"regexp"
 	"strings"
@@ -1184,6 +1185,30 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+}
+
+func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+	_, err := schema.ValidateFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected topic validation failure: %s", err))
+	}
+}
+
+func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+
+	_, err := schema.ValidateFunc(strings.Repeat("a", 51), "topic")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for topic (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
 }
 
 func testSweepRepositories(region string) error {

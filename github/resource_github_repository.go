@@ -251,7 +251,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,34}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 35 characters or less"),
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
 				},
 			},
 			"vulnerability_alerts": {
@@ -572,11 +572,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
 
-	securityAndAnalysis, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{})
-	if err != nil {
-		return fmt.Errorf("Error reading repository security and analysis settings: %v", err)
-	}
-	d.Set("security_and_analysis", flattenSecurityAndAnalysis(securityAndAnalysis.GetSecurityAndAnalysis()))
+	d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis()))
 
 	return nil
 }
