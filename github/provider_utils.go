@@ -91,7 +91,7 @@ func testAccCheckOrganization() error {
 		return err
 	}
 	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
+		return fmt.Errorf("configured owner %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
 }
