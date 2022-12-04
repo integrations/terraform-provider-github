@@ -193,6 +193,11 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 			contexts := expandNestedSet(m, "contexts")
 			rsc.Contexts = contexts
+
+			// Contexts parameter is deprecated and Checks can not be nil
+			// Bug: https://github.com/google/go-github/issues/2467
+			// RequiredStatusChecksRequest: https://github.com/google/go-github/blob/master/github/repos.go#L992
+			rsc.Checks = []*github.RequiredStatusCheck{}
 		}
 		return rsc, nil
 	}
