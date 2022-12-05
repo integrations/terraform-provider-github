@@ -7,7 +7,7 @@ require (
 	github.com/golangci/golangci-lint v1.41.1
 	github.com/google/go-github/v48 v48.1.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
-	github.com/shurcooL/githubv4 v0.0.0-20220520033151-0b4e3294ff00
+	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	golang.org/x/crypto v0.3.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	gopkg.in/square/go-jose.v2 v2.6.0

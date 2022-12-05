@@ -51,6 +51,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "push_restrictions.#", "0",
 			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "lock_branch", "false",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -138,6 +141,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "push_restrictions.#", "0",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "lock_branch", "false",
 			),
 		)
 
@@ -275,6 +281,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 				required_pull_request_reviews {
 						dismiss_stale_reviews      = true
 						require_code_owner_reviews = true
+						require_last_push_approval = true
 				}
 
 			}
@@ -293,6 +300,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
 			),
 		)
 

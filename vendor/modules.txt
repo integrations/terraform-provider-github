@@ -682,7 +682,7 @@ github.com/securego/gosec/v2/rules
 # github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c
 ## explicit
 github.com/shazow/go-diff/difflib
-# github.com/shurcooL/githubv4 v0.0.0-20220520033151-0b4e3294ff00
+# github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 ## explicit
 github.com/shurcooL/githubv4
 # github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29
