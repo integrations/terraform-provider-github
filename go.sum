@@ -891,6 +891,8 @@ github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c/go.mod h1:/PevMnwAx
 github.com/shirou/gopsutil/v3 v3.21.5/go.mod h1:ghfMypLDrFSWN2c9cDYFLHyynQ+QUht0cv/18ZqVczw=
 github.com/shurcooL/githubv4 v0.0.0-20220520033151-0b4e3294ff00 h1:fiFvD4lT0aWjuuAb64LlZ/67v87m+Kc9Qsu5cMFNK0w=
 github.com/shurcooL/githubv4 v0.0.0-20220520033151-0b4e3294ff00/go.mod h1:hAF0iLZy4td2EX+/8Tw+4nodhlMrwN3HupfaXj3zkGo=
+github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb h1:foJysa74+t41fG7adnt+TkfcNxQUWid8R/HlXe+Mmbw=
+github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb/go.mod h1:hAF0iLZy4td2EX+/8Tw+4nodhlMrwN3HupfaXj3zkGo=
 github.com/shurcooL/go v0.0.0-20180423040247-9e1955d9fb6e/go.mod h1:TDJrrUr11Vxrven61rcy3hJMUqaf/CLWYhHNPmT14Lk=
 github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041/go.mod h1:N5mDOmsrJOB+vfqUK+7DmDyjhSLIIBnXo9lvZJj3MWQ=
 github.com/shurcooL/graphql v0.0.0-20220606043923-3cf50f8a0a29 h1:B1PEwpArrNp4dkQrfxh/abbBAOZBVp0ds+fBEOUOqOc=
