@@ -75,7 +75,7 @@ func testAccCheckOrganization() error {
 	if owner == "" {
 		organization := os.Getenv("GITHUB_ORGANIZATION")
 		if organization == "" {
-			return fmt.Errorf("Neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
+			return fmt.Errorf("neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
 		}
 		owner = organization
 	}
@@ -91,7 +91,7 @@ func testAccCheckOrganization() error {
 		return err
 	}
 	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
+		return fmt.Errorf("configured owner %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
 }
