@@ -3,10 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v43/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"strconv"
+
+	"github.com/google/go-github/v48/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceGithubRelease() *schema.Resource {
