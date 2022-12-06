@@ -159,12 +159,10 @@ func resourceGithubRepository() *schema.Resource {
 			"merge_commit_title": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "MERGE_MESSAGE",
 			},
 			"merge_commit_message": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "PR_TITLE",
 			},
 			"delete_branch_on_merge": {
 				Type:     schema.TypeBool,
