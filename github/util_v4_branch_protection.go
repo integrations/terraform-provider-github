@@ -76,6 +76,8 @@ type BranchProtectionRule struct {
 	RequiresStrictStatusChecks     githubv4.Boolean
 	RestrictsPushes                githubv4.Boolean
 	RestrictsReviewDismissals      githubv4.Boolean
+	RequireLastPushApproval        githubv4.Boolean
+	LockBranch                     githubv4.Boolean
 }
 
 type BranchProtectionResourceData struct {
@@ -101,6 +103,8 @@ type BranchProtectionResourceData struct {
 	RestrictsPushes                bool
 	RestrictsReviewDismissals      bool
 	ReviewDismissalActorIDs        []string
+	RequireLastPushApproval        bool
+	LockBranch                     bool
 }
 
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
@@ -193,6 +197,9 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 				}
 			}
+			if v, ok := m[PROTECTION_REQUIRES_LAST_PUSH_APPROVAL]; ok {
+				data.RequireLastPushApproval = v.(bool)
+			}
 		}
 	}
 
@@ -227,6 +234,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			data.PushActorIDs = pushActorIDs
 			data.RestrictsPushes = true
 		}
+	}
+
+	if v, ok := d.GetOk(PROTECTION_LOCK_BRANCH); ok {
+		data.LockBranch = v.(bool)
 	}
 
 	return data, nil
@@ -387,6 +398,7 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
 			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
+			PROTECTION_REQUIRES_LAST_PUSH_APPROVAL:     protection.RequireLastPushApproval,
 		},
 	}
 
