@@ -46,10 +46,24 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 			contexts = append(contexts, c)
 		}
 
+		var checks []interface{}
+		for _, chk := range rsc.Checks {
+			chkMap := make(map[string]interface{})
+			chkMap["context"] = chk.Context
+			chkMap["app_id"] = func() int {
+				if chk.AppID != nil {
+					return int(*chk.AppID)
+				}
+				return -1
+			}()
+			checks = append(checks, chkMap)
+		}
+
 		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
 				"strict":   rsc.Strict,
 				"contexts": schema.NewSet(schema.HashString, contexts),
+				"check":    checks,
 			},
 		})
 	}
@@ -209,8 +223,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 					log.Printf("[DEBUG] app_id value: %v", chk["app_id"].(int))
 					return nil, errors.New("could not parse 'app_id' for required_status_checks check")
 				}
-				var rscAppId int64
-				rscAppId = int64(cAppId)
+				rscAppId := int64(cAppId)
 				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
 					Context: cContext,
 					AppID:   &rscAppId,
