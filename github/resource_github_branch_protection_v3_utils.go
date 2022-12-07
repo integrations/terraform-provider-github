@@ -193,6 +193,30 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 			contexts := expandNestedSet(m, "contexts")
 			rsc.Contexts = contexts
+
+			// Iterate and parse checks
+			checks := m["check"].([]interface{})
+			var rscChecks []*github.RequiredStatusCheck
+			for _, c := range checks {
+				chk := c.(map[string]interface{})
+
+				var cContext string
+				if cContext, ok = chk["context"].(string); !ok {
+					return nil, errors.New("could not parse 'context' for required_status_checks check")
+				}
+				var cAppId int
+				if cAppId, ok = chk["app_id"].(int); !ok {
+					log.Printf("[DEBUG] app_id value: %v", chk["app_id"].(int))
+					return nil, errors.New("could not parse 'app_id' for required_status_checks check")
+				}
+				var rscAppId int64
+				rscAppId = int64(cAppId)
+				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
+					Context: cContext,
+					AppID:   &rscAppId,
+				})
+			}
+			rsc.Checks = rscChecks
 		}
 		return rsc, nil
 	}
