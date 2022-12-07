@@ -72,7 +72,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 									"app_id": {
 										Type:     schema.TypeInt,
 										Optional: true,
-										Default:  nil,
+										Default:  -1,
 									},
 								},
 							},
