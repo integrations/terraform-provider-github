@@ -50,12 +50,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		for _, chk := range rsc.Checks {
 			chkMap := make(map[string]interface{})
 			chkMap["context"] = chk.Context
-			chkMap["app_id"] = func() int {
-				if chk.AppID != nil {
-					return int(*chk.AppID)
-				}
-				return -1
-			}()
+			chkMap["app_id"] = chk.GetAppID()
 			checks = append(checks, chkMap)
 		}
 
