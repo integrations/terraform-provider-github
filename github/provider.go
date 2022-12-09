@@ -116,6 +116,7 @@ func Provider() terraform.ResourceProvider {
 			"github_organization_webhook":                        resourceGithubOrganizationWebhook(),
 			"github_project_card":                                resourceGithubProjectCard(),
 			"github_project_column":                              resourceGithubProjectColumn(),
+			"github_release":                                     resourceGithubRelease(),
 			"github_repository":                                  resourceGithubRepository(),
 			"github_repository_autolink_reference":               resourceGithubRepositoryAutolinkReference(),
 			"github_repository_collaborator":                     resourceGithubRepositoryCollaborator(),

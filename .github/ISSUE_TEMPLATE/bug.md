@@ -39,5 +39,5 @@ Please list the steps required to reproduce the issue, for example:
 Is there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
 
 ### References
-Are there any other GitHub issues (open or closed) or Pull Requests that should be linked here? For example:
-- GH-1234
+Are there any other open or closed GitHub issues or Pull Requests that should be linked here? For example:
+- #123456
