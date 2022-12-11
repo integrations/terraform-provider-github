@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"strings"
-
 	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"log"
+	"strings"
 )
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
@@ -40,25 +39,35 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 
 func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
 	rsc := protection.GetRequiredStatusChecks()
+
 	if rsc != nil {
-		contexts := make([]interface{}, 0, len(rsc.Contexts))
-		for _, c := range rsc.Contexts {
-			contexts = append(contexts, c)
-		}
 
 		var checks []interface{}
+
+		// TODO: Remove once contexts is fully deprecated.
+		// Handle contexts as check objects while waiting for contexts to become deprecated
+		// Flatten contexts
+		for _, c := range rsc.Contexts {
+			chkMap := make(map[string]interface{})
+			chkMap["context"] = c
+			chkMap["app_id"] = -1
+			checks = append(checks, chkMap)
+		}
+
+		// Flatten checks
 		for _, chk := range rsc.Checks {
 			chkMap := make(map[string]interface{})
 			chkMap["context"] = chk.Context
-			chkMap["app_id"] = chk.GetAppID()
+			chkMap["app_id"] = chk.AppID
 			checks = append(checks, chkMap)
 		}
 
 		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
-				"strict":   rsc.Strict,
-				"contexts": schema.NewSet(schema.HashString, contexts),
-				"check":    checks,
+				"strict": rsc.Strict,
+				// TODO: As above, remove if unneeded
+				//"contexts": schema.NewSet(schema.HashString, contexts),
+				"check": checks,
 			},
 		})
 	}
@@ -200,12 +209,22 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			m := v.(map[string]interface{})
 			rsc.Strict = m["strict"].(bool)
 
+			var rscChecks []*github.RequiredStatusCheck
+
+			// Iterate and parse contexts into checks objects as contexts is deprecated.
+			// TODO: Remove this code once contexts is fully deprecated
+			// Iterate and parse contexts
 			contexts := expandNestedSet(m, "contexts")
-			rsc.Contexts = contexts
+			for _, c := range contexts {
+				appID := int64(-1) // Default
+				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
+					Context: c,
+					AppID:   &appID,
+				})
+			}
 
 			// Iterate and parse checks
 			checks := m["check"].([]interface{})
-			var rscChecks []*github.RequiredStatusCheck
 			for _, c := range checks {
 				chk := c.(map[string]interface{})
 
@@ -224,6 +243,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 					AppID:   &rscAppId,
 				})
 			}
+			// Assign after looping both checks and contexts
 			rsc.Checks = rscChecks
 		}
 		return rsc, nil
