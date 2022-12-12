@@ -17,6 +17,5 @@ jobs:
         with:
           project-url: https://github.com/orgs/octokit/projects/10
           github-token: ${{ secrets.OCTOKITBOT_PROJECT_ACTION_TOKEN }}
-          labeled: 'Status: Stale'
           labeled: "Status: Stale"
           label-operator: NOT
