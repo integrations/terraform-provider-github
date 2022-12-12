@@ -209,7 +209,9 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			m := v.(map[string]interface{})
 			rsc.Strict = m["strict"].(bool)
 
-			var rscChecks []*github.RequiredStatusCheck
+			// Initialise empty literal to ensure an empty array is passed mitigating schema errors like so:
+			// For 'anyOf/1', {"strict"=>true, "checks"=>nil} is not a null. []
+			rscChecks := []*github.RequiredStatusCheck{}
 
 			// TODO: Remove once contexts is deprecated
 			// Iterate and parse contexts into checks using -1 as default to allow checks from all apps.
