@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-github/v48/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -42,32 +43,31 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 
 	if rsc != nil {
 
+		// Contexts and Checks arrays to flatten into
+		var contexts []interface{}
 		var checks []interface{}
 
 		// TODO: Remove once contexts is fully deprecated.
-		// Handle contexts as check objects while waiting for contexts to become deprecated
 		// Flatten contexts
 		for _, c := range rsc.Contexts {
-			chkMap := make(map[string]interface{})
-			chkMap["context"] = c
-			chkMap["app_id"] = -1
-			checks = append(checks, chkMap)
+			// Parse into contexts
+			contexts = append(contexts, c)
+			checks = append(contexts, c)
 		}
 
 		// Flatten checks
 		for _, chk := range rsc.Checks {
-			chkMap := make(map[string]interface{})
-			chkMap["context"] = chk.Context
-			chkMap["app_id"] = chk.AppID
-			checks = append(checks, chkMap)
+			// Parse into contexts
+			contexts = append(contexts, chk.Context)
+			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID)) //  buildTwoPartID(chk.Context, strconv.Itoa(int(*chk.AppID))))
 		}
 
 		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
 				"strict": rsc.Strict,
-				// TODO: As above, remove if unneeded
-				//"contexts": schema.NewSet(schema.HashString, contexts),
-				"check": checks,
+				// TODO: Remove once contexts is fully deprecated.
+				"contexts": schema.NewSet(schema.HashString, contexts),
+				"checks":   schema.NewSet(schema.HashString, checks),
 			},
 		})
 	}
@@ -211,9 +211,8 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 			var rscChecks []*github.RequiredStatusCheck
 
-			// Iterate and parse contexts into checks objects as contexts is deprecated.
-			// TODO: Remove this code once contexts is fully deprecated
-			// Iterate and parse contexts
+			// TODO: Remove once contexts is deprecated
+			// Iterate and parse contexts into checks using -1 as default to allow checks from all apps.
 			contexts := expandNestedSet(m, "contexts")
 			for _, c := range contexts {
 				appID := int64(-1) // Default
@@ -224,24 +223,37 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			}
 
 			// Iterate and parse checks
-			checks := m["check"].([]interface{})
+			checks := expandNestedSet(m, "checks")
 			for _, c := range checks {
-				chk := c.(map[string]interface{})
 
-				var cContext string
-				if cContext, ok = chk["context"].(string); !ok {
-					return nil, errors.New("could not parse 'context' for required_status_checks check")
+				// Expect a string of "context:app_id", allowing for the absence of "app_id"
+				parts := strings.SplitN(c, ":", 2)
+				var cContext, cAppId string
+				switch len(parts) {
+				case 1:
+					cContext, cAppId = parts[0], ""
+				case 2:
+					cContext, cAppId = parts[0], parts[1]
+				default:
+					return nil, errors.New(fmt.Sprintf("Could not parse check '%s'. Expected `context:app_id` or `context`", c))
 				}
-				var cAppId int
-				if cAppId, ok = chk["app_id"].(int); !ok {
-					log.Printf("[DEBUG] app_id value: %v", chk["app_id"].(int))
-					return nil, errors.New("could not parse 'app_id' for required_status_checks check")
+
+				var rscCheck *github.RequiredStatusCheck
+				if cAppId != "" {
+					// If we have a valid app_id, include it in the RSC
+					rscAppId, err := strconv.Atoi(cAppId)
+					if err != nil {
+						return nil, errors.New(fmt.Sprintf("Could not parse %v as valid app_id", cAppId))
+					}
+					rscAppId64 := int64(rscAppId)
+					rscCheck = &github.RequiredStatusCheck{Context: cContext, AppID: &rscAppId64}
+				} else {
+					// Else simply provide the context
+					rscCheck = &github.RequiredStatusCheck{Context: cContext}
 				}
-				rscAppId := int64(cAppId)
-				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
-					Context: cContext,
-					AppID:   &rscAppId,
-				})
+
+				// Append
+				rscChecks = append(rscChecks, rscCheck)
 			}
 			// Assign after looping both checks and contexts
 			rsc.Checks = rscChecks

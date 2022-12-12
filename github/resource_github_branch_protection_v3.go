@@ -60,21 +60,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 								Type: schema.TypeString,
 							},
 						},
-						"check": {
-							Type:     schema.TypeList,
+						"checks": {
+							Type:     schema.TypeSet,
 							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"context": {
-										Type:     schema.TypeString,
-										Required: true,
-									},
-									"app_id": {
-										Type:     schema.TypeInt,
-										Optional: true,
-										Default:  -1,
-									},
-								},
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
 							},
 						},
 					},
