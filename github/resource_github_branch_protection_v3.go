@@ -55,7 +55,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 						"contexts": {
 							Type:       schema.TypeSet,
 							Optional:   true,
-							Deprecated: "GitHub is deprecating the use of `contexts`. Use `check` blocks instead.",
+							Deprecated: "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
