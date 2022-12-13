@@ -105,6 +105,18 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
+		_, _, err := client.Teams.EditTeamByID(ctx,
+			*githubTeam.Organization.ID,
+			*githubTeam.ID,
+			newTeam,
+			false)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	create_default_maintainer := d.Get("create_default_maintainer").(bool)
 	if !create_default_maintainer {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
