@@ -33,8 +33,8 @@ resource "github_repository" "another_repo" {
 
 resource "github_app_installation_repositories" "some_app_repos" {
   # The installation id of the app (in the organization).
-  installation_id          = "1234567"
-  selected_repository_ids  = [github_repository.some_repo.name, github_repository.another_repo.name]"
+  installation_id        = "1234567"
+  selected_repositories  = [github_repository.some_repo.name, github_repository.another_repo.name]"
 }
 ```
 
@@ -49,9 +49,9 @@ The following arguments are supported:
 
 ## Import
 
-GitHub App Installation Repository can be imported
-using an ID made up of `installation_id:repository`, e.g.
+GitHub App Installation Repositories can be imported
+using an ID made up of `installation_id`, e.g.
 
 ```
-$ terraform import github_app_installation_repository.terraform_repo 1234567:terraform
+$ terraform import github_app_installation_repositories.some_app_repos 1234567
 ```
