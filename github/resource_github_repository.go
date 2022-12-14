@@ -644,7 +644,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			if err != nil {
 				return err
 			}
-		} else { // disable security and analysis
+		} else if opts == nil { // disable security and analysis
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
 					AdvancedSecurity: &github.AdvancedSecurity{
