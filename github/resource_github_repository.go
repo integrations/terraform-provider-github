@@ -632,6 +632,18 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			if err != nil {
 				return err
 			}
+		}
+		if d.Get("visibility").(string) == "public" && opts == nil {
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled")},
+					SecretScanningPushProtection: &github.SecretScanningPushProtection{
+						Status: github.String("disabled")}},
+			})
+			if err != nil {
+				return err
+			}
 		} else { // disable security and analysis
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
