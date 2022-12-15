@@ -122,8 +122,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
-func getOrganizationRunnerGroup(client github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
-	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
+func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
+	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotModified {
 			// ignore error StatusNotModified
