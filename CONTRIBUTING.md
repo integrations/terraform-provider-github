@@ -43,7 +43,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   export GITHUB_ORGANIZATION=<name of an organization>
   ```
 - Build the project with `make build`
-- Try an example test run from the default (`master`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
+- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
 
 ### Local Development Iteration
 
