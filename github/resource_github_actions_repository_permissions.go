@@ -21,6 +21,11 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"access_level": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false),
+			},
 			"allowed_actions": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -143,6 +148,17 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		}
 	}
 
+	accessLevel, ok := d.GetOk("access_level")
+	if ok && accessLevel != "" {
+		actionsAccess := github.RepositoryActionsAccessLevel{
+			AccessLevel: github.String(accessLevel.(string)),
+		}
+		_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionsAccess)
+		if err != nil {
+			return err
+		}
+	}
+
 	d.SetId(repoName)
 	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
 }
@@ -157,6 +173,15 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	actionsPermissions, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
 	if err != nil {
 		return err
+	}
+
+	repo, _, _ := client.Repositories.Get(ctx, owner, repoName)
+	if repo.GetVisibility() != "public" {
+		actionsAccess, _, err := client.Repositories.GetActionsAccessLevel(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+		d.Set("access_level", actionsAccess.GetAccessLevel())
 	}
 
 	if actionsPermissions.GetAllowedActions() == "selected" {
@@ -206,6 +231,18 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 	)
 	if err != nil {
 		return err
+	}
+
+	repo, _, _ := client.Repositories.Get(ctx, owner, repoName)
+	if repo.GetVisibility() != "public" {
+		// Reset the access level to default
+		accessLevel := github.RepositoryActionsAccessLevel{
+			AccessLevel: github.String("none"),
+		}
+		_, err = client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, accessLevel)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -65,8 +65,9 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		allowedActions := "selected"
 		githubOwnedAllowed := true
-		verifiedAllowed := true
+		verifiedAllowed := false
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		accessLevel := "none"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -79,12 +80,12 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				allowed_actions = "%s"
 				allowed_actions_config {
 					github_owned_allowed = %t
-					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
+					patterns_allowed     = ["monalisa/octocat@*", "docker/*"]
 					verified_allowed     = %t
 				}
 				repository = github_repository.test.name
 			}
-		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed)
+		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed, accessLevel)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -237,5 +238,107 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 			testCase(t, organization)
 		})
 
+	})
+
+	t.Run("Allow access to actions from other repos owned by the same user", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		accessLevel := "user"
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-topic-%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics		= ["terraform", "testing"]
+				visibility  = "private"
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				access_level    = "%s"
+				allowed_actions = "all"
+				repository      = github_repository.test.name
+			}
+		`, randomID, accessLevel)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_permissions.test", "access_level", accessLevel,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		// User isn't valid for organization, see the organization test for that.
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this input")
+		})
+	})
+
+	t.Run("Allow access to actions from within the organization", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		accessLevel := "organization"
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-topic-%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics		= ["terraform", "testing"]
+				visibility  = "private"
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				access_level    = "%s"
+				allowed_actions = "all"
+				repository      = github_repository.test.name
+			}
+		`, randomID, accessLevel)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_permissions.test", "access_level", accessLevel,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("user account not supported for this input")
+		})
+
+		// User isn't valid for organization, see the organization test for that.
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 	})
 }
