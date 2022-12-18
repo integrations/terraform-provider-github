@@ -36,8 +36,8 @@ The following arguments are supported:
 * `repository`             - (Required) The GitHub repository
 * `allowed_actions`        - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
 * `enabled`                - (Optional) Should GitHub actions be enabled on this repository?
-* `allowed_actions_config` - (Optional) Sets the actions that are allowed in an repository. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
-* `access_level`           - (Optional) Sets the level of access that workflows outside of this repository have to actions and resuable workflows in this repository.  Can be one of: `none`, `user`, `organization`, or `enterprise`.
+* `allowed_actions_config` - (Optional) Sets the actions that are allowed in a repository. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
+* `access_level`           - (Optional) Sets the level of access that workflows outside of this repository have to actions and reusable workflows in this repository.  Can be one of: `none`, `user`, `organization`, or `enterprise`.
 
 ### Allowed Actions Config
 
