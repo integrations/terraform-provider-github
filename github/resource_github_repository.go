@@ -472,7 +472,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	securityAndAnalysis := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+	securityAndAnalysis := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}), d)
 	if securityAndAnalysis != nil {
 		_, _, err := client.Repositories.Edit(ctx, owner, repoName, securityAndAnalysis)
 		if err != nil {
@@ -629,17 +629,16 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if d.HasChange("security_and_analysis") && !d.IsNewResource() {
-		opts := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+		opts := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}), d)
 		if opts != nil {
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, opts)
 			if err != nil {
 				return err
 			}
-		} else { // disable security and analysis
+		}
+		if d.Get("visibility").(string) == "public" && opts == nil {
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
 				SecurityAndAnalysis: &github.SecurityAndAnalysis{
-					AdvancedSecurity: &github.AdvancedSecurity{
-						Status: github.String("disabled")},
 					SecretScanning: &github.SecretScanning{
 						Status: github.String("disabled")},
 					SecretScanningPushProtection: &github.SecretScanningPushProtection{
@@ -648,7 +647,20 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 			if err != nil {
 				return err
 			}
-		}
+		} else if opts == nil { // disable security and analysis
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled")},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled")},
+					SecretScanningPushProtection: &github.SecretScanningPushProtection{
+						Status: github.String("disabled")}},
+					})
+					if err != nil {
+						return err
+					}
+				}
 	}
 
 	if d.HasChange("topics") {
@@ -826,7 +838,7 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 	return []interface{}{securityAndAnalysisMap}
 }
 
-func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
+func expandSecurityAndAnalysis(input []interface{}, d *schema.ResourceData) *github.Repository {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
@@ -834,9 +846,11 @@ func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
 	securityAndAnalysis := input[0].(map[string]interface{})
 	update := &github.SecurityAndAnalysis{}
 
-	advancedSecurity := securityAndAnalysis["advanced_security"].([]interface{})[0].(map[string]interface{})
-	update.AdvancedSecurity = &github.AdvancedSecurity{
-		Status: github.String(advancedSecurity["status"].(string)),
+  if d.Get("visibility").(string) != "public" {
+			advancedSecurity := securityAndAnalysis["advanced_security"].([]interface{})[0].(map[string]interface{})
+			update.AdvancedSecurity = &github.AdvancedSecurity{
+				Status: github.String(advancedSecurity["status"].(string)),
+			}
 	}
 
 	secretScanning := securityAndAnalysis["secret_scanning"].([]interface{})[0].(map[string]interface{})
