@@ -146,9 +146,6 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, name)

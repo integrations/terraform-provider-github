@@ -93,9 +93,6 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		return unconvertibleIdErr(d.Id(), err)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {

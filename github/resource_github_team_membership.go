@@ -114,9 +114,6 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("username", username)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)

@@ -87,9 +87,6 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 		return unconvertibleIdErr(d.Id(), err)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
 	if err != nil {
