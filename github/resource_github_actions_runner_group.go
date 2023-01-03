@@ -122,6 +122,17 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
+func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
+	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotModified {
+			// ignore error StatusNotModified
+			return runnerGroup, resp, nil
+		}
+	}
+	return runnerGroup, resp, err
+}
+
 func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
@@ -140,12 +151,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
+	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
