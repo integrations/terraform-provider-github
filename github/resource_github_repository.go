@@ -113,6 +113,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"has_discussions": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"has_projects": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -356,6 +360,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Visibility:               github.String(calculateVisibility(d)),
 		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
+		HasDiscussions:           github.Bool(d.Get("has_discussions").(bool)),
 		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
 		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
 		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
@@ -516,6 +521,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())

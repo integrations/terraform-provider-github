@@ -50,6 +50,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"has_discussions": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"has_projects": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -244,6 +248,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
 	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
