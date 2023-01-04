@@ -27,6 +27,9 @@ func resourceGithubRepository() *schema.Resource {
 			},
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubRepositoryMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
