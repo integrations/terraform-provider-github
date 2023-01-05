@@ -111,6 +111,7 @@ func Provider() terraform.ResourceProvider {
 			"github_issue_label":                                 resourceGithubIssueLabel(),
 			"github_membership":                                  resourceGithubMembership(),
 			"github_organization_block":                          resourceOrganizationBlock(),
+			"github_organization_ip_allow_list_entry":            resourceGithubOrganizationIpAllowList(),
 			"github_organization_project":                        resourceGithubOrganizationProject(),
 			"github_organization_security_manager":               resourceGithubOrganizationSecurityManager(),
 			"github_organization_settings":                       resourceGithubOrganizationSettings(),

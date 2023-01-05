@@ -1,24 +1,14 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"strings"
+
 	"github.com/shurcooL/githubv4"
 )
 
 type PageInfo struct {
 	EndCursor   githubv4.String
 	HasNextPage bool
-}
-
-func expandNestedSet(m map[string]interface{}, target string) []string {
-	res := make([]string, 0)
-	if v, ok := m[target]; ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			res = append(res, v.(string))
-		}
-	}
-	return res
 }
 
 func githubv4StringSlice(ss []string) []githubv4.String {
@@ -48,3 +38,13 @@ func githubv4IDSliceEmpty(ss []string) []githubv4.ID {
 func githubv4NewStringSlice(v []githubv4.String) *[]githubv4.String { return &v }
 
 func githubv4NewIDSlice(v []githubv4.ID) *[]githubv4.ID { return &v }
+
+/**
+ * Checks if the error message represents
+ * that graphql query did not find node by its global id.
+ * Graphql error responses return 200 OK http codes
+ * so we have to inspect the messages =/
+ */
+func githubv4IsNodeNotFoundError(err error) bool {
+	return err != nil && strings.HasPrefix(err.Error(), "Could not resolve to a node with the global id")
+}

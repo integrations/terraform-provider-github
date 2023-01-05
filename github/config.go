@@ -27,6 +27,7 @@ type Config struct {
 type Owner struct {
 	name           string
 	id             int64
+	nodeId         string
 	v3client       *github.Client
 	v4client       *githubv4.Client
 	StopContext    context.Context
@@ -118,6 +119,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 		if err == nil {
 			if remoteOrg != nil {
 				owner.id = remoteOrg.GetID()
+				owner.nodeId = remoteOrg.GetNodeID()
 				owner.IsOrganization = true
 			}
 		}
