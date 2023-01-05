@@ -588,7 +588,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Can only update a repository if it is not archived or the update is to
-	// archive the repository (unarchiving is not supported by the Github API)
+	// archive the repository (unarchiving is not supported by the GitHub API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
 		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
@@ -774,7 +774,7 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 		update.CNAME = github.String(v)
 	}
 
-	// To update the Github Pages source, the github.PagesUpdate Source field
+	// To update the GitHub Pages source, the github.PagesUpdate Source field
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
