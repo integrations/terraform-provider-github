@@ -28,9 +28,10 @@ provider "github" {
 }
 
 resource "github_user_invitation_accepter" "example" {
-  provider      = "github.invitee"
-  invitation_id = github_repository_collaborator.example.invitation_id
-} 
+  provider         = "github.invitee"
+  invitation_id    = github_repository_collaborator.example.invitation_id
+  ignore_not_found = true
+}
 ```
 
 ## Argument Reference
@@ -38,3 +39,4 @@ resource "github_user_invitation_accepter" "example" {
 The following arguments are supported:
 
 * `invitation_id` - (Required) ID of the invitation to accept
+* `ignore_not_found` - (Optional) Ignores invitations that are not found. This can be used to not fail when invitations might already have been accepted manually.
