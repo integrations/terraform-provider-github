@@ -29,7 +29,7 @@ func sharedConfigForRegion(region string) (interface{}, error) {
 
 	meta, err := config.Meta()
 	if err != nil {
-		return nil, fmt.Errorf("error getting Github meta parameter")
+		return nil, fmt.Errorf("error getting GitHub meta parameter")
 	}
 
 	return meta, nil
