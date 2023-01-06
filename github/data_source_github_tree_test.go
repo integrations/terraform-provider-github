@@ -58,7 +58,7 @@ func TestAccGithubTreeDataSource(t *testing.T) {
 		}
 
 		t.Run("with an anonymous account", func(t *testing.T) {
-			testCase(t, anonymous)
+			t.Skip("anonymous account not supported for this operation")
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
