@@ -64,6 +64,15 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
 			},
+			"restricted_to_workflows": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"selected_workflows": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
+			},
 		},
 	}
 }

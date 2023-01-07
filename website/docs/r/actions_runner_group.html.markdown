@@ -42,6 +42,8 @@ The following arguments are supported:
 * `selected_repository_ids`    - List of repository IDs that can access the runner group
 * `selected_repositories_url`  - Github API URL for the runner group's repositories
 * `visibility`                 - The visibility of the runner group
+* `restricted_to_workflows`    - If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array
+* `selected_workflows`         - List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
 
 ## Import
 
