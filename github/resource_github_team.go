@@ -106,13 +106,13 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	/*
-		When using a GitHub App for authentication, `members:write` permission on the App are needed.
+		When using a GitHub App for authentication, `members:write` permissions on the App are needed.
 
 		However, when using a GitHub App, CreateTeam will not correctly nest the team under the parent,
-		if the parent team was created by someone else than the GitHub App.	In that case, the response
+		if the parent team was created by someone else than the GitHub App. In that case, the response
 		object will contain a `nil` parent object.
 
-		This can be resolved by using an additional call to EditTeamByID. This will	be able to set the
+		This can be resolved by using an additional call to EditTeamByID. This will be able to set the
 		parent team correctly when using a GitHub App with `members:write` permissions.
 
 		Note that this is best-effort: when running this with a PAT that does not have admin permissions
