@@ -26,7 +26,7 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 			"ignore_not_found": {
 				Type:     schema.TypeBool,
 				Required: false,
-				ForceNew: false,
+				ForceNew: true,
 			},
 		},
 	}
