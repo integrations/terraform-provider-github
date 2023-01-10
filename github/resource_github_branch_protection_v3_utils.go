@@ -59,7 +59,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		for _, chk := range rsc.Checks {
 			// Parse into contexts
 			contexts = append(contexts, chk.Context)
-			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID)) //  buildTwoPartID(chk.Context, strconv.Itoa(int(*chk.AppID))))
+			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID))
 		}
 
 		return d.Set("required_status_checks", []interface{}{
