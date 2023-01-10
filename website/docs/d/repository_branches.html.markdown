@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: repository_branches"
 description: |-
-  Get information on a Github repository's branches.
+  Get information on a GitHub repository's branches.
 ---
 
 # github_repository_branches

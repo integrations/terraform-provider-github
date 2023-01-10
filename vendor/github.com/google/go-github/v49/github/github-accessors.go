@@ -470,6 +470,14 @@ func (a *AllowDeletionsEnforcementLevelChanges) GetFrom() string {
 	return *a.From
 }
 
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (a *AllowForkSyncing) GetEnabled() bool {
+	if a == nil || a.Enabled == nil {
+		return false
+	}
+	return *a.Enabled
+}
+
 // GetRef returns the Ref field if it's non-nil, zero value otherwise.
 func (a *AnalysesListOptions) GetRef() string {
 	if a == nil || a.Ref == nil {
@@ -2444,6 +2452,14 @@ func (c *CodeScanningAlertEvent) GetCommitOID() string {
 		return ""
 	}
 	return *c.CommitOID
+}
+
+// GetInstallation returns the Installation field.
+func (c *CodeScanningAlertEvent) GetInstallation() *Installation {
+	if c == nil {
+		return nil
+	}
+	return c.Installation
 }
 
 // GetOrg returns the Org field.
@@ -5110,6 +5126,38 @@ func (e *Enterprise) GetWebsiteURL() string {
 	return *e.WebsiteURL
 }
 
+// GetAdvancedSecurityEnabledForNewRepositories returns the AdvancedSecurityEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetAdvancedSecurityEnabledForNewRepositories() bool {
+	if e == nil || e.AdvancedSecurityEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.AdvancedSecurityEnabledForNewRepositories
+}
+
+// GetSecretScanningEnabledForNewRepositories returns the SecretScanningEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningEnabledForNewRepositories() bool {
+	if e == nil || e.SecretScanningEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.SecretScanningEnabledForNewRepositories
+}
+
+// GetSecretScanningPushProtectionCustomLink returns the SecretScanningPushProtectionCustomLink field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningPushProtectionCustomLink() string {
+	if e == nil || e.SecretScanningPushProtectionCustomLink == nil {
+		return ""
+	}
+	return *e.SecretScanningPushProtectionCustomLink
+}
+
+// GetSecretScanningPushProtectionEnabledForNewRepositories returns the SecretScanningPushProtectionEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningPushProtectionEnabledForNewRepositories() bool {
+	if e == nil || e.SecretScanningPushProtectionEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.SecretScanningPushProtectionEnabledForNewRepositories
+}
+
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
 func (e *Environment) GetCreatedAt() Timestamp {
 	if e == nil || e.CreatedAt == nil {
@@ -7470,6 +7518,14 @@ func (i *Issue) GetState() string {
 	return *i.State
 }
 
+// GetStateReason returns the StateReason field if it's non-nil, zero value otherwise.
+func (i *Issue) GetStateReason() string {
+	if i == nil || i.StateReason == nil {
+		return ""
+	}
+	return *i.StateReason
+}
+
 // GetTitle returns the Title field if it's non-nil, zero value otherwise.
 func (i *Issue) GetTitle() string {
 	if i == nil || i.Title == nil {
@@ -8732,6 +8788,14 @@ func (l *Location) GetStartLine() int {
 		return 0
 	}
 	return *l.StartLine
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (l *LockBranch) GetEnabled() bool {
+	if l == nil || l.Enabled == nil {
+		return false
+	}
+	return *l.Enabled
 }
 
 // GetEffectiveDate returns the EffectiveDate field if it's non-nil, zero value otherwise.
@@ -12254,12 +12318,28 @@ func (p *Protection) GetAllowForcePushes() *AllowForcePushes {
 	return p.AllowForcePushes
 }
 
+// GetAllowForkSyncing returns the AllowForkSyncing field.
+func (p *Protection) GetAllowForkSyncing() *AllowForkSyncing {
+	if p == nil {
+		return nil
+	}
+	return p.AllowForkSyncing
+}
+
 // GetEnforceAdmins returns the EnforceAdmins field.
 func (p *Protection) GetEnforceAdmins() *AdminEnforcement {
 	if p == nil {
 		return nil
 	}
 	return p.EnforceAdmins
+}
+
+// GetLockBranch returns the LockBranch field.
+func (p *Protection) GetLockBranch() *LockBranch {
+	if p == nil {
+		return nil
+	}
+	return p.LockBranch
 }
 
 // GetRequiredConversationResolution returns the RequiredConversationResolution field.
@@ -13668,6 +13748,14 @@ func (p *PullRequestReviewsEnforcementUpdate) GetRequireCodeOwnerReviews() bool 
 		return false
 	}
 	return *p.RequireCodeOwnerReviews
+}
+
+// GetRequireLastPushApproval returns the RequireLastPushApproval field if it's non-nil, zero value otherwise.
+func (p *PullRequestReviewsEnforcementUpdate) GetRequireLastPushApproval() bool {
+	if p == nil || p.RequireLastPushApproval == nil {
+		return false
+	}
+	return *p.RequireLastPushApproval
 }
 
 // GetAction returns the Action field if it's non-nil, zero value otherwise.
@@ -15126,6 +15214,14 @@ func (r *Repository) GetGitURL() string {
 	return *r.GitURL
 }
 
+// GetHasDiscussions returns the HasDiscussions field if it's non-nil, zero value otherwise.
+func (r *Repository) GetHasDiscussions() bool {
+	if r == nil || r.HasDiscussions == nil {
+		return false
+	}
+	return *r.HasDiscussions
+}
+
 // GetHasDownloads returns the HasDownloads field if it's non-nil, zero value otherwise.
 func (r *Repository) GetHasDownloads() bool {
 	if r == nil || r.HasDownloads == nil {
@@ -15636,6 +15732,14 @@ func (r *Repository) GetWatchersCount() int {
 		return 0
 	}
 	return *r.WatchersCount
+}
+
+// GetAccessLevel returns the AccessLevel field if it's non-nil, zero value otherwise.
+func (r *RepositoryActionsAccessLevel) GetAccessLevel() string {
+	if r == nil || r.AccessLevel == nil {
+		return ""
+	}
+	return *r.AccessLevel
 }
 
 // GetAdvancedSecurityCommitters returns the AdvancedSecurityCommitters field if it's non-nil, zero value otherwise.
@@ -16356,6 +16460,14 @@ func (r *RepositoryRelease) GetID() int64 {
 		return 0
 	}
 	return *r.ID
+}
+
+// GetMakeLatest returns the MakeLatest field if it's non-nil, zero value otherwise.
+func (r *RepositoryRelease) GetMakeLatest() string {
+	if r == nil || r.MakeLatest == nil {
+		return ""
+	}
+	return *r.MakeLatest
 }
 
 // GetName returns the Name field if it's non-nil, zero value otherwise.
@@ -20510,30 +20622,6 @@ func (w *WorkflowDispatchEvent) GetWorkflow() string {
 	return *w.Workflow
 }
 
-// GetMacOS returns the MacOS field.
-func (w *WorkflowEnvironment) GetMacOS() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.MacOS
-}
-
-// GetUbuntu returns the Ubuntu field.
-func (w *WorkflowEnvironment) GetUbuntu() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.Ubuntu
-}
-
-// GetWindows returns the Windows field.
-func (w *WorkflowEnvironment) GetWindows() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.Windows
-}
-
 // GetCheckRunURL returns the CheckRunURL field if it's non-nil, zero value otherwise.
 func (w *WorkflowJob) GetCheckRunURL() string {
 	if w == nil || w.CheckRunURL == nil {
@@ -20596,6 +20684,14 @@ func (w *WorkflowJob) GetNodeID() string {
 		return ""
 	}
 	return *w.NodeID
+}
+
+// GetRunAttempt returns the RunAttempt field if it's non-nil, zero value otherwise.
+func (w *WorkflowJob) GetRunAttempt() int64 {
+	if w == nil || w.RunAttempt == nil {
+		return 0
+	}
+	return *w.RunAttempt
 }
 
 // GetRunID returns the RunID field if it's non-nil, zero value otherwise.
@@ -20982,30 +21078,6 @@ func (w *WorkflowRunBill) GetTotalMS() int64 {
 	return *w.TotalMS
 }
 
-// GetMacOS returns the MacOS field.
-func (w *WorkflowRunEnvironment) GetMacOS() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.MacOS
-}
-
-// GetUbuntu returns the Ubuntu field.
-func (w *WorkflowRunEnvironment) GetUbuntu() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.Ubuntu
-}
-
-// GetWindows returns the Windows field.
-func (w *WorkflowRunEnvironment) GetWindows() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.Windows
-}
-
 // GetAction returns the Action field if it's non-nil, zero value otherwise.
 func (w *WorkflowRunEvent) GetAction() string {
 	if w == nil || w.Action == nil {
@@ -21087,7 +21159,7 @@ func (w *WorkflowRuns) GetTotalCount() int {
 }
 
 // GetBillable returns the Billable field.
-func (w *WorkflowRunUsage) GetBillable() *WorkflowRunEnvironment {
+func (w *WorkflowRunUsage) GetBillable() *WorkflowRunBillMap {
 	if w == nil {
 		return nil
 	}
@@ -21111,7 +21183,7 @@ func (w *Workflows) GetTotalCount() int {
 }
 
 // GetBillable returns the Billable field.
-func (w *WorkflowUsage) GetBillable() *WorkflowEnvironment {
+func (w *WorkflowUsage) GetBillable() *WorkflowBillMap {
 	if w == nil {
 		return nil
 	}

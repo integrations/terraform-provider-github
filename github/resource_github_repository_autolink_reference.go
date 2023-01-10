@@ -3,11 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -107,6 +109,14 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 

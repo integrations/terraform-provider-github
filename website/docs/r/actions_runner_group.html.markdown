@@ -40,7 +40,7 @@ The following arguments are supported:
 * `inherited`                  - Whether the runner group is inherited from the enterprise level
 * `runners_url`                - The GitHub API URL for the runner group's runners
 * `selected_repository_ids`    - List of repository IDs that can access the runner group
-* `selected_repositories_url`  - Github API URL for the runner group's repositories
+* `selected_repositories_url`  - GitHub API URL for the runner group's repositories
 * `visibility`                 - The visibility of the runner group
 
 ## Import

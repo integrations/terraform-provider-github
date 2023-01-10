@@ -43,7 +43,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   export GITHUB_ORGANIZATION=<name of an organization>
   ```
 - Build the project with `make build`
-- Try an example test run from the default (`master`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
+- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
 
 ### Local Development Iteration
 
@@ -220,7 +220,7 @@ If you do not have an organization already that you are comfortable running test
 
 Make sure that your organization has a `terraform-module-template` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
 
-If you are interested in using and/or testing Github's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
+If you are interested in using and/or testing GitHub's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
 
 ## Resources
 

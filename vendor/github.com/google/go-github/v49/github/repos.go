@@ -88,6 +88,7 @@ type Repository struct {
 	HasPages          *bool   `json:"has_pages,omitempty"`
 	HasProjects       *bool   `json:"has_projects,omitempty"`
 	HasDownloads      *bool   `json:"has_downloads,omitempty"`
+	HasDiscussions    *bool   `json:"has_discussions,omitempty"`
 	IsTemplate        *bool   `json:"is_template,omitempty"`
 	LicenseTemplate   *string `json:"license_template,omitempty"`
 	GitignoreTemplate *string `json:"gitignore_template,omitempty"`
@@ -365,12 +366,13 @@ type createRepoRequest struct {
 	Description *string `json:"description,omitempty"`
 	Homepage    *string `json:"homepage,omitempty"`
 
-	Private     *bool   `json:"private,omitempty"`
-	Visibility  *string `json:"visibility,omitempty"`
-	HasIssues   *bool   `json:"has_issues,omitempty"`
-	HasProjects *bool   `json:"has_projects,omitempty"`
-	HasWiki     *bool   `json:"has_wiki,omitempty"`
-	IsTemplate  *bool   `json:"is_template,omitempty"`
+	Private        *bool   `json:"private,omitempty"`
+	Visibility     *string `json:"visibility,omitempty"`
+	HasIssues      *bool   `json:"has_issues,omitempty"`
+	HasProjects    *bool   `json:"has_projects,omitempty"`
+	HasWiki        *bool   `json:"has_wiki,omitempty"`
+	HasDiscussions *bool   `json:"has_discussions,omitempty"`
+	IsTemplate     *bool   `json:"is_template,omitempty"`
 
 	// Creating an organization repository. Required for non-owners.
 	TeamID *int64 `json:"team_id,omitempty"`
@@ -423,6 +425,7 @@ func (s *RepositoriesService) Create(ctx context.Context, org string, repo *Repo
 		HasIssues:                 repo.HasIssues,
 		HasProjects:               repo.HasProjects,
 		HasWiki:                   repo.HasWiki,
+		HasDiscussions:            repo.HasDiscussions,
 		IsTemplate:                repo.IsTemplate,
 		TeamID:                    repo.TeamID,
 		AutoInit:                  repo.AutoInit,
@@ -492,7 +495,7 @@ func (s *RepositoriesService) CreateFromTemplate(ctx context.Context, templateOw
 
 // Get fetches a repository.
 //
-// GitHub API docs: https://docs.github.com/en/rest/repos/repos#update-a-repository
+// GitHub API docs: https://docs.github.com/en/rest/repos/repos#get-a-repository
 func (s *RepositoriesService) Get(ctx context.Context, owner, repo string) (*Repository, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
@@ -840,6 +843,18 @@ type Protection struct {
 	AllowForcePushes               *AllowForcePushes               `json:"allow_force_pushes"`
 	AllowDeletions                 *AllowDeletions                 `json:"allow_deletions"`
 	RequiredConversationResolution *RequiredConversationResolution `json:"required_conversation_resolution"`
+	LockBranch                     *LockBranch                     `json:"lock_branch,omitempty"`
+	AllowForkSyncing               *AllowForkSyncing               `json:"allow_fork_syncing,omitempty"`
+}
+
+// LockBranch represents if the branch is marked as read-only. If this is true, users will not be able to push to the branch.
+type LockBranch struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AllowForkSyncing represents whether users can pull changes from upstream when the branch is locked.
+type AllowForkSyncing struct {
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // BranchProtectionRule represents the rule applied to a repositories branch.
@@ -1028,6 +1043,8 @@ type PullRequestReviewsEnforcement struct {
 	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
 	// Valid values are 1-6.
 	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
+	// RequireLastPushApproval specifies whether the last pusher to a pull request branch can approve it.
+	RequireLastPushApproval bool `json:"require_last_push_approval"`
 }
 
 // PullRequestReviewsEnforcementRequest represents request to set the pull request review
@@ -1064,6 +1081,8 @@ type PullRequestReviewsEnforcementUpdate struct {
 	// RequiredApprovingReviewCount specifies the number of approvals required before the pull request can be merged.
 	// Valid values are 1 - 6 or 0 to not require reviewers.
 	RequiredApprovingReviewCount int `json:"required_approving_review_count"`
+	// RequireLastPushApproval specifies whether the last pusher to a pull request branch can approve it.
+	RequireLastPushApproval *bool `json:"require_last_push_approval,omitempty"`
 }
 
 // RequireLinearHistory represents the configuration to enforce branches with no merge commit.
