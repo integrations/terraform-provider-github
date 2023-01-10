@@ -24,7 +24,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
-
+			  has_discussions      = true
 			  has_issues           = true
 			  has_wiki             = true
 			  has_downloads        = true
@@ -42,6 +42,10 @@ func TestAccGithubRepositories(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "has_issues",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_discussions",
 				"true",
 			),
 			resource.TestCheckResourceAttr(

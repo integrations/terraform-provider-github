@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -180,7 +180,7 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}
 
 // expandTeamSyncGroups creates an IDPGroupList with an array of IdP groups
 // defined in the *schema.ResourceData to be later used to create or update
-// IdP group connections in Github; if the "group" key is not present,
+// IdP group connections in GitHub; if the "group" key is not present,
 // an empty array must be set in the IDPGroupList per API endpoint specs:
 // https://developer.github.com/v3/teams/team_sync/#create-or-update-idp-group-connections
 func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {

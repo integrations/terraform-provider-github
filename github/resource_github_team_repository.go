@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -157,7 +157,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
+	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
