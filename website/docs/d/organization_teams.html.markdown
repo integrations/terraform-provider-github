@@ -44,3 +44,4 @@ The `team` block consists of:
  * `privacy` - the team's privacy type.
  * `members` - List of team members. Not returned if `summary_only = true`
  * `repositories` - List of team repositories. Not returned if `summary_only = true`
+ * `parent` - the parent team.

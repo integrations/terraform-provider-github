@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_repository_webhooks"
 description: |-
-  Get information on all Github webhooks of the organization.
+  Get information on all GitHub webhooks of the organization.
 ---
 
 # github\_repository\_webhooks

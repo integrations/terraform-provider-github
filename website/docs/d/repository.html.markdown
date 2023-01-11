@@ -39,6 +39,8 @@ The following arguments are supported:
 
 * `has_issues` - Whether the repository has GitHub Issues enabled.
 
+* `has_discussions` - Whether the repository has GitHub Discussions enabled.
+
 * `has_projects` - Whether the repository has the GitHub Projects enabled.
 
 * `has_wiki` - Whether the repository has the GitHub Wiki enabled.
