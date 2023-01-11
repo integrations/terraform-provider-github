@@ -63,6 +63,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			PROTECTION_LOCK_BRANCH: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			PROTECTION_REQUIRES_APPROVING_REVIEWS: {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -95,6 +100,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						PROTECTION_REQUIRES_LAST_PUSH_APPROVAL: {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
 						},
 					},
 				},
@@ -154,6 +164,27 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds, bypassIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+	data.BypassPullRequestActorIDs = bypassIds
+
 	input := githubv4.CreateBranchProtectionRuleInput{
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
@@ -176,6 +207,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
+		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
 	ctx := context.Background()
@@ -255,7 +288,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	approvingReviews := setApprovingReviews(protection)
+	data, err := branchProtectionResourceDataActors(d, meta)
+	if err != nil {
+		return err
+	}
+
+	approvingReviews := setApprovingReviews(protection, data, meta)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
@@ -267,10 +305,20 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	restrictsPushes := setPushes(protection)
+	restrictsPushes := setPushes(protection, data, meta)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.RequireLastPushApproval)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_LOCK_BRANCH, protection.LockBranch)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_LOCK_BRANCH, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	return nil
@@ -288,6 +336,27 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds, bypassIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+	data.BypassPullRequestActorIDs = bypassIds
+
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:         d.Id(),
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
@@ -310,6 +379,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
+		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

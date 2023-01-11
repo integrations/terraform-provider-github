@@ -125,11 +125,11 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No membership ID is set")
+			return fmt.Errorf("no membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client

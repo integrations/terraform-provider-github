@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -26,6 +26,9 @@ func resourceGithubRepository() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubRepositoryMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -54,7 +57,63 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:     true, // is affected by "private"
 				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
 			},
+			"security_and_analysis": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"advanced_security": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						},
+						"secret_scanning": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						},
+						"secret_scanning_push_protection": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"has_issues": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"has_discussions": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
@@ -147,22 +206,6 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"branches": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"protected": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-					},
-				},
-			},
 			"pages": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
@@ -215,7 +258,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,34}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 35 characters or less"),
+					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
 				},
 			},
 			"vulnerability_alerts": {
@@ -260,6 +303,11 @@ func resourceGithubRepository() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"include_all_branches": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 						"owner": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -278,6 +326,10 @@ func resourceGithubRepository() *schema.Resource {
 			"repo_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
+			},
+			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 		},
 	}
@@ -308,6 +360,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Visibility:               github.String(calculateVisibility(d)),
 		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
 		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
+		HasDiscussions:           github.Bool(d.Get("has_discussions").(bool)),
 		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
 		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
 		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
@@ -325,6 +378,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
 		Archived:                 github.Bool(d.Get("archived").(bool)),
 		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 	}
 }
 
@@ -332,7 +386,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Owner).v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		return fmt.Errorf("Cannot set the default branch on a new repository to something other than 'main'.")
+		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -370,12 +424,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
+			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
 
 			templateRepoReq := github.TemplateRepoRequest{
-				Name:        &repoName,
-				Owner:       &owner,
-				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(isPrivate),
+				Name:               &repoName,
+				Owner:              &owner,
+				Description:        github.String(d.Get("description").(string)),
+				Private:            github.Bool(isPrivate),
+				IncludeAllBranches: github.Bool(includeAllBranches),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
@@ -421,6 +477,14 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	securityAndAnalysis := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+	if securityAndAnalysis != nil {
+		_, _, err := client.Repositories.Edit(ctx, owner, repoName, securityAndAnalysis)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -457,18 +521,10 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
@@ -481,12 +537,20 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
-	branches, _, err := client.Repositories.ListBranches(ctx, owner, repoName, nil)
-	if err != nil {
-		return err
+	// GitHub API doesn't respond following parameters when repository is archived
+	if !d.Get("archived").(bool) {
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
-	d.Set("branches", flattenBranches(branches))
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
@@ -512,17 +576,19 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
-			return fmt.Errorf("Error reading repository vulnerability alerts: %v", err)
+			return fmt.Errorf("error reading repository vulnerability alerts: %v", err)
 		}
 		d.Set("vulnerability_alerts", vulnerabilityAlerts)
 	}
+
+	d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis()))
 
 	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Can only update a repository if it is not archived or the update is to
-	// archive the repository (unarchiving is not supported by the Github API)
+	// archive the repository (unarchiving is not supported by the GitHub API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
 		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
@@ -568,6 +634,29 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if d.HasChange("security_and_analysis") && !d.IsNewResource() {
+		opts := expandSecurityAndAnalysis(d.Get("security_and_analysis").([]interface{}))
+		if opts != nil {
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, opts)
+			if err != nil {
+				return err
+			}
+		} else { // disable security and analysis
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+				SecurityAndAnalysis: &github.SecurityAndAnalysis{
+					AdvancedSecurity: &github.AdvancedSecurity{
+						Status: github.String("disabled")},
+					SecretScanning: &github.SecretScanning{
+						Status: github.String("disabled")},
+					SecretScanningPushProtection: &github.SecretScanningPushProtection{
+						Status: github.String("disabled")}},
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
 		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
@@ -601,9 +690,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		o, n := d.GetChange("visibility")
 		repoReq.Visibility = github.String(n.(string))
 		log.Printf("[DEBUG] Updating repository visibility from %s to %s", o, n)
-		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if !strings.Contains(err.Error(), fmt.Sprintf("422 Visibility is already %s", n.(string))) {
+			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", n.(string))) {
 				return err
 			}
 		}
@@ -685,7 +774,7 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 		update.CNAME = github.String(v)
 	}
 
-	// To update the Github Pages source, the github.PagesUpdate Source field
+	// To update the GitHub Pages source, the github.PagesUpdate Source field
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
@@ -721,19 +810,50 @@ func flattenPages(pages *github.Pages) []interface{} {
 	return []interface{}{pagesMap}
 }
 
-func flattenBranches(branches []*github.Branch) []interface{} {
-	if branches == nil {
+func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis) []interface{} {
+	if securityAndAnalysis == nil {
 		return []interface{}{}
 	}
 
-	branchList := make([]interface{}, 0, len(branches))
+	advancedSecurityMap := make(map[string]interface{})
+	advancedSecurityMap["status"] = securityAndAnalysis.GetAdvancedSecurity().GetStatus()
 
-	for _, branch := range branches {
-		branchMap := make(map[string]interface{})
-		branchMap["name"] = branch.Name
-		branchMap["protected"] = branch.Protected
-		branchList = append(branchList, branchMap)
+	secretScanningMap := make(map[string]interface{})
+	secretScanningMap["status"] = securityAndAnalysis.GetSecretScanning().GetStatus()
+
+	secretScanningPushProtectionMap := make(map[string]interface{})
+	secretScanningPushProtectionMap["status"] = securityAndAnalysis.GetSecretScanningPushProtection().GetStatus()
+
+	securityAndAnalysisMap := make(map[string]interface{})
+	securityAndAnalysisMap["advanced_security"] = []interface{}{advancedSecurityMap}
+	securityAndAnalysisMap["secret_scanning"] = []interface{}{secretScanningMap}
+	securityAndAnalysisMap["secret_scanning_push_protection"] = []interface{}{secretScanningPushProtectionMap}
+
+	return []interface{}{securityAndAnalysisMap}
+}
+
+func expandSecurityAndAnalysis(input []interface{}) *github.Repository {
+	if len(input) == 0 || input[0] == nil {
+		return nil
 	}
 
-	return branchList
+	securityAndAnalysis := input[0].(map[string]interface{})
+	update := &github.SecurityAndAnalysis{}
+
+	advancedSecurity := securityAndAnalysis["advanced_security"].([]interface{})[0].(map[string]interface{})
+	update.AdvancedSecurity = &github.AdvancedSecurity{
+		Status: github.String(advancedSecurity["status"].(string)),
+	}
+
+	secretScanning := securityAndAnalysis["secret_scanning"].([]interface{})[0].(map[string]interface{})
+	update.SecretScanning = &github.SecretScanning{
+		Status: github.String(secretScanning["status"].(string)),
+	}
+
+	secretScanningPushProtection := securityAndAnalysis["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
+	update.SecretScanningPushProtection = &github.SecretScanningPushProtection{
+		Status: github.String(secretScanningPushProtection["status"].(string)),
+	}
+
+	return &github.Repository{SecurityAndAnalysis: update}
 }
