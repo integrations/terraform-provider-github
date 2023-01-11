@@ -105,6 +105,31 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	/*
+		When using a GitHub App for authentication, `members:write` permissions on the App are needed.
+
+		However, when using a GitHub App, CreateTeam will not correctly nest the team under the parent,
+		if the parent team was created by someone else than the GitHub App. In that case, the response
+		object will contain a `nil` parent object.
+
+		This can be resolved by using an additional call to EditTeamByID. This will be able to set the
+		parent team correctly when using a GitHub App with `members:write` permissions.
+
+		Note that this is best-effort: when running this with a PAT that does not have admin permissions
+		on the parent team, the operation might still fail to set the parent team.
+	*/
+	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
+		_, _, err := client.Teams.EditTeamByID(ctx,
+			*githubTeam.Organization.ID,
+			*githubTeam.ID,
+			newTeam,
+			false)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	create_default_maintainer := d.Get("create_default_maintainer").(bool)
 	if !create_default_maintainer {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
