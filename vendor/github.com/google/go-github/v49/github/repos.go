@@ -495,7 +495,7 @@ func (s *RepositoriesService) CreateFromTemplate(ctx context.Context, templateOw
 
 // Get fetches a repository.
 //
-// GitHub API docs: https://docs.github.com/en/rest/repos/repos#update-a-repository
+// GitHub API docs: https://docs.github.com/en/rest/repos/repos#get-a-repository
 func (s *RepositoriesService) Get(ctx context.Context, owner, repo string) (*Repository, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
@@ -843,10 +843,18 @@ type Protection struct {
 	AllowForcePushes               *AllowForcePushes               `json:"allow_force_pushes"`
 	AllowDeletions                 *AllowDeletions                 `json:"allow_deletions"`
 	RequiredConversationResolution *RequiredConversationResolution `json:"required_conversation_resolution"`
-	// LockBranch represents if the branch is marked as read-only. If this is true, users will not be able to push to the branch.
-	LockBranch *bool `json:"lock_branch,omitempty"`
-	// AllowForkSyncing represents whether users can pull changes from upstream when the branch is locked.
-	AllowForkSyncing *bool `json:"allow_fork_syncing,omitempty"`
+	LockBranch                     *LockBranch                     `json:"lock_branch,omitempty"`
+	AllowForkSyncing               *AllowForkSyncing               `json:"allow_fork_syncing,omitempty"`
+}
+
+// LockBranch represents if the branch is marked as read-only. If this is true, users will not be able to push to the branch.
+type LockBranch struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AllowForkSyncing represents whether users can pull changes from upstream when the branch is locked.
+type AllowForkSyncing struct {
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // BranchProtectionRule represents the rule applied to a repositories branch.
