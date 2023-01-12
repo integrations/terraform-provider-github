@@ -38,6 +38,94 @@ func (a *ActionsAllowed) GetVerifiedAllowed() bool {
 	return *a.VerifiedAllowed
 }
 
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetCreatedAt() Timestamp {
+	if a == nil || a.CreatedAt == nil {
+		return Timestamp{}
+	}
+	return *a.CreatedAt
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetID() int64 {
+	if a == nil || a.ID == nil {
+		return 0
+	}
+	return *a.ID
+}
+
+// GetKey returns the Key field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetKey() string {
+	if a == nil || a.Key == nil {
+		return ""
+	}
+	return *a.Key
+}
+
+// GetLastAccessedAt returns the LastAccessedAt field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetLastAccessedAt() Timestamp {
+	if a == nil || a.LastAccessedAt == nil {
+		return Timestamp{}
+	}
+	return *a.LastAccessedAt
+}
+
+// GetRef returns the Ref field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetRef() string {
+	if a == nil || a.Ref == nil {
+		return ""
+	}
+	return *a.Ref
+}
+
+// GetSizeInBytes returns the SizeInBytes field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetSizeInBytes() int64 {
+	if a == nil || a.SizeInBytes == nil {
+		return 0
+	}
+	return *a.SizeInBytes
+}
+
+// GetVersion returns the Version field if it's non-nil, zero value otherwise.
+func (a *ActionsCache) GetVersion() string {
+	if a == nil || a.Version == nil {
+		return ""
+	}
+	return *a.Version
+}
+
+// GetDirection returns the Direction field if it's non-nil, zero value otherwise.
+func (a *ActionsCacheListOptions) GetDirection() string {
+	if a == nil || a.Direction == nil {
+		return ""
+	}
+	return *a.Direction
+}
+
+// GetKey returns the Key field if it's non-nil, zero value otherwise.
+func (a *ActionsCacheListOptions) GetKey() string {
+	if a == nil || a.Key == nil {
+		return ""
+	}
+	return *a.Key
+}
+
+// GetRef returns the Ref field if it's non-nil, zero value otherwise.
+func (a *ActionsCacheListOptions) GetRef() string {
+	if a == nil || a.Ref == nil {
+		return ""
+	}
+	return *a.Ref
+}
+
+// GetSort returns the Sort field if it's non-nil, zero value otherwise.
+func (a *ActionsCacheListOptions) GetSort() string {
+	if a == nil || a.Sort == nil {
+		return ""
+	}
+	return *a.Sort
+}
+
 // GetAllowedActions returns the AllowedActions field if it's non-nil, zero value otherwise.
 func (a *ActionsPermissions) GetAllowedActions() string {
 	if a == nil || a.AllowedActions == nil {
@@ -468,6 +556,14 @@ func (a *AllowDeletionsEnforcementLevelChanges) GetFrom() string {
 		return ""
 	}
 	return *a.From
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (a *AllowForkSyncing) GetEnabled() bool {
+	if a == nil || a.Enabled == nil {
+		return false
+	}
+	return *a.Enabled
 }
 
 // GetRef returns the Ref field if it's non-nil, zero value otherwise.
@@ -2444,6 +2540,14 @@ func (c *CodeScanningAlertEvent) GetCommitOID() string {
 		return ""
 	}
 	return *c.CommitOID
+}
+
+// GetInstallation returns the Installation field.
+func (c *CodeScanningAlertEvent) GetInstallation() *Installation {
+	if c == nil {
+		return nil
+	}
+	return c.Installation
 }
 
 // GetOrg returns the Org field.
@@ -5108,6 +5212,38 @@ func (e *Enterprise) GetWebsiteURL() string {
 		return ""
 	}
 	return *e.WebsiteURL
+}
+
+// GetAdvancedSecurityEnabledForNewRepositories returns the AdvancedSecurityEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetAdvancedSecurityEnabledForNewRepositories() bool {
+	if e == nil || e.AdvancedSecurityEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.AdvancedSecurityEnabledForNewRepositories
+}
+
+// GetSecretScanningEnabledForNewRepositories returns the SecretScanningEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningEnabledForNewRepositories() bool {
+	if e == nil || e.SecretScanningEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.SecretScanningEnabledForNewRepositories
+}
+
+// GetSecretScanningPushProtectionCustomLink returns the SecretScanningPushProtectionCustomLink field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningPushProtectionCustomLink() string {
+	if e == nil || e.SecretScanningPushProtectionCustomLink == nil {
+		return ""
+	}
+	return *e.SecretScanningPushProtectionCustomLink
+}
+
+// GetSecretScanningPushProtectionEnabledForNewRepositories returns the SecretScanningPushProtectionEnabledForNewRepositories field if it's non-nil, zero value otherwise.
+func (e *EnterpriseSecurityAnalysisSettings) GetSecretScanningPushProtectionEnabledForNewRepositories() bool {
+	if e == nil || e.SecretScanningPushProtectionEnabledForNewRepositories == nil {
+		return false
+	}
+	return *e.SecretScanningPushProtectionEnabledForNewRepositories
 }
 
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
@@ -8742,6 +8878,14 @@ func (l *Location) GetStartLine() int {
 	return *l.StartLine
 }
 
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (l *LockBranch) GetEnabled() bool {
+	if l == nil || l.Enabled == nil {
+		return false
+	}
+	return *l.Enabled
+}
+
 // GetEffectiveDate returns the EffectiveDate field if it's non-nil, zero value otherwise.
 func (m *MarketplacePendingChange) GetEffectiveDate() Timestamp {
 	if m == nil || m.EffectiveDate == nil {
@@ -9932,6 +10076,14 @@ func (o *OAuthAPP) GetURL() string {
 		return ""
 	}
 	return *o.URL
+}
+
+// GetUseDefault returns the UseDefault field if it's non-nil, zero value otherwise.
+func (o *OIDCSubjectClaimCustomTemplate) GetUseDefault() bool {
+	if o == nil || o.UseDefault == nil {
+		return false
+	}
+	return *o.UseDefault
 }
 
 // GetAdvancedSecurityEnabledForNewRepos returns the AdvancedSecurityEnabledForNewRepos field if it's non-nil, zero value otherwise.
@@ -12262,12 +12414,12 @@ func (p *Protection) GetAllowForcePushes() *AllowForcePushes {
 	return p.AllowForcePushes
 }
 
-// GetAllowForkSyncing returns the AllowForkSyncing field if it's non-nil, zero value otherwise.
-func (p *Protection) GetAllowForkSyncing() bool {
-	if p == nil || p.AllowForkSyncing == nil {
-		return false
+// GetAllowForkSyncing returns the AllowForkSyncing field.
+func (p *Protection) GetAllowForkSyncing() *AllowForkSyncing {
+	if p == nil {
+		return nil
 	}
-	return *p.AllowForkSyncing
+	return p.AllowForkSyncing
 }
 
 // GetEnforceAdmins returns the EnforceAdmins field.
@@ -12278,12 +12430,12 @@ func (p *Protection) GetEnforceAdmins() *AdminEnforcement {
 	return p.EnforceAdmins
 }
 
-// GetLockBranch returns the LockBranch field if it's non-nil, zero value otherwise.
-func (p *Protection) GetLockBranch() bool {
-	if p == nil || p.LockBranch == nil {
-		return false
+// GetLockBranch returns the LockBranch field.
+func (p *Protection) GetLockBranch() *LockBranch {
+	if p == nil {
+		return nil
 	}
-	return *p.LockBranch
+	return p.LockBranch
 }
 
 // GetRequiredConversationResolution returns the RequiredConversationResolution field.
@@ -20566,30 +20718,6 @@ func (w *WorkflowDispatchEvent) GetWorkflow() string {
 	return *w.Workflow
 }
 
-// GetMacOS returns the MacOS field.
-func (w *WorkflowEnvironment) GetMacOS() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.MacOS
-}
-
-// GetUbuntu returns the Ubuntu field.
-func (w *WorkflowEnvironment) GetUbuntu() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.Ubuntu
-}
-
-// GetWindows returns the Windows field.
-func (w *WorkflowEnvironment) GetWindows() *WorkflowBill {
-	if w == nil {
-		return nil
-	}
-	return w.Windows
-}
-
 // GetCheckRunURL returns the CheckRunURL field if it's non-nil, zero value otherwise.
 func (w *WorkflowJob) GetCheckRunURL() string {
 	if w == nil || w.CheckRunURL == nil {
@@ -21046,30 +21174,6 @@ func (w *WorkflowRunBill) GetTotalMS() int64 {
 	return *w.TotalMS
 }
 
-// GetMacOS returns the MacOS field.
-func (w *WorkflowRunEnvironment) GetMacOS() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.MacOS
-}
-
-// GetUbuntu returns the Ubuntu field.
-func (w *WorkflowRunEnvironment) GetUbuntu() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.Ubuntu
-}
-
-// GetWindows returns the Windows field.
-func (w *WorkflowRunEnvironment) GetWindows() *WorkflowRunBill {
-	if w == nil {
-		return nil
-	}
-	return w.Windows
-}
-
 // GetAction returns the Action field if it's non-nil, zero value otherwise.
 func (w *WorkflowRunEvent) GetAction() string {
 	if w == nil || w.Action == nil {
@@ -21151,7 +21255,7 @@ func (w *WorkflowRuns) GetTotalCount() int {
 }
 
 // GetBillable returns the Billable field.
-func (w *WorkflowRunUsage) GetBillable() *WorkflowRunEnvironment {
+func (w *WorkflowRunUsage) GetBillable() *WorkflowRunBillMap {
 	if w == nil {
 		return nil
 	}
@@ -21175,7 +21279,7 @@ func (w *Workflows) GetTotalCount() int {
 }
 
 // GetBillable returns the Billable field.
-func (w *WorkflowUsage) GetBillable() *WorkflowEnvironment {
+func (w *WorkflowUsage) GetBillable() *WorkflowBillMap {
 	if w == nil {
 		return nil
 	}

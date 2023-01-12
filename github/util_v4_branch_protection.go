@@ -31,6 +31,7 @@ type DismissalActorTypes struct {
 
 type BypassPullRequestActorTypes struct {
 	Actor struct {
+		App  Actor     `graphql:"... on App"`
 		Team Actor     `graphql:"... on Team"`
 		User ActorUser `graphql:"... on User"`
 	}
@@ -329,7 +330,7 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 	for _, a := range actors {
 		IsID := false
 		for _, v := range data.BypassPullRequestActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
 				bypassActors = append(bypassActors, v)
 				IsID = true
 				break
@@ -342,6 +343,9 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 			}
 			if a.Actor.User.Login != "" {
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
+			}
+			if a.Actor.App != (Actor{}) {
+				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
 			}
 		}
 	}

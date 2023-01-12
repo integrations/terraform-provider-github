@@ -3,8 +3,6 @@ name: Add PRs and issues to Octokit org project
 on:
   issues:
     types: [reopened, opened]
-  pull_request:
-    types: [reopened, opened]
   pull_request_target:
     types: [reopened, opened]
 
@@ -12,6 +10,7 @@ jobs:
   add-to-project:
     name: Add issue to project
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/add-to-project@v0.4.0
         with:

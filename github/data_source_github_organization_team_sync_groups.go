@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -53,7 +53,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 
 		result, err := flattenGithubIDPGroupList(idpGroupList)
 		if err != nil {
-			return fmt.Errorf("unable to flatten IdP Groups in Github Organization(Org: %q) : %+v", orgName, err)
+			return fmt.Errorf("unable to flatten IdP Groups in GitHub Organization(Org: %q) : %+v", orgName, err)
 		}
 
 		groups = append(groups, result...)
