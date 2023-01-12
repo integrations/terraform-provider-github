@@ -26,8 +26,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			resource "github_actions_runner_group" "test" {
 			  name       = github_repository.test.name
 			  visibility = "all"
-				restricted_to_workflows = true
-				selected_workflows = [".github/workflows/test.yml"]
+			  restricted_to_workflows = true
+			  selected_workflows = [".github/workflows/test.yml"]
 			}
 		`, randomID)
 
