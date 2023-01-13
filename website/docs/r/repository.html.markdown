@@ -140,7 +140,7 @@ The `source` block supports the following:
 
 The `security_and_analysis` block supports the following:
 
-* `advanced_security` - (Required) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details.
+* `advanced_security` - (Optional) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details. If a repository's visibility is `public`, advanced security is always enabled and cannot be changed, so this setting cannot be supplied.
 
 * `secret_scanning` - (Required) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
 
@@ -154,11 +154,11 @@ The `advanced_security` block supports the following:
 
 #### Secret Scanning Configuration ####
 
-* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
 
 #### Secret Scanning Push Protection Configuration ####
 
-* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
 
 ### Template Repositories
 
