@@ -9,6 +9,7 @@ import (
 
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
+var testEnterprise string = os.Getenv("ENTERPRISE_SLUG")
 var testOrganization string = testOrganizationFunc()
 var testOwner string = os.Getenv("GITHUB_OWNER")
 var testToken string = os.Getenv("GITHUB_TOKEN")
@@ -49,6 +50,13 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN environment variable should be empty")
 		}
+	case enterprise:
+		if os.Getenv("GITHUB_TOKEN") == "" {
+			t.Log("GITHUB_TOKEN environment variable should be set")
+		} else {
+			return
+		}
+
 	case individual:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
 			return
@@ -125,3 +133,4 @@ func testOwnerFunc() string {
 const anonymous = "anonymous"
 const individual = "individual"
 const organization = "organization"
+const enterprise = "enterprise"

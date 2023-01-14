@@ -19,7 +19,7 @@ When destroyed, all users will be removed from the team.
 
 ~> **Note** You can accidentally lock yourself out of your team using this resource. Deleting a `github_team_members` resource removes access from anyone without organization-level access to the team. Proceed with caution. It should generally only be used with teams fully managed by Terraform.
 
-~> **Note** Organization owners may not be set as "members" of a team; they may only be set as "maintainers". Attempting to set organization an owner to "member" of a may result in a `terraform plan` diff that changes their status back to "maintainer".
+~> **Note** Attempting to set a user who is an organization owner to "member" will result in the user being granted "maintainer" instead; this can result in a perpetual `terraform plan` diff that changes their status back to "member".
 
 ## Example Usage
 
@@ -60,7 +60,7 @@ resource "github_team_members" "some_team_members" {
 The following arguments are supported:
 
 * `team_id` - (Required) The GitHub team id
-* `members` - (Optional) List of team members. See [Members](#members) below for details.
+* `members` - (Required) List of team members. See [Members](#members) below for details.
 
 ### Members
 
