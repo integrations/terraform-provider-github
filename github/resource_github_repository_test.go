@@ -822,6 +822,7 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 	t.Run("manages the security feature for a repository", func(t *testing.T) {
 
 		t.Run("for a private repository", func(t *testing.T) {
+			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
 
 			config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -835,9 +836,8 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			    secret_scanning {
 			      status = "enabled"
 			    }
-			    # seems like it can only be "enabled" for an organization that has purchased GHAS
 			    secret_scanning_push_protection {
-			       status = "disabled"
+			       status = "enabled"
 			    }
 			  }
 			}
@@ -874,7 +874,7 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			})
 
 			t.Run("with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
+				testCase(t, individual)
 			})
 
 			t.Run("with an organization account", func(t *testing.T) {
@@ -929,7 +929,7 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			})
 
 			t.Run("with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
+				testCase(t, individual)
 			})
 
 			t.Run("with an organization account", func(t *testing.T) {

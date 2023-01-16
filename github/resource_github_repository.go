@@ -81,7 +81,7 @@ func resourceGithubRepository() *schema.Resource {
 						},
 						"secret_scanning": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -95,7 +95,7 @@ func resourceGithubRepository() *schema.Resource {
 						},
 						"secret_scanning_push_protection": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -353,45 +353,48 @@ func calculateVisibility(d *schema.ResourceData) string {
 	return "public"
 }
 
+func tryGetSecurityAndAnalysisSettingStatus(securityAndAnalysis map[string]interface{}, setting string) (bool, string) {
+	value, ok := securityAndAnalysis[setting]
+	if !ok {
+		return false, ""
+	}
+
+	asList := value.([]interface{})
+	if len(asList) == 0 || asList[0] == nil {
+		return false, ""
+	}
+
+	return true, asList[0].(map[string]interface{})["status"].(string)
+}
+
 func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAnalysis {
+	value, ok := d.GetOk("security_and_analysis")
+	if !ok {
+		return nil
+	}
+
+	asList := value.([]interface{})
+	if len(asList) == 0 || asList[0] == nil {
+		return nil
+	}
+
+	lookup := asList[0].(map[string]interface{})
+
 	var securityAndAnalysis github.SecurityAndAnalysis
 
-	if value, ok := d.GetOk("security_and_analysis"); ok {
-		lookup := value.([]interface{})[0].(map[string]interface{})
-		secretScanning := lookup["secret_scanning"].([]interface{})[0].(map[string]interface{})
-		secretScanningPushProtection := lookup["secret_scanning_push_protection"].([]interface{})[0].(map[string]interface{})
-
-		securityAndAnalysis = github.SecurityAndAnalysis{
-			SecretScanning: &github.SecretScanning{
-				Status: github.String(secretScanning["status"].(string)),
-			},
-			SecretScanningPushProtection: &github.SecretScanningPushProtection{
-				Status: github.String(secretScanningPushProtection["status"].(string)),
-			},
+	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "advanced_security"); ok {
+		securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
+			Status: github.String(status),
 		}
-
-		if advancedSecurity, ok := lookup["advanced_security"]; ok {
-			asList := advancedSecurity.([]interface{})
-			if len(asList) > 0 {
-				securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
-					Status: github.String(asList[0].(map[string]interface{})["status"].(string)),
-				}
-			}
+	}
+	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "secret_scanning"); ok {
+		securityAndAnalysis.SecretScanning = &github.SecretScanning{
+			Status: github.String(status),
 		}
-
-	} else { // if not set in hcl, return a default of disabled
-		securityAndAnalysis = github.SecurityAndAnalysis{
-			SecretScanning: &github.SecretScanning{
-				Status: github.String("disabled"),
-			},
-			SecretScanningPushProtection: &github.SecretScanningPushProtection{
-				Status: github.String("disabled"),
-			},
-		}
-		if calculateVisibility(d) != "public" { // AdvancedSecurity is on by default and cannot be edited for public repos
-			securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
-				Status: github.String("disabled"),
-			}
+	}
+	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "secret_scanning_push_protection"); ok {
+		securityAndAnalysis.SecretScanningPushProtection = &github.SecretScanningPushProtection{
+			Status: github.String(status),
 		}
 	}
 
