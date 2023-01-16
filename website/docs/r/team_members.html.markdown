@@ -15,9 +15,11 @@ When applied, if the user hasn't accepted their invitation to the organization, 
 
 When destroyed, all users will be removed from the team.
 
-~> **Note**: This resource is not compatible with `github_team_membership`. Use either `github_team_members` or `github_team_membership`.
+~> **Note** This resource is not compatible with `github_team_membership`. Use either `github_team_members` or `github_team_membership`.
 
-~> **Note**:Note: You can accidentally lock yourself out of your team using this resource. Deleting a `github_team_members` resource removes access from anyone without organization-level access to the team. Proceed with caution. It should generally only be used with teams fully managed by Terraform.
+~> **Note** You can accidentally lock yourself out of your team using this resource. Deleting a `github_team_members` resource removes access from anyone without organization-level access to the team. Proceed with caution. It should generally only be used with teams fully managed by Terraform.
+
+~> **Note** Attempting to set a user who is an organization owner to "member" will result in the user being granted "maintainer" instead; this can result in a perpetual `terraform plan` diff that changes their status back to "member".
 
 ## Example Usage
 
@@ -58,7 +60,7 @@ resource "github_team_members" "some_team_members" {
 The following arguments are supported:
 
 * `team_id` - (Required) The GitHub team id
-* `members` - (Optional) List of team members. See [Members](#members) below for details.
+* `members` - (Required) List of team members. See [Members](#members) below for details.
 
 ### Members
 

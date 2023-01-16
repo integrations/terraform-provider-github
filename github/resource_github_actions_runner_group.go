@@ -64,6 +64,15 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
 			},
+			"restricted_to_workflows": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"selected_workflows": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -118,6 +127,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
 	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
@@ -173,6 +184,8 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("runners_url", runnerGroup.GetRunnersURL())
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
