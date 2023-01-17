@@ -18,7 +18,7 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 			resource "github_actions_organization_secret" "test" {
 				secret_name 		= "org_secret_1_%s"
 				plaintext_value = "foo"
-				visibility      = "private"
+				visibility      = "all" # going with all as it does not require a paid subscrption
 			}
 	`, randomID)
 
@@ -30,7 +30,7 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.#", "1"),
 			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("ORG_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.0.visibility", "private"),
+			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.0.visibility", "all"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.created_at"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.updated_at"),
 		)
