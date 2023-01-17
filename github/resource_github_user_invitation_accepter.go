@@ -17,8 +17,13 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"invitation_id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+			},
+			"allow_empty_id": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
@@ -28,6 +33,16 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 	client := meta.(*Owner).v3client
 
 	invitationIdString := d.Get("invitation_id").(string)
+	allowEmptyId := d.Get("allow_empty_invitation_id").(bool)
+
+	if invitationIdString == "" {
+		if allowEmptyId {
+			return nil
+		} else {
+			return fmt.Errorf("invitation_id is not set and allow_empty_id is false")
+		}
+	}
+
 	invitationId, err := strconv.Atoi(invitationIdString)
 	if err != nil {
 		return fmt.Errorf("failed to parse invitation ID: %s", err)

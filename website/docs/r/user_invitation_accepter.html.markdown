@@ -30,11 +30,20 @@ provider "github" {
 resource "github_user_invitation_accepter" "example" {
   provider      = "github.invitee"
   invitation_id = github_repository_collaborator.example.invitation_id
-} 
+}
 ```
+
+## Allowing empty invitation IDs
+
+Set `allow_empty_id` when using `for_each` over a list of `github_repository_collaborator.invitation_id`'s.
+
+This allows applying a module again when a new `github_repository_collaborator` resource is added to the `for_each` loop.
+
+This is needed as the `github_repository_collaborator.invitation_id` will be empty after a state refresh when the invitation has been accepted.
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `invitation_id` - (Required) ID of the invitation to accept
+* `invitation_id` - (Optional) ID of the invitation to accept. Must be set when `allow_empty_id` is `false`.
+* `allow_empty_id` - (Optional) Allow the ID to be unset. This will result in the resource being skipped when the ID is not set instead of returning an error.
