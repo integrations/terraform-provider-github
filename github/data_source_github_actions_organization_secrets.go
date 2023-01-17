@@ -60,6 +60,7 @@ func dataSourceGithubActionsOrganizationSecretsRead(d *schema.ResourceData, meta
 				"name":       secret.Name,
 				"created_at": secret.CreatedAt.String(),
 				"updated_at": secret.UpdatedAt.String(),
+				"visibility": secret.Visibility,
 			}
 			all_secrets = append(all_secrets, new_secret)
 
