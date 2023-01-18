@@ -92,9 +92,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
-	
+
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		newTeam.LDAPDN = &ldapDN		
+		newTeam.LDAPDN = &ldapDN
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
