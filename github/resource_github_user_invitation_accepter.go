@@ -34,7 +34,7 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 	client := meta.(*Owner).v3client
 
 	invitationIdString := d.Get("invitation_id").(string)
-	allowEmptyId := d.Get("allow_empty_invitation_id").(bool)
+	allowEmptyId := d.Get("allow_empty_id").(bool)
 
 	if invitationIdString == "" {
 		if allowEmptyId {
