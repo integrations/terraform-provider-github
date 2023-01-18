@@ -27,12 +27,14 @@ data "github_repository_file" "foo" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository to create the file in.
+* `repository` - (Required) The repository to read the file from.  
+  if `full_name` is passed then its being split into `org` and `repo` (e.g. `bar/foo` split to org `bar` and repo `foo` )  
+  if `name` is passed then `owner` is user
 
 * `file` - (Required) The path of the file to manage.
 
 * `branch` - (Optional) Git branch (defaults to `main`).
-  The branch must already exist, it will not be created if it does not already exist.
+  The branch must already exist, if its not specified then default branch for repo is being used.
 
 ## Attributes Reference
 

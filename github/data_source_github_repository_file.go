@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -64,12 +65,23 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	owner := meta.(*Owner).name
 	repo := d.Get("repository").(string)
+
+	// checking if repo has a slash in it, which means that full_name was passed
+	// split and replace owner and repo
+	parts := strings.Split(repo, "/")
+	if len(parts) == 2 {
+		log.Printf("[DEBUG] repo has a slash, extracting owner from: %s", repo)
+		owner = parts[0]
+		repo = parts[1]
+
+		log.Printf("[DEBUG] owner: %s repo:%s", owner, repo)
+	}
+
 	file := d.Get("file").(string)
 	branch := d.Get("branch").(string)
 	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
