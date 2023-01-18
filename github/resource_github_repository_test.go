@@ -3,11 +3,12 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -820,57 +821,120 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 
 	t.Run("manages the security feature for a repository", func(t *testing.T) {
 
-		config := fmt.Sprintf(`
-		resource "github_repository" "test" {
-			name        = "tf-acc-%s"
-			description = "A repository created by Terraform to test security features"
-			visibility  = "internal"
-			security_and_analysis {
-			  advanced_security {
-				status = "enabled"
+		t.Run("for a private repository", func(t *testing.T) {
+			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
+
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "private"
+			  security_and_analysis {
+			    advanced_security {
+			      status = "enabled"
+			    }
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    secret_scanning_push_protection {
+			       status = "enabled"
+			    }
 			  }
-			  secret_scanning {
-				status = "enabled"
-			  }
-			  secret_scanning_push_protection {
-				status = "enabled"
 			}
-		  }
-		`, randomID)
+			`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
-				"enabled",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
-				"enabled",
-			),
-		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
 					},
-				},
+				})
+			}
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
 			})
-		}
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
 		})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
+		t.Run("for a public repository", func(t *testing.T) {
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "public"
+			  security_and_analysis {
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    # seems like it can only be "enabled" for an organization that has purchased GHAS
+			    secret_scanning_push_protection {
+			       status = "disabled"
+			    }
+			  }
+			}
+			`, randomID)
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
+					},
+				})
+			}
+
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
 		})
 	})
 }
