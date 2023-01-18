@@ -93,6 +93,10 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 
+	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
+		newTeam.LDAPDN = &ldapDN
+	}
+
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
@@ -134,16 +138,6 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	if !create_default_maintainer {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
 		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
-			return err
-		}
-	}
-
-	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
-		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, githubTeam.GetID(), mapping)
-		if err != nil {
 			return err
 		}
 	}
