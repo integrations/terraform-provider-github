@@ -94,7 +94,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	})
 }
 
-func Test_dataSourceGithubRepositoryFileRead(t *testing.T) {
+func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 	// helper function to simplify marshalling.
 	marshal := func(t *testing.T, msg interface{}) string {
 		data, err := json.MarshalIndent(msg, "", "    ")
