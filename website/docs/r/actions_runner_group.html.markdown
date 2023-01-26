@@ -29,7 +29,9 @@ resource "github_actions_runner_group" "example" {
 The following arguments are supported:
 
 * `name`                    - (Required) Name of the runner group
+* `restricted_to_workflows` - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
 * `selected_repository_ids` - (Optional) IDs of the repositories which should be added to the runner group
+* `selected_workflows`      - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
 * `visibility`              - (Optional) Visibility of a runner group. Whether the runner group can include `all`, `selected`, or `private` repositories. A value of `private` is not currently supported due to limitations in the GitHub API.
 
 ## Attributes Reference
