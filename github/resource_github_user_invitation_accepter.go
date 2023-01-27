@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -38,6 +39,9 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 
 	if invitationIdString == "" {
 		if allowEmptyId {
+			// We're setting a random UUID as resource ID since every resource needs an ID
+			// and we can't destroy the resource while we create it.
+			d.SetId(uuid.NewString())
 			return nil
 		} else {
 			return fmt.Errorf("invitation_id is not set and allow_empty_id is false")
