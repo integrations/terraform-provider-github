@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-github/v49/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubTeam() *schema.Resource {
@@ -137,7 +136,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	create_default_maintainer := d.Get("create_default_maintainer").(bool)
 	if !create_default_maintainer {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
-		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
+		if err := removeDefaultMaintainer(githubTeam, meta); err != nil {
 			return err
 		}
 	}
@@ -259,7 +258,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 
 	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
 	/*
-		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
+		When the deletion of a team fails, we need to check if it has already been deleted meanwhile.
 		This could be the case when deleting nested teams via Terraform by looping through a module
 		or resource and the parent team might have been deleted already. If the parent team had
 		been deleted already (via parallel runs), the child team is also already gone (deleted by
@@ -284,37 +283,21 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
-func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
+func removeDefaultMaintainer(githubTeam *github.Team, meta interface{}) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	v4client := meta.(*Owner).v4client
 
-	type User struct {
-		Login githubv4.String
-	}
+	// Only the maintainer is part of the newly created team, so we expect only 1 result
+	options := github.TeamListTeamMembersOptions{}
 
-	var query struct {
-		Organization struct {
-			Team struct {
-				Members struct {
-					Nodes []User
-				}
-			} `graphql:"team(slug:$slug)"`
-		} `graphql:"organization(login:$login)"`
-	}
-	variables := map[string]interface{}{
-		"slug":  githubv4.String(teamSlug),
-		"login": githubv4.String(orgName),
-	}
-
-	err := v4client.Query(meta.(*Owner).StopContext, &query, variables)
+	members, _, err := client.Teams.ListTeamMembersByID(meta.(*Owner).StopContext, *githubTeam.Organization.ID, *githubTeam.ID, &options)
 	if err != nil {
 		return err
 	}
 
-	for _, user := range query.Organization.Team.Members.Nodes {
-		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, teamSlug, string(user.Login))
+	for _, user := range members {
+		_, err := client.Teams.RemoveTeamMembershipBySlug(meta.(*Owner).StopContext, orgName, *githubTeam.Slug, *user.Login)
 		if err != nil {
 			return err
 		}
