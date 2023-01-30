@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v49/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -100,7 +100,9 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 39, 0, 0, time.UTC)
-		milestone.DueOn = &date
+		milestone.DueOn = &github.Timestamp{
+			Time: date,
+		}
 	}
 	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
 		milestone.State = github.String(v.(string))
@@ -182,7 +184,9 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 7, 0, 0, 0, time.UTC)
-		milestone.DueOn = &date
+		milestone.DueOn = &github.Timestamp{
+			Time: date,
+		}
 	}
 
 	if d.HasChanges("state") {
