@@ -24,10 +24,11 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
+	"golang.org/x/oauth2"
 )
 
 const (
-	Version = "v49.1.0"
+	Version = "v50.0.0"
 
 	defaultAPIVersion = "2022-11-28"
 	defaultBaseURL    = "https://api.github.com/"
@@ -344,6 +345,11 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Teams = (*TeamsService)(&c.common)
 	c.Users = (*UsersService)(&c.common)
 	return c
+}
+
+// NewTokenClient returns a new GitHub API client authenticated with the provided token.
+func NewTokenClient(ctx context.Context, token string) *Client {
+	return NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
 }
 
 // NewEnterpriseClient returns a new GitHub API client with provided
@@ -841,7 +847,7 @@ An ErrorResponse reports one or more errors caused by an API request.
 GitHub API docs: https://docs.github.com/en/rest/#client-errors
 */
 type ErrorResponse struct {
-	Response *http.Response // HTTP response that caused this error
+	Response *http.Response `json:"-"`       // HTTP response that caused this error
 	Message  string         `json:"message"` // error message
 	Errors   []Error        `json:"errors"`  // more detail on individual errors
 	// Block is only populated on certain types of errors such as code 451.
