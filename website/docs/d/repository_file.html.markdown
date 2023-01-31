@@ -22,6 +22,14 @@ data "github_repository_file" "foo" {
 
 ```
 
+```hcl
+data "github_repository_file" "bar" {
+  repository          = github_repository.foo.name
+  reference           = "commit"
+  file                = ".gitignore"
+}
+```
+
 
 ## Argument Reference
 
@@ -33,6 +41,8 @@ The following arguments are supported:
 
 * `branch` - (Optional) Git branch (if omitted, the default repository branch is used, which is usually `main`)
   The branch must already exist; it will not be created if it does not already exist.
+
+* `reference` - (Optional) Git tag, commit or branch (If omitted, the default branch repository is used); It will ignore the "branch" argument.
 
 ## Attributes Reference
 
