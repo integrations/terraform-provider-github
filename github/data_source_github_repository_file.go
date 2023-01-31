@@ -30,6 +30,12 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 				Description: "The branch name, defaults to \"main\"",
 				Default:     "main",
 			},
+			"reference": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The reference for the file, can be a commit, tag or branch",
+				Default:     "",
+			},
 			"content": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -83,12 +89,16 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 	}
 
 	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
-	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
-		return err
+	reference := d.Get("reference").(string)
+	if reference == "" {
+		branch := d.Get("branch").(string)
+		reference = branch
+		if err := checkRepositoryBranchExists(client, owner, repo, reference); err != nil {
+			return err
+		}
 	}
 
-	opts := &github.RepositoryContentGetOptions{Ref: branch}
+	opts := &github.RepositoryContentGetOptions{Ref: reference}
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		return err
@@ -114,7 +124,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
 	} else {
 		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
-		commit, err = getFileCommit(client, owner, repo, file, branch)
+		commit, err = getFileCommit(client, owner, repo, file, reference)
 		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 	}
 	if err != nil {
