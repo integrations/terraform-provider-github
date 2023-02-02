@@ -20,19 +20,22 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		Delete: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the repository. The name is not case sensitive.",
 			},
 			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the environment.",
 			},
 			"branch_pattern": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    false,
+				Description: "The name pattern that branches must match in order to deploy to the environment.",
 			},
 		},
 	}
