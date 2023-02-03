@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v49/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -98,9 +98,9 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
