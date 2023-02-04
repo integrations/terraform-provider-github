@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v50/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/google/go-github/v50/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
@@ -122,6 +123,16 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	return err
 }
 
+func getBypassPullRequestAllowancesFromResource(d *schema.ResourceData) []interface{} {
+	vL := d.Get("required_pull_request_reviews").([]interface{})
+	for _, v := range vL {
+		m := v.(map[string]interface{})
+		bpra := m["bypass_pull_request_allowances"].([]interface{})
+		return bpra
+	}
+	return nil
+}
+
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
@@ -143,6 +154,9 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 			}
 		}
 
+		// FIXME: The GET endpoint does not return bypass_pull_request_allowances as of 2023/02/04
+		bpra := getBypassPullRequestAllowancesFromResource(d)
+
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
@@ -150,6 +164,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
+				"bypass_pull_request_allowances":  bpra,
 			},
 		})
 	}
@@ -292,10 +307,16 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 				drr.Teams = &teams
 			}
 
+			bpra, err := expandBypassPullRequestAllowances(m)
+			if err != nil {
+				return nil, err
+			}
+
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
+			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 
 		return rprr, nil
@@ -331,6 +352,44 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 			restrictions.Apps = apps
 		}
 		return restrictions, nil
+	}
+
+	return nil, nil
+}
+
+func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.BypassPullRequestAllowancesRequest, error) {
+	log.Printf("[DEBUG] expandBypassPullRequestAllowances m: %v", m)
+	if m["bypass_pull_request_allowances"] == nil {
+		return nil, nil
+	}
+
+	vL := m["bypass_pull_request_allowances"].([]interface{})
+	log.Printf("[DEBUG] expandBypassPullRequestAllowances vL: %v", vL)
+	if len(vL) > 1 {
+		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
+	}
+
+	for _, v := range vL {
+		log.Printf("[DEBUG] expandBypassPullRequestAllowances v: %v", v)
+		if v == nil {
+			return nil, errors.New("invalid bypass_pull_request_allowances")
+		}
+
+		bpra := new(github.BypassPullRequestAllowancesRequest)
+		m := v.(map[string]interface{})
+
+		users := expandNestedSet(m, "users")
+		bpra.Users = users
+		teams := expandNestedSet(m, "teams")
+		bpra.Teams = teams
+		apps := expandNestedSet(m, "apps")
+		bpra.Apps = apps
+
+		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Users: %v", bpra.Users)
+		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Teams: %v", bpra.Teams)
+		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Teams: %v", bpra.Apps)
+
+		return bpra, nil
 	}
 
 	return nil, nil
