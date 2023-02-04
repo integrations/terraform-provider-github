@@ -43,7 +43,7 @@ resource "github_team_membership" "some_team_membership" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The GitHub team id
+* `team_id` - (Required) The GitHub team id or the GitHub team slug
 * `username` - (Required) The user to add to the team.
 * `role` - (Optional) The role of the user within the team.
             Must be one of `member` or `maintainer`. Defaults to `member`.

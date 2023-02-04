@@ -12,7 +12,7 @@ Use this data source to retrieve basic information about a GitHub enterprise.
 ## Example Usage
 
 ```
-data "github_enteprise" "example" {
+data "github_enterprise" "example" {
   slug = "example-co"
 }
 ```
@@ -21,7 +21,7 @@ data "github_enteprise" "example" {
 
 * `id` - The ID of the enterprise.
 * `slug` - The URL slug identifying the enterprise.
-* `name` - The name of the enteprise.
-* `description` - The description of the enterpise.
+* `name` - The name of the enterprise.
+* `description` - The description of the enterprise.
 * `created_at` - The time the enterprise was created.
 * `url` - The url for the enterprise.
