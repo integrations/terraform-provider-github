@@ -84,7 +84,6 @@ func Provider() terraform.ResourceProvider {
 						},
 					},
 				},
-				ConflictsWith: []string{"token"},
 			},
 		},
 
