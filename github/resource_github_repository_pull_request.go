@@ -31,44 +31,52 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"owner": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
 			},
 			"base_repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the base repository to retrieve the Pull Requests from.",
 			},
 			"base_ref": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the branch serving as the base of the Pull Request.",
 			},
 			"head_ref": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the branch serving as the head of the Pull Request.",
 			},
 			"title": {
 				// Even though the documentation does not explicitly mark the
 				// title field as required, attempts to create a PR with an
 				// empty title result in a "missing_field" validation error
 				// (HTTP 422).
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The title of the Pull Request.",
 			},
 			"body": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Body of the Pull Request.",
 			},
 			"maintainer_can_modify": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Controls whether the base repository maintainers can modify the Pull Request. Default: 'false'.",
 			},
 			"base_sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Head commit SHA of the Pull Request base.",
 			},
 			"draft": {
 				// The "draft" field is an interesting corner case because while
@@ -81,12 +89,14 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 				// And since you cannot manage the lifecycle of this field to
 				// reconcile the actual state with the desired one, this field
 				// cannot be managed by Terraform.
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Indicates Whether this Pull Request is a draft.",
 			},
 			"head_sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Head commit SHA of the Pull Request head.",
 			},
 			"labels": {
 				Type:        schema.TypeList,
@@ -95,12 +105,14 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 				Description: "List of names of labels on the PR",
 			},
 			"number": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The number of the Pull Request within the repository.",
 			},
 			"opened_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Unix timestamp indicating the Pull Request creation time.",
 			},
 			"opened_by": {
 				Type:        schema.TypeString,
@@ -108,12 +120,14 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 				Description: "Username of the PR creator",
 			},
 			"state": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The current Pull Request state - can be 'open', 'closed' or 'merged'.",
 			},
 			"updated_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The timestamp of the last Pull Request update.",
 			},
 		},
 	}
