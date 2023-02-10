@@ -86,8 +86,10 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	name := d.Get("name").(string)
+	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	selectedWorkflows := d.Get("selected_workflows").([]string)
 
 	if visibility != "selected" && hasSelectedRepositories {
 		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
@@ -110,7 +112,9 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 		github.CreateRunnerGroupRequest{
 			Name:                  &name,
 			Visibility:            &visibility,
+			RestrictedToWorkflows: &restrictedToWorkflows,
 			SelectedRepositoryIDs: selectedRepositoryIDs,
+			SelectedWorkflows:     selectedWorkflows,
 		},
 	)
 	if err != nil {
