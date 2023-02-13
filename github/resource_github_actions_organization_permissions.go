@@ -54,7 +54,7 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 						"verified_allowed": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Whether actions in GitHub Marketplace from verified creators are allowed. Set to true to allow all GitHub Marketplace actions by verified creators.",
+							Description: "Whether actions in GitHub Marketplace from verified creators are allowed. Set to 'true' to allow all GitHub Marketplace actions by verified creators.",
 						},
 					},
 				},

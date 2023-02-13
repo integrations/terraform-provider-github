@@ -36,7 +36,7 @@ func resourceGithubProjectColumn() *schema.Resource {
 			"column_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The ID of the column,",
+				Description: "The ID of the column.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

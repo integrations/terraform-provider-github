@@ -172,9 +172,8 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "",
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}

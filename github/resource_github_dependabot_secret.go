@@ -51,12 +51,12 @@ func resourceGithubDependabotSecret() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_secret' creation.",
+				Description: "Date of 'dependabot_secret' creation.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_secret' update.",
+				Description: "Date of 'dependabot_secret' update.",
 			},
 		},
 	}

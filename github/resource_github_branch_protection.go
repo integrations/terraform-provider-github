@@ -74,7 +74,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Setting this to true will make the branch read-only and preventing any pushes to it.",
+				Description: "Setting this to 'true' will make the branch read-only and preventing any pushes to it.",
 			},
 			PROTECTION_REQUIRES_APPROVING_REVIEWS: {
 				Type:        schema.TypeList,
