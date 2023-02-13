@@ -24,28 +24,29 @@ func resourceGithubTeamSettings() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID or slug of team",
+				Description: "The GitHub team id or the GitHub team slug.",
 			},
 			"team_slug": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The slug of the Team within the Organization",
+				Description: "The slug of the Team within the Organization.",
 			},
 			"team_uid": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The unique ID of the Team on GitHub. Corresponds to the ID of the github_team_settings resource",
+				Description: "The unique ID of the Team on GitHub. Corresponds to the ID of the 'github_team_settings' resource.",
 			},
 			"review_request_delegation": {
-				Type:     schema.TypeList,
-				MaxItems: 1,
-				Optional: true,
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "The settings for delegating code reviews to individuals on behalf of the team. If this block is present, even without any fields, then review request delegation will be enabled for the team.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"algorithm": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Algorithm to use when determining team members to be assigned to a pull request. Allowed values are ROUND_ROBIN and LOAD_BALANCE",
+							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
 							Default:     "ROUND_ROBIN",
 							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
 								algorithm, ok := v.(string)
@@ -64,7 +65,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
-							Description:  "The number of reviewers to be assigned to a pull request from this team",
+							Description:  "The number of team members to assign to a pull request.",
 							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
 								count, ok := v.(int)
 								if !ok {
@@ -80,7 +81,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
-							Description: "Notify the entire team when a pull request is assigned to a member of the team",
+							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
 					},
 				},

@@ -22,22 +22,25 @@ func resourceGithubUserSshKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"title": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "A descriptive name for the new key.",
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The public SSH key to add to your GitHub account.",
 				DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
 					newTrimmed := strings.TrimSpace(newV)
 					return oldV == newTrimmed
 				},
 			},
 			"url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL of the SSH key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
