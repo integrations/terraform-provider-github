@@ -6,9 +6,11 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint v1.41.1
 	github.com/google/go-github/v50 v50.0.0
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
-	golang.org/x/crypto v0.5.0
+	github.com/stretchr/testify v1.8.0
+	golang.org/x/crypto v0.6.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
@@ -75,7 +77,6 @@ require (
 	github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20210914165742-4cc7213b9bc8 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
@@ -174,7 +175,6 @@ require (
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/tdakkota/asciicheck v0.1.1 // indirect
 	github.com/tetafro/godot v1.4.11 // indirect
@@ -193,10 +193,10 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.6.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	google.golang.org/api v0.81.0 // indirect
