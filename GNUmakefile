@@ -6,8 +6,8 @@ PKG_NAME=github
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.48.0
+	go install github.com/client9/misspell/cmd/misspell@v0.3.4
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
 
 build: fmtcheck
 	go build ./...
