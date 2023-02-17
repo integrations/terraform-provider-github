@@ -17,15 +17,17 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"invitation_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "ID of the invitation to accept. Must be set when 'allow_empty_id' is 'false'.",
 			},
 			"allow_empty_id": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true,
+				Description: "Allow the ID to be unset. This will result in the resource being skipped when the ID is not set instead of returning an error.",
 			},
 		},
 	}

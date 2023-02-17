@@ -6,9 +6,10 @@ import (
 
 func webhookConfigurationSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		MaxItems: 1,
-		Optional: true,
+		Type:        schema.TypeList,
+		MaxItems:    1,
+		Optional:    true,
+		Description: "Configuration for the webhook.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"url": {
