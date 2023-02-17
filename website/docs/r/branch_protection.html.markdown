@@ -38,11 +38,15 @@ resource "github_branch_protection" "example" {
     dismissal_restrictions = [
       data.github_user.example.node_id,
       github_team.example.node_id,
+      "/exampleuser",
+      "exampleorganization/exampleteam",
     ]
   }
 
   push_restrictions = [
     data.github_user.example.node_id,
+    "/exampleuser",
+    "exampleorganization/exampleteam",
     # limited to a list of one type of restriction (user, team, app)
     # github_team.example.node_id
   ]
@@ -80,10 +84,11 @@ The following arguments are supported:
 * `require_conversation_resolution` - (Optional) Boolean, setting this to `true` requires all conversations on code must be resolved before a pull request can be merged.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
-* `push_restrictions` - (Optional) The list of actor IDs that may push to the branch.
+* `push_restrictions` - (Optional) The list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 * `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
 * `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
 * `blocks_creations` - (Optional) Boolean, setting this to `true` to block creating the branch.
+* `lock_branch` - (Optional) Boolean, Setting this to `true` will make the branch read-only and preventing any pushes to it. Defaults to `false`
 
 ### Required Status Checks
 
@@ -98,11 +103,12 @@ The following arguments are supported:
 
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
 * `restrict_dismissals`: (Optional) Restrict pull request review dismissals.
-* `dismissal_restrictions`: (Optional) The list of actor IDs with dismissal access. If not empty, `restrict_dismissals` is ignored.
-* `pull_request_bypassers`: (Optional) The list of actor IDs that are allowed to bypass pull request requirements.
+* `dismissal_restrictions`: (Optional) The list of actor Names/IDs with dismissal access. If not empty, `restrict_dismissals` is ignored. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
+* `pull_request_bypassers`: (Optional) The list of actor Names/IDs that are allowed to bypass pull request requirements. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
-
+  (https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
+* `require_last_push_approval`: (Optional) Require that The most recent push must be approved by someone other than the last pusher.  Defaults to `false`
 
 ## Import
 

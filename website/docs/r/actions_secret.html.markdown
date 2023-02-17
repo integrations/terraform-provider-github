@@ -45,7 +45,7 @@ The following arguments are supported:
 
 * `repository`      - (Required) Name of the repository
 * `secret_name`     - (Required) Name of the secret
-* `encrypted_value` - (Optional) Encrypted value of the secret using the Github public key in Base64 format.
+* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
 * `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
 
 ## Attributes Reference
