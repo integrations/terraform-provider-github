@@ -38,7 +38,7 @@ type Executor struct {
 	exitCode              int
 	version, commit, date string
 
-	cfg               *config.Config
+	cfg               *config.Config // cfg is the unmarshaled data from the golangci config file.
 	log               logutils.Log
 	reportData        report.Data
 	DBManager         *lintersdb.Manager
@@ -55,6 +55,7 @@ type Executor struct {
 	flock     *flock.Flock
 }
 
+// NewExecutor creates and initializes a new command executor.
 func NewExecutor(version, commit, date string) *Executor {
 	startedAt := time.Now()
 	e := &Executor{
@@ -63,11 +64,11 @@ func NewExecutor(version, commit, date string) *Executor {
 		commit:    commit,
 		date:      date,
 		DBManager: lintersdb.NewManager(nil, nil),
-		debugf:    logutils.Debug("exec"),
+		debugf:    logutils.Debug(logutils.DebugKeyExec),
 	}
 
 	e.debugf("Starting execution...")
-	e.log = report.NewLogWrapper(logutils.NewStderrLog(""), &e.reportData)
+	e.log = report.NewLogWrapper(logutils.NewStderrLog(logutils.DebugKeyEmpty), &e.reportData)
 
 	// to setup log level early we need to parse config from command line extra time to
 	// find `-v` option
@@ -97,7 +98,6 @@ func NewExecutor(version, commit, date string) *Executor {
 	e.initHelp()
 	e.initLinters()
 	e.initConfig()
-	e.initCompletion()
 	e.initVersion()
 	e.initCache()
 
@@ -105,36 +105,35 @@ func NewExecutor(version, commit, date string) *Executor {
 	// like the default ones. It will overwrite them only if the same option
 	// is found in command-line: it's ok, command-line has higher priority.
 
-	r := config.NewFileReader(e.cfg, commandLineCfg, e.log.Child("config_reader"))
+	r := config.NewFileReader(e.cfg, commandLineCfg, e.log.Child(logutils.DebugKeyConfigReader))
 	if err = r.Read(); err != nil {
 		e.log.Fatalf("Can't read config: %s", err)
 	}
 
+	if (commandLineCfg == nil || commandLineCfg.Run.Go == "") && e.cfg != nil && e.cfg.Run.Go == "" {
+		e.cfg.Run.Go = config.DetectGoVersion()
+	}
+
 	// recreate after getting config
 	e.DBManager = lintersdb.NewManager(e.cfg, e.log).WithCustomLinters()
-
-	e.cfg.LintersSettings.Gocritic.InferEnabledChecks(e.log)
-	if err = e.cfg.LintersSettings.Gocritic.Validate(e.log); err != nil {
-		e.log.Fatalf("Invalid gocritic settings: %s", err)
-	}
 
 	// Slice options must be explicitly set for proper merging of config and command-line options.
 	fixSlicesFlags(e.runCmd.Flags())
 	fixSlicesFlags(e.lintersCmd.Flags())
 
 	e.EnabledLintersSet = lintersdb.NewEnabledSet(e.DBManager,
-		lintersdb.NewValidator(e.DBManager), e.log.Child("lintersdb"), e.cfg)
-	e.goenv = goutil.NewEnv(e.log.Child("goenv"))
+		lintersdb.NewValidator(e.DBManager), e.log.Child(logutils.DebugKeyLintersDB), e.cfg)
+	e.goenv = goutil.NewEnv(e.log.Child(logutils.DebugKeyGoEnv))
 	e.fileCache = fsutils.NewFileCache()
 	e.lineCache = fsutils.NewLineCache(e.fileCache)
 
-	e.sw = timeutils.NewStopwatch("pkgcache", e.log.Child("stopwatch"))
-	e.pkgCache, err = pkgcache.NewCache(e.sw, e.log.Child("pkgcache"))
+	e.sw = timeutils.NewStopwatch("pkgcache", e.log.Child(logutils.DebugKeyStopwatch))
+	e.pkgCache, err = pkgcache.NewCache(e.sw, e.log.Child(logutils.DebugKeyPkgCache))
 	if err != nil {
 		e.log.Fatalf("Failed to build packages cache: %s", err)
 	}
 	e.loadGuard = load.NewGuard()
-	e.contextLoader = lint.NewContextLoader(e.cfg, e.log.Child("loader"), e.goenv,
+	e.contextLoader = lint.NewContextLoader(e.cfg, e.log.Child(logutils.DebugKeyLoader), e.goenv,
 		e.lineCache, e.fileCache, e.pkgCache, e.loadGuard)
 	if err = e.initHashSalt(version); err != nil {
 		e.log.Fatalf("Failed to init hash salt: %s", err)
@@ -170,7 +169,7 @@ func computeBinarySalt(version string) ([]byte, error) {
 		return []byte(version), nil
 	}
 
-	if logutils.HaveDebugTag("bin_salt") {
+	if logutils.HaveDebugTag(logutils.DebugKeyBinSalt) {
 		return []byte("debug"), nil
 	}
 

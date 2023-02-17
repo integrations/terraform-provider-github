@@ -37,6 +37,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/structtag"
 	"golang.org/x/tools/go/analysis/passes/testinggoroutine"
 	"golang.org/x/tools/go/analysis/passes/tests"
+	"golang.org/x/tools/go/analysis/passes/timeformat"
 	"golang.org/x/tools/go/analysis/passes/unmarshal"
 	"golang.org/x/tools/go/analysis/passes/unreachable"
 	"golang.org/x/tools/go/analysis/passes/unsafeptr"
@@ -80,6 +81,7 @@ var (
 		structtag.Analyzer,
 		testinggoroutine.Analyzer,
 		tests.Analyzer,
+		timeformat.Analyzer,
 		unmarshal.Analyzer,
 		unreachable.Analyzer,
 		unsafeptr.Analyzer,
@@ -119,6 +121,41 @@ var (
 	}
 )
 
+func NewGovet(settings *config.GovetSettings) *goanalysis.Linter {
+	var conf map[string]map[string]interface{}
+	if settings != nil {
+		conf = settings.Settings
+	}
+
+	return goanalysis.NewLinter(
+		"govet",
+		"Vet examines Go source code and reports suspicious constructs, "+
+			"such as Printf calls whose arguments do not align with the format string",
+		analyzersFromConfig(settings),
+		conf,
+	).WithLoadMode(goanalysis.LoadModeTypesInfo)
+}
+
+func analyzersFromConfig(settings *config.GovetSettings) []*analysis.Analyzer {
+	if settings == nil {
+		return defaultAnalyzers
+	}
+
+	if settings.CheckShadowing {
+		// Keeping for backward compatibility.
+		settings.Enable = append(settings.Enable, shadow.Analyzer.Name)
+	}
+
+	var enabledAnalyzers []*analysis.Analyzer
+	for _, a := range allAnalyzers {
+		if isAnalyzerEnabled(a.Name, settings, defaultAnalyzers) {
+			enabledAnalyzers = append(enabledAnalyzers, a)
+		}
+	}
+
+	return enabledAnalyzers
+}
+
 func isAnalyzerEnabled(name string, cfg *config.GovetSettings, defaultAnalyzers []*analysis.Analyzer) bool {
 	if cfg.EnableAll {
 		for _, n := range cfg.Disable {
@@ -128,58 +165,28 @@ func isAnalyzerEnabled(name string, cfg *config.GovetSettings, defaultAnalyzers 
 		}
 		return true
 	}
+
 	// Raw for loops should be OK on small slice lengths.
 	for _, n := range cfg.Enable {
 		if n == name {
 			return true
 		}
 	}
+
 	for _, n := range cfg.Disable {
 		if n == name {
 			return false
 		}
 	}
+
 	if cfg.DisableAll {
 		return false
 	}
+
 	for _, a := range defaultAnalyzers {
 		if a.Name == name {
 			return true
 		}
 	}
 	return false
-}
-
-func analyzersFromConfig(cfg *config.GovetSettings) []*analysis.Analyzer {
-	if cfg == nil {
-		return defaultAnalyzers
-	}
-
-	if cfg.CheckShadowing {
-		// Keeping for backward compatibility.
-		cfg.Enable = append(cfg.Enable, shadow.Analyzer.Name)
-	}
-
-	var enabledAnalyzers []*analysis.Analyzer
-	for _, a := range allAnalyzers {
-		if isAnalyzerEnabled(a.Name, cfg, defaultAnalyzers) {
-			enabledAnalyzers = append(enabledAnalyzers, a)
-		}
-	}
-
-	return enabledAnalyzers
-}
-
-func NewGovet(cfg *config.GovetSettings) *goanalysis.Linter {
-	var settings map[string]map[string]interface{}
-	if cfg != nil {
-		settings = cfg.Settings
-	}
-	return goanalysis.NewLinter(
-		"govet",
-		"Vet examines Go source code and reports suspicious constructs, "+
-			"such as Printf calls whose arguments do not align with the format string",
-		analyzersFromConfig(cfg),
-		settings,
-	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }
