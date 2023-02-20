@@ -41,9 +41,9 @@ func LintFmtErrorfCalls(fset *token.FileSet, info types.Info) []Lint {
 			continue
 		}
 
-		// For any arguments that are errors, check whether the wrapping verb
-		// is used. Only one %w verb may be used in a single format string at a
-		// time, so we stop after finding a correct %w.
+		// For any arguments that are errors, check whether the wrapping verb is used. %w may occur
+		// for multiple errors in one Errorf invocation. We raise an issue if at least one error
+		// does not have a corresponding wrapping verb.
 		var lintArg ast.Expr
 		args := call.Args[1:]
 		for i := 0; i < len(args) && i < len(formatVerbs); i++ {
@@ -52,12 +52,12 @@ func LintFmtErrorfCalls(fset *token.FileSet, info types.Info) []Lint {
 			}
 
 			if formatVerbs[i] == "w" {
-				lintArg = nil
-				break
+				continue
 			}
 
 			if lintArg == nil {
 				lintArg = args[i]
+				break
 			}
 		}
 		if lintArg != nil {
@@ -85,8 +85,8 @@ func isErrorStringCall(info types.Info, expr ast.Expr) bool {
 }
 
 // printfFormatStringVerbs returns a normalized list of all the verbs that are used per argument to
-// the printf function. The index of each returned element corresponds to index of the respective
-// argument.
+// the printf function. The index of each returned element corresponds to the index of the
+// respective argument.
 func printfFormatStringVerbs(info types.Info, call *ast.CallExpr) ([]string, bool) {
 	if len(call.Args) <= 1 {
 		return nil, false

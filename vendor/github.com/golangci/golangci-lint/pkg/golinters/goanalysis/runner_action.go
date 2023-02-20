@@ -3,6 +3,7 @@ package goanalysis
 import (
 	"fmt"
 	"go/types"
+	"io"
 	"reflect"
 	"runtime/debug"
 	"time"
@@ -179,8 +180,8 @@ func (act *action) analyze() {
 
 	if act.pkg.IllTyped {
 		// It looks like there should be !pass.Analyzer.RunDespiteErrors
-		// but govet's cgocall crashes on it. Govet itself contains !pass.Analyzer.RunDespiteErrors condition here
-		// but it exit before it if packages.Load have failed.
+		// but govet's cgocall crashes on it. Govet itself contains !pass.Analyzer.RunDespiteErrors condition here,
+		// but it exits before it if packages.Load have failed.
 		act.err = errors.Wrap(&IllTypedError{Pkg: act.pkg}, "analysis skipped")
 	} else {
 		startedAt = time.Now()
@@ -331,7 +332,7 @@ func (act *action) loadPersistedFacts() bool {
 	var facts []Fact
 	key := fmt.Sprintf("%s/facts", act.a.Name)
 	if err := act.r.pkgCache.Get(act.pkg, pkgcache.HashModeNeedAllDeps, key, &facts); err != nil {
-		if err != pkgcache.ErrMissing {
+		if !errors.Is(err, pkgcache.ErrMissing) && !errors.Is(err, io.EOF) {
 			act.r.log.Warnf("Failed to get persisted facts: %s", err)
 		}
 
