@@ -19,18 +19,21 @@ func resourceGithubBranchDefault() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"branch": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The branch (e.g. 'main').",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub repository.",
 			},
 			"rename": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Indicate if it should rename the branch rather than use an existing branch. Defaults to 'false'.",
 			},
 		},
 	}

@@ -25,6 +25,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "The GitHub team id or the GitHub team slug.",
 				ValidateFunc: validateTeamIDFunc,
 			},
 			"username": {
@@ -32,11 +33,13 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
+				Description:      "The user to add to the team.",
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "member",
+				Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {

@@ -23,29 +23,34 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"enterprise_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The ID of the enterprise.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the organization.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The description of the organization.",
 			},
 			"admin_logins": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "List of organization owner usernames.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"billing_email": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The billing email address.",
 			},
 		},
 	}

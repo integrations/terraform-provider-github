@@ -28,14 +28,16 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "ID or slug of team",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository to add to the team.",
 			},
 			"permission": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "pull",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "pull",
+				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

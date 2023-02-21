@@ -23,29 +23,34 @@ func resourceGithubProjectCard() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"column_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The ID of the project column.",
 			},
 			"note": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The note contents of the card. Markdown supported.",
 			},
 			"content_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "'github_issue.issue_id'.",
 			},
 			"content_type": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Must be either 'Issue' or 'PullRequest'.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"card_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the card.",
 			},
 		},
 	}

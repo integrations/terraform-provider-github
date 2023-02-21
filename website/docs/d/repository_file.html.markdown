@@ -39,8 +39,7 @@ The following arguments are supported:
 
 * `file` - (Required) The path of the file to manage.
 
-* `branch` - (Optional) Git branch (if omitted, the default repository branch is used, which is usually `main`)
-  The branch must already exist; it will not be created if it does not already exist.
+* `branch` - (Optional) Git branch. Defaults to `main`.
 
 * `reference` - (Optional) Git tag, commit or branch (If omitted, the default branch repository is used); It will ignore the "branch" argument.
 

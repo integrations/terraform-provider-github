@@ -26,26 +26,31 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the team.",
 			},
 			"group": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "An Array of GitHub Identity Provider Groups (or empty []).",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The ID of the IdP group.",
 						},
 						"group_name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the IdP group.",
 						},
 						"group_description": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The description of the IdP group.",
 						},
 					},
 				},
