@@ -60,7 +60,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, envName, resultKey.GetID()))
+	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, escapedEnvName, resultKey.GetID()))
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
@@ -119,7 +119,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	if err != nil {
 		return err
 	}
-	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, envName, resultKey.GetID()))
+	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, escapedEnvName, resultKey.GetID()))
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
