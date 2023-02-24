@@ -103,7 +103,9 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	if hook.Config["secret"] != nil {
 		hook.Config["secret"] = webhookObj.Config["secret"]
 	}
-	d.Set("configuration", []interface{}{hook.Config})
+	if err := d.Set("configuration", []interface{}{hook.Config}); err != nil {
+		return err
+	}
 
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
@@ -142,10 +144,18 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("url", hook.GetURL())
-	d.Set("active", hook.GetActive())
-	d.Set("events", hook.Events)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("url", hook.GetURL()); err != nil {
+		return err
+	}
+	if err := d.Set("active", hook.GetActive()); err != nil {
+		return err
+	}
+	if err := d.Set("events", hook.Events); err != nil {
+		return err
+	}
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
@@ -161,7 +171,9 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 
 	hook.Config = insecureSslStringToBool(hook.Config)
 
-	d.Set("configuration", []interface{}{hook.Config})
+	if err := d.Set("configuration", []interface{}{hook.Config}); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -98,9 +98,15 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta in
 
 		for _, r := range repos.Repositories {
 			if r.GetName() == repoName {
-				d.Set("installation_id", installationIDString)
-				d.Set("repository", repoName)
-				d.Set("repo_id", r.GetID())
+				if err := d.Set("installation_id", installationIDString); err != nil {
+					return err
+				}
+				if err := d.Set("repository", repoName); err != nil {
+					return err
+				}
+				if err := d.Set("repo_id", r.GetID()); err != nil {
+					return err
+				}
 				return nil
 			}
 		}

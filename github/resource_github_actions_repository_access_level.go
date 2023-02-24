@@ -69,7 +69,9 @@ func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta
 		return err
 	}
 
-	_ = d.Set("access_level", actionAccessLevel.GetAccessLevel())
+	if err := d.Set("access_level", actionAccessLevel.GetAccessLevel()); err != nil {
+		return err
+	}
 
 	return nil
 }

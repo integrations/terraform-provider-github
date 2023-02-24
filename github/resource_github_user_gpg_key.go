@@ -80,7 +80,9 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("key_id", key.GetKeyID())
+	if err := d.Set("key_id", key.GetKeyID()); err != nil {
+		return err
+	}
 
 	return nil
 }

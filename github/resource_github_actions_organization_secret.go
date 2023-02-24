@@ -20,7 +20,9 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("secret_name", d.Id())
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -157,10 +159,18 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
-	d.Set("encrypted_value", d.Get("encrypted_value"))
-	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("created_at", secret.CreatedAt.String())
-	d.Set("visibility", secret.Visibility)
+	if err := d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+		return err
+	}
+	if err := d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", secret.Visibility); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 
@@ -185,7 +195,9 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		}
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	// This is a drift detection mechanism based on timestamps.
 	//
@@ -206,7 +218,9 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
-		d.Set("updated_at", secret.UpdatedAt.String())
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil

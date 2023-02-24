@@ -110,8 +110,12 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta 
 	}
 
 	if len(reposNameIDs) > 0 {
-		d.Set("installation_id", installationIDString)
-		d.Set("selected_repositories", repoNames)
+		if err := d.Set("installation_id", installationIDString); err != nil {
+			return err
+		}
+		if err := d.Set("selected_repositories", repoNames); err != nil {
+			return err
+		}
 		return nil
 	}
 

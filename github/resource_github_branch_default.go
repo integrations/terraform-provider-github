@@ -90,8 +90,12 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	d.Set("branch", *repository.DefaultBranch)
-	d.Set("repository", *repository.Name)
+	if err := d.Set("branch", *repository.DefaultBranch); err != nil {
+		return err
+	}
+	if err := d.Set("repository", *repository.Name); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -76,7 +76,9 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(
 		return err
 	}
 
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err := d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -74,7 +74,9 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(strconv.FormatInt(column.GetID(), 10))
-	d.Set("column_id", column.GetID())
+	if err := d.Set("column_id", column.GetID()); err != nil {
+		return err
+	}
 
 	return resourceGithubProjectColumnRead(d, meta)
 }
@@ -106,9 +108,15 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 	projectURL := column.GetProjectURL()
 	projectID := strings.TrimPrefix(projectURL, client.BaseURL.String()+`projects/`)
 
-	d.Set("name", column.GetName())
-	d.Set("project_id", projectID)
-	d.Set("column_id", column.GetID())
+	if err := d.Set("name", column.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("project_id", projectID); err != nil {
+		return err
+	}
+	if err := d.Set("column_id", column.GetID()); err != nil {
+		return err
+	}
 	return nil
 }
 

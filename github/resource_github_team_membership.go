@@ -97,8 +97,12 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
-	d.Set("team_id", teamIdString)
-	d.Set("username", username)
+	if err := d.Set("team_id", teamIdString); err != nil {
+		return err
+	}
+	if err := d.Set("username", username); err != nil {
+		return err
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -122,8 +126,12 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("role", membership.GetRole())
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("role", membership.GetRole()); err != nil {
+		return err
+	}
 
 	return nil
 }

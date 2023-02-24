@@ -100,7 +100,9 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 		return nil
 	}
 
-	d.Set("team_slug", team.GetSlug())
+	if err := d.Set("team_slug", team.GetSlug()); err != nil {
+		return err
+	}
 
 	return nil
 }

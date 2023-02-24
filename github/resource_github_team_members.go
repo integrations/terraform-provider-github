@@ -194,7 +194,9 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
-	d.Set("team_id", teamIdString)
+	if err := d.Set("team_id", teamIdString); err != nil {
+		return err
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -270,7 +272,9 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Combine etag of all requests
-	d.Set("etag", buildChecksumID(etags))
+	if err := d.Set("etag", buildChecksumID(etags)); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -106,11 +106,19 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
-		orgName, project.GetNumber()))
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("name", project.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("body", project.GetBody()); err != nil {
+		return err
+	}
+	if err := d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
+		orgName, project.GetNumber())); err != nil {
+		return err
+	}
 
 	return nil
 }

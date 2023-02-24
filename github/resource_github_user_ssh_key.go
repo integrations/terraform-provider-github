@@ -97,10 +97,18 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("title", key.GetTitle())
-	d.Set("key", key.GetKey())
-	d.Set("url", key.GetURL())
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("title", key.GetTitle()); err != nil {
+		return err
+	}
+	if err := d.Set("key", key.GetKey()); err != nil {
+		return err
+	}
+	if err := d.Set("url", key.GetURL()); err != nil {
+		return err
+	}
 
 	return nil
 }

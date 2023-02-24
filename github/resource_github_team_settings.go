@@ -107,8 +107,12 @@ func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 	d.SetId(nodeId)
-	d.Set("team_slug", slug)
-	d.Set("team_uid", nodeId)
+	if err := d.Set("team_slug", slug); err != nil {
+		return err
+	}
+	if err := d.Set("team_uid", nodeId); err != nil {
+		return err
+	}
 	return resourceGithubTeamSettingsUpdate(d, meta)
 
 }
@@ -140,9 +144,13 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
-		d.Set("review_request_delegation", []interface{}{reviewRequestDelegation})
+		if err := d.Set("review_request_delegation", []interface{}{reviewRequestDelegation}); err != nil {
+			return err
+		}
 	} else {
-		d.Set("review_request_delegation", []interface{}{})
+		if err := d.Set("review_request_delegation", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -204,10 +212,16 @@ func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return nil, err
 	}
-	d.Set("team_id", d.Id())
+	if err := d.Set("team_id", d.Id()); err != nil {
+		return nil, err
+	}
 	d.SetId(nodeId)
-	d.Set("team_slug", slug)
-	d.Set("team_uid", nodeId)
+	if err := d.Set("team_slug", slug); err != nil {
+		return nil, err
+	}
+	if err := d.Set("team_uid", nodeId); err != nil {
+		return nil, err
+	}
 	return []*schema.ResourceData{d}, resourceGithubTeamSettingsRead(d, meta)
 }
 

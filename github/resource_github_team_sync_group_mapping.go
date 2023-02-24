@@ -124,7 +124,9 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 	if err := d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %s", err)
 	}
-	d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
 
 	return nil
 }

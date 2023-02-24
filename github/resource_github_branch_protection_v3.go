@@ -260,12 +260,22 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("branch", branch)
-	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err := d.Set("branch", branch); err != nil {
+		return err
+	}
+	if err := d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled); err != nil {
+		return err
+	}
 	if rcr := githubProtection.GetRequiredConversationResolution(); rcr != nil {
-		d.Set("require_conversation_resolution", rcr.Enabled)
+		if err := d.Set("require_conversation_resolution", rcr.Enabled); err != nil {
+			return err
+		}
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {

@@ -96,7 +96,9 @@ func resourceGithubRepositoryTagProtectionRead(d *schema.ResourceData, meta inte
 	}
 	for _, tag := range tag_protection {
 		if tag.GetID() == id {
-			d.Set("pattern", tag.GetPattern())
+			if err := d.Set("pattern", tag.GetPattern()); err != nil {
+				return err
+			}
 		}
 	}
 

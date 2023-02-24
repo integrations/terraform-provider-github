@@ -143,7 +143,9 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	transformResponseToResourceData(d, release, repoName)
+	if err := transformResponseToResourceData(d, release, repoName); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -164,7 +166,9 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	transformResponseToResourceData(d, release, repository)
+	if err := transformResponseToResourceData(d, release, repository); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -213,7 +217,9 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	d.Set("repository", *repository.Name)
+	if err := d.Set("repository", *repository.Name); err != nil {
+		return nil, err
+	}
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, *repository.Name, releaseID)
 	if release == nil || err != nil {
@@ -224,25 +230,65 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 	return []*schema.ResourceData{d}, nil
 }
 
-func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) {
+func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) error {
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
-	d.Set("release_id", release.GetID())
-	d.Set("node_id", release.GetNodeID())
-	d.Set("repository", repository)
-	d.Set("tag_name", release.GetTagName())
-	d.Set("target_commitish", release.GetTargetCommitish())
-	d.Set("name", release.GetName())
-	d.Set("body", release.GetBody())
-	d.Set("draft", release.GetDraft())
-	d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
-	d.Set("prerelease", release.GetPrerelease())
-	d.Set("discussion_category_name", release.GetDiscussionCategoryName())
-	d.Set("created_at", release.GetCreatedAt())
-	d.Set("published_at", release.GetPublishedAt())
-	d.Set("url", release.GetURL())
-	d.Set("html_url", release.GetHTMLURL())
-	d.Set("assets_url", release.GetAssetsURL())
-	d.Set("upload_url", release.GetUploadURL())
-	d.Set("zipball_url", release.GetZipballURL())
-	d.Set("tarball_url", release.GetTarballURL())
+	if err := d.Set("release_id", release.GetID()); err != nil {
+		return err
+	}
+	if err := d.Set("node_id", release.GetNodeID()); err != nil {
+		return err
+	}
+	if err := d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err := d.Set("tag_name", release.GetTagName()); err != nil {
+		return err
+	}
+	if err := d.Set("target_commitish", release.GetTargetCommitish()); err != nil {
+		return err
+	}
+	if err := d.Set("name", release.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("body", release.GetBody()); err != nil {
+		return err
+	}
+	if err := d.Set("draft", release.GetDraft()); err != nil {
+		return err
+	}
+	if err := d.Set("generate_release_notes", release.GetGenerateReleaseNotes()); err != nil {
+		return err
+	}
+	if err := d.Set("prerelease", release.GetPrerelease()); err != nil {
+		return err
+	}
+	if err := d.Set("discussion_category_name", release.GetDiscussionCategoryName()); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", release.GetCreatedAt()); err != nil {
+		return err
+	}
+	if err := d.Set("published_at", release.GetPublishedAt()); err != nil {
+		return err
+	}
+	if err := d.Set("url", release.GetURL()); err != nil {
+		return err
+	}
+	if err := d.Set("html_url", release.GetHTMLURL()); err != nil {
+		return err
+	}
+	if err := d.Set("assets_url", release.GetAssetsURL()); err != nil {
+		return err
+	}
+	if err := d.Set("upload_url", release.GetUploadURL()); err != nil {
+		return err
+	}
+	if err := d.Set("zipball_url", release.GetZipballURL()); err != nil {
+		return err
+	}
+	if err := d.Set("tarball_url", release.GetTarballURL()); err != nil {
+		return err
+	}
+
+	return nil
 }

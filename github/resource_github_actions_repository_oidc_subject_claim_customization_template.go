@@ -98,9 +98,15 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 		return err
 	}
 
-	d.Set("repository", repository)
-	d.Set("use_default", template.UseDefault)
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err := d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err := d.Set("use_default", template.UseDefault); err != nil {
+		return err
+	}
+	if err := d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
+		return err
+	}
 
 	return nil
 }

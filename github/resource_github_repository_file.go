@@ -38,8 +38,12 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				}
 
 				d.SetId(fmt.Sprintf("%s/%s", repo, file))
-				d.Set("branch", branch)
-				d.Set("overwrite_on_create", false)
+				if err := d.Set("branch", branch); err != nil {
+					return nil, err
+				}
+				if err := d.Set("overwrite_on_create", false); err != nil {
+					return nil, err
+				}
 
 				return []*schema.ResourceData{d}, nil
 			},
@@ -202,7 +206,9 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	d.Set("commit_sha", create.Commit.GetSHA())
+	if err := d.Set("commit_sha", create.Commit.GetSHA()); err != nil {
+		return err
+	}
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
@@ -234,10 +240,18 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("content", content)
-	d.Set("repository", repo)
-	d.Set("file", file)
-	d.Set("sha", fc.GetSHA())
+	if err := d.Set("content", content); err != nil {
+		return err
+	}
+	if err := d.Set("repository", repo); err != nil {
+		return err
+	}
+	if err := d.Set("file", file); err != nil {
+		return err
+	}
+	if err := d.Set("sha", fc.GetSHA()); err != nil {
+		return err
+	}
 
 	var commit *github.RepositoryCommit
 
@@ -254,7 +268,9 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("commit_sha", commit.GetSHA())
+	if err := d.Set("commit_sha", commit.GetSHA()); err != nil {
+		return err
+	}
 
 	commit_author := commit.Commit.GetCommitter().GetName()
 	commit_email := commit.Commit.GetCommitter().GetEmail()
@@ -264,10 +280,16 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 
 	//read from state if author+email is set explicitly, and if it was not github signing it for you previously
 	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
-		d.Set("commit_author", commit_author)
-		d.Set("commit_email", commit_email)
+		if err := d.Set("commit_author", commit_author); err != nil {
+			return err
+		}
+		if err := d.Set("commit_email", commit_email); err != nil {
+			return err
+		}
 	}
-	d.Set("commit_message", commit.GetCommit().GetMessage())
+	if err := d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -301,7 +323,9 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("commit_sha", create.GetSHA())
+	if err := d.Set("commit_sha", create.GetSHA()); err != nil {
+		return err
+	}
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }

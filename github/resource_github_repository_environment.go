@@ -131,13 +131,19 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 		}
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
+	if err := d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err := d.Set("environment", envName); err != nil {
+		return err
+	}
 
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
 		case "wait_timer":
-			d.Set("wait_timer", pr.WaitTimer)
+			if err := d.Set("wait_timer", pr.WaitTimer); err != nil {
+				return err
+			}
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -155,22 +161,26 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					}
 				}
 			}
-			d.Set("reviewers", []interface{}{
+			if err := d.Set("reviewers", []interface{}{
 				map[string]interface{}{
 					"teams": teams,
 					"users": users,
 				},
-			})
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		d.Set("deployment_branch_policy", []interface{}{
+		if err := d.Set("deployment_branch_policy", []interface{}{
 			map[string]interface{}{
 				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -121,10 +121,18 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 		permissionName := getPermission(invitation.GetPermissions())
 
-		d.Set("repository", repoName)
-		d.Set("username", username)
-		d.Set("permission", permissionName)
-		d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID()))
+		if err := d.Set("repository", repoName); err != nil {
+			return err
+		}
+		if err := d.Set("username", username); err != nil {
+			return err
+		}
+		if err := d.Set("permission", permissionName); err != nil {
+			return err
+		}
+		if err := d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID())); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -142,9 +150,15 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
-				d.Set("repository", repoName)
-				d.Set("username", c.GetLogin())
-				d.Set("permission", getPermission(c.GetRoleName()))
+				if err := d.Set("repository", repoName); err != nil {
+					return err
+				}
+				if err := d.Set("username", c.GetLogin()); err != nil {
+					return err
+				}
+				if err := d.Set("permission", getPermission(c.GetRoleName())); err != nil {
+					return err
+				}
 				return nil
 			}
 		}

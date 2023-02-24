@@ -22,7 +22,9 @@ func resourceGithubRepository() *schema.Resource {
 		Delete: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("auto_init", false)
+				if err := d.Set("auto_init", false); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -610,42 +612,108 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", repoName)
-	d.Set("description", repo.GetDescription())
-	d.Set("homepage_url", repo.GetHomepage())
-	d.Set("private", repo.GetPrivate())
-	d.Set("visibility", repo.GetVisibility())
-	d.Set("has_issues", repo.GetHasIssues())
-	d.Set("has_discussions", repo.GetHasDiscussions())
-	d.Set("has_projects", repo.GetHasProjects())
-	d.Set("has_wiki", repo.GetHasWiki())
-	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("has_downloads", repo.GetHasDownloads())
-	d.Set("full_name", repo.GetFullName())
-	d.Set("default_branch", repo.GetDefaultBranch())
-	d.Set("html_url", repo.GetHTMLURL())
-	d.Set("ssh_clone_url", repo.GetSSHURL())
-	d.Set("svn_url", repo.GetSVNURL())
-	d.Set("git_clone_url", repo.GetGitURL())
-	d.Set("http_clone_url", repo.GetCloneURL())
-	d.Set("archived", repo.GetArchived())
-	d.Set("topics", flattenStringList(repo.Topics))
-	d.Set("node_id", repo.GetNodeID())
-	d.Set("repo_id", repo.GetID())
-	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("name", repoName); err != nil {
+		return err
+	}
+	if err := d.Set("description", repo.GetDescription()); err != nil {
+		return err
+	}
+	if err := d.Set("homepage_url", repo.GetHomepage()); err != nil {
+		return err
+	}
+	if err := d.Set("private", repo.GetPrivate()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", repo.GetVisibility()); err != nil {
+		return err
+	}
+	if err := d.Set("has_issues", repo.GetHasIssues()); err != nil {
+		return err
+	}
+	if err := d.Set("has_discussions", repo.GetHasDiscussions()); err != nil {
+		return err
+	}
+	if err := d.Set("has_projects", repo.GetHasProjects()); err != nil {
+		return err
+	}
+	if err := d.Set("has_wiki", repo.GetHasWiki()); err != nil {
+		return err
+	}
+	if err := d.Set("is_template", repo.GetIsTemplate()); err != nil {
+		return err
+	}
+	if err := d.Set("has_downloads", repo.GetHasDownloads()); err != nil {
+		return err
+	}
+	if err := d.Set("full_name", repo.GetFullName()); err != nil {
+		return err
+	}
+	if err := d.Set("default_branch", repo.GetDefaultBranch()); err != nil {
+		return err
+	}
+	if err := d.Set("html_url", repo.GetHTMLURL()); err != nil {
+		return err
+	}
+	if err := d.Set("ssh_clone_url", repo.GetSSHURL()); err != nil {
+		return err
+	}
+	if err := d.Set("svn_url", repo.GetSVNURL()); err != nil {
+		return err
+	}
+	if err := d.Set("git_clone_url", repo.GetGitURL()); err != nil {
+		return err
+	}
+	if err := d.Set("http_clone_url", repo.GetCloneURL()); err != nil {
+		return err
+	}
+	if err := d.Set("archived", repo.GetArchived()); err != nil {
+		return err
+	}
+	if err := d.Set("topics", flattenStringList(repo.Topics)); err != nil {
+		return err
+	}
+	if err := d.Set("node_id", repo.GetNodeID()); err != nil {
+		return err
+	}
+	if err := d.Set("repo_id", repo.GetID()); err != nil {
+		return err
+	}
+	if err := d.Set("allow_update_branch", repo.GetAllowUpdateBranch()); err != nil {
+		return err
+	}
 
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
-		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
-		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+		if err := d.Set("allow_auto_merge", repo.GetAllowAutoMerge()); err != nil {
+			return err
+		}
+		if err := d.Set("allow_merge_commit", repo.GetAllowMergeCommit()); err != nil {
+			return err
+		}
+		if err := d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge()); err != nil {
+			return err
+		}
+		if err := d.Set("allow_squash_merge", repo.GetAllowSquashMerge()); err != nil {
+			return err
+		}
+		if err := d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge()); err != nil {
+			return err
+		}
+		if err := d.Set("merge_commit_message", repo.GetMergeCommitMessage()); err != nil {
+			return err
+		}
+		if err := d.Set("merge_commit_title", repo.GetMergeCommitTitle()); err != nil {
+			return err
+		}
+		if err := d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage()); err != nil {
+			return err
+		}
+		if err := d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle()); err != nil {
+			return err
+		}
 	}
 
 	if repo.GetHasPages() {
@@ -659,14 +727,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		if err := d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		if err := d.Set("template", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
 	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
@@ -674,10 +746,14 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("error reading repository vulnerability alerts: %v", err)
 		}
-		d.Set("vulnerability_alerts", vulnerabilityAlerts)
+		if err := d.Set("vulnerability_alerts", vulnerabilityAlerts); err != nil {
+			return err
+		}
 	}
 
-	d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis()))
+	if err := d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -802,7 +878,9 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
 			return nil
 		} else {
-			d.Set("archived", true)
+			if err := d.Set("archived", true); err != nil {
+				return err
+			}
 			repoReq := resourceGithubRepositoryObject(d)
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)

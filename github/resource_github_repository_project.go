@@ -113,11 +113,19 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		owner, d.Get("repository"), project.GetNumber()))
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("name", project.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("body", project.GetBody()); err != nil {
+		return err
+	}
+	if err := d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
+		owner, d.Get("repository"), project.GetNumber())); err != nil {
+		return err
+	}
 
 	return nil
 }

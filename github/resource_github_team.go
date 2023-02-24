@@ -188,19 +188,39 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("description", team.GetDescription())
-	d.Set("name", team.GetName())
-	d.Set("privacy", team.GetPrivacy())
-	if parent := team.Parent; parent != nil {
-		d.Set("parent_team_id", parent.GetID())
-	} else {
-		d.Set("parent_team_id", "")
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
 	}
-	d.Set("ldap_dn", team.GetLDAPDN())
-	d.Set("slug", team.GetSlug())
-	d.Set("node_id", team.GetNodeID())
-	d.Set("members_count", team.GetMembersCount())
+	if err := d.Set("description", team.GetDescription()); err != nil {
+		return err
+	}
+	if err := d.Set("name", team.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("privacy", team.GetPrivacy()); err != nil {
+		return err
+	}
+	if parent := team.Parent; parent != nil {
+		if err := d.Set("parent_team_id", parent.GetID()); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("parent_team_id", ""); err != nil {
+			return err
+		}
+	}
+	if err := d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
+		return err
+	}
+	if err := d.Set("slug", team.GetSlug()); err != nil {
+		return err
+	}
+	if err := d.Set("node_id", team.GetNodeID()); err != nil {
+		return err
+	}
+	if err := d.Set("members_count", team.GetMembersCount()); err != nil {
+		return err
+	}
 
 	return nil
 }
