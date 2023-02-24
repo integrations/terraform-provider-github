@@ -29,8 +29,8 @@ resource "github_branch_protection_v3" "example" {
 
 ```hcl
 # Protect the main branch of the foo repository. Additionally, require that
-# the "ci/travis" context to be passing and only allow the engineers team merge
-# to the branch.
+# the "ci/check" check ran by the Github Actions app is passing and only allow 
+# the engineers team merge to the branch.
 
 resource "github_branch_protection_v3" "example" {
   repository     = github_repository.example.name
@@ -39,7 +39,9 @@ resource "github_branch_protection_v3" "example" {
 
   required_status_checks {
     strict   = false
-    contexts = ["ci/travis"]
+    checks = [
+      "ci/check:824642007264"
+    ]
   }
 
   required_pull_request_reviews {
@@ -88,7 +90,8 @@ The following arguments are supported:
 `required_status_checks` supports the following arguments:
 
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
-* `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+* `contexts`: [**DEPRECATED**] (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+* `checks`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the context and app_id like so "context:app_id".
 
 ### Required Pull Request Reviews
 

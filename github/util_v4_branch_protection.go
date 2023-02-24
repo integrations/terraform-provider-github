@@ -31,6 +31,7 @@ type DismissalActorTypes struct {
 
 type BypassPullRequestActorTypes struct {
 	Actor struct {
+		App  Actor     `graphql:"... on App"`
 		Team Actor     `graphql:"... on Team"`
 		User ActorUser `graphql:"... on User"`
 	}
@@ -76,6 +77,8 @@ type BranchProtectionRule struct {
 	RequiresStrictStatusChecks     githubv4.Boolean
 	RestrictsPushes                githubv4.Boolean
 	RestrictsReviewDismissals      githubv4.Boolean
+	RequireLastPushApproval        githubv4.Boolean
+	LockBranch                     githubv4.Boolean
 }
 
 type BranchProtectionResourceData struct {
@@ -101,6 +104,8 @@ type BranchProtectionResourceData struct {
 	RestrictsPushes                bool
 	RestrictsReviewDismissals      bool
 	ReviewDismissalActorIDs        []string
+	RequireLastPushApproval        bool
+	LockBranch                     bool
 }
 
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
@@ -193,6 +198,9 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 				}
 			}
+			if v, ok := m[PROTECTION_REQUIRES_LAST_PUSH_APPROVAL]; ok {
+				data.RequireLastPushApproval = v.(bool)
+			}
 		}
 	}
 
@@ -227,6 +235,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			data.PushActorIDs = pushActorIDs
 			data.RestrictsPushes = true
 		}
+	}
+
+	if v, ok := d.GetOk(PROTECTION_LOCK_BRANCH); ok {
+		data.LockBranch = v.(bool)
 	}
 
 	return data, nil
@@ -318,7 +330,7 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 	for _, a := range actors {
 		IsID := false
 		for _, v := range data.BypassPullRequestActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
 				bypassActors = append(bypassActors, v)
 				IsID = true
 				break
@@ -331,6 +343,9 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 			}
 			if a.Actor.User.Login != "" {
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
+			}
+			if a.Actor.App != (Actor{}) {
+				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
 			}
 		}
 	}
@@ -387,6 +402,7 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
 			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
+			PROTECTION_REQUIRES_LAST_PUSH_APPROVAL:     protection.RequireLastPushApproval,
 		},
 	}
 

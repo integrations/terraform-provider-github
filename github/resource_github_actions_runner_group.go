@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -24,45 +24,65 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"allows_public_repositories": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether public repositories can be added to the runner group.",
 			},
 			"default": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether this is the default runner group.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the runner group object",
 			},
 			"inherited": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the runner group is inherited from the enterprise level",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the runner group.",
 			},
 			"runners_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The GitHub API URL for the runner group's runners.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Set:      schema.HashInt,
-				Optional: true,
+				Set:         schema.HashInt,
+				Optional:    true,
+				Description: "List of repository IDs that can access the runner group.",
 			},
 			"selected_repositories_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "GitHub API URL for the runner group's repositories.",
 			},
 			"visibility": {
 				Type:         schema.TypeString,
 				Required:     true,
+				Description:  "The visibility of the runner group.",
 				ValidateFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
+			},
+			"restricted_to_workflows": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "If 'true', the runner group will be restricted to running only the workflows specified in the 'selected_workflows' array. Defaults to 'false'.",
+			},
+			"selected_workflows": {
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Computed:    true,
+				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
 			},
 		},
 	}
@@ -77,8 +97,10 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	name := d.Get("name").(string)
+	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	selectedWorkflows := d.Get("selected_workflows").([]string)
 
 	if visibility != "selected" && hasSelectedRepositories {
 		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
@@ -101,7 +123,9 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 		github.CreateRunnerGroupRequest{
 			Name:                  &name,
 			Visibility:            &visibility,
+			RestrictedToWorkflows: &restrictedToWorkflows,
 			SelectedRepositoryIDs: selectedRepositoryIDs,
+			SelectedWorkflows:     selectedWorkflows,
 		},
 	)
 	if err != nil {
@@ -118,8 +142,21 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
 	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
+}
+
+func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
+	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotModified {
+			// ignore error StatusNotModified
+			return runnerGroup, resp, nil
+		}
+	}
+	return runnerGroup, resp, err
 }
 
 func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -140,12 +177,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
+	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
@@ -165,6 +199,8 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("runners_url", runnerGroup.GetRunnersURL())
 	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
 	d.Set("visibility", runnerGroup.GetVisibility())
+	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
+	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{

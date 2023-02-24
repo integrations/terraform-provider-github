@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -22,8 +22,9 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The slug of the team to manage.",
 			},
 		},
 	}

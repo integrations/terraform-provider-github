@@ -66,6 +66,11 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						"parent": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -135,7 +140,6 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		t["name"] = team.Name
 		t["description"] = team.Description
 		t["privacy"] = team.Privacy
-
 		members := team.Members.Nodes
 		flatMembers := make([]string, len(members))
 
@@ -144,6 +148,12 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		}
 
 		t["members"] = flatMembers
+
+		parentTeam := make(map[string]interface{})
+		parentTeam["id"] = team.Parent.ID
+		parentTeam["slug"] = team.Parent.Slug
+		parentTeam["name"] = team.Parent.Name
+		t["parent"] = parentTeam
 
 		repositories := team.Repositories.Nodes
 
