@@ -209,16 +209,20 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			d.Set("allowed_actions_config", []interface{}{
+			if err := d.Set("allowed_actions_config", []interface{}{
 				map[string]interface{}{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
 				},
-			})
+			}); err != nil {
+				return err
+			}
 		}
 	} else {
-		d.Set("allowed_actions_config", []interface{}{})
+		if err := d.Set("allowed_actions_config", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
 	if actionsPermissions.GetEnabledRepositories() == "selected" {
@@ -243,18 +247,26 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			repoList = append(repoList, *allRepos[index].ID)
 		}
 		if allRepos != nil {
-			d.Set("enabled_repositories_config", []interface{}{
+			if err := d.Set("enabled_repositories_config", []interface{}{
 				map[string]interface{}{
 					"repository_ids": repoList,
 				},
-			})
+			}); err != nil {
+				return err
+			}
 		} else {
-			d.Set("enabled_repositories_config", []interface{}{})
+			if err := d.Set("enabled_repositories_config", []interface{}{}); err != nil {
+				return err
+			}
 		}
 	}
 
-	d.Set("allowed_actions", actionsPermissions.GetAllowedActions())
-	d.Set("enabled_repositories", actionsPermissions.GetEnabledRepositories())
+	if err := d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
+		return err
+	}
+	if err := d.Set("enabled_repositories", actionsPermissions.GetEnabledRepositories()); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -132,18 +132,42 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
-	d.Set("default", runnerGroup.GetDefault())
-	d.Set("id", runnerGroup.GetID())
-	d.Set("inherited", runnerGroup.GetInherited())
-	d.Set("name", runnerGroup.GetName())
-	d.Set("runners_url", runnerGroup.GetRunnersURL())
-	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
-	d.Set("visibility", runnerGroup.GetVisibility())
-	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
-	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
-	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err := d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+	if err := d.Set("id", runnerGroup.GetID()); err != nil {
+		return err
+	}
+	if err := d.Set("inherited", runnerGroup.GetInherited()); err != nil {
+		return err
+	}
+	if err := d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil { // Note: runnerGroup has no method to get selected repository IDs;
+		return err
+	}
+	if err := d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
@@ -190,17 +214,39 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
-	d.Set("default", runnerGroup.GetDefault())
-	d.Set("id", runnerGroup.GetID())
-	d.Set("inherited", runnerGroup.GetInherited())
-	d.Set("name", runnerGroup.GetName())
-	d.Set("runners_url", runnerGroup.GetRunnersURL())
-	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
-	d.Set("visibility", runnerGroup.GetVisibility())
-	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
-	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err := d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err := d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+	if err := d.Set("id", runnerGroup.GetID()); err != nil {
+		return err
+	}
+	if err := d.Set("inherited", runnerGroup.GetInherited()); err != nil {
+		return err
+	}
+	if err := d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err := d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
@@ -224,7 +270,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		options.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

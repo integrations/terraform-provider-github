@@ -97,7 +97,9 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceD
 		opt.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }
