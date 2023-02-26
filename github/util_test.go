@@ -1,6 +1,7 @@
 package github
 
 import (
+	"strings"
 	"testing"
 	"unicode"
 )
@@ -153,5 +154,86 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 				t.Fatalf("unexpected error(s): %s (%s)", errors, tc.Name)
 			}
 		}
+	}
+}
+
+func TestValidateVariableName(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		provided interface{}
+		exp      string
+	}{
+		{
+			name:     "not_string",
+			provided: 123,
+			exp:      `expected field to be a string, got int`,
+		},
+		{
+			name:     "GITHUB_prefix",
+			provided: "GITHUB_foo",
+			exp:      `field cannot start with "GITHUB_"`,
+		},
+		{
+			name:     "github_prefix",
+			provided: "github_foo",
+			exp:      `field cannot start with "GITHUB_"`,
+		},
+		{
+			name:     "start_with_number",
+			provided: "1_abc",
+			exp:      `field must start with a letter`,
+		},
+		{
+			name:     "emoji",
+			provided: "abc🤘",
+			exp:      `invalid character '🤘' for field at position 3`,
+		},
+		{
+			name:     "international",
+			provided: "abcü",
+			exp:      `invalid character 'ü'`,
+		},
+		{
+			name:     "lowercase",
+			provided: "abc",
+		},
+		{
+			name:     "uppercase",
+			provided: "ABC",
+		},
+		{
+			name:     "mixed_case",
+			provided: "aBcDEfg",
+		},
+		{
+			name:     "everything",
+			provided: "aBcD2_4Efg",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, errs := validateVariableName(tc.provided, "field")
+
+			if tc.exp == "" && len(errs) > 0 {
+				t.Errorf("expected no errors, got %q", errs)
+			}
+
+			strs := make([]string, 0, len(errs))
+			for _, err := range errs {
+				strs = append(strs, err.Error())
+			}
+			combined := strings.Join(strs, ", ")
+
+			if !strings.Contains(combined, tc.exp) {
+				t.Errorf("expected %q to contain %q", combined, tc.exp)
+			}
+		})
 	}
 }

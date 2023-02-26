@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -191,4 +192,41 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 	}
 
 	return we, errs
+}
+
+// validateVariableName ensures the given variable name matches the
+// GitHub-imposed constraints defined in:
+//
+//	https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
+func validateVariableName(v interface{}, key string) (warnings []string, errs []error) {
+	name, ok := v.(string)
+	if !ok {
+		errs = append(errs, fmt.Errorf("expected %s to be a %T, got %T", key, "", v))
+		return
+	}
+
+	// isLetter is a modified implementation of [unicode.IsLetter] to limit to
+	// a-z,A-Z.
+	isLetter := func(r rune) bool {
+		return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+	}
+
+	// Must not start with "GITHUB_".
+	if prefix := "GITHUB_"; strings.HasPrefix(strings.ToUpper(name), prefix) {
+		errs = append(errs, fmt.Errorf("%s cannot start with %q", key, prefix))
+	}
+
+	// All entries must be letters, numbers, or underscores, and it cannot start
+	// with a number.
+	for i, r := range name {
+		if i == 0 && unicode.IsNumber(r) {
+			errs = append(errs, fmt.Errorf("%s must start with a letter", key))
+		}
+
+		if !isLetter(r) && !unicode.IsNumber(r) && r != '_' {
+			errs = append(errs, fmt.Errorf("invalid character %q for %s at position %d", r, key, i))
+		}
+	}
+
+	return nil, errs
 }

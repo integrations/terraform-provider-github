@@ -96,6 +96,7 @@ func Provider() terraform.ResourceProvider {
 			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
+			"github_actions_repository_variable":                                    resourceGithubActionsRepositoryVariable(),
 			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
 			"github_actions_secret":                                                 resourceGithubActionsSecret(),
 			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
