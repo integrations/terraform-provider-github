@@ -9,9 +9,9 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.6.0
-	golang.org/x/oauth2 v0.1.0
+	golang.org/x/oauth2 v0.5.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
@@ -175,7 +175,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/tdakkota/asciicheck v0.1.1 // indirect
 	github.com/tetafro/godot v1.4.11 // indirect
