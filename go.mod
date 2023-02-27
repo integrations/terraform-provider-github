@@ -11,7 +11,7 @@ require (
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.6.0
-	golang.org/x/oauth2 v0.1.0
+	golang.org/x/oauth2 v0.5.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
