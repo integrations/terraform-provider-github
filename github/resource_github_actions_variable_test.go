@@ -128,4 +128,51 @@ func TestAccGithubActionsVariable(t *testing.T) {
 		})
 
 	})
+
+	t.Run("imports repository variables without error", func(t *testing.T) {
+		varName := "test_variable"
+		value := "variable_value"
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
+
+			resource "github_actions_variable" "variable" {
+			  repository       = github_repository.test.name
+			  variable_name    = "%s"
+			  value  = "%s"
+			}
+			`, randomID, varName, value)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+					},
+					{
+						ResourceName:      "github_actions_variable.variable",
+						ImportStateId:     fmt.Sprintf(`tf-acc-test-%s:%s`, randomID, varName),
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

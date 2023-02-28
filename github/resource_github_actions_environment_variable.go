@@ -15,6 +15,9 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 		Read:   resourceGithubActionsEnvironmentVariableRead,
 		Update: resourceGithubActionsEnvironmentVariableUpdate,
 		Delete: resourceGithubActionsEnvironmentVariableDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -137,7 +140,10 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 		return err
 	}
 
-	d.Set("value", d.Get("value"))
+	d.Set("repository", repoName)
+	d.Set("environment", env)
+	d.Set("variable_name", name)
+	d.Set("value", variable.Value)
 	d.Set("created_at", variable.CreatedAt.String())
 	d.Set("updated_at", variable.UpdatedAt.String())
 

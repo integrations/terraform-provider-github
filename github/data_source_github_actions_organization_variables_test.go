@@ -31,6 +31,7 @@ func TestAccGithubActionsOrganizationVariablesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.#", "1"),
 			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.name", strings.ToUpper(fmt.Sprintf("org_variable_%s", randomID))),
 			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.value", "foo"),
+			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.visibility", "all"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_variables.test", "variables.0.created_at"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_variables.test", "variables.0.updated_at"),
 		)

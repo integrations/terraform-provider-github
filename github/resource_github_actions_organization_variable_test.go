@@ -186,4 +186,47 @@ func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 		})
 
 	})
+
+	t.Run("imports an organization variable without error", func(t *testing.T) {
+		value := "my_variable_value"
+		varName := "test_variable"
+
+		config := fmt.Sprintf(`
+			resource "github_actions_organization_variable" "variable" {
+			  variable_name    = "%s"
+			  value  		   = "%s"
+			  visibility       = "private"
+			}
+			`, varName, value)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+					},
+					{
+						ResourceName:      "github_actions_organization_variable.variable",
+						ImportStateId:     varName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

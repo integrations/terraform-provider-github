@@ -15,6 +15,9 @@ func resourceGithubActionsVariable() *schema.Resource {
 		Read:   resourceGithubActionsVariableRead,
 		Update: resourceGithubActionsVariableUpdate,
 		Delete: resourceGithubActionsVariableDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -111,7 +114,9 @@ func resourceGithubActionsVariableRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	d.Set("value", d.Get("value"))
+	d.Set("repository", repoName)
+	d.Set("variable_name", variableName)
+	d.Set("value", variable.Value)
 	d.Set("created_at", variable.CreatedAt.String())
 	d.Set("updated_at", variable.UpdatedAt.String())
 

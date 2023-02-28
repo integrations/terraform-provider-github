@@ -16,6 +16,9 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 		Read:   resourceGithubActionsOrganizationVariableRead,
 		Update: resourceGithubActionsOrganizationVariableUpdate,
 		Delete: resourceGithubActionsOrganizationVariableDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
@@ -163,7 +166,8 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		return err
 	}
 
-	d.Set("value", d.Get("value"))
+	d.Set("variable_name", name)
+	d.Set("value", variable.Value)
 	d.Set("created_at", variable.CreatedAt.String())
 	d.Set("updated_at", variable.UpdatedAt.String())
 	d.Set("visibility", *variable.Visibility)
@@ -190,8 +194,6 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 			opt.Page = resp.NextPage
 		}
 	}
-
-	log.Printf("[INFO] teejay Setting repoids to %v", selectedRepositoryIDs)
 
 	d.Set("selected_repository_ids", selectedRepositoryIDs)
 

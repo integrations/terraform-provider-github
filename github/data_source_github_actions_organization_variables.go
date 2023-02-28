@@ -26,6 +26,10 @@ func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"visibility": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -59,6 +63,7 @@ func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, me
 			new_variable := map[string]string{
 				"name":       variable.Name,
 				"value":      variable.Value,
+				"visibility": *variable.Visibility,
 				"created_at": variable.CreatedAt.String(),
 				"updated_at": variable.UpdatedAt.String(),
 			}
