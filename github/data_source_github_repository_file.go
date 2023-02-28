@@ -126,7 +126,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	ref := parsedQuery["ref"][0];
+	ref := parsedQuery["ref"][0]
 	d.Set("ref", ref)
 
 	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)

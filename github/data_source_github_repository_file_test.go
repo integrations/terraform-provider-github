@@ -217,14 +217,16 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 	org := "test-org"
 	repo := "test-repo"
 
+	apiUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch)
+
 	// preparing mashalled objects
-	branchRespBody := marshal(t, &github.Branch{Name: &branch})
 	repoContentRespBody := marshal(t, &github.RepositoryContent{
 		Encoding: &enc,
 		Content:  &b64FileContent,
 		SHA:      &sha,
+		URL:      &apiUrl,
 	})
-	repoCommitRespBody := marshal(t, &github.RepositoryCommit{
+	repoCommit := &github.RepositoryCommit{
 		SHA: &sha,
 		Committer: &github.User{
 			Name:  &committerName,
@@ -233,7 +235,14 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		Commit: &github.Commit{
 			Message: &commitMessage,
 		},
-	})
+		Files: []*github.CommitFile{
+			{
+				Filename: &fileName,
+			},
+		},
+	}
+	repoCommitRespBody := marshal(t, repoCommit)
+	listCommitRespBody := marshal(t, []*github.RepositoryCommit{repoCommit})
 
 	t.Run("extracting org and repo if full_name is passed", func(t *testing.T) {
 		// test setup
@@ -243,22 +252,17 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/branches/%s", org, repo, branch),
-				ResponseBody: branchRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
 				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
 				ResponseBody: repoContentRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", org, repo, sha),
-				ResponseBody: repoCommitRespBody,
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", org, repo, fileName, branch),
+				ResponseBody: listCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits", org, repo),
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", org, repo, sha),
 				ResponseBody: repoCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
@@ -312,22 +316,17 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/branches/%s", owner, repo, branch),
-				ResponseBody: branchRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
 				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch),
 				ResponseBody: repoContentRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, sha),
-				ResponseBody: repoCommitRespBody,
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", owner, repo, fileName, branch),
+				ResponseBody: listCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits", owner, repo),
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, sha),
 				ResponseBody: repoCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
