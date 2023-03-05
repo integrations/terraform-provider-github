@@ -123,14 +123,38 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	return err
 }
 
-func getBypassPullRequestAllowancesFromResource(d *schema.ResourceData) []interface{} {
-	vL := d.Get("required_pull_request_reviews").([]interface{})
-	for _, v := range vL {
-		m := v.(map[string]interface{})
-		bpra := m["bypass_pull_request_allowances"].([]interface{})
-		return bpra
+func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances) []interface{} {
+	if bpra == nil {
+		return nil
 	}
-	return nil
+	users := make([]interface{}, 0, len(bpra.Users))
+	for _, u := range bpra.Users {
+		if u.Login != nil {
+			users = append(users, *u.Login)
+		}
+	}
+
+	teams := make([]interface{}, 0, len(bpra.Teams))
+	for _, t := range bpra.Teams {
+		if t.Slug != nil {
+			teams = append(teams, *t.Slug)
+		}
+	}
+
+	apps := make([]interface{}, 0, len(bpra.Apps))
+	for _, t := range bpra.Apps {
+		if t.Slug != nil {
+			apps = append(apps, *t.Slug)
+		}
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"users": schema.NewSet(schema.HashString, users),
+			"teams": schema.NewSet(schema.HashString, teams),
+			"apps":  schema.NewSet(schema.HashString, apps),
+		},
+	}
 }
 
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
@@ -154,8 +178,8 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 			}
 		}
 
-		// FIXME: The GET endpoint does not return bypass_pull_request_allowances as of 2023/02/04
-		bpra := getBypassPullRequestAllowancesFromResource(d)
+		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
+		log.Printf("[DEBUG] flattenBypassPullRequestAllowances brpa: %v", bpra)
 
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
@@ -358,19 +382,16 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 }
 
 func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.BypassPullRequestAllowancesRequest, error) {
-	log.Printf("[DEBUG] expandBypassPullRequestAllowances m: %v", m)
 	if m["bypass_pull_request_allowances"] == nil {
 		return nil, nil
 	}
 
 	vL := m["bypass_pull_request_allowances"].([]interface{})
-	log.Printf("[DEBUG] expandBypassPullRequestAllowances vL: %v", vL)
 	if len(vL) > 1 {
 		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
 	}
 
 	for _, v := range vL {
-		log.Printf("[DEBUG] expandBypassPullRequestAllowances v: %v", v)
 		if v == nil {
 			return nil, errors.New("invalid bypass_pull_request_allowances")
 		}
@@ -384,10 +405,6 @@ func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.Bypass
 		bpra.Teams = teams
 		apps := expandNestedSet(m, "apps")
 		bpra.Apps = apps
-
-		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Users: %v", bpra.Users)
-		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Teams: %v", bpra.Teams)
-		log.Printf("[DEBUG] expandBypassPullRequestAllowances bpra.Teams: %v", bpra.Apps)
 
 		return bpra, nil
 	}

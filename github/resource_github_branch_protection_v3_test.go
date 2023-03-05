@@ -211,8 +211,10 @@ func TestAccGithubBranchProtectionV3_required_status_checks(t *testing.T) {
 	})
 }
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
 	t.Run("configures required pull request reviews", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -275,9 +277,13 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 		})
 
 	})
+}
+
+func TestAccGithubBranchProtectionV3_required_pull_request_reviews_bypass_allowances(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -289,17 +295,23 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 				name = "tf-acc-test-%[1]s"
 			}
 
-			resource "github_branch_protection_v3" "test" {
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "admin"
+			}
 
+			resource "github_branch_protection_v3" "test" {
 			  repository  = github_repository.test.name
 			  branch      = "main"
 
 			  required_pull_request_reviews {
 					bypass_pull_request_allowances {
-						teams = ["${github_team.test.slug}"]
+						teams = [github_team.test.slug]
 					}
 			  }
 
+				depends_on = [github_team_repository.test]
 			}
 
 	`, randomID)
