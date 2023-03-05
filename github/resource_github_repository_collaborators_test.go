@@ -43,6 +43,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -59,6 +60,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_team" "test" {
@@ -73,7 +75,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.id
+					team_id   = github_team.test.slug
 					permission = "pull"
 				}
 			}
@@ -144,7 +146,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				func(state *terraform.State) error {
 					owner := testOrganizationFunc()
 
-					team := state.RootModule().Resources["github_team.test"].Primary
+					teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
 					for name, val := range collaborators.Attributes {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != inOrgUser {
@@ -153,8 +155,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "admin" {
 							return fmt.Errorf("expected user.*.permission to be set to admin, was %s", val)
 						}
-						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != team.ID {
-							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", team.ID, val)
+						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["slug"] {
+							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["slug"], val)
 						}
 						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "pull" {
 							return fmt.Errorf("expected team.*.permission to be set to pull, was %s", val)
@@ -167,10 +169,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					if len(users) != 1 {
 						return fmt.Errorf("expected %s to be a collaborator for repo %s/%s", inOrgUser, owner, repoName)
 					}
-					perm, err := getRepoPermission(users[0].GetPermissions())
-					if err != nil {
-						return err
-					}
+					perm := getPermission(users[0].GetRoleName())
 					if perm != "admin" {
 						return fmt.Errorf("expected %s to have admin perms for repo %s/%s, found %s", inOrgUser, owner, repoName, perm)
 					}
@@ -181,10 +180,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					if len(teams) != 1 {
 						return fmt.Errorf("expected team %s to be a collaborator for %s/%s", repoName, owner, repoName)
 					}
-					perm, err = getRepoPermission(teams[0].GetPermissions())
-					if err != nil {
-						return err
-					}
+					perm = getPermission(teams[0].GetPermission())
 					if perm != "pull" {
 						return fmt.Errorf("expected team %s to have pull perms for repo %s/%s, found %s", repoName, owner, repoName, perm)
 					}
@@ -204,6 +200,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -220,6 +217,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -236,6 +234,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_team" "test" {
@@ -254,7 +253,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.id
+					team_id   = github_team.test.slug
 					permission = "pull"
 				}
 			}
@@ -264,6 +263,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_team" "test" {
@@ -278,7 +278,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "push"
 				}
 				team {
-					team_id   = github_team.test.id
+					team_id   = github_team.test.slug
 					permission = "push"
 				}
 			}
@@ -333,10 +333,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					if invites[0].GetInvitee().GetLogin() != inOrgUser2 {
 						return fmt.Errorf("expected an invite for %s for repo %s/%s", inOrgUser, owner, repoName)
 					}
-					perm, err := getInvitationPermission(invites[0])
-					if err != nil {
-						return err
-					}
+					perm := getPermission(invites[0].GetPermissions())
 					if perm != "pull" {
 						return fmt.Errorf("expected the invite for %s to have pull perms for for %s/%s, found %s", inOrgUser, owner, repoName, perm)
 					}
@@ -355,7 +352,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				func(state *terraform.State) error {
 					owner := testOrganizationFunc()
 
-					team := state.RootModule().Resources["github_team.test"].Primary
+					teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
 					for name, val := range collaborators.Attributes {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != inOrgUser {
@@ -364,8 +361,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "push" {
 							return fmt.Errorf("expected user.*.permission to be set to push, was %s", val)
 						}
-						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != team.ID {
-							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", team.ID, val)
+						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["slug"] {
+							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["slug"], val)
 						}
 						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "push" {
 							return fmt.Errorf("expected team.*.permission to be set to push, was %s", val)
@@ -379,10 +376,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					if len(users) != 1 {
 						return fmt.Errorf("expected %s to be a collaborator for repo %s/%s", inOrgUser, owner, repoName)
 					}
-					perm, err := getRepoPermission(users[0].GetPermissions())
-					if err != nil {
-						return err
-					}
+					perm := getPermission(users[0].GetRoleName())
 					if perm != "push" {
 						return fmt.Errorf("expected %s to have push perms for repo %s/%s, found %s", inOrgUser, owner, repoName, perm)
 					}
@@ -393,10 +387,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					if len(teams) != 1 {
 						return fmt.Errorf("expected team %s to be a collaborator for %s/%s", repoName, owner, repoName)
 					}
-					perm, err = getRepoPermission(teams[0].GetPermissions())
-					if err != nil {
-						return err
-					}
+					perm = getPermission(teams[0].GetPermission())
 					if perm != "push" {
 						return fmt.Errorf("expected team %s to have push perms for repo %s/%s, found %s", repoName, owner, repoName, perm)
 					}
@@ -416,6 +407,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -432,6 +424,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 		`, repoName)
 
@@ -439,6 +432,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_team" "test" {
@@ -457,7 +451,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.id
+					team_id   = github_team.test.slug
 					permission = "pull"
 				}
 			}
@@ -467,6 +461,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "%s"
 				auto_init = true
+				visibility = "private"
 			}
 
 			resource "github_team" "test" {

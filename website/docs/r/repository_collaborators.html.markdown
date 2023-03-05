@@ -35,9 +35,18 @@ Further documentation on GitHub collaborators:
 ## Example Usage
 
 ```hcl
-# Add a collaborators to a repository
+# Add collaborators to a repository
+resource "github_team" "some_team" {
+  name        = "SomeTeam"
+  description = "Some cool team"
+}
+
+resource "github_repository" "some_repo" {
+  name = "some-repo"
+}
+
 resource "github_repository_collaborators" "a_repo_collaborators" {
-  repository = "our-cool-repo"
+  repository = github_repository.some_repo.name
 
   user {
     permission = "admin"
@@ -46,7 +55,7 @@ resource "github_repository_collaborators" "a_repo_collaborators" {
   
   team {
     permission = "pull"
-    team_id = "SomeTeam"
+    team_id = github_team.some_team.slug
   }
 }
 ```
@@ -63,14 +72,14 @@ The `user` block supports:
 
 * `usernames` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborators for the repository.
-            Must be one of `pull`, `push`, `maintain`, `triage` or `admin` for organization-owned repositories.
+            Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories.
             Must be `push` for personal repositories. Defaults to `push`.
 
 The `team` block supports:
 
 * `team` - (Required) The GitHub team id or the GitHub team slug
 * `permission` - (Optional) The permission of the outside collaborators for the repository.
-  Must be one of `pull`, `push`, `maintain`, `triage` or `admin` for organization-owned repositories.
+  Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
   Must be `push` for personal repositories. Defaults to `push`.
 
 ## Attribute Reference

@@ -34,10 +34,9 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "push",
-							ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "push",
 						},
 						"username": {
 							Type:             schema.TypeString,
@@ -61,10 +60,9 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 							ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
 						},
 						"team_id": {
-							Type:         schema.TypeString,
-							Description:  "Team ID to add to the repository as a collaborator.",
-							Required:     true,
-							ValidateFunc: validateTeamIDFunc,
+							Type:        schema.TypeString,
+							Description: "Team ID or slug to add to the repository as a collaborator.",
+							Required:    true,
 						},
 					},
 				},
@@ -130,7 +128,7 @@ func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollabor
 
 type teamCollaborator struct {
 	permission string
-	teamID     int64
+	teamSlug   string
 }
 
 func (c teamCollaborator) Empty() bool {
@@ -143,7 +141,7 @@ func flattenTeamCollaborator(obj teamCollaborator) interface{} {
 	}
 	transformed := map[string]interface{}{
 		"permission": obj.permission,
-		"team_id":    strconv.FormatInt(obj.teamID, 10),
+		"team_id":    obj.teamSlug,
 	}
 
 	return transformed
@@ -155,7 +153,7 @@ func flattenTeamCollaborators(objs []teamCollaborator) []interface{} {
 	}
 
 	sort.SliceStable(objs, func(i, j int) bool {
-		return objs[i].teamID < objs[j].teamID
+		return objs[i].teamSlug < objs[j].teamSlug
 	})
 
 	items := make([]interface{}, len(objs))
@@ -186,10 +184,7 @@ func listUserCollaborators(client *github.Client, isOrg bool, ctx context.Contex
 				if !isOrg && c.GetLogin() == owner {
 					continue
 				}
-				permissionName, err := getRepoPermission(c.GetPermissions())
-				if err != nil {
-					return nil, err
-				}
+				permissionName := getPermission(c.GetRoleName())
 
 				userCollaborators = append(userCollaborators, userCollaborator{permissionName, c.GetLogin()})
 			}
@@ -214,10 +209,7 @@ func listInvitations(client *github.Client, ctx context.Context, owner, repoName
 		}
 
 		for _, i := range invitations {
-			permissionName, err := getInvitationPermission(i)
-			if err != nil {
-				return nil, err
-			}
+			permissionName := getPermission(i.GetPermissions())
 
 			invitedCollaborators = append(invitedCollaborators, invitedCollaborator{
 				userCollaborator{permissionName, i.GetInvitee().GetLogin()}, i.GetID()})
@@ -246,12 +238,9 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		}
 
 		for _, t := range repoTeams {
-			permissionName, err := getRepoPermission(t.GetPermissions())
-			if err != nil {
-				return nil, err
-			}
+			permissionName := getPermission(t.GetPermission())
 
-			teamCollaborators = append(teamCollaborators, teamCollaborator{permissionName, t.GetID()})
+			teamCollaborators = append(teamCollaborators, teamCollaborator{permissionName, t.GetSlug()})
 		}
 
 		if resp.NextPage == 0 {
@@ -380,7 +369,6 @@ func matchTeamCollaborators(
 	repoName string, want []interface{}, has []teamCollaborator, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	orgId := meta.(*Owner).id
 	ctx := context.Background()
 
 	for _, hasTeam := range has {
@@ -388,25 +376,25 @@ func matchTeamCollaborators(
 		for _, w := range want {
 			teamData := w.(map[string]interface{})
 			teamIDString := teamData["team_id"].(string)
-			teamId, err := strconv.ParseInt(teamIDString, 10, 64)
+			teamSlug, err := getTeamSlug(teamIDString, meta)
 			if err != nil {
-				return unconvertibleIdErr(teamIDString, err)
+				return err
 			}
-			if teamId == hasTeam.teamID {
+			if teamSlug == hasTeam.teamSlug {
 				wantPerm = teamData["permission"].(string)
 				break
 			}
 		}
 		if wantPerm == "" { // user should NOT have permission
-			log.Printf("[DEBUG] Removing team %d from repo: %s.", hasTeam.teamID, repoName)
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, hasTeam.teamID, owner, repoName)
+			log.Printf("[DEBUG] Removing team %s from repo: %s.", hasTeam.teamSlug, repoName)
+			_, err := client.Teams.RemoveTeamRepoBySlug(ctx, owner, hasTeam.teamSlug, owner, repoName)
 			if err != nil {
 				return err
 			}
 		} else if wantPerm != hasTeam.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
-			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgId, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+			log.Printf("[DEBUG] Updating team %s permission from %s to %s for repo: %s.", hasTeam.teamSlug, hasTeam.permission, wantPerm, repoName)
+			_, err := client.Teams.AddTeamRepoBySlug(
+				ctx, owner, hasTeam.teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -419,14 +407,14 @@ func matchTeamCollaborators(
 	for _, t := range want {
 		teamData := t.(map[string]interface{})
 		teamIDString := teamData["team_id"].(string)
-		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+		teamSlug, err := getTeamSlug(teamIDString, meta)
 		if err != nil {
-			return unconvertibleIdErr(teamIDString, err)
+			return err
 		}
 		permission := teamData["permission"].(string)
 		var found bool
 		for _, c := range has {
-			if teamID == c.teamID {
+			if teamSlug == c.teamSlug {
 				found = true
 				break
 			}
@@ -435,9 +423,9 @@ func matchTeamCollaborators(
 			continue
 		}
 		// team needs to be added
-		log.Printf("[DEBUG] Adding team %d with permission %s for repo: %s.", teamID, permission, repoName)
-		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgId, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamSlug, permission, repoName)
+		_, err = client.Teams.AddTeamRepoBySlug(
+			ctx, owner, teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
