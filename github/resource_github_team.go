@@ -30,43 +30,51 @@ func resourceGithubTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the team.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A description of the team.",
 			},
 			"privacy": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "secret",
+				Description:  "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The ID of the parent team, if this is a nested team.",
 			},
 			"ldap_dn": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.",
 			},
 			"create_default_maintainer": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Adds a default maintainer to the team. Adds the creating user to the team when 'true'.",
 			},
 			"slug": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The slug of the created team.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Node ID of the created team.",
 			},
 			"members_count": {
 				Type:     schema.TypeInt,

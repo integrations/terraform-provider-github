@@ -19,19 +19,22 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the repository.",
 			},
 			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the environment.",
 			},
 			"secret_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "Name of the secret.",
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
@@ -39,6 +42,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				Sensitive:     true,
+				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				ConflictsWith: []string{"plaintext_value"},
 				ValidateFunc:  validation.StringIsBase64,
 			},
@@ -47,15 +51,18 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				Sensitive:     true,
+				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_environment_secret' creation.",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_environment_secret' update.",
 			},
 		},
 	}

@@ -41,25 +41,29 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"title": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The title of the milestone.",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The owner of the GitHub Repository.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the GitHub Repository.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A description of the milestone.",
 			},
 			"due_date": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "in yyyy-mm-dd format",
+				Description: "The milestone due date. In 'yyyy-mm-dd' format.",
 			},
 			"state": {
 				Type:     schema.TypeString,
@@ -67,11 +71,13 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"open", "closed",
 				}, true),
-				Default: "open",
+				Default:     "open",
+				Description: "The state of the milestone. Either 'open' or 'closed'. Default: 'open'.",
 			},
 			"number": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The number of the milestone.",
 			},
 		},
 	}

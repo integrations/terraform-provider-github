@@ -23,17 +23,20 @@ func resourceGithubProjectColumn() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The ID of an existing project that the column will be created in.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the column.",
 			},
 			"column_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the column.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

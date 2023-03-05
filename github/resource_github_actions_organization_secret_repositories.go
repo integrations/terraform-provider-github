@@ -22,6 +22,7 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "Name of the existing secret.",
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"selected_repository_ids": {
@@ -29,8 +30,9 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Set:      schema.HashInt,
-				Required: true,
+				Set:         schema.HashInt,
+				Required:    true,
+				Description: "An array of repository ids that can access the organization secret.",
 			},
 		},
 	}

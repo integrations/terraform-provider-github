@@ -30,22 +30,26 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "The GitHub team id.",
 				ValidateFunc: validateTeamIDFunc,
 			},
 			"members": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "List of team members.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
 							Type:             schema.TypeString,
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
+							Description:      "The user to add to the team.",
 						},
 						"role": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "member",
+							Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 							ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 						},
 					},

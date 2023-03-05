@@ -18,13 +18,15 @@ func resourceGithubUserGpgKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Your public GPG key, generated in ASCII-armored format.",
 			},
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The key ID of the GPG key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

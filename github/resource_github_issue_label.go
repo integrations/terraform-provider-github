@@ -21,25 +21,30 @@ func resourceGithubIssueLabel() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub repository.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the label.",
 			},
 			"color": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "A 6 character hex code, without the leading '#', identifying the color of the label.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A short description of the label.",
 			},
 			"url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL to the issue label.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

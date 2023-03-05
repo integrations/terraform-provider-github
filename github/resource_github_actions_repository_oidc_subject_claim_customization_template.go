@@ -22,16 +22,19 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 			"repository": {
 				Type:         schema.TypeString,
 				Required:     true,
+				Description:  "The name of the repository.",
 				ValidateFunc: validation.StringLenBetween(1, 100),
 			},
 			"use_default": {
-				Type:     schema.TypeBool,
-				Required: true,
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to use the default template or not. If 'true', 'include_claim_keys' must not be set.",
 			},
 			"include_claim_keys": {
-				Type:     schema.TypeList,
-				Optional: true,
-				MinItems: 1,
+				Type:        schema.TypeList,
+				Optional:    true,
+				MinItems:    1,
+				Description: "A list of OpenID Connect claims.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
