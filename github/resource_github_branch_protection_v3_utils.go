@@ -179,7 +179,6 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 		}
 
 		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
-		log.Printf("[DEBUG] flattenBypassPullRequestAllowances brpa: %v", bpra)
 
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
