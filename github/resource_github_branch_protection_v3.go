@@ -265,7 +265,6 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
-	log.Printf("[DEBUG] GetBypassPullRequestAllowances: %v", githubProtection.GetRequiredPullRequestReviews().GetBypassPullRequestAllowances())
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
