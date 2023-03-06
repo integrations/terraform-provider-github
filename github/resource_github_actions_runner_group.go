@@ -247,10 +247,19 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 
 	name := d.Get("name").(string)
 	visibility := d.Get("visibility").(string)
+	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
+	selectedWorkflows := []string{}
+	if workflows, ok := d.GetOk("selected_workflows"); ok {
+		for _, workflow := range workflows.([]interface{}) {
+			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		}
+	}
 
 	options := github.UpdateRunnerGroupRequest{
-		Name:       &name,
-		Visibility: &visibility,
+		Name:                  &name,
+		Visibility:            &visibility,
+		RestrictedToWorkflows: &restrictedToWorkflows,
+		SelectedWorkflows:     selectedWorkflows,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
