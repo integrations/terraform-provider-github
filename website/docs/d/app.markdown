@@ -28,8 +28,10 @@ The following arguments are supported:
 
 The following additional attributes are exported:
 
-* `description` - The app's description.
+* `description` - (string) The app's description.
 
-* `name` - The app's full name.
+* `name` - (string) The app's full name.
 
-* `node_id` - The Node ID of the app.
+* `node_id` - (string) The Node ID of the app.
+
+* `id` - (number) The installation ID.
