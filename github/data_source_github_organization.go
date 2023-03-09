@@ -119,7 +119,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		} `graphql:"organization(login: $login)"`
 	}
 	variables := map[string]interface{}{
-		"login": githubv4.String("rabotaua"),
+		"login": githubv4.String(name),
 		"after": (*githubv4.String)(nil),
 	}
 	var members []map[string]string
