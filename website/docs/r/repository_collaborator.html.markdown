@@ -23,8 +23,8 @@ When applied, an invitation will be sent to the user to become a collaborator
 on a repository. When destroyed, either the invitation will be cancelled or the
 collaborator will be removed from the repository.
 
-This resource is authoritative. For adding a collaborator to a repo in a non-authoritative manner, use
-github_repository_collaborator instead.
+This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
+instead.
 
 Further documentation on GitHub collaborators:
 
