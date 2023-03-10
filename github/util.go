@@ -148,29 +148,18 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
 
 	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return -1, errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetID(), nil
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-			if slugErr != nil {
-				return -1, errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-			return team.GetID(), nil
-		}
-		return team.GetID(), nil
+	if parseIntErr == nil {
+		return teamId, nil
 	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+	if slugErr != nil {
+		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
+	}
+	return team.GetID(), nil
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
