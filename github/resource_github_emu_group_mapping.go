@@ -43,12 +43,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the GitHub team.",
 			},
 			"group_id": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "Integer corresponding to the external group ID to be linked.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

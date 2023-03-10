@@ -22,8 +22,9 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The slug of the team to manage.",
 			},
 		},
 	}

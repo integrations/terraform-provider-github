@@ -51,7 +51,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Required:     true,
 				ForceNew:     true,
 				Description:  "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*(:[0-9]+)?\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
 			},
 			"is_alphanumeric": {
 				Type:        schema.TypeBool,

@@ -22,11 +22,13 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 			"access_level": {
 				Type:         schema.TypeString,
 				Required:     true,
+				Description:  "Where the actions or reusable workflows of the repository may be used. Possible values are 'none', 'user', 'organization', or 'enterprise'.",
 				ValidateFunc: validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false),
 			},
 			"repository": {
 				Type:         schema.TypeString,
 				Required:     true,
+				Description:  "The GitHub repository.",
 				ValidateFunc: validation.StringLenBetween(1, 100),
 			},
 		},
