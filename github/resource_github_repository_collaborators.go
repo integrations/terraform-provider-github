@@ -465,7 +465,7 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 
 	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
 	if err != nil {
-		return handleAPIError(err, d, "repository collaborators (%s/%s)", owner, repoName)
+		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
 
 	err = matchUserCollaboratorsAndInvites(repoName, users, userCollaborators, invitations, meta)
@@ -493,7 +493,7 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 
 	userCollaborators, invitedCollaborators, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
 	if err != nil {
-		return handleAPIError(err, d, "repository collaborators (%s/%s)", owner, repoName)
+		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
 
 	invitationIds := make(map[string]string, len(invitedCollaborators))
@@ -535,7 +535,7 @@ func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta in
 
 	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
 	if err != nil {
-		return handleAPIError(err, d, "repository collaborators (%s/%s)", owner, repoName)
+		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
 
 	log.Printf("[DEBUG] Deleting all users, invites and collaborators for repo: %s.", repoName)
