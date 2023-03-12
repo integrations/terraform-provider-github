@@ -48,6 +48,14 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Deprecated: "Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.",
+			},
+			"users": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
 					Type: schema.TypeMap,
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
@@ -122,14 +130,16 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		"login": githubv4.String(name),
 		"after": (*githubv4.String)(nil),
 	}
-	var members []map[string]string
+	var members []string
+	var users []map[string]string
 	for {
 		err := client4.Query(ctx, &query, variables)
 		if err != nil {
 			return err
 		}
 		for _, edge := range query.Organization.MembersWithRole.Edges {
-			members = append(members, map[string]string{
+			members = append(members, string(edge.Node.Login))
+			users = append(users, map[string]string{
 				"id":    string(edge.Node.Id),
 				"login": string(edge.Node.Login),
 				"email": string(edge.Node.Email),
@@ -151,6 +161,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("plan", planName)
 	d.Set("repositories", repoList)
 	d.Set("members", members)
+	d.Set("users", users)
 
 	return nil
 }
