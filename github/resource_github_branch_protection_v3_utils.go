@@ -390,12 +390,13 @@ func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.Bypass
 		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
 	}
 
-	bpra := new(github.BypassPullRequestAllowancesRequest)
+	var bpra *github.BypassPullRequestAllowancesRequest
 
 	for _, v := range vL {
 		if v == nil {
 			return nil, errors.New("invalid bypass_pull_request_allowances")
 		}
+		bpra = new(github.BypassPullRequestAllowancesRequest)
 		m := v.(map[string]interface{})
 
 		users := expandNestedSet(m, "users")
