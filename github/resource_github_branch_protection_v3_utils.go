@@ -390,12 +390,12 @@ func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.Bypass
 		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
 	}
 
+	bpra := new(github.BypassPullRequestAllowancesRequest)
+
 	for _, v := range vL {
 		if v == nil {
 			return nil, errors.New("invalid bypass_pull_request_allowances")
 		}
-
-		bpra := new(github.BypassPullRequestAllowancesRequest)
 		m := v.(map[string]interface{})
 
 		users := expandNestedSet(m, "users")
@@ -404,11 +404,9 @@ func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.Bypass
 		bpra.Teams = teams
 		apps := expandNestedSet(m, "apps")
 		bpra.Apps = apps
-
-		return bpra, nil
 	}
 
-	return nil, nil
+	return bpra, nil
 }
 
 func checkBranchRestrictionsUsers(actual *github.BranchRestrictions, expected *github.BranchRestrictionsRequest) error {
