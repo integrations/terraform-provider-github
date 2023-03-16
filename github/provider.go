@@ -183,6 +183,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_pull_requests":                                       dataSourceGithubRepositoryPullRequests(),
 			"github_repository_teams":                                               dataSourceGithubRepositoryTeams(),
 			"github_repository_webhooks":                                            dataSourceGithubRepositoryWebhooks(),
+			"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
 			"github_team":                                                           dataSourceGithubTeam(),
 			"github_tree":                                                           dataSourceGithubTree(),
 			"github_user":                                                           dataSourceGithubUser(),
