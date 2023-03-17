@@ -2,14 +2,12 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
@@ -18,6 +16,9 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		Read:   resourceGithubRepositoryEnvironmentDeploymentPolicyRead,
 		Update: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
 		Delete: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -45,6 +46,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
+	
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
@@ -60,7 +62,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, escapedEnvName, resultKey.GetID()))
+	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
@@ -69,12 +71,16 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	owner := meta.(*Owner).name
-	branchPolicyId, err := parseDeploymentBranchPolicyId(d.Id())
+	repoName, envName, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
 		return err
 	}
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	
+	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
+	if err != nil {
+		return err
+	}
+	
 	escapedEnvName := url.QueryEscape(envName)
 
 	branchPolicy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId)
@@ -99,59 +105,57 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
+	ctx := context.Background()
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 	branchPattern := d.Get("branch_pattern").(string)
 	escapedEnvName := url.QueryEscape(envName)
-	branchPolicyId, err := parseDeploymentBranchPolicyId(d.Id())
+	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
 		return err
 	}
+	
+	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
+	if err != nil {
+		return err
+	}
+
 	updateData := github.DeploymentBranchPolicyRequest{
 		Name: github.String(branchPattern),
 	}
 
-	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
 	if err != nil {
 		return err
 	}
-	d.SetId(fmt.Sprintf("%s/%s/%d", repoName, escapedEnvName, resultKey.GetID()))
+	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
+	ctx := context.Background()
 
 	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.QueryEscape(envName)
-	branchPolicyId, err := parseDeploymentBranchPolicyId(d.Id())
+	repoName, envName, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
+	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	escapedEnvName := url.QueryEscape(envName)
+
 	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func parseDeploymentBranchPolicyId(id string) (int64, error) {
-	parts := strings.Split(id, "/")
-	if len(parts) != 3 {
-		return -1, fmt.Errorf("ID not properly formatted: %s", id)
-	}
-	number, err := strconv.ParseInt(parts[2], 10, 64)
-	if err != nil {
-		return -1, err
-	}
-	return number, nil
 }

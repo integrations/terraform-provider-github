@@ -49,3 +49,12 @@ The following arguments are supported:
 * `repository` - (Required) The repository of the environment.
 
 * `branch_pattern` - (Required) The name pattern that branches must match in order to deploy to the environment.
+
+
+## Import
+
+GitHub Repository Environment Deployment Policy can be imported using an ID made up of `name` of the repository combined with the `environment` name of the environment with the `Id` of the deployment policy, separated by a `:` character, e.g.
+
+```
+$ terraform import github_repository_environment.daily terraform:daily:123456
+```
