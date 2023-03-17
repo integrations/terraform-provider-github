@@ -46,7 +46,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
-	
+
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
@@ -75,12 +75,12 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 	if err != nil {
 		return err
 	}
-	
+
 	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
 	if err != nil {
 		return err
 	}
-	
+
 	escapedEnvName := url.QueryEscape(envName)
 
 	branchPolicy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId)
@@ -116,7 +116,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	if err != nil {
 		return err
 	}
-	
+
 	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
 	if err != nil {
 		return err
@@ -125,7 +125,6 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	updateData := github.DeploymentBranchPolicyRequest{
 		Name: github.String(branchPattern),
 	}
-
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
 	if err != nil {
