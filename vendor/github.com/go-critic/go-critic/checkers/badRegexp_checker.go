@@ -9,7 +9,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-critic/go-critic/checkers/internal/astwalk"
-	"github.com/go-critic/go-critic/framework/linter"
+	"github.com/go-critic/go-critic/linter"
+
 	"github.com/quasilyte/regex/syntax"
 )
 
@@ -365,7 +366,7 @@ func (c *badRegexpChecker) checkCharClassDups(cc syntax.Expr) {
 	}
 
 	// 2. Sort ranges, O(nlogn).
-	sort.Slice(ranges, func(i, j int) bool {
+	sort.SliceStable(ranges, func(i, j int) bool {
 		return ranges[i].low < ranges[j].low
 	})
 
