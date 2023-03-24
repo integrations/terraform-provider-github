@@ -1,17 +1,20 @@
 # 4d63.com/gochecknoglobals v0.1.0
 ## explicit; go 1.15
 4d63.com/gochecknoglobals/checknoglobals
-# cloud.google.com/go v0.104.0
-## explicit; go 1.17
+# cloud.google.com/go v0.105.0
+## explicit; go 1.19
 cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/compute v1.10.0
-## explicit; go 1.17
+# cloud.google.com/go/compute v1.14.0
+## explicit; go 1.19
+cloud.google.com/go/compute/internal
+# cloud.google.com/go/compute/metadata v0.2.3
+## explicit; go 1.19
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v0.5.0
-## explicit; go 1.17
+# cloud.google.com/go/iam v0.7.0
+## explicit; go 1.19
 cloud.google.com/go/iam
 # cloud.google.com/go/storage v1.27.0
 ## explicit; go 1.17
@@ -38,6 +41,26 @@ github.com/Masterminds/sprig
 # github.com/OpenPeeDeeP/depguard v1.1.1
 ## explicit; go 1.13
 github.com/OpenPeeDeeP/depguard
+# github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8
+## explicit; go 1.13
+github.com/ProtonMail/go-crypto/bitcurves
+github.com/ProtonMail/go-crypto/brainpool
+github.com/ProtonMail/go-crypto/eax
+github.com/ProtonMail/go-crypto/internal/byteutil
+github.com/ProtonMail/go-crypto/ocb
+github.com/ProtonMail/go-crypto/openpgp
+github.com/ProtonMail/go-crypto/openpgp/aes/keywrap
+github.com/ProtonMail/go-crypto/openpgp/armor
+github.com/ProtonMail/go-crypto/openpgp/ecdh
+github.com/ProtonMail/go-crypto/openpgp/ecdsa
+github.com/ProtonMail/go-crypto/openpgp/eddsa
+github.com/ProtonMail/go-crypto/openpgp/elgamal
+github.com/ProtonMail/go-crypto/openpgp/errors
+github.com/ProtonMail/go-crypto/openpgp/internal/algorithm
+github.com/ProtonMail/go-crypto/openpgp/internal/ecc
+github.com/ProtonMail/go-crypto/openpgp/internal/encoding
+github.com/ProtonMail/go-crypto/openpgp/packet
+github.com/ProtonMail/go-crypto/openpgp/s2k
 # github.com/agext/levenshtein v1.2.2
 ## explicit
 github.com/agext/levenshtein
@@ -141,6 +164,20 @@ github.com/chavacava/garif
 ## explicit
 github.com/client9/misspell
 github.com/client9/misspell/cmd/misspell
+# github.com/cloudflare/circl v1.1.0
+## explicit; go 1.15
+github.com/cloudflare/circl/dh/x25519
+github.com/cloudflare/circl/dh/x448
+github.com/cloudflare/circl/ecc/goldilocks
+github.com/cloudflare/circl/internal/conv
+github.com/cloudflare/circl/internal/sha3
+github.com/cloudflare/circl/math
+github.com/cloudflare/circl/math/fp25519
+github.com/cloudflare/circl/math/fp448
+github.com/cloudflare/circl/math/mlsbset
+github.com/cloudflare/circl/sign
+github.com/cloudflare/circl/sign/ed25519
+github.com/cloudflare/circl/sign/ed448
 # github.com/daixiang0/gci v0.2.9
 ## explicit; go 1.14
 github.com/daixiang0/gci/pkg/gci
@@ -295,7 +332,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v50 v50.1.0
+# github.com/google/go-github/v50 v50.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v50/github
 # github.com/google/go-querystring v1.1.0
@@ -308,7 +345,7 @@ github.com/google/uuid
 ## explicit; go 1.18
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
-# github.com/googleapis/gax-go/v2 v2.6.0
+# github.com/googleapis/gax-go/v2 v2.7.0
 ## explicit; go 1.19
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
@@ -797,7 +834,7 @@ github.com/zclconf/go-cty/cty/set
 # github.com/zclconf/go-cty-yaml v1.0.2
 ## explicit
 github.com/zclconf/go-cty-yaml
-# go.opencensus.io v0.23.0
+# go.opencensus.io v0.24.0
 ## explicit; go 1.13
 go.opencensus.io
 go.opencensus.io/internal
@@ -816,7 +853,7 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.6.0
+# golang.org/x/crypto v0.7.0
 ## explicit; go 1.17
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
@@ -826,6 +863,7 @@ golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/box
@@ -839,6 +877,7 @@ golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
+golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91
@@ -963,7 +1002,7 @@ golang.org/x/tools/internal/typesinternal
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.100.0
+# google.golang.org/api v0.103.0
 ## explicit; go 1.19
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -999,8 +1038,9 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20221025140454-527a21cfbd71
+# google.golang.org/genproto v0.0.0-20221202195650-67e5cbc046fd
 ## explicit; go 1.19
+google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/rpc/code
