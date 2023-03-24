@@ -1,0 +1,71 @@
+package github
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+)
+
+func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
+
+	t.Run("queries actions variables from an environment", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
+
+			resource "github_repository_environment" "test" {
+			  repository       = github_repository.test.name
+			  environment      = "test_environment_name"
+			}
+
+			resource "github_actions_environment_variable" "variable" {
+			  repository       = github_repository.test.name
+			  environment      = github_repository_environment.test.environment
+			  variable_name    = "test_variable"
+			  value  		   = "foo"
+			}
+			`, randomID)
+
+		config2 := config + `
+			data "github_actions_environment_variables" "test" {
+				environment      = github_repository_environment.test.environment
+				name 		     = github_repository.test.name
+			}
+		`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.#", "1"),
+			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.0.name", strings.ToUpper("test_variable")),
+			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.0.value", "foo"),
+			resource.TestCheckResourceAttrSet("data.github_actions_environment_variables.test", "variables.0.created_at"),
+			resource.TestCheckResourceAttrSet("data.github_actions_environment_variables.test", "variables.0.updated_at"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  resource.ComposeTestCheckFunc(),
+					},
+					{
+						Config: config2,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
