@@ -1,6 +1,6 @@
 provider_installation {
   dev_overrides {
-    "integrations/github" = "/home/massimilianodonini/go/bin/"
+    "integrations/github" = "~/go/bin/"
   }
 
   direct {}
