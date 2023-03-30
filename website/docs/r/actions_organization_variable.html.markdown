@@ -5,7 +5,7 @@ description: |-
   Creates and manages an Action variable within a GitHub organization
 ---
 
-# github_actions_organization_secret
+# github_actions_organization_variable
 
 This resource allows you to create and manage GitHub Actions variables within your GitHub organization.
 You must have write access to a repository to use this resource.
