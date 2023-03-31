@@ -83,3 +83,42 @@ func getFileCommit(client *github.Client, owner, repo, file, branch string) (*gi
 
 	return nil, fmt.Errorf("cannot find file %s in repo %s/%s", file, owner, repo)
 }
+
+// getAutolinkByKeyPrefix returns a single autolink reference by key prefix that was configured for the given repository.
+func getAutolinkByKeyPrefix(client *github.Client, owner, repo, keyPrefix string) (*github.Autolink, error) {
+	autolinks, err := listAutolinks(client, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, autolink := range autolinks {
+		if *autolink.KeyPrefix == keyPrefix {
+			return autolink, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// listAutolinks returns all autolink references for the given repository.
+func listAutolinks(client *github.Client, owner, repo string) ([]*github.Autolink, error) {
+	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", owner, repo))
+	opts := &github.ListOptions{
+		PerPage: maxPerPage,
+	}
+
+	var allAutolinks []*github.Autolink
+	for {
+		autolinks, resp, err := client.Repositories.ListAutolinks(ctx, owner, repo, opts)
+		if err != nil {
+			return nil, err
+		}
+		allAutolinks = append(allAutolinks, autolinks...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return allAutolinks, nil
+}

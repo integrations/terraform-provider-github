@@ -26,8 +26,29 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
 				}
-				d.Set("repository", parts[0])
-				d.SetId(parts[1])
+
+				repository := parts[0]
+				id := parts[1]
+
+				// If the second part of the provided ID isn't an integer, assume that the
+				// caller provided the key prefix for the autolink reference, and look up
+				// the autolink by the key prefix.
+
+				_, err := strconv.Atoi(id)
+				if err != nil {
+					client := meta.(*Owner).v3client
+					owner := meta.(*Owner).name
+
+					autolink, err := getAutolinkByKeyPrefix(client, owner, repository, id)
+					if err != nil {
+						return nil, err
+					}
+
+					id = strconv.FormatInt(*autolink.ID, 10)
+				}
+
+				d.Set("repository", repository)
+				d.SetId(id)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
