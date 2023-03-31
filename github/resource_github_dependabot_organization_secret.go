@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -30,6 +31,7 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "Name of the secret.",
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
@@ -38,6 +40,7 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"plaintext_value"},
+				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				ValidateFunc:  validation.StringIsBase64,
 			},
 			"plaintext_value": {
@@ -45,11 +48,13 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				ForceNew:      true,
 				Optional:      true,
 				Sensitive:     true,
+				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
 			},
 			"visibility": {
 				Type:         schema.TypeString,
 				Required:     true,
+				Description:  "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private' or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:     true,
 			},
@@ -58,16 +63,19 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Set:      schema.HashInt,
-				Optional: true,
+				Set:         schema.HashInt,
+				Optional:    true,
+				Description: "An array of repository ids that can access the organization secret.",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'dependabot_secret' creation.",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'dependabot_secret' update.",
 			},
 		},
 	}
@@ -86,16 +94,16 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
 	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("Cannot use selected_repository_ids without visibility being set to selected")
+		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
 	}
 
-	selectedRepositoryIDs := []int64{}
+	selectedRepositoryIDs := []string{}
 
 	if hasSelectedRepositories {
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, strconv.Itoa(id.(int)))
 		}
 	}
 
@@ -114,8 +122,8 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an EncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.EncryptedSecret{
+	// Create an DependabotEncryptedSecret and encrypt the plaintext value into it
+	eSecret := &github.DependabotEncryptedSecret{
 		Name:                  secretName,
 		KeyID:                 keyId,
 		Visibility:            visibility,

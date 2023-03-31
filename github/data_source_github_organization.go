@@ -3,7 +3,7 @@ package github
 import (
 	"strconv"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -72,7 +72,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
 	var repoList []string
@@ -96,7 +96,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	membershipOpts := &github.ListMembersOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
 	var memberList []string
@@ -123,6 +123,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
 	d.Set("orgname", name)
+	d.Set("node_id", organization.GetNodeID())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", planName)
 	d.Set("repositories", repoList)

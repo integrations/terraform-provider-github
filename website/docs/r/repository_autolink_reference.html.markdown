@@ -13,18 +13,18 @@ This resource allows you to create and manage an autolink reference for a single
 
 ```hcl
 resource "github_repository" "repo" {
-  name         = "oof"
+  name         = "my-repo"
   description  = "GitHub repo managed by Terraform"
 
   private = false
 }
 
-resource "github_repository_autolink_reference" "auto" {
+resource "github_repository_autolink_reference" "autolink" {
   repository = github_repository.repo.name
 
   key_prefix = "TICKET-"
 
-  target_url_template = "https://hello.there/TICKET?query=<num>"
+  target_url_template = "https://example.com/TICKET?query=<num>"
 }
 ```
 
@@ -37,6 +37,8 @@ The following arguments are supported:
 * `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit.
 
 * `target_url_template` - (Required) The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number
+
+* `is_alphanumeric` - (Optional) Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters. Default is true.
 
 ## Attributes Reference
 
@@ -51,8 +53,10 @@ Autolink references can be imported using the `name` of the repository, combined
 ### Import by ID
 
 ```sh
-terraform import github_repository_autolink_reference.auto oof/123
+terraform import github_repository_autolink_reference.auto my-repo/123
 ```
+
+See the GitHub documentation for how to [list all autolinks of a repository](https://docs.github.com/en/rest/repos/autolinks#list-all-autolinks-of-a-repository) to learn the autolink ids to use with the import command.
 
 ### Import by key prefix
 

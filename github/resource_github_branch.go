@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -22,38 +22,45 @@ func resourceGithubBranch() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub repository name.",
 			},
 			"branch": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository branch to create.",
 			},
 			"source_branch": {
-				Type:     schema.TypeString,
-				Default:  "main",
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Default:     "main",
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The branch name to start from. Defaults to 'main'.",
 			},
 			"source_sha": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Computed:    true,
+				Description: "The commit hash to start from. Defaults to the tip of 'source_branch'. If provided, 'source_branch' is ignored.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the Branch object.",
 			},
 			"ref": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A string representing a branch reference, in the form of 'refs/heads/<branch>'.",
 			},
 			"sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A string storing the reference's HEAD commit's SHA1.",
 			},
 		},
 	}
@@ -76,7 +83,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
 		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
 		if err != nil {
-			return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
+			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 				orgName, repoName, sourceBranchRefName, err)
 		}
 		d.Set("source_sha", *ref.Object.SHA)
@@ -88,7 +95,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -124,7 +131,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 		}
-		return fmt.Errorf("Error querying GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -151,7 +158,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 
 	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error deleting GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -182,7 +189,7 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 
 	// resourceGithubBranchRead calls d.SetId("") if the branch does not exist
 	if d.Id() == "" {
-		return nil, fmt.Errorf("Repository %s does not have a branch named %s.", repoName, branchName)
+		return nil, fmt.Errorf("repository %s does not have a branch named %s.", repoName, branchName)
 	}
 
 	return []*schema.ResourceData{d}, nil

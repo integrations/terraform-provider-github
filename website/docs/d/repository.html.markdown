@@ -39,9 +39,13 @@ The following arguments are supported:
 
 * `has_issues` - Whether the repository has GitHub Issues enabled.
 
+* `has_discussions` - Whether the repository has GitHub Discussions enabled.
+
 * `has_projects` - Whether the repository has the GitHub Projects enabled.
 
 * `has_wiki` - Whether the repository has the GitHub Wiki enabled.
+
+* `is_template` - Whether the repository is a template repository.
 
 * `allow_merge_commit` - Whether the repository allows merge commits.
 
@@ -50,6 +54,14 @@ The following arguments are supported:
 * `allow_rebase_merge` - Whether the repository allows rebase merges.
 
 * `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
+
+* `squash_merge_commit_title` - The default value for a squash merge commit title.
+
+* `squash_merge_commit_message` - The default value for a squash merge commit message.
+
+* `merge_commit_title` - The default value for a merge commit title.
+
+* `merge_commit_message` - The default value for a merge commit message.
 
 * `has_downloads` - Whether the repository has Downloads feature enabled.
 
@@ -60,6 +72,8 @@ The following arguments are supported:
 * `pages` - The repository's GitHub Pages configuration.
 
 * `topics` - The list of topics of the repository.
+
+* `template` - The repository source template configuration.
 
 * `html_url` - URL to the repository on the web.
 
@@ -74,7 +88,3 @@ The following arguments are supported:
 * `node_id` - GraphQL global node id for use with v4 API
 
 * `repo_id` - GitHub ID for the repository
-
-* `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
- * `name` - Name of the branch.
- * `protected` - Whether the branch is protected.

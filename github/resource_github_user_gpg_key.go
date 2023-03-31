@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -18,13 +18,15 @@ func resourceGithubUserGpgKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Your public GPG key, generated in ASCII-armored format.",
 			},
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The key ID of the GPG key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

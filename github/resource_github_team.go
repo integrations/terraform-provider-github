@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -30,43 +30,51 @@ func resourceGithubTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the team.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A description of the team.",
 			},
 			"privacy": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "secret",
+				Description:  "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The ID of the parent team, if this is a nested team.",
 			},
 			"ldap_dn": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.",
 			},
 			"create_default_maintainer": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Adds a default maintainer to the team. Adds the creating user to the team when 'true'.",
 			},
 			"slug": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The slug of the created team.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Node ID of the created team.",
 			},
 			"members_count": {
 				Type:     schema.TypeInt,
@@ -93,6 +101,10 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 
+	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
+		newTeam.LDAPDN = &ldapDN
+	}
+
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		id := int64(parentTeamID.(int))
 		newTeam.ParentTeamID = &id
@@ -105,20 +117,35 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	create_default_maintainer := d.Get("create_default_maintainer").(bool)
-	if !create_default_maintainer {
-		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
-		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
+	/*
+		When using a GitHub App for authentication, `members:write` permissions on the App are needed.
+
+		However, when using a GitHub App, CreateTeam will not correctly nest the team under the parent,
+		if the parent team was created by someone else than the GitHub App. In that case, the response
+		object will contain a `nil` parent object.
+
+		This can be resolved by using an additional call to EditTeamByID. This will be able to set the
+		parent team correctly when using a GitHub App with `members:write` permissions.
+
+		Note that this is best-effort: when running this with a PAT that does not have admin permissions
+		on the parent team, the operation might still fail to set the parent team.
+	*/
+	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
+		_, _, err := client.Teams.EditTeamByID(ctx,
+			*githubTeam.Organization.ID,
+			*githubTeam.ID,
+			newTeam,
+			false)
+
+		if err != nil {
 			return err
 		}
 	}
 
-	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
-		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, githubTeam.GetID(), mapping)
-		if err != nil {
+	create_default_maintainer := d.Get("create_default_maintainer").(bool)
+	if !create_default_maintainer {
+		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
+		if err := removeDefaultMaintainer(*githubTeam.Slug, meta); err != nil {
 			return err
 		}
 	}

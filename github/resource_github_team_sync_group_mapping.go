@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -26,26 +26,31 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the team.",
 			},
 			"group": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "An Array of GitHub Identity Provider Groups (or empty []).",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The ID of the IdP group.",
 						},
 						"group_name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the IdP group.",
 						},
 						"group_description": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The description of the IdP group.",
 						},
 					},
 				},
@@ -180,7 +185,7 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}
 
 // expandTeamSyncGroups creates an IDPGroupList with an array of IdP groups
 // defined in the *schema.ResourceData to be later used to create or update
-// IdP group connections in Github; if the "group" key is not present,
+// IdP group connections in GitHub; if the "group" key is not present,
 // an empty array must be set in the IDPGroupList per API endpoint specs:
 // https://developer.github.com/v3/teams/team_sync/#create-or-update-idp-group-connections
 func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
