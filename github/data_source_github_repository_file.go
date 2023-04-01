@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
+	"strings"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -26,8 +29,12 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 			"branch": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The branch name, defaults to \"main\"",
-				Default:     "main",
+				Description: "The branch name, defaults to the repository's default branch",
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The name of the commit/branch/tag",
 			},
 			"content": {
 				Type:        schema.TypeString,
@@ -64,21 +71,39 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	owner := meta.(*Owner).name
 	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
-	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
-		return err
+
+	// checking if repo has a slash in it, which means that full_name was passed
+	// split and replace owner and repo
+	parts := strings.Split(repo, "/")
+	if len(parts) == 2 {
+		log.Printf("[DEBUG] repo has a slash, extracting owner from: %s", repo)
+		owner = parts[0]
+		repo = parts[1]
+
+		log.Printf("[DEBUG] owner: %s repo:%s", owner, repo)
 	}
 
-	opts := &github.RepositoryContentGetOptions{Ref: branch}
+	file := d.Get("file").(string)
+
+	opts := &github.RepositoryContentGetOptions{}
+	if branch, ok := d.GetOk("branch"); ok {
+		opts.Ref = branch.(string)
+	}
+
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
+		if err, ok := err.(*github.ErrorResponse); ok {
+			if err.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[DEBUG] Missing GitHub repository file %s/%s/%s", owner, repo, file)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -93,18 +118,20 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 	d.Set("file", file)
 	d.Set("sha", fc.GetSHA())
 
-	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
-	var commit *github.RepositoryCommit
-
-	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
-	if sha, ok := d.GetOk("commit_sha"); ok {
-		log.Printf("[DEBUG] Using known commit SHA: %s", sha.(string))
-		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
-	} else {
-		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
-		commit, err = getFileCommit(client, owner, repo, file, branch)
-		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+	parsedUrl, err := url.Parse(fc.GetURL())
+	if err != nil {
+		return err
 	}
+	parsedQuery, err := url.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return err
+	}
+	ref := parsedQuery["ref"][0]
+	d.Set("ref", ref)
+
+	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
+	commit, err := getFileCommit(client, owner, repo, file, ref)
+	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 	if err != nil {
 		return err
 	}

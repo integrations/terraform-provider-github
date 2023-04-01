@@ -11,12 +11,25 @@ import (
 
 // untar is a shared helper for untarring an archive. The reader should provide
 // an uncompressed view of the tar archive.
-func untar(input io.Reader, dst, src string, dir bool) error {
+func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode, fileSizeLimit int64, filesLimit int) error {
 	tarR := tar.NewReader(input)
 	done := false
 	dirHdrs := []*tar.Header{}
 	now := time.Now()
+
+	var (
+		fileSize   int64
+		filesCount int
+	)
+
 	for {
+		if filesLimit > 0 {
+			filesCount++
+			if filesCount > filesLimit {
+				return fmt.Errorf("tar archive contains too many files: %d > %d", filesCount, filesLimit)
+			}
+		}
+
 		hdr, err := tarR.Next()
 		if err == io.EOF {
 			if !done {
@@ -45,13 +58,21 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 			path = filepath.Join(path, hdr.Name)
 		}
 
-		if hdr.FileInfo().IsDir() {
+		fileInfo := hdr.FileInfo()
+
+		fileSize += fileInfo.Size()
+
+		if fileSizeLimit > 0 && fileSize > fileSizeLimit {
+			return fmt.Errorf("tar archive larger than limit: %d", fileSizeLimit)
+		}
+
+		if fileInfo.IsDir() {
 			if !dir {
 				return fmt.Errorf("expected a single file: %s", src)
 			}
 
 			// A directory, just make the directory and continue unarchiving...
-			if err := os.MkdirAll(path, 0755); err != nil {
+			if err := os.MkdirAll(path, mode(0755, umask)); err != nil {
 				return err
 			}
 
@@ -67,7 +88,7 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 
 			// Check that the directory exists, otherwise create it
 			if _, err := os.Stat(dstPath); os.IsNotExist(err) {
-				if err := os.MkdirAll(dstPath, 0755); err != nil {
+				if err := os.MkdirAll(dstPath, mode(0755, umask)); err != nil {
 					return err
 				}
 			}
@@ -81,19 +102,9 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 		// Mark that we're done so future in single file mode errors
 		done = true
 
-		// Open the file for writing
-		dstF, err := os.Create(path)
+		// Size limit is tracked using the returned file info.
+		err = copyReader(path, tarR, hdr.FileInfo().Mode(), umask, 0)
 		if err != nil {
-			return err
-		}
-		_, err = io.Copy(dstF, tarR)
-		dstF.Close()
-		if err != nil {
-			return err
-		}
-
-		// Chmod the file
-		if err := os.Chmod(path, hdr.FileInfo().Mode()); err != nil {
 			return err
 		}
 
@@ -115,7 +126,7 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 	for _, dirHdr := range dirHdrs {
 		path := filepath.Join(dst, dirHdr.Name)
 		// Chmod the directory since they might be created before we know the mode flags
-		if err := os.Chmod(path, dirHdr.FileInfo().Mode()); err != nil {
+		if err := os.Chmod(path, mode(dirHdr.FileInfo().Mode(), umask)); err != nil {
 			return err
 		}
 		// Set the mtime/atime attributes since they would have been changed during extraction
@@ -135,17 +146,29 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 	return nil
 }
 
-// tarDecompressor is an implementation of Decompressor that can
+// TarDecompressor is an implementation of Decompressor that can
 // unpack tar files.
-type tarDecompressor struct{}
+type TarDecompressor struct {
+	// FileSizeLimit limits the total size of all
+	// decompressed files.
+	//
+	// The zero value means no limit.
+	FileSizeLimit int64
 
-func (d *tarDecompressor) Decompress(dst, src string, dir bool) error {
+	// FilesLimit limits the number of files that are
+	// allowed to be decompressed.
+	//
+	// The zero value means no limit.
+	FilesLimit int
+}
+
+func (d *TarDecompressor) Decompress(dst, src string, dir bool, umask os.FileMode) error {
 	// If we're going into a directory we should make that first
 	mkdir := dst
 	if !dir {
 		mkdir = filepath.Dir(dst)
 	}
-	if err := os.MkdirAll(mkdir, 0755); err != nil {
+	if err := os.MkdirAll(mkdir, mode(0755, umask)); err != nil {
 		return err
 	}
 
@@ -156,5 +179,5 @@ func (d *tarDecompressor) Decompress(dst, src string, dir bool) error {
 	}
 	defer f.Close()
 
-	return untar(f, dst, src, dir)
+	return untar(f, dst, src, dir, umask, d.FileSizeLimit, d.FilesLimit)
 }
