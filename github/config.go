@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -36,7 +37,11 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
-	client.Transport = logging.NewTransport("Github", client.Transport)
+	client.Transport = logging.NewTransport("GitHub", client.Transport)
+	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
+		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
+		"Accept": "application/vnd.github.stone-crop-preview+json",
+	}, client.Transport)
 
 	return client
 }
@@ -99,7 +104,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
-
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
@@ -158,4 +162,29 @@ func (c *Config) Meta() (interface{}, error) {
 		log.Printf("[INFO] Token present; configuring authenticated owner: %s", owner.name)
 		return &owner, nil
 	}
+}
+
+type previewHeaderInjectorTransport struct {
+	rt             http.RoundTripper
+	previewHeaders map[string]string
+}
+
+func newPreviewHeaderInjectorTransport(headers map[string]string, rt http.RoundTripper) *previewHeaderInjectorTransport {
+	return &previewHeaderInjectorTransport{
+		rt:             rt,
+		previewHeaders: headers,
+	}
+}
+
+func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	for name, value := range injector.previewHeaders {
+		header := req.Header.Get(name)
+		if header == "" {
+			header = value
+		} else {
+			header = strings.Join([]string{header, value}, ",")
+		}
+		req.Header.Set(name, header)
+	}
+	return injector.rt.RoundTrip(req)
 }

@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -23,7 +23,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				parts := strings.Split(d.Id(), ":")
 
 				if len(parts) > 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
 				client := meta.(*Owner).v3client
@@ -90,19 +90,19 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The commit message when creating or updating the file",
+				Description: "The commit message when creating, updating or deleting the file",
 			},
 			"commit_author": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author name, defaults to the authenticated user's name",
+				Computed:    false,
+				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit author email address, defaults to the authenticated user's email address",
+				Computed:    false,
+				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 			},
 			"sha": {
 				Type:        schema.TypeString,
@@ -142,11 +142,11 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && !hasCommitEmail {
-		return nil, fmt.Errorf("Cannot set commit_author without setting commit_email")
+		return nil, fmt.Errorf("cannot set commit_author without setting commit_email")
 	}
 
 	if hasCommitEmail && !hasCommitAuthor {
-		return nil, fmt.Errorf("Cannot set commit_email without setting commit_author")
+		return nil, fmt.Errorf("cannot set commit_email without setting commit_author")
 	}
 
 	if hasCommitAuthor && hasCommitEmail {
@@ -288,8 +288,18 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
+
+	commit_author := commit.Commit.GetCommitter().GetName()
+	commit_email := commit.Commit.GetCommitter().GetEmail()
+
+	_, hasCommitAuthor := d.GetOk("commit_author")
+	_, hasCommitEmail := d.GetOk("commit_email")
+
+	//read from state if author+email is set explicitly, and if it was not github signing it for you previously
+	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
+		d.Set("commit_author", commit_author)
+		d.Set("commit_email", commit_email)
+	}
 	d.Set("commit_message", commit.GetCommit().GetMessage())
 
 	return nil
@@ -339,9 +349,15 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
+
 	var branch string
 
 	message := fmt.Sprintf("Delete %s", file)
+
+	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
+		message = commitMessage.(string)
+	}
+
 	sha := d.Get("sha").(string)
 	opts := &github.RepositoryContentFileOptions{
 		Message: &message,

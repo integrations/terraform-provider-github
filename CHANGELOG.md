@@ -1,3 +1,22 @@
+# NOTE: CHANGELOG.md is deprecated
+
+After the release of v4.24.0, please see the [GitHub release notes](https://github.com/integrations/terraform-provider-github/releases) for the provider in order to view the most up-to-date changes.
+
+# 4.24.0 (Apr 28, 2022)
+
+ENHANCEMENTS:
+* Support for allow_forking on a repository/update to go-github v42 by @diogopms in https://github.com/integrations/terraform-provider-github/pull/1033
+* Upgrade go-github to v43.0.0 by @btkostner in https://github.com/integrations/terraform-provider-github/pull/1087
+
+BUG FIXES:
+
+* Fix go module path by @turkenh in https://github.com/integrations/terraform-provider-github/pull/961
+* fix: remove incorrect required schema key on ref data source by @youcandanch in https://github.com/integrations/terraform-provider-github/pull/1109
+* Bump Go version for Actions release CI to 1.18 by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1134
+* build(deps): bump actions/setup-go from 2 to 3 by @dependabot in https://github.com/integrations/terraform-provider-github/pull/1110
+* Fix linting issues by @kfcampbell in https://github.com/integrations/terraform-provider-github/pull/1107
+
+
 # 4.23.0 (Mar 25, 2022)
 
 ENHANCEMENTS:
@@ -513,7 +532,7 @@ BUG FIXES:
 
 BUG FIXES:
 
-* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in Github console if `dismissal_users` and `dismissal_teams` are not set ([#453](https://github.com/integrations/terraform-provider-github/issues/453))
+* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in GitHub console if `dismissal_users` and `dismissal_teams` are not set ([#453](https://github.com/integrations/terraform-provider-github/issues/453))
 * resource/github_repository_collaborator: Allow modifying permissions from `maintain` and `triage`  ([#457](https://github.com/integrations/terraform-provider-github/issues/457))
 * Documentation Fix for `github_actions_public_key` data-source ([#458](https://github.com/integrations/terraform-provider-github/issues/458))
 * Documentation Fix for `github_branch_protection` resource ([#410](https://github.com/integrations/terraform-provider-github/issues/410))
