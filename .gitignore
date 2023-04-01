@@ -27,8 +27,8 @@ website/node_modules
 *.tfvars
 .vscode/
 testdata/
-
 website/vendor
+terraform-provider-github
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -24,7 +24,7 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
-					return nil, fmt.Errorf("Invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
+					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
 				}
 				d.Set("owner", parts[0])
 				d.Set("repository", parts[1])
@@ -41,25 +41,29 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"title": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The title of the milestone.",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The owner of the GitHub Repository.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the GitHub Repository.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A description of the milestone.",
 			},
 			"due_date": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "in yyyy-mm-dd format",
+				Description: "The milestone due date. In 'yyyy-mm-dd' format.",
 			},
 			"state": {
 				Type:     schema.TypeString,
@@ -67,11 +71,13 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"open", "closed",
 				}, true),
-				Default: "open",
+				Default:     "open",
+				Description: "The state of the milestone. Either 'open' or 'closed'. Default: 'open'.",
 			},
 			"number": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The number of the milestone.",
 			},
 		},
 	}
@@ -100,7 +106,9 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 39, 0, 0, time.UTC)
-		milestone.DueOn = &date
+		milestone.DueOn = &github.Timestamp{
+			Time: date,
+		}
 	}
 	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
 		milestone.State = github.String(v.(string))
@@ -182,7 +190,9 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 7, 0, 0, 0, time.UTC)
-		milestone.DueOn = &date
+		milestone.DueOn = &github.Timestamp{
+			Time: date,
+		}
 	}
 
 	if d.HasChanges("state") {

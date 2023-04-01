@@ -4,9 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -26,6 +25,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "The GitHub team id or the GitHub team slug.",
 				ValidateFunc: validateTeamIDFunc,
 			},
 			"username": {
@@ -33,11 +33,13 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
+				Description:      "The user to add to the team.",
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "member",
+				Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
@@ -53,9 +55,9 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	ctx := context.Background()
 
@@ -87,9 +89,9 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 
 	// We intentionally set these early to allow reconciliation
@@ -130,9 +132,9 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	username := d.Get("username").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

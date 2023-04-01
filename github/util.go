@@ -54,7 +54,7 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s", id, left, right)
+		return "", "", fmt.Errorf("unexpected ID format (%q); expected %s:%s", id, left, right)
 	}
 
 	return parts[0], parts[1], nil
@@ -69,7 +69,7 @@ func buildTwoPartID(a, b string) string {
 func parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
+		return "", "", "", fmt.Errorf("unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
 	}
 
 	return parts[0], parts[1], parts[2], nil
@@ -148,29 +148,18 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
 
 	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return -1, errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetID(), nil
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-			if slugErr != nil {
-				return -1, errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-			return team.GetID(), nil
-		}
-		return team.GetID(), nil
+	if parseIntErr == nil {
+		return teamId, nil
 	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+	if slugErr != nil {
+		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
+	}
+	return team.GetID(), nil
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
@@ -183,11 +172,11 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 	}
 
 	if !secretNameRegexp.MatchString(name) {
-		errs = append(errs, errors.New("Secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+		errs = append(errs, errors.New("secret names can only contain alphanumeric characters or underscores and must not start with a number"))
 	}
 
 	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
-		errs = append(errs, errors.New("Secret names must not start with the GITHUB_ prefix"))
+		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
 	}
 
 	return we, errs

@@ -14,7 +14,9 @@ the user will be added to the team. If the user hasn't accepted their invitation
 organization, they won't be part of the team until they do. When
 destroyed, the user will be removed from the team.
 
-~> **Note**: This resource is not compatible with `github_team_members`. Use either `github_team_members` or `github_team_membership`.
+~> **Note** This resource is not compatible with `github_team_members`. Use either `github_team_members` or `github_team_membership`.
+
+~> **Note** Organization owners may not be set as "members" of a team; they may only be set as "maintainers". Attempting to set organization an owner to "member" of a may result in a `terraform plan` diff that changes their status back to "maintainer".
 
 ## Example Usage
 
@@ -41,7 +43,7 @@ resource "github_team_membership" "some_team_membership" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The GitHub team id
+* `team_id` - (Required) The GitHub team id or the GitHub team slug
 * `username` - (Required) The user to add to the team.
 * `role` - (Optional) The role of the user within the team.
             Must be one of `member` or `maintainer`. Defaults to `member`.

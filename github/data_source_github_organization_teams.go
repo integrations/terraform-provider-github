@@ -2,6 +2,7 @@ package github
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -14,6 +15,17 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+			"summary_only": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"results_per_page": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      100,
+				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"teams": {
 				Type:     schema.TypeList,
@@ -54,6 +66,11 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						"parent": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -70,13 +87,17 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	rootTeamsOnly := d.Get("root_teams_only").(bool)
+	summaryOnly := d.Get("summary_only").(bool)
+	resultsPerPage := d.Get("results_per_page").(int)
 
 	var query TeamsQuery
+
 	variables := map[string]interface{}{
-		"first":         githubv4.Int(100),
+		"first":         githubv4.Int(resultsPerPage),
 		"login":         githubv4.String(orgName),
 		"cursor":        (*githubv4.String)(nil),
 		"rootTeamsOnly": githubv4.Boolean(rootTeamsOnly),
+		"summaryOnly":   githubv4.Boolean(summaryOnly),
 	}
 
 	var teams []interface{}
@@ -119,7 +140,6 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		t["name"] = team.Name
 		t["description"] = team.Description
 		t["privacy"] = team.Privacy
-
 		members := team.Members.Nodes
 		flatMembers := make([]string, len(members))
 
@@ -128,6 +148,12 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		}
 
 		t["members"] = flatMembers
+
+		parentTeam := make(map[string]interface{})
+		parentTeam["id"] = team.Parent.ID
+		parentTeam["slug"] = team.Parent.Slug
+		parentTeam["name"] = team.Parent.Name
+		t["parent"] = parentTeam
 
 		repositories := team.Repositories.Nodes
 
