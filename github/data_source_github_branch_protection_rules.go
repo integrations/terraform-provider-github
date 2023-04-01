@@ -15,7 +15,7 @@ func dataSourceGithubBranchProtectionRules() *schema.Resource {
 				Required: true,
 			},
 			"rules": {
-				Type: schema.TypeList,
+				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -37,7 +37,7 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta inte
 
 	var query struct {
 		Repository struct {
-			ID    githubv4.String
+			ID                    githubv4.String
 			BranchProtectionRules struct {
 				Nodes []struct {
 					Pattern githubv4.String
@@ -47,10 +47,10 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta inte
 		} `graphql:"repository(name: $name, owner: $owner)"`
 	}
 	variables := map[string]interface{}{
-		"first":         githubv4.Int(100),
-		"name":          githubv4.String(repoName),
-		"owner":         githubv4.String(orgName),
-		"cursor":        (*githubv4.String)(nil),
+		"first":  githubv4.Int(100),
+		"name":   githubv4.String(repoName),
+		"owner":  githubv4.String(orgName),
+		"cursor": (*githubv4.String)(nil),
 	}
 
 	var rules []interface{}
