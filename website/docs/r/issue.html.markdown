@@ -62,17 +62,17 @@ resource "github_issue" "test" {
 
 The following arguments are supported:
 
-* `owner` - (Required) Owner of the repository the issue belongs to.
+* `owner` - (Required) Owner of the repository the issue belongs to
 
 * `repository` - (Required) The GitHub repository name
 
-* `title` - (Required) Title of the issue.
+* `title` - (Required) Title of the issue
 
-* `body` - (Optional) Title of the issue.
+* `body` - (Optional) Body of the issue
 
-* `labels` - (Optional) List of labels to attach to the issue. 
+* `labels` - (Optional) List of labels to attach to the issue
 
-* `assignees` - (Optional) List of Logins to assign the to the issue.
+* `assignees` - (Optional) List of Logins to assign the to the issue
 
 * `milestone_number` - (Optional) Milestone number to assign to the issue
 
