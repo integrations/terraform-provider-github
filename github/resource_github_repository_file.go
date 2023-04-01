@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"log"
-	"strings"
 	"net/url"
+	"strings"
 
 	"fmt"
 
@@ -79,7 +79,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The name of the commit/branch/tag",
-				ForceNew: 	 true,
+				ForceNew:    true,
 			},
 			"commit_sha": {
 				Type:        schema.TypeString,
