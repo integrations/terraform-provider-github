@@ -5,7 +5,7 @@ description: |-
   Creates and manages an Action variable within a GitHub repository
 ---
 
-# github_actions_Varaiable
+# github_actions_variable
 
 This resource allows you to create and manage GitHub Actions variables within your GitHub repositories.
 You must have write access to a repository to use this resource.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-github/v50/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganization() *schema.Resource {
@@ -49,6 +50,17 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.",
+			},
+			"users": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
 			},
 		},
 	}
@@ -57,10 +69,11 @@ func dataSourceGithubOrganization() *schema.Resource {
 func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 
-	client := meta.(*Owner).v3client
+	client4 := meta.(*Owner).v4client
+	client3 := meta.(*Owner).v3client
 	ctx := meta.(*Owner).StopContext
 
-	organization, _, err := client.Organizations.Get(ctx, name)
+	organization, _, err := client3.Organizations.Get(ctx, name)
 	if err != nil {
 		return err
 	}
@@ -79,7 +92,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	var allRepos []*github.Repository
 
 	for {
-		repos, resp, err := client.Repositories.ListByOrg(ctx, name, opts)
+		repos, resp, err := client3.Repositories.ListByOrg(ctx, name, opts)
 		if err != nil {
 			return err
 		}
@@ -95,28 +108,48 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		repoList = append(repoList, allRepos[index].GetFullName())
 	}
 
-	membershipOpts := &github.ListMembersOptions{
-		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
+	var query struct {
+		Organization struct {
+			MembersWithRole struct {
+				Edges []struct {
+					Role githubv4.String
+					Node struct {
+						Id    githubv4.String
+						Login githubv4.String
+						Email githubv4.String
+					}
+				}
+				PageInfo struct {
+					EndCursor   githubv4.String
+					HasNextPage bool
+				}
+			} `graphql:"membersWithRole(first: 100, after: $after)"`
+		} `graphql:"organization(login: $login)"`
 	}
-
-	var memberList []string
-	var allMembers []*github.User
-
+	variables := map[string]interface{}{
+		"login": githubv4.String(name),
+		"after": (*githubv4.String)(nil),
+	}
+	var members []string
+	var users []map[string]string
 	for {
-		members, resp, err := client.Organizations.ListMembers(ctx, name, membershipOpts)
+		err := client4.Query(ctx, &query, variables)
 		if err != nil {
 			return err
 		}
-		allMembers = append(allMembers, members...)
-
-		membershipOpts.Page = resp.NextPage
-
-		if resp.NextPage == 0 {
+		for _, edge := range query.Organization.MembersWithRole.Edges {
+			members = append(members, string(edge.Node.Login))
+			users = append(users, map[string]string{
+				"id":    string(edge.Node.Id),
+				"login": string(edge.Node.Login),
+				"email": string(edge.Node.Email),
+				"role":  string(edge.Role),
+			})
+		}
+		if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 			break
 		}
-	}
-	for index := range allMembers {
-		memberList = append(memberList, *allMembers[index].Login)
+		variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
@@ -127,7 +160,8 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", planName)
 	d.Set("repositories", repoList)
-	d.Set("members", memberList)
+	d.Set("members", members)
+	d.Set("users", users)
 
 	return nil
 }
