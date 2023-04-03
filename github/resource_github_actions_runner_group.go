@@ -75,13 +75,14 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,
-				Computed:    true,
+				Optional:    true,
+				Default:     false,
 				Description: "If 'true', the runner group will be restricted to running only the workflows specified in the 'selected_workflows' array. Defaults to 'false'.",
 			},
 			"selected_workflows": {
 				Type:        schema.TypeList,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Computed:    true,
+				Optional:    true,
 				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
 			},
 		},
@@ -100,7 +101,13 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
-	selectedWorkflows := d.Get("selected_workflows").([]string)
+
+	selectedWorkflows := []string{}
+	if workflows, ok := d.GetOk("selected_workflows"); ok {
+		for _, workflow := range workflows.([]interface{}) {
+			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		}
+	}
 
 	if visibility != "selected" && hasSelectedRepositories {
 		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
@@ -240,10 +247,19 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 
 	name := d.Get("name").(string)
 	visibility := d.Get("visibility").(string)
+	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
+	selectedWorkflows := []string{}
+	if workflows, ok := d.GetOk("selected_workflows"); ok {
+		for _, workflow := range workflows.([]interface{}) {
+			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		}
+	}
 
 	options := github.UpdateRunnerGroupRequest{
-		Name:       &name,
-		Visibility: &visibility,
+		Name:                  &name,
+		Visibility:            &visibility,
+		RestrictedToWorkflows: &restrictedToWorkflows,
+		SelectedWorkflows:     selectedWorkflows,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
