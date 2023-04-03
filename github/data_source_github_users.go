@@ -29,6 +29,13 @@ func dataSourceGithubUsers() *schema.Resource {
 				},
 				Computed: true,
 			},
+			"emails": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed: true,
+			},
 			"node_ids": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
@@ -55,6 +62,7 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 		UserFragment struct {
 			Id    string
 			Login string
+			Email string
 		}
 	)
 	var fields []reflect.StructField
@@ -77,12 +85,13 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	var logins, nodeIDs, unknownLogins []string
+	var logins, emails, nodeIDs, unknownLogins []string
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
 		user := query.FieldByName(label).Interface().(UserFragment)
 		if user.Login != "" {
 			logins = append(logins, user.Login)
+			emails = append(emails, user.Email)
 			nodeIDs = append(nodeIDs, user.Id)
 		} else {
 			unknownLogins = append(unknownLogins, username)
@@ -91,6 +100,7 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(buildChecksumID(usernames))
 	d.Set("logins", logins)
+	d.Set("emails", emails)
 	d.Set("node_ids", nodeIDs)
 	d.Set("unknown_logins", unknownLogins)
 

@@ -44,7 +44,7 @@ The following arguments are supported:
 
 * `content` - (Required) The file content.
 
-* `branch` - (Optional) Git branch (defaults to `main`).
+* `branch` - (Optional) Git branch (defaults to the repository's default branch).
   The branch must already exist, it will not be created if it does not already exist.
 
 * `commit_author` - (Optional) Committer author name to use. **NOTE:** GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. This maybe useful when a branch protection rule requires signed commits.
@@ -63,6 +63,8 @@ The following additional attributes are exported:
 
 * `sha` - The SHA blob of the file.
 
+* `ref` - The name of the commit/branch/tag.
+
 
 ## Import
 
@@ -72,7 +74,7 @@ Repository files can be imported using a combination of the `repo` and `file`, e
 $ terraform import github_repository_file.gitignore example/.gitignore
 ```
 
-To import a file from a branch other than main, append `:` and the branch name, e.g.
+To import a file from a branch other than the default branch, append `:` and the branch name, e.g.
 
 ```
 $ terraform import github_repository_file.gitignore example/.gitignore:dev
