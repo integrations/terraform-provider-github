@@ -279,7 +279,7 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 	})
 }
 
-func TestAccGithubBranchProtectionV3_required_pull_request_reviews_bypass_allowances(t *testing.T) {
+func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
