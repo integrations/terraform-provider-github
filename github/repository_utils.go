@@ -25,20 +25,6 @@ func checkRepositoryBranchExists(client *github.Client, owner, repo, branch stri
 	return nil
 }
 
-// checkRepositoryFileExists tests if a file exists in a repository.
-func checkRepositoryFileExists(client *github.Client, owner, repo, file, branch string) error {
-	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, &github.RepositoryContentGetOptions{Ref: branch})
-	if err != nil {
-		return nil
-	}
-	if fc == nil {
-		return fmt.Errorf("file %s not a file in in repository %s/%s or repository is not readable", file, owner, repo)
-	}
-
-	return nil
-}
-
 func getFileCommit(client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
 	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
 	opts := &github.CommitsListOptions{
