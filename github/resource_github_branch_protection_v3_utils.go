@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v50/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/google/go-github/v50/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
@@ -122,6 +123,40 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	return err
 }
 
+func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances) []interface{} {
+	if bpra == nil {
+		return nil
+	}
+	users := make([]interface{}, 0, len(bpra.Users))
+	for _, u := range bpra.Users {
+		if u.Login != nil {
+			users = append(users, *u.Login)
+		}
+	}
+
+	teams := make([]interface{}, 0, len(bpra.Teams))
+	for _, t := range bpra.Teams {
+		if t.Slug != nil {
+			teams = append(teams, *t.Slug)
+		}
+	}
+
+	apps := make([]interface{}, 0, len(bpra.Apps))
+	for _, t := range bpra.Apps {
+		if t.Slug != nil {
+			apps = append(apps, *t.Slug)
+		}
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"users": schema.NewSet(schema.HashString, users),
+			"teams": schema.NewSet(schema.HashString, teams),
+			"apps":  schema.NewSet(schema.HashString, apps),
+		},
+	}
+}
+
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
@@ -143,6 +178,8 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 			}
 		}
 
+		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
+
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
@@ -150,6 +187,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
+				"bypass_pull_request_allowances":  bpra,
 			},
 		})
 	}
@@ -292,10 +330,16 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 				drr.Teams = &teams
 			}
 
+			bpra, err := expandBypassPullRequestAllowances(m)
+			if err != nil {
+				return nil, err
+			}
+
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
+			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 
 		return rprr, nil
@@ -334,6 +378,36 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 	}
 
 	return nil, nil
+}
+
+func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.BypassPullRequestAllowancesRequest, error) {
+	if m["bypass_pull_request_allowances"] == nil {
+		return nil, nil
+	}
+
+	vL := m["bypass_pull_request_allowances"].([]interface{})
+	if len(vL) > 1 {
+		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
+	}
+
+	var bpra *github.BypassPullRequestAllowancesRequest
+
+	for _, v := range vL {
+		if v == nil {
+			return nil, errors.New("invalid bypass_pull_request_allowances")
+		}
+		bpra = new(github.BypassPullRequestAllowancesRequest)
+		m := v.(map[string]interface{})
+
+		users := expandNestedSet(m, "users")
+		bpra.Users = users
+		teams := expandNestedSet(m, "teams")
+		bpra.Teams = teams
+		apps := expandNestedSet(m, "apps")
+		bpra.Apps = apps
+	}
+
+	return bpra, nil
 }
 
 func checkBranchRestrictionsUsers(actual *github.BranchRestrictions, expected *github.BranchRestrictionsRequest) error {
