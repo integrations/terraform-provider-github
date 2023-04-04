@@ -49,7 +49,7 @@ The following arguments are supported:
 
 ## Import
 
-GitHub Team Repository can be imported using an ID made up of `teamid:repository`, e.g.
+GitHub Team Repository can be imported using an ID made up of `team_id:repository`, e.g.
 
 ```
 $ terraform import github_team_repository.terraform_repo 1234567:terraform

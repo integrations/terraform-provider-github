@@ -35,7 +35,7 @@ The following additional attributes are exported:
 Repository tag protections can be imported using the `name` of the repository, combined with the `id` of the tag protection, separated by a `/` character.
 The `id` of the tag protection can be found using the [GitHub API](https://docs.github.com/en/rest/repos/tags#list-tag-protection-states-for-a-repository).
 
-Importing uses the name of the repository, as well as the ID of the webhook, e.g.
+Importing uses the name of the repository, as well as the ID of the tag protection, e.g.
 
 ```
 $ terraform import github_repository_tag_protection.terraform my-repo/31077

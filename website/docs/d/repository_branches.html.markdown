@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: repository_branches"
 description: |-
-  Get information on a Github repository's branches.
+  Get information on a GitHub repository's branches.
 ---
 
 # github_repository_branches
@@ -20,6 +20,10 @@ data "github_repository_branches" "example" {
 ## Argument Reference
 
 * `repository` - (Required) Name of the repository to retrieve the branches from.
+
+* `only_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with protected branches. Default: `false`.
+
+* `only_non_protected_branches` - (Optional). If true, the `branches` attributes will be populated only with non protected branches. Default: `false`.
 
 ## Attributes Reference
 
