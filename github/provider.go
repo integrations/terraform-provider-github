@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -55,6 +56,12 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     0,
 				Description: descriptions["read_delay_ms"],
+			},
+			"parallel_requests": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
 				Type:        schema.TypeList,
@@ -226,6 +233,9 @@ func init() {
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
 			"Defaults to 0ms if not set.",
+		"parallel_requests": "Allow the provider to make parallel api calls to the Github server." +
+			"It can't be enabled for github.com in order to comply on rate_limits and best practices." +
+			"Defaults to false if not set",
 	}
 }
 
@@ -308,13 +318,21 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
+		parallelRequests := d.Get("parallel_requests").(bool)
+		isGithubDotCom, _ := regexp.MatchString("^https://api.github.com", baseURL)
+		if parallelRequests && isGithubDotCom {
+			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
+		}
+		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+
 		config := Config{
-			Token:      token,
-			BaseURL:    baseURL,
-			Insecure:   insecure,
-			Owner:      owner,
-			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
-			ReadDelay:  time.Duration(readDelay) * time.Millisecond,
+			Token:            token,
+			BaseURL:          baseURL,
+			Insecure:         insecure,
+			Owner:            owner,
+			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
+			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
+			ParallelRequests: parallelRequests,
 		}
 
 		meta, err := config.Meta()
