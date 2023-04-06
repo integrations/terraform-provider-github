@@ -1,4 +1,5 @@
 provider "github" {
-  organization = var.organization
+  owner = var.organization
   token        = var.github_token
+
 }
