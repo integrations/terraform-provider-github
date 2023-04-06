@@ -31,6 +31,7 @@ type Owner struct {
 	v4client       *githubv4.Client
 	StopContext    context.Context
 	IsOrganization bool
+	Token          string
 }
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration) *http.Client {
@@ -150,6 +151,7 @@ func (c *Config) Meta() (interface{}, error) {
 	var owner Owner
 	owner.v4client = v4client
 	owner.v3client = v3client
+	owner.Token = c.Token
 
 	if c.Anonymous() {
 		log.Printf("[INFO] No token present; configuring anonymous owner.")
