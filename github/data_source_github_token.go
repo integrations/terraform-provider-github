@@ -6,7 +6,7 @@ import (
 
 func dataSourceGithubToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubAppRead,
+		Read: dataSourceGithubTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"value": {
