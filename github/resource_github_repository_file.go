@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log"
+	"net/url"
 	"strings"
 
 	"fmt"
@@ -20,25 +21,30 @@ func resourceGithubRepositoryFile() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")
-				branch := "main"
 
 				if len(parts) > 2 {
 					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 				}
 
-				if len(parts) == 2 {
-					branch = parts[1]
-				}
-
 				client := meta.(*Owner).v3client
 				owner := meta.(*Owner).name
 				repo, file := splitRepoFilePath(parts[0])
-				if err := checkRepositoryFileExists(client, owner, repo, file, branch); err != nil {
+				// test if a file exists in a repository.
+				ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
+				opts := &github.RepositoryContentGetOptions{}
+				if len(parts) == 2 {
+					opts.Ref = parts[1]
+					d.Set("branch", parts[1])
+				}
+				fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+				if err != nil {
 					return nil, err
+				}
+				if fc == nil {
+					return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
 				}
 
 				d.SetId(fmt.Sprintf("%s/%s", repo, file))
-				d.Set("branch", branch)
 				d.Set("overwrite_on_create", false)
 
 				return []*schema.ResourceData{d}, nil
@@ -67,8 +73,13 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "The branch name, defaults to \"main\"",
-				Default:     "main",
+				Description: "The branch name, defaults to the repository's default branch",
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The name of the commit/branch/tag",
+				ForceNew:    true,
 			},
 			"commit_sha": {
 				Type:        schema.TypeString,
@@ -111,7 +122,10 @@ func resourceGithubRepositoryFile() *schema.Resource {
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
 		Content: []byte(*github.String(d.Get("content").(string))),
-		Branch:  github.String(d.Get("branch").(string)),
+	}
+
+	if branch, ok := d.GetOk("branch"); ok {
+		opts.Branch = github.String(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
@@ -153,10 +167,15 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
 
-	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
-		return err
+	checkOpt := github.RepositoryContentGetOptions{}
+
+	if branch, ok := d.GetOk("branch"); ok {
+		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
+		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
+			return err
+		}
+		checkOpt.Ref = branch.(string)
 	}
 
 	opts, err := resourceGithubRepositoryFileOptions(d)
@@ -169,8 +188,7 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 		opts.Message = &m
 	}
 
-	log.Printf("[DEBUG] Checking if overwriting a repository file: %s/%s/%s in branch: %s", owner, repo, file, branch)
-	checkOpt := github.RepositoryContentGetOptions{Ref: branch}
+	log.Printf("[DEBUG] Checking if overwriting a repository file: %s/%s/%s", owner, repo, file)
 	fileContent, _, resp, err := client.Repositories.GetContents(ctx, owner, repo, file, &checkOpt)
 	if err != nil {
 		if resp != nil {
@@ -214,13 +232,17 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repo, file := splitRepoFilePath(d.Id())
-	branch := d.Get("branch").(string)
 
-	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
-		return err
+	opts := &github.RepositoryContentGetOptions{}
+
+	if branch, ok := d.GetOk("branch"); ok {
+		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
+		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
+			return err
+		}
+		opts.Ref = branch.(string)
 	}
 
-	opts := &github.RepositoryContentGetOptions{Ref: branch}
 	fc, _, _, _ := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if fc == nil {
 		log.Printf("[INFO] Removing repository path %s/%s/%s from state because it no longer exists in GitHub",
@@ -241,13 +263,24 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 
 	var commit *github.RepositoryCommit
 
+	parsedUrl, err := url.Parse(fc.GetURL())
+	if err != nil {
+		return err
+	}
+	parsedQuery, err := url.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return err
+	}
+	ref := parsedQuery["ref"][0]
+	d.Set("ref", ref)
+
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
 	if sha, ok := d.GetOk("commit_sha"); ok {
 		log.Printf("[DEBUG] Using known commit SHA: %s", sha.(string))
 		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
 	} else {
 		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
-		commit, err = getFileCommit(client, owner, repo, file, branch)
+		commit, err = getFileCommit(client, owner, repo, file, ref)
 		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 	}
 	if err != nil {
@@ -280,10 +313,12 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
 
-	if err := checkRepositoryBranchExists(client, owner, repo, branch); err != nil {
-		return err
+	if branch, ok := d.GetOk("branch"); ok {
+		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
+		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
+			return err
+		}
 	}
 
 	opts, err := resourceGithubRepositoryFileOptions(d)
@@ -314,7 +349,9 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
+
+	var branch string
+
 	message := fmt.Sprintf("Delete %s", file)
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
@@ -325,7 +362,12 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 	opts := &github.RepositoryContentFileOptions{
 		Message: &message,
 		SHA:     &sha,
-		Branch:  &branch,
+	}
+
+	if b, ok := d.GetOk("branch"); ok {
+		log.Printf("[DEBUG] Using explicitly set branch: %s", b.(string))
+		branch = b.(string)
+		opts.Branch = &branch
 	}
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
