@@ -7,6 +7,9 @@ description: |-
 
 # github_team_repository
 
+~> Note: github_team_repository cannot be used in conjunction with github_repository_collaborators or
+they will fight over what your policy should be.
+
 This resource manages relationships between teams and repositories
 in your GitHub organization.
 
@@ -16,6 +19,9 @@ particular repository.
 The repository and the team must both belong to the same organization
 on GitHub. This resource does not actually *create* any repositories;
 to do that, see [`github_repository`](repository.html).
+
+This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
+instead.
 
 ## Example Usage
 
