@@ -5,7 +5,7 @@ description: |-
   Get information on GitHub's SSH keys.
 ---
 
-# github_ip_ranges
+# github_ssh_keys
 
 Use this data source to retrieve information about GitHub's SSH keys.
 
