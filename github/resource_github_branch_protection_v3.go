@@ -122,6 +122,30 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
 							ValidateFunc: validation.IntBetween(0, 6),
 						},
+						"bypass_pull_request_allowances": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"users": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"teams": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"apps": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
