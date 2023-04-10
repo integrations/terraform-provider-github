@@ -19,7 +19,7 @@ import (
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("read files", func(t *testing.T) {
+	t.Run("create and read a file with a branch name provided", func(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -52,6 +52,99 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"data.github_repository_file.test", "sha",
 				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "ref",
+				"main",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repository_file.test", "commit_author",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repository_file.test", "commit_email",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repository_file.test", "commit_message",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repository_file.test", "commit_sha",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name      			= "tf-acc-test-%s"
+				auto_init 			= true
+			}
+
+			resource "github_branch" "test" {
+				repository = github_repository.test.name
+				branch     = "test"
+			}
+
+			resource "github_branch_default" "default"{
+				repository = github_repository.test.name
+				branch     = github_branch.test.branch
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = github_branch_default.default.branch
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+
+			data "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = github_repository_file.test.file
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "content",
+				"bar",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "sha",
+				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "ref",
+				"test",
 			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repository_file.test", "commit_author",
@@ -95,6 +188,8 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 }
 
 func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
 	// helper function to simplify marshalling.
 	marshal := func(t *testing.T, msg interface{}) string {
 		data, err := json.MarshalIndent(msg, "", "    ")
@@ -122,14 +217,16 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 	org := "test-org"
 	repo := "test-repo"
 
+	apiUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch)
+
 	// preparing mashalled objects
-	branchRespBody := marshal(t, &github.Branch{Name: &branch})
 	repoContentRespBody := marshal(t, &github.RepositoryContent{
 		Encoding: &enc,
 		Content:  &b64FileContent,
 		SHA:      &sha,
+		URL:      &apiUrl,
 	})
-	repoCommitRespBody := marshal(t, &github.RepositoryCommit{
+	repoCommit := &github.RepositoryCommit{
 		SHA: &sha,
 		Committer: &github.User{
 			Name:  &committerName,
@@ -138,7 +235,14 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		Commit: &github.Commit{
 			Message: &commitMessage,
 		},
-	})
+		Files: []*github.CommitFile{
+			{
+				Filename: &fileName,
+			},
+		},
+	}
+	repoCommitRespBody := marshal(t, repoCommit)
+	listCommitRespBody := marshal(t, []*github.RepositoryCommit{repoCommit})
 
 	t.Run("extracting org and repo if full_name is passed", func(t *testing.T) {
 		// test setup
@@ -148,22 +252,17 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/branches/%s", org, repo, branch),
-				ResponseBody: branchRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
 				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
 				ResponseBody: repoContentRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", org, repo, sha),
-				ResponseBody: repoCommitRespBody,
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", org, repo, fileName, branch),
+				ResponseBody: listCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits", org, repo),
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", org, repo, sha),
 				ResponseBody: repoCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
@@ -217,22 +316,17 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/branches/%s", owner, repo, branch),
-				ResponseBody: branchRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
 				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch),
 				ResponseBody: repoContentRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, sha),
-				ResponseBody: repoCommitRespBody,
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", owner, repo, fileName, branch),
+				ResponseBody: listCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
 			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits", owner, repo),
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, sha),
 				ResponseBody: repoCommitRespBody,
 				StatusCode:   http.StatusOK,
 			},
@@ -277,5 +371,53 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		assert.Equal(t, expectedRepo, schema.Get("repository"))
 		assert.Equal(t, fileContent, schema.Get("content"))
 		assert.Equal(t, expectedID, schema.Get("id"))
+	})
+
+	t.Run("try reading a non-existent file without an error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name      			= "tf-acc-test-%s"
+				auto_init 			= true
+			}
+
+			data "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckNoResourceAttr(
+				"data.github_repository_file.test", "id",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
 }
