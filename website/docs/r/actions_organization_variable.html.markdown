@@ -26,9 +26,9 @@ data "github_repository" "repo" {
 }
 
 resource "github_actions_organization_variable" "example_variable" {
-  secret_name             = "example_variable_name"
+  variable_name           = "example_variable_name"
   visibility              = "selected"
-  plaintext_value         = "example_variable_value"
+  value                   = "example_variable_value"
   selected_repository_ids = [data.github_repository.repo.repo_id]
 }
 ```
