@@ -43,6 +43,10 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				"github_repository_file.test", "sha",
 				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
 			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "ref",
+				"main",
+			),
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_author",
 			),
@@ -132,13 +136,98 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
-						ExpectError: regexp.MustCompile(`Refusing to overwrite existing file`),
+						ExpectError: regexp.MustCompile(`refusing to overwrite existing file`),
 					},
 					{
 						Config: strings.Replace(config,
 							"overwrite_on_create = false",
 							"overwrite_on_create = true", 1),
 						Check: check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				auto_init = true
+			}
+
+			resource "github_branch" "test" {
+				repository = github_repository.test.name
+				branch     = "test"
+			}
+
+			resource "github_branch_default" "default"{
+				repository = github_repository.test.name
+				branch     = github_branch.test.branch
+			}
+
+			resource "github_repository_file" "test" {
+				depends_on  = [github_branch_default.default]
+
+				repository     = github_repository.test.name
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				"bar",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "sha",
+				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "ref",
+				"test",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_author",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_email",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_message",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
 					},
 				},
 			})

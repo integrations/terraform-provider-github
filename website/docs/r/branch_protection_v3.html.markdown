@@ -5,7 +5,7 @@ description: |-
   Protects a GitHub branch using the v3 / REST implementation.  The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
 ---
 
-# github\_branch\_protection\_v3
+# github_branch_protection_v3
 
 Protects a GitHub branch.
 
@@ -29,8 +29,8 @@ resource "github_branch_protection_v3" "example" {
 
 ```hcl
 # Protect the main branch of the foo repository. Additionally, require that
-# the "ci/travis" context to be passing and only allow the engineers team merge
-# to the branch.
+# the "ci/check" check ran by the Github Actions app is passing and only allow
+# the engineers team merge to the branch.
 
 resource "github_branch_protection_v3" "example" {
   repository     = github_repository.example.name
@@ -39,13 +39,21 @@ resource "github_branch_protection_v3" "example" {
 
   required_status_checks {
     strict   = false
-    contexts = ["ci/travis"]
+    checks = [
+      "ci/check:824642007264"
+    ]
   }
 
   required_pull_request_reviews {
     dismiss_stale_reviews = true
     dismissal_users       = ["foo-user"]
     dismissal_teams       = [github_team.example.slug]
+
+    bypass_pull_request_allowances {
+      users = ["foo-user"]
+      teams = [github_team.example.slug]
+      apps  = ["foo-app"]
+    }
   }
 
   restrictions {
@@ -88,7 +96,8 @@ The following arguments are supported:
 `required_status_checks` supports the following arguments:
 
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
-* `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+* `contexts`: [**DEPRECATED**] (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+* `checks`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the context and app_id like so "context:app_id".
 
 ### Required Pull Request Reviews
 
@@ -100,6 +109,7 @@ The following arguments are supported:
   Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
+* `bypass_pull_request_allowances`: (Optional) Allow specific users, teams, or apps to bypass pull request requirements. See [Bypass Pull Request Allowances](#bypass-pull-request-allowances) below for details.
 
 ### Restrictions
 
@@ -111,6 +121,14 @@ The following arguments are supported:
 * `apps`: (Optional) The list of app slugs with push access.
 
 `restrictions` is only available for organization-owned repositories.
+
+### Bypass Pull Request Allowances
+
+`bypass_pull_request_allowances` supports the following arguments:
+
+- `users`: (Optional) The list of user logins allowed to bypass pull request requirements.
+- `teams`: (Optional) The list of team slugs allowed to bypass pull request requirements.
+- `apps`: (Optional) The list of app slugs allowed to bypass pull request requirements.
 
 ## Import
 
