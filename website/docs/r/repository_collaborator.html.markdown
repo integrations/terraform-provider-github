@@ -9,16 +9,22 @@ description: |-
 
 Provides a GitHub repository collaborator resource.
 
+~> Note: github_repository_collaborator cannot be used in conjunction with github_repository_collaborators or 
+they will fight over what your policy should be.
+
 This resource allows you to add/remove collaborators from repositories in your
 organization or personal account. For organization repositories, collaborators can
 have explicit (and differing levels of) read, write, or administrator access to 
 specific repositories, without giving the user full organization membership. 
 For personal repositories, collaborators can only be granted write
-(implictly includes read) permission. 
+(implicitly includes read) permission. 
 
 When applied, an invitation will be sent to the user to become a collaborator
 on a repository. When destroyed, either the invitation will be cancelled or the
 collaborator will be removed from the repository.
+
+This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
+instead.
 
 Further documentation on GitHub collaborators:
 
