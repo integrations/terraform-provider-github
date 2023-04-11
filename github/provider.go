@@ -233,8 +233,8 @@ func init() {
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
 			"Defaults to 0ms if not set.",
-		"parallel_requests": "Allow the provider to make parallel api calls to the Github server." +
-			"It can't be enabled for github.com in order to comply on rate_limits and best practices." +
+		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
+			"It can't be enabled for github.com in order to avoid triggering abuse rate limits. " +
 			"Defaults to false if not set",
 	}
 }
