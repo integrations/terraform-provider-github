@@ -57,9 +57,8 @@ type RateLimitTransport struct {
 }
 
 func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Make requests for a single user or client ID serially
-	// This is also necessary for safely saving
-	// and restoring bodies between retries below
+	// Make requests for a single user or client ID serially when parallel_requests is false.
+	// If parallel_requests is true skips the lock and allow the parallelism defined by terraform itself.
 	rlt.smartLock(true)
 
 	// Sleep for the delay that the last request defined. This delay might be different
@@ -114,6 +113,8 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return resp, nil
 }
 
+// smartLock wraps the mutex locking system and performs its operation via a boolean input for locking and unlocking.
+// It also skips the locking when parallelRequests is set to true since, in this case, the lock is not needed.
 func (rlt *RateLimitTransport) smartLock(lock bool) {
 	if rlt.parallelRequests {
 		return
