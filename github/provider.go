@@ -320,7 +320,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
 		parallelRequests := d.Get("parallel_requests").(bool)
-		isGithubDotCom, err := regexp.MatchString("^https://api.github.com", baseURL)
+		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+
 		if err != nil {
 			return nil, err
 		}
