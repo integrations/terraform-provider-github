@@ -47,6 +47,8 @@ The following arguments are supported:
 
 * `is_template` - Whether the repository is a template repository.
 
+* `fork` - Whether the repository is a fork.
+
 * `allow_merge_commit` - Whether the repository allows merge commits.
 
 * `allow_squash_merge` - Whether the repository allows squash merges.
