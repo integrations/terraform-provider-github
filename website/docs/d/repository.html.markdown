@@ -57,6 +57,8 @@ The following arguments are supported:
 
 * `allow_auto_merge` - Whether the repository allows auto-merging pull requests.
 
+* `allow_forking` - Whether the repository allows private forks. Only applicable for private and internal organization-owned repositories. If an enterprise has disabled forking within its organizations, the ability to fork will be disabled regardless of this setting.
+
 * `squash_merge_commit_title` - The default value for a squash merge commit title.
 
 * `squash_merge_commit_message` - The default value for a squash merge commit message.
