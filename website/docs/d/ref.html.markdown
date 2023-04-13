@@ -35,4 +35,6 @@ The following additional attributes are exported:
 
 * `etag` - An etag representing the ref.
 
+* `id` - A string storing a reference to the repository name and ref.
+
 * `sha` - A string storing the reference's `HEAD` commit's SHA1.
