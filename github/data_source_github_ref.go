@@ -24,6 +24,10 @@ func dataSourceGithubRef() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"owner": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -38,15 +42,15 @@ func dataSourceGithubRef() *schema.Resource {
 
 func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
 
-	refData, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, ref)
+	refData, resp, err := client.Git.GetRef(context.TODO(), owner, repoName, ref)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", orgName, repoName, ref)
+				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", owner, repoName, ref)
 				d.SetId("")
 				return nil
 			}

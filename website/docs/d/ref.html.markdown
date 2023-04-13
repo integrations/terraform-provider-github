@@ -13,14 +13,17 @@ Use this data source to retrieve information about a repository ref.
 
 ```hcl
 data "github_ref" "development" {
+  owner      = "example"
   repository = "example"
-  ref     = "heads/development"
+  ref        = "heads/development"
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
+
+* `owner` -  (Required) Owner of the repository.
 
 * `repository` - (Required) The GitHub repository name.
 
