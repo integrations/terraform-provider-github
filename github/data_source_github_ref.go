@@ -26,7 +26,7 @@ func dataSourceGithubRef() *schema.Resource {
 			},
 			"owner": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -42,7 +42,10 @@ func dataSourceGithubRef() *schema.Resource {
 
 func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := d.Get("owner").(string)
+	owner, ok := d.Get("owner").(string)
+	if !ok {
+		owner = meta.(*Owner).name
+	}
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
 
