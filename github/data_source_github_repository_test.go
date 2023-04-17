@@ -80,6 +80,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"data.github_repository.test", "homepage_url", "",
 			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "fork", "false",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {

@@ -27,4 +27,9 @@ data "github_organization" "example" {
  * `description` - The description the organization account
  * `plan` - The plan name for the organization account
  * `repositories` - (`list`) A list with the repositories on the organization
- * `members` - (`list`) A list with the members of the organization
+ * `members` - **Deprecated**: use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login` which will give you the same value, expect this field to be removed in next major version
+ * `users` - (`list`) A list with the members of the organization with following fields:
+   * `id` - The ID of the member
+   * `login` - The members login
+   * `email` - Publicly available email
+   * `role` - Member role `ADMIN`, `MEMBER`
