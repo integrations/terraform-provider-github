@@ -165,7 +165,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
-				repository_ids = append(repository_ids, v.GetID())
+				repository_ids = append(repository_ids, v.GetId())
 			}
 
 			if resp.NextPage == 0 {
