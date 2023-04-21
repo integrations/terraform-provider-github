@@ -330,7 +330,7 @@ func TestRateLimitTransport_smart_lock(t *testing.T) {
 			rlt.m.Lock()
 			rlt.smartLock(false)
 			rlt.m.Lock()
-			rlt.m.Unlock()
+			defer rlt.m.Unlock()
 			isSuccess <- true
 		}()
 		select {
