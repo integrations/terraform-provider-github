@@ -29,9 +29,6 @@ The following arguments are supported:
 
 * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file.
 
-* `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise.
-
-
 ## Attribute Reference
 
 The following additional attributes are exported:

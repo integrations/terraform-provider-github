@@ -26,16 +26,11 @@ func dataSourceGithubAppToken() *schema.Resource {
 				Required:    true,
 				Description: descriptions["app_auth.pem_file"],
 			},
-			"base_url": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "https://api.github.com/",
-				Description: descriptions["base_url"],
-			},
 			"token": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "The generated token from the credentials.",
 			},
 		},
 	}
@@ -45,7 +40,8 @@ func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta interface{}) erro
 	appID := d.Get("app_id").(string)
 	installationID := d.Get("installation_id").(string)
 	pemFile := d.Get("pem_file").(string)
-	baseURL := d.Get("base_url").(string)
+
+	baseURL := meta.(*Owner).v3client.BaseURL.String()
 
 	// The Go encoding/pem package only decodes PEM formatted blocks
 	// that contain new lines. Some platforms, like Terraform Cloud,
