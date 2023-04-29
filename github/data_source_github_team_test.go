@@ -227,4 +227,60 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		})
 
 	})
+
+	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name = "tf-acc-test-%s"
+			}
+			resource "github_repository" "test" {
+				name = "tf-acc-test"
+			}
+			resource "github_team_repository" "test" {
+			team_id    = github_team.test.id
+			repository = github_repository.test.name
+			permission = "pull"
+			}
+			data "github_repository" "test" {
+				name = github_repository.test.name
+			}
+			data "github_team" "test" {
+				slug = github_team.test.slug
+			}
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
+			resource.TestCheckResourceAttr("data.github_team.test", "repository_ids.#", "1"),
+			resource.TestCheckResourceAttrPair("data.github_team.test", "repository_ids.0", "data.github_repository.test", "repo_id"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 }
