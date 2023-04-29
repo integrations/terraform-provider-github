@@ -50,7 +50,7 @@ func dataSourceGithubTeam() *schema.Resource {
 			"repository_ids": {
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem:     &schema.Schema{Type: schema.TypeInt},
 			},
 			"node_id": {
 				Type:     schema.TypeString,
@@ -93,7 +93,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	var members []string
 	var repositories []string
-	var repository_ids []string
+	var repository_ids []int64
 
 	if !summaryOnly {
 		options := github.TeamListTeamMembersOptions{
@@ -165,7 +165,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
-				repository_ids = append(repository_ids, v.GetId())
+				repository_ids = append(repository_ids, v.GetID())
 			}
 
 			if resp.NextPage == 0 {
