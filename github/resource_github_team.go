@@ -47,9 +47,9 @@ func resourceGithubTeam() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the parent team, if this is a nested team.",
+				Description: "The ID or slug of the parent team, if this is a nested team.",
 			},
 			"ldap_dn": {
 				Type:        schema.TypeString,
@@ -106,8 +106,11 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		newTeam.ParentTeamID = &id
+		teamId, err := getTeamID(parentTeamID.(string), meta)
+		if err != nil {
+			return err
+		}
+		newTeam.ParentTeamID = &teamId
 	}
 	ctx := context.Background()
 
