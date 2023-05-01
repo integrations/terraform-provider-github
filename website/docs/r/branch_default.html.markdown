@@ -15,6 +15,8 @@ Note that use of this resource is incompatible with the `default_branch` option 
 
 ## Example Usage
 
+Basic usage:
+
 ```hcl
 resource "github_repository" "example" {
   name        = "example"
@@ -33,12 +35,29 @@ resource "github_branch_default" "default"{
 }
 ```
 
+Renaming to a branch that doesn't exist:
+
+```hcl
+resource "github_repository" "example" {
+  name        = "example"
+  description = "My awesome codebase"
+  auto_init   = true
+}
+
+resource "github_branch_default" "default"{
+  repository = github_repository.example.name
+  branch     = "development"
+  rename     = true
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository
 * `branch` - (Required) The branch (e.g. `main`)
+* `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`. 
 
 ## Import
 

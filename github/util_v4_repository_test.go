@@ -2,14 +2,14 @@ package github
 
 import (
 	"bytes"
-	"github.com/shurcooL/githubv4"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"text/template"
+
+	"github.com/shurcooL/githubv4"
 )
 
 // Heavily based on https://github.com/shurcooL/githubv4/blob/master/githubv4_test.go#L114-L144
@@ -202,7 +202,7 @@ func (l localRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 }
 
 func mustRead(r io.Reader) string {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		panic(err)
 	}

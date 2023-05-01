@@ -1,3 +1,7 @@
+# NOTE: CHANGELOG.md is deprecated
+
+After the release of v4.24.0, please see the [GitHub release notes](https://github.com/integrations/terraform-provider-github/releases) for the provider in order to view the most up-to-date changes.
+
 # 4.24.0 (Apr 28, 2022)
 
 ENHANCEMENTS:
@@ -528,7 +532,7 @@ BUG FIXES:
 
 BUG FIXES:
 
-* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in Github console if `dismissal_users` and `dismissal_teams` are not set ([#453](https://github.com/integrations/terraform-provider-github/issues/453))
+* resource/github_branch_protection: Prevent enabling `dismissal_restrictions` in GitHub console if `dismissal_users` and `dismissal_teams` are not set ([#453](https://github.com/integrations/terraform-provider-github/issues/453))
 * resource/github_repository_collaborator: Allow modifying permissions from `maintain` and `triage`  ([#457](https://github.com/integrations/terraform-provider-github/issues/457))
 * Documentation Fix for `github_actions_public_key` data-source ([#458](https://github.com/integrations/terraform-provider-github/issues/458))
 * Documentation Fix for `github_branch_protection` resource ([#410](https://github.com/integrations/terraform-provider-github/issues/410))

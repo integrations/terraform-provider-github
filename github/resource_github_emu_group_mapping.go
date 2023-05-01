@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v51/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -43,12 +43,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the GitHub team.",
 			},
 			"group_id": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "Integer corresponding to the external group ID to be linked.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -84,6 +86,13 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
 	if err != nil {
 		return err
+	}
+
+	if len(group.Teams) < 1 {
+		// if there's not a team linked, that means it was removed outside of terraform
+		// and we should remove it from our state
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))

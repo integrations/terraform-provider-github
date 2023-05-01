@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -23,15 +25,17 @@ func TestAccGithubRepositories(t *testing.T) {
 
 			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
-
-			  has_issues         = true
-			  has_wiki           = true
-			  has_downloads      = true
-			  allow_merge_commit = true
-			  allow_squash_merge = false
-			  allow_rebase_merge = false
-			  allow_auto_merge   = true
-			  auto_init          = false
+			  has_discussions      = true
+			  has_issues           = true
+			  has_wiki             = true
+			  has_downloads        = true
+			  allow_merge_commit   = true
+			  allow_squash_merge   = false
+			  allow_rebase_merge   = false
+			  allow_auto_merge     = true
+			  merge_commit_title   = "MERGE_MESSAGE"
+			  merge_commit_message = "PR_TITLE"
+			  auto_init            = false
 
 			}
 		`, randomID)
@@ -42,8 +46,16 @@ func TestAccGithubRepositories(t *testing.T) {
 				"true",
 			),
 			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_discussions",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
 				"github_repository.test", "allow_auto_merge",
 				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"MERGE_MESSAGE",
 			),
 		)
 
@@ -803,6 +815,130 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 }
 
+func TestAccGithubRepositorySecurity(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("manages the security feature for a repository", func(t *testing.T) {
+
+		t.Run("for a private repository", func(t *testing.T) {
+			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
+
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "private"
+			  security_and_analysis {
+			    advanced_security {
+			      status = "enabled"
+			    }
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    secret_scanning_push_protection {
+			       status = "enabled"
+			    }
+			  }
+			}
+			`, randomID)
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
+					},
+				})
+			}
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
+		})
+
+		t.Run("for a public repository", func(t *testing.T) {
+
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "public"
+			  security_and_analysis {
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    # seems like it can only be "enabled" for an organization that has purchased GHAS
+			    secret_scanning_push_protection {
+			       status = "disabled"
+			    }
+			  }
+			}
+			`, randomID)
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
+					},
+				})
+			}
+
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
+		})
+	})
+}
+
 func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1117,6 +1253,30 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+}
+
+func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+	_, err := schema.ValidateFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected topic validation failure: %s", err))
+	}
+}
+
+func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+
+	_, err := schema.ValidateFunc(strings.Repeat("a", 51), "topic")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for topic (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
 }
 
 func testSweepRepositories(region string) error {

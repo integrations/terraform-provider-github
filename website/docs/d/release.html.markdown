@@ -68,7 +68,20 @@ data "github_release" "example" {
  * `published_at` - Date of release publishing
  * `url` - Base URL of the release
  * `html_url` - URL directing to detailed information on the release
- * `asserts_url` - URL of any associated assets with the release
+ * `assets_url` - URL of any associated assets with the release
+ * `asserts_url` - **Deprecated**: Use `assets_url` resource instead
  * `upload_url` - URL that can be used to upload Assets to the release
  * `zipball_url` - Download URL of a specific release in `zip` format
  * `tarball_url` - Download URL of a specific release in `tar.gz` format
+ * `assets` - Collection of assets for the release. Each asset conforms to the following schema:
+    * `id` - ID of the asset
+    * `url` - URL of the asset
+    * `node_id` - Node ID of the asset
+    * `name` - The file name of the asset
+    * `label` - Label for the asset
+    * `content_type` - MIME type of the asset
+    * `size` - Size in byte
+    * `created_at` - Date the asset was created
+    * `updated_at` - Date the asset was last updated
+    * `browser_download_url` - Browser download URL
+
