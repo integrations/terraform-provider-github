@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v51/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -40,16 +41,34 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 
 func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
 	rsc := protection.GetRequiredStatusChecks()
+
 	if rsc != nil {
-		contexts := make([]interface{}, 0, len(rsc.Contexts))
+
+		// Contexts and Checks arrays to flatten into
+		var contexts []interface{}
+		var checks []interface{}
+
+		// TODO: Remove once contexts is fully deprecated.
+		// Flatten contexts
 		for _, c := range rsc.Contexts {
+			// Parse into contexts
 			contexts = append(contexts, c)
+			checks = append(contexts, c)
+		}
+
+		// Flatten checks
+		for _, chk := range rsc.Checks {
+			// Parse into contexts
+			contexts = append(contexts, chk.Context)
+			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID))
 		}
 
 		return d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
-				"strict":   rsc.Strict,
+				"strict": rsc.Strict,
+				// TODO: Remove once contexts is fully deprecated.
 				"contexts": schema.NewSet(schema.HashString, contexts),
+				"checks":   schema.NewSet(schema.HashString, checks),
 			},
 		})
 	}
@@ -104,6 +123,40 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 	return err
 }
 
+func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances) []interface{} {
+	if bpra == nil {
+		return nil
+	}
+	users := make([]interface{}, 0, len(bpra.Users))
+	for _, u := range bpra.Users {
+		if u.Login != nil {
+			users = append(users, *u.Login)
+		}
+	}
+
+	teams := make([]interface{}, 0, len(bpra.Teams))
+	for _, t := range bpra.Teams {
+		if t.Slug != nil {
+			teams = append(teams, *t.Slug)
+		}
+	}
+
+	apps := make([]interface{}, 0, len(bpra.Apps))
+	for _, t := range bpra.Apps {
+		if t.Slug != nil {
+			apps = append(apps, *t.Slug)
+		}
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"users": schema.NewSet(schema.HashString, users),
+			"teams": schema.NewSet(schema.HashString, teams),
+			"apps":  schema.NewSet(schema.HashString, apps),
+		},
+	}
+}
+
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
@@ -125,6 +178,8 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 			}
 		}
 
+		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
+
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
@@ -132,6 +187,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
+				"bypass_pull_request_allowances":  bpra,
 			},
 		})
 	}
@@ -191,8 +247,56 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			m := v.(map[string]interface{})
 			rsc.Strict = m["strict"].(bool)
 
+			// Initialise empty literal to ensure an empty array is passed mitigating schema errors like so:
+			// For 'anyOf/1', {"strict"=>true, "checks"=>nil} is not a null. []
+			rscChecks := []*github.RequiredStatusCheck{}
+
+			// TODO: Remove once contexts is deprecated
+			// Iterate and parse contexts into checks using -1 as default to allow checks from all apps.
 			contexts := expandNestedSet(m, "contexts")
-			rsc.Contexts = contexts
+			for _, c := range contexts {
+				appID := int64(-1) // Default
+				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
+					Context: c,
+					AppID:   &appID,
+				})
+			}
+
+			// Iterate and parse checks
+			checks := expandNestedSet(m, "checks")
+			for _, c := range checks {
+
+				// Expect a string of "context:app_id", allowing for the absence of "app_id"
+				parts := strings.SplitN(c, ":", 2)
+				var cContext, cAppId string
+				switch len(parts) {
+				case 1:
+					cContext, cAppId = parts[0], ""
+				case 2:
+					cContext, cAppId = parts[0], parts[1]
+				default:
+					return nil, fmt.Errorf("Could not parse check '%s'. Expected `context:app_id` or `context`", c)
+				}
+
+				var rscCheck *github.RequiredStatusCheck
+				if cAppId != "" {
+					// If we have a valid app_id, include it in the RSC
+					rscAppId, err := strconv.Atoi(cAppId)
+					if err != nil {
+						return nil, fmt.Errorf("Could not parse %v as valid app_id", cAppId)
+					}
+					rscAppId64 := int64(rscAppId)
+					rscCheck = &github.RequiredStatusCheck{Context: cContext, AppID: &rscAppId64}
+				} else {
+					// Else simply provide the context
+					rscCheck = &github.RequiredStatusCheck{Context: cContext}
+				}
+
+				// Append
+				rscChecks = append(rscChecks, rscCheck)
+			}
+			// Assign after looping both checks and contexts
+			rsc.Checks = rscChecks
 		}
 		return rsc, nil
 	}
@@ -226,10 +330,16 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 				drr.Teams = &teams
 			}
 
+			bpra, err := expandBypassPullRequestAllowances(m)
+			if err != nil {
+				return nil, err
+			}
+
 			rprr.DismissalRestrictionsRequest = drr
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
+			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 
 		return rprr, nil
@@ -268,6 +378,36 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 	}
 
 	return nil, nil
+}
+
+func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.BypassPullRequestAllowancesRequest, error) {
+	if m["bypass_pull_request_allowances"] == nil {
+		return nil, nil
+	}
+
+	vL := m["bypass_pull_request_allowances"].([]interface{})
+	if len(vL) > 1 {
+		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
+	}
+
+	var bpra *github.BypassPullRequestAllowancesRequest
+
+	for _, v := range vL {
+		if v == nil {
+			return nil, errors.New("invalid bypass_pull_request_allowances")
+		}
+		bpra = new(github.BypassPullRequestAllowancesRequest)
+		m := v.(map[string]interface{})
+
+		users := expandNestedSet(m, "users")
+		bpra.Users = users
+		teams := expandNestedSet(m, "teams")
+		bpra.Teams = teams
+		apps := expandNestedSet(m, "apps")
+		bpra.Apps = apps
+	}
+
+	return bpra, nil
 }
 
 func checkBranchRestrictionsUsers(actual *github.BranchRestrictions, expected *github.BranchRestrictionsRequest) error {

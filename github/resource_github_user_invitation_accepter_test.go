@@ -39,6 +39,27 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubUserInvitationAccepterAllowEmptyId(t *testing.T) {
+	rn := "github_user_invitation_accepter.test"
+
+	var providers []*schema.Provider
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories(&providers),
+		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubUserInvitationAccepterAllowEmptyId(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "invitation_id", ""),
+					resource.TestCheckResourceAttr(rn, "allow_empty_id", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckGithubUserInvitationAccepterDestroy(s *terraform.State) error {
 	return nil
 }
@@ -71,4 +92,15 @@ resource "github_user_invitation_accepter" "test" {
   invitation_id = "${github_repository_collaborator.test.invitation_id}"
 }
 `, inviteeToken, repoName, testCollaborator)
+}
+
+func testAccGithubUserInvitationAccepterAllowEmptyId() string {
+	return `
+provider "github" {}
+
+resource "github_user_invitation_accepter" "test" {
+  invitation_id  = ""
+  allow_empty_id = true
+}
+`
 }

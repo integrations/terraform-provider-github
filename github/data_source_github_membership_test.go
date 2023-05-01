@@ -23,6 +23,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwner),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
+			resource.TestCheckResourceAttrSet("data.github_membership.test", "state"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

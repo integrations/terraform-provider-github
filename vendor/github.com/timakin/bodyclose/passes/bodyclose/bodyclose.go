@@ -80,11 +80,6 @@ func (r runner) run(pass *analysis.Pass) (interface{}, error) {
 
 	r.skipFile = map[*ast.File]bool{}
 	for _, f := range funcs {
-		if r.noImportedNetHTTP(f) {
-			// skip this
-			continue
-		}
-
 		// skip if the function is just referenced
 		var isreffunc bool
 		for i := 0; i < f.Signature.Results().Len(); i++ {
@@ -250,6 +245,20 @@ func (r *runner) isCloseCall(ccall ssa.Instruction) bool {
 						}
 					}
 				}
+
+				if returnOp, ok := cs.(*ssa.Return); ok {
+					for _, resultValue := range returnOp.Results {
+						if resultValue.Type().String() == "io.Closer" {
+							return true
+						}
+					}
+				}
+			}
+		}
+	case *ssa.Return:
+		for _, resultValue := range ccall.Results {
+			if resultValue.Type().String() == "io.ReadCloser" {
+				return true
 			}
 		}
 	}
