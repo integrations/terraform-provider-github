@@ -5,11 +5,14 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/v51/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -20,7 +23,7 @@ const (
 
 func checkOrganization(meta interface{}) error {
 	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("This resource can only be used in the context of an organization, %q is a user.", meta.(*Owner).name)
+		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
 	}
 
 	return nil
@@ -54,7 +57,7 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s", id, left, right)
+		return "", "", fmt.Errorf("unexpected ID format (%q); expected %s:%s", id, left, right)
 	}
 
 	return parts[0], parts[1], nil
@@ -69,7 +72,7 @@ func buildTwoPartID(a, b string) string {
 func parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("Unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
+		return "", "", "", fmt.Errorf("unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
 	}
 
 	return parts[0], parts[1], parts[2], nil
@@ -148,6 +151,26 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	if parseIntErr == nil {
+		return teamId, nil
+	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+	if slugErr != nil {
+		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
+	}
+	return team.GetID(), nil
+}
+
+func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
+	// Given a string that is either a team id or team slug, return the
+	// team slug it is referring to.
+	ctx := context.Background()
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
 	orgId := meta.(*Owner).id
 
 	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
@@ -155,22 +178,22 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 		// The given id not an integer, assume it is a team slug
 		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
 		if slugErr != nil {
-			return -1, errors.New(parseIntErr.Error() + slugErr.Error())
+			return "", errors.New(parseIntErr.Error() + slugErr.Error())
 		}
-		return team.GetID(), nil
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-			if slugErr != nil {
-				return -1, errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-			return team.GetID(), nil
-		}
-		return team.GetID(), nil
+		return team.GetSlug(), nil
 	}
+
+	// The given id is an integer, assume it is a team id
+	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	if teamIdErr != nil {
+		// There isn't a team with the given ID, assume it is a teamslug
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		if slugErr != nil {
+			return "", errors.New(teamIdErr.Error() + slugErr.Error())
+		}
+		return team.GetSlug(), nil
+	}
+	return team.GetSlug(), nil
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
@@ -183,12 +206,31 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 	}
 
 	if !secretNameRegexp.MatchString(name) {
-		errs = append(errs, errors.New("Secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+		errs = append(errs, errors.New("secret names can only contain alphanumeric characters or underscores and must not start with a number"))
 	}
 
 	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
-		errs = append(errs, errors.New("Secret names must not start with the GITHUB_ prefix"))
+		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
 	}
 
 	return we, errs
+}
+
+// deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
+// doesn't exist.
+// resourceDescription represents a formatting string that represents the resource
+// args will be passed to resourceDescription in `log.Printf`
+func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...interface{}) error {
+	if ghErr, ok := err.(*github.ErrorResponse); ok {
+		if ghErr.Response.StatusCode == http.StatusNotModified {
+			return nil
+		}
+		if ghErr.Response.StatusCode == http.StatusNotFound {
+			log.Printf("[INFO] Removing "+resourceDescription+" from state because it no longer exists in GitHub",
+				args...)
+			d.SetId("")
+			return nil
+		}
+	}
+	return err
 }

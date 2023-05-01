@@ -4,9 +4,8 @@ import (
 	"context"
 	"log"
 	"reflect"
-	"strconv"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v51/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -30,22 +29,26 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "The GitHub team id.",
 				ValidateFunc: validateTeamIDFunc,
 			},
 			"members": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "List of team members.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
 							Type:             schema.TypeString,
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
+							Description:      "The user to add to the team.",
 						},
 						"role": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "member",
+							Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 							ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 						},
 					},
@@ -64,9 +67,9 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta interface{}) e
 	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	ctx := context.Background()
 
@@ -100,9 +103,9 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	ctx := context.Background()
 
@@ -148,8 +151,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-
-			continue
 		}
 
 		if create {
@@ -167,12 +168,6 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				return err
 			}
-			continue
-		}
-
-		// no change
-		if reflect.DeepEqual(change.Old, change.New) {
-			continue
 		}
 	}
 
@@ -190,9 +185,9 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 		teamIdString = d.Id()
 	}
 
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 
 	// We intentionally set these early to allow reconciliation
@@ -283,9 +278,9 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) e
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 
 	members := d.Get("members").(*schema.Set)
