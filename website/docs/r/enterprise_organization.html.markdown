@@ -9,8 +9,6 @@ description: |-
 
 This resource allows you to create and manage a GitHub enterprise organization.
 
-~> **Note** This resource cannot delete an organization. Organizations must be deleted through the GitHub UI and remove them from the state using `terraform state rm`.
-
 ## Example Usage
 
 ```
