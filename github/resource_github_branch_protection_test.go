@@ -582,10 +582,10 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.#", "1",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.0", "1234",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.0", "1234",
 			),
 		)
 
@@ -640,7 +640,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.#", "0",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.#", "0",
 			),
 		)
 
