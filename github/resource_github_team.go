@@ -223,8 +223,11 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		editedTeam.ParentTeamID = &id
+		teamId, err := getTeamID(parentTeamID.(string), meta)
+		if err != nil {
+			return err
+		}
+		editedTeam.ParentTeamID = &teamId
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
