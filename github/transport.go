@@ -51,15 +51,15 @@ type RateLimitTransport struct {
 	nextRequestDelay time.Duration
 	writeDelay       time.Duration
 	readDelay        time.Duration
+	parallelRequests bool
 
 	m sync.Mutex
 }
 
 func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Make requests for a single user or client ID serially
-	// This is also necessary for safely saving
-	// and restoring bodies between retries below
-	rlt.lock(req)
+	// Make requests for a single user or client ID serially when parallel_requests is false.
+	// If parallel_requests is true skips the lock and allow the parallelism defined by terraform itself.
+	rlt.smartLock(true)
 
 	// Sleep for the delay that the last request defined. This delay might be different
 	// for read and write requests. See isWriteMethod for the distinction between them.
@@ -72,7 +72,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 	resp, err := rlt.transport.RoundTrip(req)
 	if err != nil {
-		rlt.unlock(req)
+		rlt.smartLock(false)
 		return resp, err
 	}
 
@@ -94,7 +94,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 		log.Printf("[DEBUG] Abuse detection mechanism triggered, sleeping for %s before retrying",
 			retryAfter)
 		time.Sleep(retryAfter)
-		rlt.unlock(req)
+		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
 
@@ -104,20 +104,25 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 		log.Printf("[DEBUG] Rate limit %d reached, sleeping for %s (until %s) before retrying",
 			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
 		time.Sleep(retryAfter)
-		rlt.unlock(req)
+		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
 
-	rlt.unlock(req)
+	rlt.smartLock(false)
 
 	return resp, nil
 }
 
-func (rlt *RateLimitTransport) lock(req *http.Request) {
-	rlt.m.Lock()
-}
-
-func (rlt *RateLimitTransport) unlock(req *http.Request) {
+// smartLock wraps the mutex locking system and performs its operation via a boolean input for locking and unlocking.
+// It also skips the locking when parallelRequests is set to true since, in this case, the lock is not needed.
+func (rlt *RateLimitTransport) smartLock(lock bool) {
+	if rlt.parallelRequests {
+		return
+	}
+	if lock {
+		rlt.m.Lock()
+		return
+	}
 	rlt.m.Unlock()
 }
 
@@ -138,7 +143,7 @@ type RateLimitTransportOption func(*RateLimitTransport)
 func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOption) *RateLimitTransport {
 	// Default to 1 second of write delay if none is provided
 	// Default to no read delay if none is provided
-	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second, readDelay: 0 * time.Second}
+	rlt := &RateLimitTransport{transport: rt, writeDelay: 1 * time.Second, readDelay: 0 * time.Second, parallelRequests: false}
 
 	for _, opt := range options {
 		opt(rlt)
@@ -158,6 +163,13 @@ func WithWriteDelay(d time.Duration) RateLimitTransportOption {
 func WithReadDelay(d time.Duration) RateLimitTransportOption {
 	return func(rlt *RateLimitTransport) {
 		rlt.readDelay = d
+	}
+}
+
+// WithParallelRequests is used to enforce serial api requests for rate limits
+func WithParallelRequests(p bool) RateLimitTransportOption {
+	return func(rlt *RateLimitTransport) {
+		rlt.parallelRequests = p
 	}
 }
 
