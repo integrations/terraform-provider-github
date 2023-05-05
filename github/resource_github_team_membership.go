@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v51/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -17,7 +18,20 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				if err != nil {
+					return nil, err
+				}
+
+				teamId, err := getTeamID(teamIdString, meta)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
