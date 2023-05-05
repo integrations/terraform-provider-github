@@ -190,7 +190,19 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 }
 
 func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta interface{}) error {
-	return errors.New("deleting organizations is not supported programmatically by github, and hence is not supported by the provider. You will need to remove the org in the github ui, then use `terraform state rm` to remove the org from the state file")
+	owner := meta.(*Owner)
+	v3 := owner.v3client
+
+	ctx := context.WithValue(context.Background(), ctxId, data.Id())
+
+	_, err := v3.Organizations.Delete(ctx, data.Get("name").(string))
+
+	// We expect the delete to return with a 202 Accepted error so ignore those
+	if _, ok := err.(*github.AcceptedError); ok {
+		return nil
+	}
+
+	return err
 }
 
 func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
