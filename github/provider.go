@@ -168,6 +168,7 @@ func Provider() terraform.ResourceProvider {
 			"github_actions_variables":                                              dataSourceGithubActionsVariables(),
 			"github_app":                                                            dataSourceGithubApp(),
 			"github_branch":                                                         dataSourceGithubBranch(),
+			"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
 			"github_collaborators":                                                  dataSourceGithubCollaborators(),
 			"github_dependabot_organization_public_key":                             dataSourceGithubDependabotOrganizationPublicKey(),
 			"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
