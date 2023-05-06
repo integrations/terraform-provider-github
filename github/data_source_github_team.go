@@ -105,7 +105,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	var members []string
 	var repositories []string
 	var repositories_detailed []interface{}
-	
+
 	if !summaryOnly {
 		options := github.TeamListTeamMembersOptions{
 			ListOptions: github.ListOptions{
@@ -179,7 +179,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
 				repositories_detailed = append(repositories_detailed, map[string]interface{}{
-					"repo_id": v.GetID(),
+					"repo_id":   v.GetID(),
 					"role_name": v.GetRoleName(),
 				})
 			}
