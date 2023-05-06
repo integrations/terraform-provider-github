@@ -228,7 +228,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	})
 
-	t.Run("queries an existing team with connected repositories and roles", func(t *testing.T) {
+	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
