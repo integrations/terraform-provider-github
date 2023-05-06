@@ -50,14 +50,16 @@ func dataSourceGithubTeam() *schema.Resource {
 			"repositories_detailed": {
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem: map[string]*schema.Schema{
-					"repo_id": {
-						Type:     schema.TypeInt,
-						Computed: true,
-					},
-					"role_name": {
-						Type:     schema.TypeString,
-						Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"repo_id": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"role_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -171,6 +173,8 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			if err != nil {
 				return err
 			}
+
+			repositories_detailed = make([]interface{}, 0, len(repository))
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())

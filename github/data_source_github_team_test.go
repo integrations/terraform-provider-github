@@ -244,13 +244,28 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			}
 			data "github_repository" "test" {
 				name = github_repository.test.name
-			}
-			data "github_team" "test" {
-				slug = github_team.test.slug
+				depends_on = [
+					github_team.test,
+					github_repository.test,
+					github_team_repository.test
+				]
 			}
 			data "github_repository_teams" "test" {
 				name = github_repository.test.name
-			  }
+				depends_on = [
+					github_team.test,
+					github_repository.test,
+					github_team_repository.test
+				]
+			}
+			data "github_team" "test" {
+				slug = github_team.test.slug
+				depends_on = [
+					github_team.test,
+					github_repository.test,
+					github_team_repository.test
+				]
+			}
 		`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
