@@ -21,16 +21,15 @@ func resourceGithubTeamMembers() *schema.Resource {
 		Update: resourceGithubTeamMembersUpdate,
 		Delete: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamImport,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The GitHub team id.",
-				ValidateFunc: validateTeamIDFunc,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub team id or slug",
 			},
 			"members": {
 				Type:        schema.TypeSet,

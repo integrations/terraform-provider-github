@@ -3,14 +3,14 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-github/v51/github"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"github.com/google/go-github/v51/github"
+	"time"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -270,6 +270,76 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	if ghErr.Message != expectedMessage {
 		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
 	}
+}
+func TestRateLimitTransport_smart_lock(t *testing.T) {
+	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(true)
+			rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
+	t.Run("With parallelRequests true it should not unlock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(false)
+			rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
+	t.Run("With parallelRequests false with a lock present it should get stuck waiting", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(false))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(true)
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+			t.Fatalf("Expected get stuck waiting but it acquired the lock successfully")
+		case <-time.After(100 * time.Millisecond):
+		}
+	})
+
+	t.Run("With parallelRequests false and a lock present it should be able to unlock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(false))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(false)
+			rlt.m.Lock()
+			defer rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
 }
 
 type mockResponse struct {
