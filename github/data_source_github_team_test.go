@@ -228,7 +228,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	})
 
-	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
+	t.Run("queries an existing team with connected repositories and roles", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -238,9 +238,9 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 				name = "tf-acc-test"
 			}
 			resource "github_team_repository" "test" {
-			team_id    = github_team.test.id
-			repository = github_repository.test.name
-			permission = "pull"
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "pull"
 			}
 			data "github_repository" "test" {
 				name = github_repository.test.name
@@ -248,12 +248,16 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			data "github_team" "test" {
 				slug = github_team.test.slug
 			}
+			data "github_repository_teams" "test" {
+				name = github_repository.test.name
+			  }
 		`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttr("data.github_team.test", "repository_ids.#", "1"),
-			resource.TestCheckResourceAttrPair("data.github_team.test", "repository_ids.0", "data.github_repository.test", "repo_id"),
+			resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
+			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "data.github_repository.test", "repo_id"),
+			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "data.github_repository_teams.test", "teams.0.permission"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

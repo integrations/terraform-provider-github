@@ -47,10 +47,19 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"repository_ids": {
+			"repositories_detailed": {
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeInt},
+				Elem: map[string]*schema.Schema{
+					"repo_id": {
+						Type:     schema.TypeInt,
+						Computed: true,
+					},
+					"role_name": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+				},
 			},
 			"node_id": {
 				Type:     schema.TypeString,
@@ -93,8 +102,8 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	var members []string
 	var repositories []string
-	var repository_ids []int64
-
+	var repositories_detailed []interface{}
+	
 	if !summaryOnly {
 		options := github.TeamListTeamMembersOptions{
 			ListOptions: github.ListOptions{
@@ -165,7 +174,10 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
-				repository_ids = append(repository_ids, v.GetID())
+				repositories_detailed = append(repositories_detailed, map[string]interface{}{
+					"repo_id": v.GetID(),
+					"role_name": v.GetRoleName(),
+				})
 			}
 
 			if resp.NextPage == 0 {
@@ -179,7 +191,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", team.GetName())
 	d.Set("members", members)
 	d.Set("repositories", repositories)
-	d.Set("repository_ids", repository_ids)
+	d.Set("repositories_detailed", repositories_detailed)
 	d.Set("description", team.GetDescription())
 	d.Set("privacy", team.GetPrivacy())
 	d.Set("permission", team.GetPermission())
