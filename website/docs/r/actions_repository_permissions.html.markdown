@@ -50,5 +50,5 @@ The `allowed_actions_config` block supports the following:
 This resource can be imported using the name of the GitHub repository:
 
 ```
-$ terraform import github_actions_repository_permissions.test <github_repository_name>
+$ terraform import github_actions_repository_permissions.test my-repository
 ```
