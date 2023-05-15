@@ -94,7 +94,9 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 		Ref:    &branchRefName,
 		Object: &github.GitObject{SHA: &sourceBranchSHA},
 	})
-	if err != nil {
+	// If the branch already exists, rather than erroring out just continue on to importing the branch
+	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
+	if err != nil && !strings.HasSuffix(err.Error(), "422 Reference already exists []") {
 		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %s",
 			orgName, repoName, branchRefName, err)
 	}

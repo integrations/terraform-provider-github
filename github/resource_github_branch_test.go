@@ -76,6 +76,70 @@ func TestAccGithubBranch(t *testing.T) {
 
 	})
 
+	t.Run("creates a branch named main directly and a repository with a gitignore_template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+			  auto_init = true
+			  gitignore_template = "Python"
+			}
+
+			resource "github_branch" "test" {
+			  repository = github_repository.test.id
+			  branch     = "main"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestMatchResourceAttr(
+				"github_branch.test", "id",
+				regexp.MustCompile(fmt.Sprintf("tf-acc-test-%s:test", randomID)),
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:            "github_branch.test",
+						ImportState:             true,
+						ImportStateId:           fmt.Sprintf("tf-acc-test-%s:test", randomID),
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"source_sha"},
+					},
+					{
+						ResourceName:  "github_branch.test",
+						ImportState:   true,
+						ImportStateId: fmt.Sprintf("tf-acc-test-%s:nonsense", randomID),
+						ExpectError: regexp.MustCompile(
+							"Repository tf-acc-test-[a-z0-9]* does not have a branch named nonsense.",
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("creates a branch from a source branch", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
