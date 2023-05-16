@@ -678,6 +678,14 @@ func (a *App) GetID() int64 {
 	return *a.ID
 }
 
+// GetInstallationsCount returns the InstallationsCount field if it's non-nil, zero value otherwise.
+func (a *App) GetInstallationsCount() int {
+	if a == nil || a.InstallationsCount == nil {
+		return 0
+	}
+	return *a.InstallationsCount
+}
+
 // GetName returns the Name field if it's non-nil, zero value otherwise.
 func (a *App) GetName() string {
 	if a == nil || a.Name == nil {
@@ -5470,6 +5478,14 @@ func (e *EditChange) GetBody() *EditBody {
 	return e.Body
 }
 
+// GetOwner returns the Owner field.
+func (e *EditChange) GetOwner() *EditOwner {
+	if e == nil {
+		return nil
+	}
+	return e.Owner
+}
+
 // GetRepo returns the Repo field.
 func (e *EditChange) GetRepo() *EditRepo {
 	if e == nil {
@@ -5484,6 +5500,14 @@ func (e *EditChange) GetTitle() *EditTitle {
 		return nil
 	}
 	return e.Title
+}
+
+// GetOwnerInfo returns the OwnerInfo field.
+func (e *EditOwner) GetOwnerInfo() *OwnerInfo {
+	if e == nil {
+		return nil
+	}
+	return e.OwnerInfo
 }
 
 // GetFrom returns the From field if it's non-nil, zero value otherwise.
@@ -7340,6 +7364,14 @@ func (i *InstallationEvent) GetInstallation() *Installation {
 		return nil
 	}
 	return i.Installation
+}
+
+// GetRequester returns the Requester field.
+func (i *InstallationEvent) GetRequester() *User {
+	if i == nil {
+		return nil
+	}
+	return i.Requester
 }
 
 // GetSender returns the Sender field.
@@ -11230,6 +11262,22 @@ func (o *OrgStats) GetTotalTeams() int {
 	return *o.TotalTeams
 }
 
+// GetOrg returns the Org field.
+func (o *OwnerInfo) GetOrg() *User {
+	if o == nil {
+		return nil
+	}
+	return o.Org
+}
+
+// GetUser returns the User field.
+func (o *OwnerInfo) GetUser() *User {
+	if o == nil {
+		return nil
+	}
+	return o.User
+}
+
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
 func (p *Package) GetCreatedAt() Timestamp {
 	if p == nil || p.CreatedAt == nil {
@@ -12046,12 +12094,252 @@ func (p *PagesBuild) GetURL() string {
 	return *p.URL
 }
 
+// GetCAAError returns the CAAError field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetCAAError() string {
+	if p == nil || p.CAAError == nil {
+		return ""
+	}
+	return *p.CAAError
+}
+
+// GetDNSResolves returns the DNSResolves field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetDNSResolves() bool {
+	if p == nil || p.DNSResolves == nil {
+		return false
+	}
+	return *p.DNSResolves
+}
+
+// GetEnforcesHTTPS returns the EnforcesHTTPS field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetEnforcesHTTPS() bool {
+	if p == nil || p.EnforcesHTTPS == nil {
+		return false
+	}
+	return *p.EnforcesHTTPS
+}
+
+// GetHasCNAMERecord returns the HasCNAMERecord field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetHasCNAMERecord() bool {
+	if p == nil || p.HasCNAMERecord == nil {
+		return false
+	}
+	return *p.HasCNAMERecord
+}
+
+// GetHasMXRecordsPresent returns the HasMXRecordsPresent field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetHasMXRecordsPresent() bool {
+	if p == nil || p.HasMXRecordsPresent == nil {
+		return false
+	}
+	return *p.HasMXRecordsPresent
+}
+
+// GetHost returns the Host field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetHost() string {
+	if p == nil || p.Host == nil {
+		return ""
+	}
+	return *p.Host
+}
+
+// GetHTTPSError returns the HTTPSError field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetHTTPSError() string {
+	if p == nil || p.HTTPSError == nil {
+		return ""
+	}
+	return *p.HTTPSError
+}
+
+// GetIsApexDomain returns the IsApexDomain field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsApexDomain() bool {
+	if p == nil || p.IsApexDomain == nil {
+		return false
+	}
+	return *p.IsApexDomain
+}
+
+// GetIsARecord returns the IsARecord field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsARecord() bool {
+	if p == nil || p.IsARecord == nil {
+		return false
+	}
+	return *p.IsARecord
+}
+
+// GetIsCloudflareIP returns the IsCloudflareIP field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsCloudflareIP() bool {
+	if p == nil || p.IsCloudflareIP == nil {
+		return false
+	}
+	return *p.IsCloudflareIP
+}
+
+// GetIsCNAMEToFastly returns the IsCNAMEToFastly field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsCNAMEToFastly() bool {
+	if p == nil || p.IsCNAMEToFastly == nil {
+		return false
+	}
+	return *p.IsCNAMEToFastly
+}
+
+// GetIsCNAMEToGithubUserDomain returns the IsCNAMEToGithubUserDomain field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsCNAMEToGithubUserDomain() bool {
+	if p == nil || p.IsCNAMEToGithubUserDomain == nil {
+		return false
+	}
+	return *p.IsCNAMEToGithubUserDomain
+}
+
+// GetIsCNAMEToPagesDotGithubDotCom returns the IsCNAMEToPagesDotGithubDotCom field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsCNAMEToPagesDotGithubDotCom() bool {
+	if p == nil || p.IsCNAMEToPagesDotGithubDotCom == nil {
+		return false
+	}
+	return *p.IsCNAMEToPagesDotGithubDotCom
+}
+
+// GetIsFastlyIP returns the IsFastlyIP field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsFastlyIP() bool {
+	if p == nil || p.IsFastlyIP == nil {
+		return false
+	}
+	return *p.IsFastlyIP
+}
+
+// GetIsHTTPSEligible returns the IsHTTPSEligible field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsHTTPSEligible() bool {
+	if p == nil || p.IsHTTPSEligible == nil {
+		return false
+	}
+	return *p.IsHTTPSEligible
+}
+
+// GetIsNonGithubPagesIPPresent returns the IsNonGithubPagesIPPresent field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsNonGithubPagesIPPresent() bool {
+	if p == nil || p.IsNonGithubPagesIPPresent == nil {
+		return false
+	}
+	return *p.IsNonGithubPagesIPPresent
+}
+
+// GetIsOldIPAddress returns the IsOldIPAddress field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsOldIPAddress() bool {
+	if p == nil || p.IsOldIPAddress == nil {
+		return false
+	}
+	return *p.IsOldIPAddress
+}
+
+// GetIsPagesDomain returns the IsPagesDomain field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsPagesDomain() bool {
+	if p == nil || p.IsPagesDomain == nil {
+		return false
+	}
+	return *p.IsPagesDomain
+}
+
+// GetIsPointedToGithubPagesIP returns the IsPointedToGithubPagesIP field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsPointedToGithubPagesIP() bool {
+	if p == nil || p.IsPointedToGithubPagesIP == nil {
+		return false
+	}
+	return *p.IsPointedToGithubPagesIP
+}
+
+// GetIsProxied returns the IsProxied field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsProxied() bool {
+	if p == nil || p.IsProxied == nil {
+		return false
+	}
+	return *p.IsProxied
+}
+
+// GetIsServedByPages returns the IsServedByPages field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsServedByPages() bool {
+	if p == nil || p.IsServedByPages == nil {
+		return false
+	}
+	return *p.IsServedByPages
+}
+
+// GetIsValid returns the IsValid field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsValid() bool {
+	if p == nil || p.IsValid == nil {
+		return false
+	}
+	return *p.IsValid
+}
+
+// GetIsValidDomain returns the IsValidDomain field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetIsValidDomain() bool {
+	if p == nil || p.IsValidDomain == nil {
+		return false
+	}
+	return *p.IsValidDomain
+}
+
+// GetNameservers returns the Nameservers field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetNameservers() string {
+	if p == nil || p.Nameservers == nil {
+		return ""
+	}
+	return *p.Nameservers
+}
+
+// GetReason returns the Reason field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetReason() string {
+	if p == nil || p.Reason == nil {
+		return ""
+	}
+	return *p.Reason
+}
+
+// GetRespondsToHTTPS returns the RespondsToHTTPS field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetRespondsToHTTPS() bool {
+	if p == nil || p.RespondsToHTTPS == nil {
+		return false
+	}
+	return *p.RespondsToHTTPS
+}
+
+// GetShouldBeARecord returns the ShouldBeARecord field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetShouldBeARecord() bool {
+	if p == nil || p.ShouldBeARecord == nil {
+		return false
+	}
+	return *p.ShouldBeARecord
+}
+
+// GetURI returns the URI field if it's non-nil, zero value otherwise.
+func (p *PagesDomain) GetURI() string {
+	if p == nil || p.URI == nil {
+		return ""
+	}
+	return *p.URI
+}
+
 // GetMessage returns the Message field if it's non-nil, zero value otherwise.
 func (p *PagesError) GetMessage() string {
 	if p == nil || p.Message == nil {
 		return ""
 	}
 	return *p.Message
+}
+
+// GetAltDomain returns the AltDomain field.
+func (p *PagesHealthCheckResponse) GetAltDomain() *PagesDomain {
+	if p == nil {
+		return nil
+	}
+	return p.AltDomain
+}
+
+// GetDomain returns the Domain field.
+func (p *PagesHealthCheckResponse) GetDomain() *PagesDomain {
+	if p == nil {
+		return nil
+	}
+	return p.Domain
 }
 
 // GetDescription returns the Description field if it's non-nil, zero value otherwise.
@@ -13046,6 +13334,14 @@ func (p *Protection) GetRequiredPullRequestReviews() *PullRequestReviewsEnforcem
 	return p.RequiredPullRequestReviews
 }
 
+// GetRequiredSignatures returns the RequiredSignatures field.
+func (p *Protection) GetRequiredSignatures() *SignaturesProtectedBranch {
+	if p == nil {
+		return nil
+	}
+	return p.RequiredSignatures
+}
+
 // GetRequiredStatusChecks returns the RequiredStatusChecks field.
 func (p *Protection) GetRequiredStatusChecks() *RequiredStatusChecks {
 	if p == nil {
@@ -13068,6 +13364,14 @@ func (p *Protection) GetRestrictions() *BranchRestrictions {
 		return nil
 	}
 	return p.Restrictions
+}
+
+// GetURL returns the URL field if it's non-nil, zero value otherwise.
+func (p *Protection) GetURL() string {
+	if p == nil || p.URL == nil {
+		return ""
+	}
+	return *p.URL
 }
 
 // GetAdminEnforced returns the AdminEnforced field.
@@ -17718,6 +18022,22 @@ func (r *RequiredStatusCheck) GetAppID() int64 {
 	return *r.AppID
 }
 
+// GetContextsURL returns the ContextsURL field if it's non-nil, zero value otherwise.
+func (r *RequiredStatusChecks) GetContextsURL() string {
+	if r == nil || r.ContextsURL == nil {
+		return ""
+	}
+	return *r.ContextsURL
+}
+
+// GetURL returns the URL field if it's non-nil, zero value otherwise.
+func (r *RequiredStatusChecks) GetURL() string {
+	if r == nil || r.URL == nil {
+		return ""
+	}
+	return *r.URL
+}
+
 // GetFrom returns the From field if it's non-nil, zero value otherwise.
 func (r *RequiredStatusChecksEnforcementLevelChanges) GetFrom() string {
 	if r == nil || r.From == nil {
@@ -21492,6 +21812,14 @@ func (w *WorkflowJob) GetCreatedAt() Timestamp {
 		return Timestamp{}
 	}
 	return *w.CreatedAt
+}
+
+// GetHeadBranch returns the HeadBranch field if it's non-nil, zero value otherwise.
+func (w *WorkflowJob) GetHeadBranch() string {
+	if w == nil || w.HeadBranch == nil {
+		return ""
+	}
+	return *w.HeadBranch
 }
 
 // GetHeadSHA returns the HeadSHA field if it's non-nil, zero value otherwise.
