@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -55,6 +56,12 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     0,
 				Description: descriptions["read_delay_ms"],
+			},
+			"parallel_requests": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
 				Type:        schema.TypeList,
@@ -161,6 +168,7 @@ func Provider() terraform.ResourceProvider {
 			"github_actions_variables":                                              dataSourceGithubActionsVariables(),
 			"github_app":                                                            dataSourceGithubApp(),
 			"github_branch":                                                         dataSourceGithubBranch(),
+			"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
 			"github_collaborators":                                                  dataSourceGithubCollaborators(),
 			"github_dependabot_organization_public_key":                             dataSourceGithubDependabotOrganizationPublicKey(),
 			"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
@@ -168,6 +176,7 @@ func Provider() terraform.ResourceProvider {
 			"github_dependabot_secrets":                                             dataSourceGithubDependabotSecrets(),
 			"github_external_groups":                                                dataSourceGithubExternalGroups(),
 			"github_ip_ranges":                                                      dataSourceGithubIpRanges(),
+			"github_issue_labels":                                                   dataSourceGithubIssueLabels(),
 			"github_membership":                                                     dataSourceGithubMembership(),
 			"github_organization":                                                   dataSourceGithubOrganization(),
 			"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
@@ -227,6 +236,11 @@ func init() {
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
 			"Defaults to 0ms if not set.",
+		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
+			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
+			"Although, it is not possible to enable this setting on github.com " +
+			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
+			"Defaults to false if not set",
 	}
 }
 
@@ -309,13 +323,25 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
+		parallelRequests := d.Get("parallel_requests").(bool)
+		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+
+		if err != nil {
+			return nil, err
+		}
+		if parallelRequests && isGithubDotCom {
+			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
+		}
+		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+
 		config := Config{
-			Token:      token,
-			BaseURL:    baseURL,
-			Insecure:   insecure,
-			Owner:      owner,
-			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
-			ReadDelay:  time.Duration(readDelay) * time.Millisecond,
+			Token:            token,
+			BaseURL:          baseURL,
+			Insecure:         insecure,
+			Owner:            owner,
+			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
+			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
+			ParallelRequests: parallelRequests,
 		}
 
 		meta, err := config.Meta()

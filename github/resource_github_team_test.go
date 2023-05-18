@@ -65,17 +65,25 @@ func TestAccGithubTeamHierarchical(t *testing.T) {
 				description = "Terraform acc test parent team"
 				privacy     = "closed"
 			}
-			
+
 			resource "github_team" "child" {
 				name           = "tf-acc-child-%[1]s"
 				description    = "Terraform acc test child team"
 				privacy        = "closed"
 				parent_team_id = "${github_team.parent.id}"
 			}
+
+			resource "github_team" "child2" {
+				name           = "tf-acc-child-2-%[1]s"
+				description    = "Terraform acc test child 2 team"
+				privacy        = "closed"
+				parent_team_id = "${github_team.parent.slug}"
+			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_team.child", "parent_team_id"),
+			resource.TestCheckResourceAttrSet("github_team.child2", "parent_team_id"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

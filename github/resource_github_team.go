@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -19,7 +19,7 @@ func resourceGithubTeam() *schema.Resource {
 		Update: resourceGithubTeamUpdate,
 		Delete: resourceGithubTeamDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamImport,
 		},
 
 		CustomizeDiff: customdiff.Sequence(
@@ -47,9 +47,9 @@ func resourceGithubTeam() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the parent team, if this is a nested team.",
+				Description: "The ID or slug of the parent team, if this is a nested team.",
 			},
 			"ldap_dn": {
 				Type:        schema.TypeString,
@@ -106,8 +106,11 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		newTeam.ParentTeamID = &id
+		teamId, err := getTeamID(parentTeamID.(string), meta)
+		if err != nil {
+			return err
+		}
+		newTeam.ParentTeamID = &teamId
 	}
 	ctx := context.Background()
 
@@ -220,8 +223,11 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		editedTeam.ParentTeamID = &id
+		teamId, err := getTeamID(parentTeamID.(string), meta)
+		if err != nil {
+			return err
+		}
+		editedTeam.ParentTeamID = &teamId
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -290,6 +296,16 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	return err
+}
+
+func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	teamId, err := getTeamID(d.Id(), meta)
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(strconv.FormatInt(teamId, 10))
+	return []*schema.ResourceData{d}, nil
 }
 
 func removeDefaultMaintainer(teamSlug string, meta interface{}) error {

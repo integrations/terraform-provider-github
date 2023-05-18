@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
