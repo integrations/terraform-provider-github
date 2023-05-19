@@ -14,7 +14,7 @@ This project is used to read and write to/from GitHub (repositories, teams, file
 
 ## Usage
 
-Detailed documentation for the GitHub provider can be found [here](https://www.terraform.io/docs/providers/github/index.html).
+Detailed documentation for the GitHub provider can be found [here](https://registry.terraform.io/providers/integrations/github).
 
 ## Contributing
 

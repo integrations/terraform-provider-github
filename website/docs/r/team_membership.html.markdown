@@ -50,8 +50,9 @@ The following arguments are supported:
 
 ## Import
 
-GitHub Team Membership can be imported using an ID made up of `teamid:username`, e.g.
+GitHub Team Membership can be imported using an ID made up of `teamid:username` or `teamname:username`, e.g.
 
 ```
 $ terraform import github_team_membership.member 1234567:someuser
+$ terraform import github_team_membership.member Administrators:someuser
 ```
