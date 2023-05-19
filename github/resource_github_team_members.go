@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -21,16 +21,15 @@ func resourceGithubTeamMembers() *schema.Resource {
 		Update: resourceGithubTeamMembersUpdate,
 		Delete: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceGithubTeamImport,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The GitHub team id.",
-				ValidateFunc: validateTeamIDFunc,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub team id or slug",
 			},
 			"members": {
 				Type:        schema.TypeSet,

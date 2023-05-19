@@ -332,6 +332,7 @@ type EditChange struct {
 	Body  *EditBody  `json:"body,omitempty"`
 	Base  *EditBase  `json:"base,omitempty"`
 	Repo  *EditRepo  `json:"repository,omitempty"`
+	Owner *EditOwner `json:"owner,omitempty"`
 }
 
 // EditTitle represents a pull-request title change.
@@ -358,6 +359,17 @@ type EditRef struct {
 // EditRepo represents a change of repository name.
 type EditRepo struct {
 	Name *RepoName `json:"name,omitempty"`
+}
+
+// EditOwner represents a change of repository ownership.
+type EditOwner struct {
+	OwnerInfo *OwnerInfo `json:"from,omitempty"`
+}
+
+// OwnerInfo represents the account info of the owner of the repo (could be User or Organization but both are User structs).
+type OwnerInfo struct {
+	User *User `json:"user,omitempty"`
+	Org  *User `json:"organization,omitempty"`
 }
 
 // RepoName represents a change of repository name.
@@ -457,7 +469,7 @@ type InstallationEvent struct {
 	Repositories []*Repository `json:"repositories,omitempty"`
 	Sender       *User         `json:"sender,omitempty"`
 	Installation *Installation `json:"installation,omitempty"`
-	// TODO key "requester" is not covered
+	Requester    *User         `json:"requester,omitempty"`
 }
 
 // InstallationRepositoriesEvent is triggered when a repository is added or
@@ -1062,6 +1074,7 @@ type PushEventRepository struct {
 	SSHURL          *string    `json:"ssh_url,omitempty"`
 	CloneURL        *string    `json:"clone_url,omitempty"`
 	SVNURL          *string    `json:"svn_url,omitempty"`
+	Topics          []string   `json:"topics,omitempty"`
 }
 
 // PushEventRepoOwner is a basic representation of user/org in a PushEvent payload.
