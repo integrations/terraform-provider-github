@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func dataSourceGithubRepositoryAutolinkReferencesRules() *schema.Resource {
+func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubRepositoryAutolinkReferencesRead,
 
