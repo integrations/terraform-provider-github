@@ -187,6 +187,7 @@ func Provider() terraform.ResourceProvider {
 			"github_release":                                                        dataSourceGithubRelease(),
 			"github_repositories":                                                   dataSourceGithubRepositories(),
 			"github_repository":                                                     dataSourceGithubRepository(),
+			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
 			"github_repository_branches":                                            dataSourceGithubRepositoryBranches(),
 			"github_repository_deploy_keys":                                         dataSourceGithubRepositoryDeployKeys(),
 			"github_repository_file":                                                dataSourceGithubRepositoryFile(),
