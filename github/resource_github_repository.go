@@ -247,7 +247,7 @@ func resourceGithubRepository() *schema.Resource {
 						"source": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
-							Required:    true,
+							Optional:    true,
 							Description: "The source branch and directory for the rendered Pages site.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -264,6 +264,13 @@ func resourceGithubRepository() *schema.Resource {
 									},
 								},
 							},
+						},
+						"build_type": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "legacy",
+							Description:  "The type the page should be sourced.",
+							ValidateFunc: validateValueFunc([]string{"legacy", "workflow"}),
 						},
 						"cname": {
 							Type:        schema.TypeString,
@@ -860,6 +867,9 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 	}
 	update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 
+	pagesBuildType := pages["build_type"].(string)
+	update.BuildType = &pagesBuildType
+
 	return update
 }
 
@@ -874,6 +884,7 @@ func flattenPages(pages *github.Pages) []interface{} {
 
 	pagesMap := make(map[string]interface{})
 	pagesMap["source"] = []interface{}{sourceMap}
+	pagesMap["build_type"] = pages.GetBuildType()
 	pagesMap["url"] = pages.GetURL()
 	pagesMap["status"] = pages.GetStatus()
 	pagesMap["cname"] = pages.GetCNAME()
