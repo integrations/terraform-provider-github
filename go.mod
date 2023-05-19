@@ -5,13 +5,13 @@ go 1.17
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint v1.41.1
-	github.com/google/go-github/v51 v51.0.0
+	github.com/google/go-github/v52 v52.0.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.9.0
-	golang.org/x/oauth2 v0.7.0
+	golang.org/x/oauth2 v0.8.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
