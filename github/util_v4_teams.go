@@ -13,16 +13,21 @@ type TeamsQuery struct {
 				Name        githubv4.String
 				Description githubv4.String
 				Privacy     githubv4.String
-				Members     struct {
+				Parent      struct {
+					ID   githubv4.String
+					Slug githubv4.String
+					Name githubv4.String
+				} `graphql:"parentTeam"`
+				Members struct {
 					Nodes []struct {
 						Login githubv4.String
 					}
-				}
+				} `graphql:"members @skip(if: $summaryOnly)"`
 				Repositories struct {
 					Nodes []struct {
 						Name githubv4.String
 					}
-				}
+				} `graphql:"repositories @skip(if: $summaryOnly)"`
 			}
 			PageInfo PageInfo
 		} `graphql:"teams(first:$first, after:$cursor, rootTeamsOnly:$rootTeamsOnly)"`

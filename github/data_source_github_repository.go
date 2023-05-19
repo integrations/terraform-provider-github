@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -50,6 +50,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"has_discussions": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"has_projects": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -59,6 +63,14 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"has_wiki": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"is_template": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"fork": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -171,6 +183,23 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"template": {
+				Type:     schema.TypeList,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"owner": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"repository": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"node_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -223,7 +252,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
 	d.Set("has_wiki", repo.GetHasWiki())
+	d.Set("is_template", repo.GetIsTemplate())
+	d.Set("fork", repo.GetFork())
 	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
@@ -257,6 +289,17 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		d.Set("pages", flattenPages(nil))
 	}
 
+	if repo.TemplateRepository != nil {
+		d.Set("template", []interface{}{
+			map[string]interface{}{
+				"owner":      repo.TemplateRepository.Owner.Login,
+				"repository": repo.TemplateRepository.Name,
+			},
+		})
+	} else {
+		d.Set("template", []interface{}{})
+	}
+
 	err = d.Set("topics", flattenStringList(repo.Topics))
 	if err != nil {
 		return err
@@ -268,7 +311,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 func splitRepoFullName(fullName string) (string, string, error) {
 	parts := strings.Split(fullName, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected full name format (%q), expected owner/repo_name", fullName)
+		return "", "", fmt.Errorf("unexpected full name format (%q), expected owner/repo_name", fullName)
 	}
 	return parts[0], parts[1], nil
 }
