@@ -765,7 +765,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("manages the pages feature for a repository", func(t *testing.T) {
+	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -775,6 +775,52 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 					source {
 						branch = "main"
 					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "pages.0.source.0.branch",
+				"main",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-%s"
+				auto_init    = true
+				pages {
+					build_type = "workflow"
 				}
 			}
 		`, randomID)
