@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -48,9 +48,20 @@ func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta interface{}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	opts := &github.ListExternalGroupsOptions{}
 
-	externalGroups, _, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
-	if err != nil {
-		return err
+	externalGroups := new(github.ExternalGroupList)
+
+	for {
+		groups, resp, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
+		if err != nil {
+			return err
+		}
+
+		externalGroups.Groups = append(externalGroups.Groups, groups.Groups...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	// convert to JSON in order to martial to format we can return

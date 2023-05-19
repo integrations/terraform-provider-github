@@ -18,7 +18,7 @@ resource "github_repository" "repo" {
   description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
-  private = false
+  visibility   = "public"
 }
 
 resource "github_repository_webhook" "foo" {

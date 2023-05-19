@@ -26,7 +26,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 
 			resource "github_repository_environment" "test" {
 				repository 	= github_repository.test.name
-				environment	= "test_environment_name"
+				environment	= "environment/test"
 				wait_timer	= 10000
 				reviewers {
 					users = [data.github_user.current.id]
@@ -42,7 +42,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_environment.test", "environment",
-				"test_environment_name",
+				"environment/test",
 			),
 		)
 

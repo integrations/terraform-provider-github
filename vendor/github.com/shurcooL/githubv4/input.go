@@ -4,7 +4,7 @@ package githubv4
 
 // Input represents one of the Input structs:
 //
-// AbortQueuedMigrationsInput, AcceptEnterpriseAdministratorInvitationInput, AcceptTopicSuggestionInput, AddAssigneesToAssignableInput, AddCommentInput, AddDiscussionCommentInput, AddEnterpriseSupportEntitlementInput, AddLabelsToLabelableInput, AddProjectCardInput, AddProjectColumnInput, AddProjectDraftIssueInput, AddProjectNextItemInput, AddPullRequestReviewCommentInput, AddPullRequestReviewInput, AddPullRequestReviewThreadInput, AddReactionInput, AddStarInput, AddUpvoteInput, AddVerifiableDomainInput, ApproveDeploymentsInput, ApproveVerifiableDomainInput, ArchiveRepositoryInput, AuditLogOrder, CancelEnterpriseAdminInvitationInput, CancelSponsorshipInput, ChangeUserStatusInput, CheckAnnotationData, CheckAnnotationRange, CheckRunAction, CheckRunFilter, CheckRunOutput, CheckRunOutputImage, CheckSuiteAutoTriggerPreference, CheckSuiteFilter, ClearLabelsFromLabelableInput, CloneProjectInput, CloneTemplateRepositoryInput, CloseIssueInput, ClosePullRequestInput, CommitAuthor, CommitContributionOrder, CommitMessage, CommittableBranch, ContributionOrder, ConvertProjectCardNoteToIssueInput, ConvertPullRequestToDraftInput, CreateBranchProtectionRuleInput, CreateCheckRunInput, CreateCheckSuiteInput, CreateCommitOnBranchInput, CreateDiscussionInput, CreateEnterpriseOrganizationInput, CreateEnvironmentInput, CreateIpAllowListEntryInput, CreateIssueInput, CreateMigrationSourceInput, CreateProjectInput, CreatePullRequestInput, CreateRefInput, CreateRepositoryInput, CreateSponsorsTierInput, CreateSponsorshipInput, CreateTeamDiscussionCommentInput, CreateTeamDiscussionInput, DeclineTopicSuggestionInput, DeleteBranchProtectionRuleInput, DeleteDeploymentInput, DeleteDiscussionCommentInput, DeleteDiscussionInput, DeleteEnvironmentInput, DeleteIpAllowListEntryInput, DeleteIssueCommentInput, DeleteIssueInput, DeleteProjectCardInput, DeleteProjectColumnInput, DeleteProjectInput, DeleteProjectNextItemInput, DeletePullRequestReviewCommentInput, DeletePullRequestReviewInput, DeleteRefInput, DeleteTeamDiscussionCommentInput, DeleteTeamDiscussionInput, DeleteVerifiableDomainInput, DeploymentOrder, DisablePullRequestAutoMergeInput, DiscussionOrder, DismissPullRequestReviewInput, DismissRepositoryVulnerabilityAlertInput, DraftPullRequestReviewComment, DraftPullRequestReviewThread, EnablePullRequestAutoMergeInput, EnterpriseAdministratorInvitationOrder, EnterpriseMemberOrder, EnterpriseServerInstallationOrder, EnterpriseServerUserAccountEmailOrder, EnterpriseServerUserAccountOrder, EnterpriseServerUserAccountsUploadOrder, FileAddition, FileChanges, FileDeletion, FollowOrganizationInput, FollowUserInput, GistOrder, GrantEnterpriseOrganizationsMigratorRoleInput, GrantMigratorRoleInput, InviteEnterpriseAdminInput, IpAllowListEntryOrder, IssueCommentOrder, IssueFilters, IssueOrder, LabelOrder, LanguageOrder, LinkRepositoryToProjectInput, LockLockableInput, MarkDiscussionCommentAsAnswerInput, MarkFileAsViewedInput, MarkPullRequestReadyForReviewInput, MergeBranchInput, MergePullRequestInput, MilestoneOrder, MinimizeCommentInput, MoveProjectCardInput, MoveProjectColumnInput, OrgEnterpriseOwnerOrder, OrganizationOrder, PackageFileOrder, PackageOrder, PackageVersionOrder, PinIssueInput, ProjectOrder, PullRequestOrder, ReactionOrder, RefOrder, RegenerateEnterpriseIdentityProviderRecoveryCodesInput, RegenerateVerifiableDomainTokenInput, RejectDeploymentsInput, ReleaseOrder, RemoveAssigneesFromAssignableInput, RemoveEnterpriseAdminInput, RemoveEnterpriseIdentityProviderInput, RemoveEnterpriseOrganizationInput, RemoveEnterpriseSupportEntitlementInput, RemoveLabelsFromLabelableInput, RemoveOutsideCollaboratorInput, RemoveReactionInput, RemoveStarInput, RemoveUpvoteInput, ReopenIssueInput, ReopenPullRequestInput, RepositoryInvitationOrder, RepositoryMigrationOrder, RepositoryOrder, RequestReviewsInput, RequiredStatusCheckInput, RerequestCheckSuiteInput, ResolveReviewThreadInput, RevokeEnterpriseOrganizationsMigratorRoleInput, RevokeMigratorRoleInput, SavedReplyOrder, SecurityAdvisoryIdentifierFilter, SecurityAdvisoryOrder, SecurityVulnerabilityOrder, SetEnterpriseIdentityProviderInput, SetOrganizationInteractionLimitInput, SetRepositoryInteractionLimitInput, SetUserInteractionLimitInput, SponsorOrder, SponsorableOrder, SponsorsActivityOrder, SponsorsTierOrder, SponsorshipNewsletterOrder, SponsorshipOrder, StarOrder, StartRepositoryMigrationInput, SubmitPullRequestReviewInput, TeamDiscussionCommentOrder, TeamDiscussionOrder, TeamMemberOrder, TeamOrder, TeamRepositoryOrder, TransferIssueInput, UnarchiveRepositoryInput, UnfollowOrganizationInput, UnfollowUserInput, UnlinkRepositoryFromProjectInput, UnlockLockableInput, UnmarkDiscussionCommentAsAnswerInput, UnmarkFileAsViewedInput, UnmarkIssueAsDuplicateInput, UnminimizeCommentInput, UnpinIssueInput, UnresolveReviewThreadInput, UpdateBranchProtectionRuleInput, UpdateCheckRunInput, UpdateCheckSuitePreferencesInput, UpdateDiscussionCommentInput, UpdateDiscussionInput, UpdateEnterpriseAdministratorRoleInput, UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput, UpdateEnterpriseDefaultRepositoryPermissionSettingInput, UpdateEnterpriseMembersCanChangeRepositoryVisibilitySettingInput, UpdateEnterpriseMembersCanCreateRepositoriesSettingInput, UpdateEnterpriseMembersCanDeleteIssuesSettingInput, UpdateEnterpriseMembersCanDeleteRepositoriesSettingInput, UpdateEnterpriseMembersCanInviteCollaboratorsSettingInput, UpdateEnterpriseMembersCanMakePurchasesSettingInput, UpdateEnterpriseMembersCanUpdateProtectedBranchesSettingInput, UpdateEnterpriseMembersCanViewDependencyInsightsSettingInput, UpdateEnterpriseOrganizationProjectsSettingInput, UpdateEnterpriseOwnerOrganizationRoleInput, UpdateEnterpriseProfileInput, UpdateEnterpriseRepositoryProjectsSettingInput, UpdateEnterpriseTeamDiscussionsSettingInput, UpdateEnterpriseTwoFactorAuthenticationRequiredSettingInput, UpdateEnvironmentInput, UpdateIpAllowListEnabledSettingInput, UpdateIpAllowListEntryInput, UpdateIpAllowListForInstalledAppsEnabledSettingInput, UpdateIssueCommentInput, UpdateIssueInput, UpdateNotificationRestrictionSettingInput, UpdateOrganizationAllowPrivateRepositoryForkingSettingInput, UpdateProjectCardInput, UpdateProjectColumnInput, UpdateProjectDraftIssueInput, UpdateProjectInput, UpdateProjectNextInput, UpdateProjectNextItemFieldInput, UpdatePullRequestBranchInput, UpdatePullRequestInput, UpdatePullRequestReviewCommentInput, UpdatePullRequestReviewInput, UpdateRefInput, UpdateRepositoryInput, UpdateSponsorshipPreferencesInput, UpdateSubscriptionInput, UpdateTeamDiscussionCommentInput, UpdateTeamDiscussionInput, UpdateTeamsRepositoryInput, UpdateTopicsInput, UserStatusOrder, VerifiableDomainOrder, VerifyVerifiableDomainInput.
+// AbortQueuedMigrationsInput, AcceptEnterpriseAdministratorInvitationInput, AcceptTopicSuggestionInput, AddAssigneesToAssignableInput, AddCommentInput, AddDiscussionCommentInput, AddDiscussionPollVoteInput, AddEnterpriseOrganizationMemberInput, AddEnterpriseSupportEntitlementInput, AddLabelsToLabelableInput, AddProjectCardInput, AddProjectColumnInput, AddProjectDraftIssueInput, AddProjectNextItemInput, AddProjectV2DraftIssueInput, AddProjectV2ItemByIdInput, AddPullRequestReviewCommentInput, AddPullRequestReviewInput, AddPullRequestReviewThreadInput, AddReactionInput, AddStarInput, AddUpvoteInput, AddVerifiableDomainInput, ApproveDeploymentsInput, ApproveVerifiableDomainInput, ArchiveProjectV2ItemInput, ArchiveRepositoryInput, AuditLogOrder, CancelEnterpriseAdminInvitationInput, CancelSponsorshipInput, ChangeUserStatusInput, CheckAnnotationData, CheckAnnotationRange, CheckRunAction, CheckRunFilter, CheckRunOutput, CheckRunOutputImage, CheckSuiteAutoTriggerPreference, CheckSuiteFilter, ClearLabelsFromLabelableInput, ClearProjectV2ItemFieldValueInput, CloneProjectInput, CloneTemplateRepositoryInput, CloseIssueInput, ClosePullRequestInput, CommitAuthor, CommitContributionOrder, CommitMessage, CommittableBranch, ContributionOrder, ConvertProjectCardNoteToIssueInput, ConvertPullRequestToDraftInput, CreateBranchProtectionRuleInput, CreateCheckRunInput, CreateCheckSuiteInput, CreateCommitOnBranchInput, CreateDiscussionInput, CreateEnterpriseOrganizationInput, CreateEnvironmentInput, CreateIpAllowListEntryInput, CreateIssueInput, CreateLinkedBranchInput, CreateMigrationSourceInput, CreateProjectInput, CreateProjectV2Input, CreatePullRequestInput, CreateRefInput, CreateRepositoryInput, CreateSponsorsTierInput, CreateSponsorshipInput, CreateTeamDiscussionCommentInput, CreateTeamDiscussionInput, DeclineTopicSuggestionInput, DeleteBranchProtectionRuleInput, DeleteDeploymentInput, DeleteDiscussionCommentInput, DeleteDiscussionInput, DeleteEnvironmentInput, DeleteIpAllowListEntryInput, DeleteIssueCommentInput, DeleteIssueInput, DeleteLinkedBranchInput, DeleteProjectCardInput, DeleteProjectColumnInput, DeleteProjectInput, DeleteProjectNextItemInput, DeleteProjectV2ItemInput, DeletePullRequestReviewCommentInput, DeletePullRequestReviewInput, DeleteRefInput, DeleteTeamDiscussionCommentInput, DeleteTeamDiscussionInput, DeleteVerifiableDomainInput, DeploymentOrder, DisablePullRequestAutoMergeInput, DiscussionOrder, DiscussionPollOptionOrder, DismissPullRequestReviewInput, DismissRepositoryVulnerabilityAlertInput, DraftPullRequestReviewComment, DraftPullRequestReviewThread, EnablePullRequestAutoMergeInput, EnterpriseAdministratorInvitationOrder, EnterpriseMemberOrder, EnterpriseServerInstallationOrder, EnterpriseServerUserAccountEmailOrder, EnterpriseServerUserAccountOrder, EnterpriseServerUserAccountsUploadOrder, FileAddition, FileChanges, FileDeletion, FollowOrganizationInput, FollowUserInput, GistOrder, GrantEnterpriseOrganizationsMigratorRoleInput, GrantMigratorRoleInput, InviteEnterpriseAdminInput, IpAllowListEntryOrder, IssueCommentOrder, IssueFilters, IssueOrder, LabelOrder, LanguageOrder, LinkProjectV2ToRepositoryInput, LinkProjectV2ToTeamInput, LinkRepositoryToProjectInput, LockLockableInput, MarkDiscussionCommentAsAnswerInput, MarkFileAsViewedInput, MarkPullRequestReadyForReviewInput, MergeBranchInput, MergePullRequestInput, MilestoneOrder, MinimizeCommentInput, MoveProjectCardInput, MoveProjectColumnInput, OrgEnterpriseOwnerOrder, OrganizationOrder, PackageFileOrder, PackageOrder, PackageVersionOrder, PinIssueInput, ProjectOrder, ProjectV2FieldOrder, ProjectV2FieldValue, ProjectV2Filters, ProjectV2ItemFieldValueOrder, ProjectV2ItemOrder, ProjectV2Order, ProjectV2ViewOrder, PullRequestOrder, ReactionOrder, RefOrder, RegenerateEnterpriseIdentityProviderRecoveryCodesInput, RegenerateVerifiableDomainTokenInput, RejectDeploymentsInput, ReleaseOrder, RemoveAssigneesFromAssignableInput, RemoveEnterpriseAdminInput, RemoveEnterpriseIdentityProviderInput, RemoveEnterpriseOrganizationInput, RemoveEnterpriseSupportEntitlementInput, RemoveLabelsFromLabelableInput, RemoveOutsideCollaboratorInput, RemoveReactionInput, RemoveStarInput, RemoveUpvoteInput, ReopenIssueInput, ReopenPullRequestInput, RepositoryInvitationOrder, RepositoryMigrationOrder, RepositoryOrder, RequestReviewsInput, RequiredStatusCheckInput, RerequestCheckSuiteInput, ResolveReviewThreadInput, RevokeEnterpriseOrganizationsMigratorRoleInput, RevokeMigratorRoleInput, SavedReplyOrder, SecurityAdvisoryIdentifierFilter, SecurityAdvisoryOrder, SecurityVulnerabilityOrder, SetEnterpriseIdentityProviderInput, SetOrganizationInteractionLimitInput, SetRepositoryInteractionLimitInput, SetUserInteractionLimitInput, SponsorOrder, SponsorableOrder, SponsorsActivityOrder, SponsorsTierOrder, SponsorshipNewsletterOrder, SponsorshipOrder, StarOrder, StartRepositoryMigrationInput, SubmitPullRequestReviewInput, TeamDiscussionCommentOrder, TeamDiscussionOrder, TeamMemberOrder, TeamOrder, TeamRepositoryOrder, TransferEnterpriseOrganizationInput, TransferIssueInput, UnarchiveProjectV2ItemInput, UnarchiveRepositoryInput, UnfollowOrganizationInput, UnfollowUserInput, UnlinkProjectV2FromRepositoryInput, UnlinkProjectV2FromTeamInput, UnlinkRepositoryFromProjectInput, UnlockLockableInput, UnmarkDiscussionCommentAsAnswerInput, UnmarkFileAsViewedInput, UnmarkIssueAsDuplicateInput, UnminimizeCommentInput, UnpinIssueInput, UnresolveReviewThreadInput, UpdateBranchProtectionRuleInput, UpdateCheckRunInput, UpdateCheckSuitePreferencesInput, UpdateDiscussionCommentInput, UpdateDiscussionInput, UpdateEnterpriseAdministratorRoleInput, UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput, UpdateEnterpriseDefaultRepositoryPermissionSettingInput, UpdateEnterpriseMembersCanChangeRepositoryVisibilitySettingInput, UpdateEnterpriseMembersCanCreateRepositoriesSettingInput, UpdateEnterpriseMembersCanDeleteIssuesSettingInput, UpdateEnterpriseMembersCanDeleteRepositoriesSettingInput, UpdateEnterpriseMembersCanInviteCollaboratorsSettingInput, UpdateEnterpriseMembersCanMakePurchasesSettingInput, UpdateEnterpriseMembersCanUpdateProtectedBranchesSettingInput, UpdateEnterpriseMembersCanViewDependencyInsightsSettingInput, UpdateEnterpriseOrganizationProjectsSettingInput, UpdateEnterpriseOwnerOrganizationRoleInput, UpdateEnterpriseProfileInput, UpdateEnterpriseRepositoryProjectsSettingInput, UpdateEnterpriseTeamDiscussionsSettingInput, UpdateEnterpriseTwoFactorAuthenticationRequiredSettingInput, UpdateEnvironmentInput, UpdateIpAllowListEnabledSettingInput, UpdateIpAllowListEntryInput, UpdateIpAllowListForInstalledAppsEnabledSettingInput, UpdateIssueCommentInput, UpdateIssueInput, UpdateNotificationRestrictionSettingInput, UpdateOrganizationAllowPrivateRepositoryForkingSettingInput, UpdateOrganizationWebCommitSignoffSettingInput, UpdateProjectCardInput, UpdateProjectColumnInput, UpdateProjectDraftIssueInput, UpdateProjectInput, UpdateProjectNextInput, UpdateProjectNextItemFieldInput, UpdateProjectV2DraftIssueInput, UpdateProjectV2Input, UpdateProjectV2ItemFieldValueInput, UpdateProjectV2ItemPositionInput, UpdatePullRequestBranchInput, UpdatePullRequestInput, UpdatePullRequestReviewCommentInput, UpdatePullRequestReviewInput, UpdateRefInput, UpdateRepositoryInput, UpdateRepositoryWebCommitSignoffSettingInput, UpdateSponsorshipPreferencesInput, UpdateSubscriptionInput, UpdateTeamDiscussionCommentInput, UpdateTeamDiscussionInput, UpdateTeamsRepositoryInput, UpdateTopicsInput, UserStatusOrder, VerifiableDomainOrder, VerifyVerifiableDomainInput, WorkflowRunOrder.
 type Input interface{}
 
 // AbortQueuedMigrationsInput is an autogenerated input type of AbortQueuedMigrations.
@@ -71,6 +71,30 @@ type AddDiscussionCommentInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// AddDiscussionPollVoteInput is an autogenerated input type of AddDiscussionPollVote.
+type AddDiscussionPollVoteInput struct {
+	// The Node ID of the discussion poll option to vote for. (Required.)
+	PollOptionID ID `json:"pollOptionId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// AddEnterpriseOrganizationMemberInput is an autogenerated input type of AddEnterpriseOrganizationMember.
+type AddEnterpriseOrganizationMemberInput struct {
+	// The ID of the enterprise which owns the organization. (Required.)
+	EnterpriseID ID `json:"enterpriseId"`
+	// The ID of the organization the users will be added to. (Required.)
+	OrganizationID ID `json:"organizationId"`
+	// The IDs of the enterprise members to add. (Required.)
+	UserIDs []ID `json:"userIds"`
+
+	// The role to assign the users in the organization. (Optional.)
+	Role *OrganizationMemberRole `json:"role,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // AddEnterpriseSupportEntitlementInput is an autogenerated input type of AddEnterpriseSupportEntitlement.
 type AddEnterpriseSupportEntitlementInput struct {
 	// The ID of the Enterprise which the admin belongs to. (Required.)
@@ -119,6 +143,32 @@ type AddProjectColumnInput struct {
 
 // AddProjectDraftIssueInput is an autogenerated input type of AddProjectDraftIssue.
 type AddProjectDraftIssueInput struct {
+
+	// The ID of the Project to add the draft issue to. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ProjectID *ID `json:"projectId,omitempty"`
+	// The title of the draft issue. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Title *String `json:"title,omitempty"`
+	// The body of the draft issue. **Upcoming Change on 2023-01-01 UTC** **Description:** `body` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Body *String `json:"body,omitempty"`
+	// The IDs of the assignees of the draft issue. **Upcoming Change on 2023-01-01 UTC** **Description:** `assigneeIds` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// AddProjectNextItemInput is an autogenerated input type of AddProjectNextItem.
+type AddProjectNextItemInput struct {
+
+	// The ID of the Project to add the item to. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ProjectID *ID `json:"projectId,omitempty"`
+	// The content id of the item (Issue or PullRequest). This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `contentId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ContentID *ID `json:"contentId,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// AddProjectV2DraftIssueInput is an autogenerated input type of AddProjectV2DraftIssue.
+type AddProjectV2DraftIssueInput struct {
 	// The ID of the Project to add the draft issue to. (Required.)
 	ProjectID ID `json:"projectId"`
 	// The title of the draft issue. (Required.)
@@ -132,11 +182,11 @@ type AddProjectDraftIssueInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// AddProjectNextItemInput is an autogenerated input type of AddProjectNextItem.
-type AddProjectNextItemInput struct {
+// AddProjectV2ItemByIdInput is an autogenerated input type of AddProjectV2ItemById.
+type AddProjectV2ItemByIdInput struct {
 	// The ID of the Project to add the item to. (Required.)
 	ProjectID ID `json:"projectId"`
-	// The content id of the item (Issue or PullRequest). (Required.)
+	// The id of the Issue or Pull Request to add. (Required.)
 	ContentID ID `json:"contentId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
@@ -268,6 +318,17 @@ type ApproveVerifiableDomainInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// ArchiveProjectV2ItemInput is an autogenerated input type of ArchiveProjectV2Item.
+type ArchiveProjectV2ItemInput struct {
+	// The ID of the Project to archive the item from. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the ProjectV2Item to archive. (Required.)
+	ItemID ID `json:"itemId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // ArchiveRepositoryInput is an autogenerated input type of ArchiveRepository.
 type ArchiveRepositoryInput struct {
 	// The ID of the repository to mark as archived. (Required.)
@@ -376,8 +437,12 @@ type CheckRunFilter struct {
 	AppID *Int `json:"appId,omitempty"`
 	// Filters the check runs by this name. (Optional.)
 	CheckName *String `json:"checkName,omitempty"`
-	// Filters the check runs by this status. (Optional.)
+	// Filters the check runs by this status. Superceded by statuses. (Optional.)
 	Status *CheckStatusState `json:"status,omitempty"`
+	// Filters the check runs by this status. Overrides status. (Optional.)
+	Statuses *[]CheckStatusState `json:"statuses,omitempty"`
+	// Filters the check runs by these conclusions. (Optional.)
+	Conclusions *[]CheckConclusionState `json:"conclusions,omitempty"`
 }
 
 // CheckRunOutput represents descriptive details about the check run.
@@ -432,6 +497,19 @@ type ClearLabelsFromLabelableInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// ClearProjectV2ItemFieldValueInput is an autogenerated input type of ClearProjectV2ItemFieldValue.
+type ClearProjectV2ItemFieldValueInput struct {
+	// The ID of the Project. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the item to be cleared. (Required.)
+	ItemID ID `json:"itemId"`
+	// The ID of the field to be cleared. (Required.)
+	FieldID ID `json:"fieldId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // CloneProjectInput is an autogenerated input type of CloneProject.
 type CloneProjectInput struct {
 	// The owner ID to create the project under. (Required.)
@@ -475,6 +553,8 @@ type CloseIssueInput struct {
 	// ID of the issue to be closed. (Required.)
 	IssueID ID `json:"issueId"`
 
+	// The reason the issue is to be closed. (Optional.)
+	StateReason *IssueClosedStateReason `json:"stateReason,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -514,7 +594,7 @@ type CommitMessage struct {
 	Body *String `json:"body,omitempty"`
 }
 
-// CommittableBranch represents a git ref for a commit to be appended to. The ref must be a branch, i.e. its fully qualified name must start with `refs/heads/` (although the input is not required to be fully qualified). The Ref may be specified by its global node ID or by the repository nameWithOwner and branch name. ### Examples Specify a branch using a global node ID: { "id": "MDM6UmVmMTpyZWZzL2hlYWRzL21haW4=" } Specify a branch using nameWithOwner and branch name: { "nameWithOwner": "github/graphql-client", "branchName": "main" }.
+// CommittableBranch represents a git ref for a commit to be appended to. The ref must be a branch, i.e. its fully qualified name must start with `refs/heads/` (although the input is not required to be fully qualified). The Ref may be specified by its global node ID or by the `repositoryNameWithOwner` and `branchName`. ### Examples Specify a branch using a global node ID: { "id": "MDM6UmVmMTpyZWZzL2hlYWRzL21haW4=" } Specify a branch using `repositoryNameWithOwner` and `branchName`: { "repositoryNameWithOwner": "github/graphql-client", "branchName": "main" }.
 type CommittableBranch struct {
 
 	// The Node ID of the Ref to be updated. (Optional.)
@@ -588,11 +668,11 @@ type CreateBranchProtectionRuleInput struct {
 	DismissesStaleReviews *Boolean `json:"dismissesStaleReviews,omitempty"`
 	// Is dismissal of pull request reviews restricted. (Optional.)
 	RestrictsReviewDismissals *Boolean `json:"restrictsReviewDismissals,omitempty"`
-	// A list of User or Team IDs allowed to dismiss reviews on pull requests targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to dismiss reviews on pull requests targeting matching branches. (Optional.)
 	ReviewDismissalActorIDs *[]ID `json:"reviewDismissalActorIds,omitempty"`
-	// A list of User or Team IDs allowed to bypass pull requests targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to bypass pull requests targeting matching branches. (Optional.)
 	BypassPullRequestActorIDs *[]ID `json:"bypassPullRequestActorIds,omitempty"`
-	// A list of User or Team IDs allowed to bypass force push targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to bypass force push targeting matching branches. (Optional.)
 	BypassForcePushActorIDs *[]ID `json:"bypassForcePushActorIds,omitempty"`
 	// Is pushing to matching branches restricted. (Optional.)
 	RestrictsPushes *Boolean `json:"restrictsPushes,omitempty"`
@@ -604,6 +684,12 @@ type CreateBranchProtectionRuleInput struct {
 	RequiredStatusChecks *[]RequiredStatusCheckInput `json:"requiredStatusChecks,omitempty"`
 	// Are conversations required to be resolved before merging. (Optional.)
 	RequiresConversationResolution *Boolean `json:"requiresConversationResolution,omitempty"`
+	// Whether the most recent push must be approved by someone other than the person who pushed it. (Optional.)
+	RequireLastPushApproval *Boolean `json:"requireLastPushApproval,omitempty"`
+	// Whether to set the branch as read-only. If this is true, users will not be able to push to the branch. (Optional.)
+	LockBranch *Boolean `json:"lockBranch,omitempty"`
+	// Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing. (Optional.)
+	LockAllowsFetchAndMerge *Boolean `json:"lockAllowsFetchAndMerge,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -744,6 +830,21 @@ type CreateIssueInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// CreateLinkedBranchInput is an autogenerated input type of CreateLinkedBranch.
+type CreateLinkedBranchInput struct {
+	// ID of the issue to link to. (Required.)
+	IssueID ID `json:"issueId"`
+	// The commit SHA to base the new branch on. (Required.)
+	Oid GitObjectID `json:"oid"`
+
+	// The name of the new branch. Defaults to issue number and title. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// ID of the repository to create the branch in. Defaults to the issue repository. (Optional.)
+	RepositoryID *ID `json:"repositoryId,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // CreateMigrationSourceInput is an autogenerated input type of CreateMigrationSource.
 type CreateMigrationSourceInput struct {
 	// The Octoshift migration source name. (Required.)
@@ -776,6 +877,21 @@ type CreateProjectInput struct {
 	Template *ProjectTemplate `json:"template,omitempty"`
 	// A list of repository IDs to create as linked repositories for the project. (Optional.)
 	RepositoryIDs *[]ID `json:"repositoryIds,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// CreateProjectV2Input is an autogenerated input type of CreateProjectV2.
+type CreateProjectV2Input struct {
+	// The owner ID to create the project under. (Required.)
+	OwnerID ID `json:"ownerId"`
+	// The title of the project. (Required.)
+	Title String `json:"title"`
+
+	// The repository to link the project to. (Optional.)
+	RepositoryID *ID `json:"repositoryId,omitempty"`
+	// The team to link the project to. The team will be granted read permissions. (Optional.)
+	TeamID *ID `json:"teamId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -1002,6 +1118,15 @@ type DeleteIssueInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// DeleteLinkedBranchInput is an autogenerated input type of DeleteLinkedBranch.
+type DeleteLinkedBranchInput struct {
+	// The ID of the linked branch. (Required.)
+	LinkedBranchID ID `json:"linkedBranchId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // DeleteProjectCardInput is an autogenerated input type of DeleteProjectCard.
 type DeleteProjectCardInput struct {
 	// The id of the card to delete. (Required.)
@@ -1031,6 +1156,17 @@ type DeleteProjectInput struct {
 
 // DeleteProjectNextItemInput is an autogenerated input type of DeleteProjectNextItem.
 type DeleteProjectNextItemInput struct {
+
+	// The ID of the Project from which the item should be removed. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ProjectID *ID `json:"projectId,omitempty"`
+	// The ID of the item to be removed. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ItemID *ID `json:"itemId,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeleteProjectV2ItemInput is an autogenerated input type of DeleteProjectV2Item.
+type DeleteProjectV2ItemInput struct {
 	// The ID of the Project from which the item should be removed. (Required.)
 	ProjectID ID `json:"projectId"`
 	// The ID of the item to be removed. (Required.)
@@ -1119,6 +1255,14 @@ type DiscussionOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// DiscussionPollOptionOrder represents ordering options for discussion poll option connections.
+type DiscussionPollOptionOrder struct {
+	// The field to order poll options by. (Required.)
+	Field DiscussionPollOptionOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
 // DismissPullRequestReviewInput is an autogenerated input type of DismissPullRequestReview.
 type DismissPullRequestReviewInput struct {
 	// The Node ID of the pull request review to modify. (Required.)
@@ -1173,11 +1317,11 @@ type EnablePullRequestAutoMergeInput struct {
 	// ID of the pull request to enable auto-merge on. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
-	// Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used. (Optional.)
+	// Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit headline is ignored. (Optional.)
 	CommitHeadline *String `json:"commitHeadline,omitempty"`
-	// Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used. (Optional.)
+	// Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit message is ignored. (Optional.)
 	CommitBody *String `json:"commitBody,omitempty"`
-	// The merge method to use. If omitted, defaults to 'MERGE'. (Optional.)
+	// The merge method to use. If omitted, defaults to `MERGE`. NOTE: when merging with a merge queue any input value for merge method is ignored. (Optional.)
 	MergeMethod *PullRequestMergeMethod `json:"mergeMethod,omitempty"`
 	// The email address to associate with this merge. (Optional.)
 	AuthorEmail *String `json:"authorEmail,omitempty"`
@@ -1384,6 +1528,28 @@ type LanguageOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// LinkProjectV2ToRepositoryInput is an autogenerated input type of LinkProjectV2ToRepository.
+type LinkProjectV2ToRepositoryInput struct {
+	// The ID of the project to link to the repository. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the repository to link to the project. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// LinkProjectV2ToTeamInput is an autogenerated input type of LinkProjectV2ToTeam.
+type LinkProjectV2ToTeamInput struct {
+	// The ID of the project to link to the team. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the team to link to the project. (Required.)
+	TeamID ID `json:"teamId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // LinkRepositoryToProjectInput is an autogenerated input type of LinkRepositoryToProject.
 type LinkRepositoryToProjectInput struct {
 	// The ID of the Project to link to a Repository. (Required.)
@@ -1571,6 +1737,68 @@ type ProjectOrder struct {
 	// The field in which to order projects by. (Required.)
 	Field ProjectOrderField `json:"field"`
 	// The direction in which to order projects by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2FieldOrder represents ordering options for project v2 field connections.
+type ProjectV2FieldOrder struct {
+	// The field to order the project v2 fields by. (Required.)
+	Field ProjectV2FieldOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2FieldValue represents the values that can be used to update a field of an item inside a Project. Only 1 value can be updated at a time.
+type ProjectV2FieldValue struct {
+
+	// The text to set on the field. (Optional.)
+	Text *String `json:"text,omitempty"`
+	// The number to set on the field. (Optional.)
+	Number *Float `json:"number,omitempty"`
+	// The ISO 8601 date to set on the field. (Optional.)
+	Date *Date `json:"date,omitempty"`
+	// The id of the single select option to set on the field. (Optional.)
+	SingleSelectOptionID *String `json:"singleSelectOptionId,omitempty"`
+	// The id of the iteration to set on the field. (Optional.)
+	IterationID *String `json:"iterationId,omitempty"`
+}
+
+// ProjectV2Filters represents ways in which to filter lists of projects.
+type ProjectV2Filters struct {
+
+	// List project v2 filtered by the state given. (Optional.)
+	State *ProjectV2State `json:"state,omitempty"`
+}
+
+// ProjectV2ItemFieldValueOrder represents ordering options for project v2 item field value connections.
+type ProjectV2ItemFieldValueOrder struct {
+	// The field to order the project v2 item field values by. (Required.)
+	Field ProjectV2ItemFieldValueOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2ItemOrder represents ordering options for project v2 item connections.
+type ProjectV2ItemOrder struct {
+	// The field to order the project v2 items by. (Required.)
+	Field ProjectV2ItemOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2Order represents ways in which lists of projects can be ordered upon return.
+type ProjectV2Order struct {
+	// The field in which to order projects by. (Required.)
+	Field ProjectV2OrderField `json:"field"`
+	// The direction in which to order projects by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2ViewOrder represents ordering options for project v2 view connections.
+type ProjectV2ViewOrder struct {
+	// The field to order the project v2 views by. (Required.)
+	Field ProjectV2ViewOrderField `json:"field"`
+	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
 }
 
@@ -2007,6 +2235,8 @@ type StartRepositoryMigrationInput struct {
 	SourceRepositoryURL URI `json:"sourceRepositoryUrl"`
 	// The name of the imported repository. (Required.)
 	RepositoryName String `json:"repositoryName"`
+	// The Octoshift migration source access token. (Required.)
+	AccessToken String `json:"accessToken"`
 
 	// Whether to continue the migration on error. (Optional.)
 	ContinueOnError *Boolean `json:"continueOnError,omitempty"`
@@ -2014,12 +2244,14 @@ type StartRepositoryMigrationInput struct {
 	GitArchiveURL *String `json:"gitArchiveUrl,omitempty"`
 	// The signed URL to access the user-uploaded metadata archive. (Optional.)
 	MetadataArchiveURL *String `json:"metadataArchiveUrl,omitempty"`
-	// The Octoshift migration source access token. (Optional.)
-	AccessToken *String `json:"accessToken,omitempty"`
 	// The GitHub personal access token of the user importing to the target repository. (Optional.)
 	GitHubPat *String `json:"githubPat,omitempty"`
 	// Whether to skip migrating releases for the repository. (Optional.)
 	SkipReleases *Boolean `json:"skipReleases,omitempty"`
+	// The visibility of the imported repository. (Optional.)
+	TargetRepoVisibility *String `json:"targetRepoVisibility,omitempty"`
+	// Whether to lock the source repository. (Optional.)
+	LockSource *Boolean `json:"lockSource,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -2079,12 +2311,36 @@ type TeamRepositoryOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// TransferEnterpriseOrganizationInput is an autogenerated input type of TransferEnterpriseOrganization.
+type TransferEnterpriseOrganizationInput struct {
+	// The ID of the organization to transfer. (Required.)
+	OrganizationID ID `json:"organizationId"`
+	// The ID of the enterprise where the organization should be transferred. (Required.)
+	DestinationEnterpriseID ID `json:"destinationEnterpriseId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // TransferIssueInput is an autogenerated input type of TransferIssue.
 type TransferIssueInput struct {
 	// The Node ID of the issue to be transferred. (Required.)
 	IssueID ID `json:"issueId"`
 	// The Node ID of the repository the issue should be transferred to. (Required.)
 	RepositoryID ID `json:"repositoryId"`
+
+	// Whether to create labels if they don't exist in the target repository (matched by name). (Optional.)
+	CreateLabelsIfMissing *Boolean `json:"createLabelsIfMissing,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UnarchiveProjectV2ItemInput is an autogenerated input type of UnarchiveProjectV2Item.
+type UnarchiveProjectV2ItemInput struct {
+	// The ID of the Project to archive the item from. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the ProjectV2Item to unarchive. (Required.)
+	ItemID ID `json:"itemId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -2112,6 +2368,28 @@ type UnfollowOrganizationInput struct {
 type UnfollowUserInput struct {
 	// ID of the user to unfollow. (Required.)
 	UserID ID `json:"userId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UnlinkProjectV2FromRepositoryInput is an autogenerated input type of UnlinkProjectV2FromRepository.
+type UnlinkProjectV2FromRepositoryInput struct {
+	// The ID of the project to unlink from the repository. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the repository to unlink from the project. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UnlinkProjectV2FromTeamInput is an autogenerated input type of UnlinkProjectV2FromTeam.
+type UnlinkProjectV2FromTeamInput struct {
+	// The ID of the project to unlink from the team. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the team to unlink from the project. (Required.)
+	TeamID ID `json:"teamId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -2228,11 +2506,11 @@ type UpdateBranchProtectionRuleInput struct {
 	DismissesStaleReviews *Boolean `json:"dismissesStaleReviews,omitempty"`
 	// Is dismissal of pull request reviews restricted. (Optional.)
 	RestrictsReviewDismissals *Boolean `json:"restrictsReviewDismissals,omitempty"`
-	// A list of User or Team IDs allowed to dismiss reviews on pull requests targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to dismiss reviews on pull requests targeting matching branches. (Optional.)
 	ReviewDismissalActorIDs *[]ID `json:"reviewDismissalActorIds,omitempty"`
-	// A list of User or Team IDs allowed to bypass pull requests targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to bypass pull requests targeting matching branches. (Optional.)
 	BypassPullRequestActorIDs *[]ID `json:"bypassPullRequestActorIds,omitempty"`
-	// A list of User or Team IDs allowed to bypass force push targeting matching branches. (Optional.)
+	// A list of User, Team, or App IDs allowed to bypass force push targeting matching branches. (Optional.)
 	BypassForcePushActorIDs *[]ID `json:"bypassForcePushActorIds,omitempty"`
 	// Is pushing to matching branches restricted. (Optional.)
 	RestrictsPushes *Boolean `json:"restrictsPushes,omitempty"`
@@ -2244,6 +2522,12 @@ type UpdateBranchProtectionRuleInput struct {
 	RequiredStatusChecks *[]RequiredStatusCheckInput `json:"requiredStatusChecks,omitempty"`
 	// Are conversations required to be resolved before merging. (Optional.)
 	RequiresConversationResolution *Boolean `json:"requiresConversationResolution,omitempty"`
+	// Whether the most recent push must be approved by someone other than the person who pushed it. (Optional.)
+	RequireLastPushApproval *Boolean `json:"requireLastPushApproval,omitempty"`
+	// Whether to set the branch as read-only. If this is true, users will not be able to push to the branch. (Optional.)
+	LockBranch *Boolean `json:"lockBranch,omitempty"`
+	// Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing. (Optional.)
+	LockAllowsFetchAndMerge *Boolean `json:"lockAllowsFetchAndMerge,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -2334,6 +2618,8 @@ type UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput struct {
 	// The value for the allow private repository forking setting on the enterprise. (Required.)
 	SettingValue EnterpriseEnabledDisabledSettingValue `json:"settingValue"`
 
+	// The value for the allow private repository forking policy on the enterprise. (Optional.)
+	PolicyValue *EnterpriseAllowPrivateRepositoryForkingPolicyValue `json:"policyValue,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -2625,6 +2911,17 @@ type UpdateOrganizationAllowPrivateRepositoryForkingSettingInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// UpdateOrganizationWebCommitSignoffSettingInput is an autogenerated input type of UpdateOrganizationWebCommitSignoffSetting.
+type UpdateOrganizationWebCommitSignoffSettingInput struct {
+	// The ID of the organization on which to set the web commit signoff setting. (Required.)
+	OrganizationID ID `json:"organizationId"`
+	// Enable signoff on web-based commits for repositories in the organization?. (Required.)
+	WebCommitSignoffRequired Boolean `json:"webCommitSignoffRequired"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // UpdateProjectCardInput is an autogenerated input type of UpdateProjectCard.
 type UpdateProjectCardInput struct {
 	// The ProjectCard ID to update. (Required.)
@@ -2683,15 +2980,64 @@ type UpdateProjectInput struct {
 
 // UpdateProjectNextInput is an autogenerated input type of UpdateProjectNext.
 type UpdateProjectNextInput struct {
+
+	// The ID of the Project to update. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ProjectID *ID `json:"projectId,omitempty"`
+	// Set the title of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Title *String `json:"title,omitempty"`
+	// Set the readme description of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `description` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Set the short description of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `shortDescription` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ShortDescription *String `json:"shortDescription,omitempty"`
+	// Set the project to closed or open. **Upcoming Change on 2023-01-01 UTC** **Description:** `closed` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Closed *Boolean `json:"closed,omitempty"`
+	// Set the project to public or private. **Upcoming Change on 2023-01-01 UTC** **Description:** `public` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Public *Boolean `json:"public,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateProjectNextItemFieldInput is an autogenerated input type of UpdateProjectNextItemField.
+type UpdateProjectNextItemFieldInput struct {
+
+	// The ID of the Project. This field is required. (Optional.)
+	ProjectID *ID `json:"projectId,omitempty"`
+	// The id of the item to be updated. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	ItemID *ID `json:"itemId,omitempty"`
+	// The id of the field to be updated. **Upcoming Change on 2023-01-01 UTC** **Description:** `fieldId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	FieldID *ID `json:"fieldId,omitempty"`
+	// The value which will be set on the field. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `value` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
+	Value *String `json:"value,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateProjectV2DraftIssueInput is an autogenerated input type of UpdateProjectV2DraftIssue.
+type UpdateProjectV2DraftIssueInput struct {
+	// The ID of the draft issue to update. (Required.)
+	DraftIssueID ID `json:"draftIssueId"`
+
+	// The title of the draft issue. (Optional.)
+	Title *String `json:"title,omitempty"`
+	// The body of the draft issue. (Optional.)
+	Body *String `json:"body,omitempty"`
+	// The IDs of the assignees of the draft issue. (Optional.)
+	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateProjectV2Input is an autogenerated input type of UpdateProjectV2.
+type UpdateProjectV2Input struct {
 	// The ID of the Project to update. (Required.)
 	ProjectID ID `json:"projectId"`
 
 	// Set the title of the project. (Optional.)
 	Title *String `json:"title,omitempty"`
-	// Set the readme description of the project. (Optional.)
-	Description *String `json:"description,omitempty"`
 	// Set the short description of the project. (Optional.)
 	ShortDescription *String `json:"shortDescription,omitempty"`
+	// Set the readme description of the project. (Optional.)
+	Readme *String `json:"readme,omitempty"`
 	// Set the project to closed or open. (Optional.)
 	Closed *Boolean `json:"closed,omitempty"`
 	// Set the project to public or private. (Optional.)
@@ -2700,17 +3046,30 @@ type UpdateProjectNextInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// UpdateProjectNextItemFieldInput is an autogenerated input type of UpdateProjectNextItemField.
-type UpdateProjectNextItemFieldInput struct {
+// UpdateProjectV2ItemFieldValueInput is an autogenerated input type of UpdateProjectV2ItemFieldValue.
+type UpdateProjectV2ItemFieldValueInput struct {
 	// The ID of the Project. (Required.)
 	ProjectID ID `json:"projectId"`
-	// The id of the item to be updated. (Required.)
+	// The ID of the item to be updated. (Required.)
 	ItemID ID `json:"itemId"`
+	// The ID of the field to be updated. (Required.)
+	FieldID ID `json:"fieldId"`
 	// The value which will be set on the field. (Required.)
-	Value String `json:"value"`
+	Value ProjectV2FieldValue `json:"value"`
 
-	// The id of the field to be updated. (Optional.)
-	FieldID *ID `json:"fieldId,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateProjectV2ItemPositionInput is an autogenerated input type of UpdateProjectV2ItemPosition.
+type UpdateProjectV2ItemPositionInput struct {
+	// The ID of the Project. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The ID of the item to be moved. (Required.)
+	ItemID ID `json:"itemId"`
+
+	// The ID of the item to position this item after. If omitted or set to null the item will be moved to top. (Optional.)
+	AfterID *ID `json:"afterId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -2807,6 +3166,19 @@ type UpdateRepositoryInput struct {
 	HasIssuesEnabled *Boolean `json:"hasIssuesEnabled,omitempty"`
 	// Indicates if the repository should have the project boards feature enabled. (Optional.)
 	HasProjectsEnabled *Boolean `json:"hasProjectsEnabled,omitempty"`
+	// Indicates if the repository should have the discussions feature enabled. (Optional.)
+	HasDiscussionsEnabled *Boolean `json:"hasDiscussionsEnabled,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateRepositoryWebCommitSignoffSettingInput is an autogenerated input type of UpdateRepositoryWebCommitSignoffSetting.
+type UpdateRepositoryWebCommitSignoffSettingInput struct {
+	// The ID of the repository to update. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+	// Indicates if the repository should require signoff on web-based commits. (Required.)
+	WebCommitSignoffRequired Boolean `json:"webCommitSignoffRequired"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -2918,4 +3290,12 @@ type VerifyVerifiableDomainInput struct {
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// WorkflowRunOrder represents ways in which lists of workflow runs can be ordered upon return.
+type WorkflowRunOrder struct {
+	// The field by which to order workflows. (Required.)
+	Field WorkflowRunOrderField `json:"field"`
+	// The direction in which to order workflow runs by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
 }

@@ -21,105 +21,135 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Node ID or name of repository",
+				Description: "The name or node ID of the repository associated with this branch protection rule.",
 			},
 			PROTECTION_PATTERN: {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "",
+				Description: "Identifies the protection rule pattern.",
 			},
 			PROTECTION_ALLOWS_DELETIONS: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' to allow the branch to be deleted.",
 			},
 			PROTECTION_ALLOWS_FORCE_PUSHES: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' to allow force pushes on the branch.",
 			},
 			PROTECTION_BLOCKS_CREATIONS: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' to block creating the branch.",
 			},
 			PROTECTION_IS_ADMIN_ENFORCED: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' enforces status checks for repository administrators.",
 			},
 			PROTECTION_REQUIRES_COMMIT_SIGNATURES: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' requires all commits to be signed with GPG.",
 			},
 			PROTECTION_REQUIRES_LINEAR_HISTORY: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' enforces a linear commit Git history, which prevents anyone from pushing merge commits to a branch.",
 			},
 			PROTECTION_REQUIRES_CONVERSATION_RESOLUTION: {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
+			},
+			PROTECTION_LOCK_BRANCH: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Setting this to 'true' will make the branch read-only and preventing any pushes to it.",
 			},
 			PROTECTION_REQUIRES_APPROVING_REVIEWS: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Enforce restrictions for pull request reviews.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      1,
+							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
 							ValidateFunc: validation.IntBetween(0, 6),
 						},
 						PROTECTION_REQUIRES_CODE_OWNER_REVIEWS: {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Require an approved review in pull requests including files with a designated code owner.",
 						},
 						PROTECTION_DISMISSES_STALE_REVIEWS: {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Dismiss approved reviews automatically when a new commit is pushed.",
 						},
 						PROTECTION_RESTRICTS_REVIEW_DISMISSALS: {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Restrict pull request review dismissals.",
 						},
 						PROTECTION_RESTRICTS_REVIEW_DISMISSERS: {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of actor Names/IDs with dismissal access. If not empty, 'restrict_dismissals' is ignored. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						PROTECTION_PULL_REQUESTS_BYPASSERS: {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of actor Names/IDs that are allowed to bypass pull request requirements. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+						PROTECTION_REQUIRES_LAST_PUSH_APPROVAL: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Require that The most recent push must be approved by someone other than the last pusher.",
 						},
 					},
 				},
 			},
 			PROTECTION_REQUIRES_STATUS_CHECKS: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Enforce restrictions for required status checks.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRES_STRICT_STATUS_CHECKS: {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Require branches to be up to date before merging.",
 						},
 						PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS: {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
 			},
 			PROTECTION_RESTRICTS_PUSHES: {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "The list of actor Names/IDs that may push to the branch. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
 
@@ -154,6 +184,27 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds, bypassIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+	data.BypassPullRequestActorIDs = bypassIds
+
 	input := githubv4.CreateBranchProtectionRuleInput{
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
@@ -165,7 +216,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		PushActorIDs:                   githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
 		RepositoryID:                   githubv4.NewID(githubv4.ID(data.RepositoryID)),
 		RequiredApprovingReviewCount:   githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
-		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
+		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSliceEmpty(data.RequiredStatusCheckContexts)),
 		RequiresApprovingReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
 		RequiresCodeOwnerReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
 		RequiresCommitSignatures:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
@@ -176,6 +227,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
+		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
 	ctx := context.Background()
@@ -255,7 +308,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	approvingReviews := setApprovingReviews(protection)
+	data, err := branchProtectionResourceDataActors(d, meta)
+	if err != nil {
+		return err
+	}
+
+	approvingReviews := setApprovingReviews(protection, data, meta)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
@@ -267,10 +325,20 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	restrictsPushes := setPushes(protection)
+	restrictsPushes := setPushes(protection, data, meta)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.RequireLastPushApproval)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_LOCK_BRANCH, protection.LockBranch)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_LOCK_BRANCH, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	return nil
@@ -288,6 +356,27 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	var reviewIds, pushIds, bypassIds []string
+	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	data.PushActorIDs = pushIds
+	data.ReviewDismissalActorIDs = reviewIds
+	data.BypassPullRequestActorIDs = bypassIds
+
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:         d.Id(),
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
@@ -299,7 +388,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		Pattern:                        githubv4.NewString(githubv4.String(data.Pattern)),
 		PushActorIDs:                   githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
 		RequiredApprovingReviewCount:   githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
-		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
+		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSliceEmpty(data.RequiredStatusCheckContexts)),
 		RequiresApprovingReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
 		RequiresCodeOwnerReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
 		RequiresCommitSignatures:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
@@ -310,6 +399,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
 		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
+		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
