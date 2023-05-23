@@ -124,7 +124,9 @@ initial repository creation and create the target branch inside of the repositor
 
 The `pages` block supports the following:
 
-* `source` - (Required) The source branch and directory for the rendered Pages site. See [GitHub Pages Source](#github-pages-source) below for details.
+* `source` - (Optional) The source branch and directory for the rendered Pages site. See [GitHub Pages Source](#github-pages-source) below for details.
+
+* `build_type` - (Optional) The type of GitHub Pages site to build. Can be `legacy` or `workflow`. If you use `legacy` as build type you need to set the option `source`.
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 

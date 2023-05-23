@@ -20,13 +20,13 @@ data "github_organization" "example" {
 ## Attributes Reference
 
  * `id` - The ID of the organization
- * `node_id` - GraphQL global node id for use with v4 API
+ * `node_id` - GraphQL global node ID for use with the v4 API
  * `name` - The organization's public profile name
  * `orgname` - The organization's name as used in URLs and the API
- * `login` - The login of the organization account
- * `description` - The description the organization account
- * `plan` - The plan name for the organization account
- * `repositories` - (`list`) A list with the repositories on the organization
+ * `login` - The organization account login
+ * `description` - The organization account description
+ * `plan` - The organization account plan name
+ * `repositories` - (`list`) A list of the full names of the repositories in the organization formatted as `owner/name` strings
  * `members` - **Deprecated**: use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login` which will give you the same value, expect this field to be removed in next major version
  * `users` - (`list`) A list with the members of the organization with following fields:
    * `id` - The ID of the member
