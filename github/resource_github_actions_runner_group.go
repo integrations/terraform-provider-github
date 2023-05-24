@@ -197,6 +197,11 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	//if runner group is nil (typically not modified) we can return early
+	if runnerGroup == nil {
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
 	d.Set("default", runnerGroup.GetDefault())
