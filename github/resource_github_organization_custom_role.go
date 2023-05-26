@@ -23,7 +23,6 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The organization custom repository role to create.",
 			},
 			"base_role": {

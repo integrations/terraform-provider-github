@@ -16,9 +16,9 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
-			  name = "tf-acc-test-%s"
+			  name        = "tf-acc-test-%s"
 			  description = "Test role description"
-			  base_role = "read"
+			  base_role   = "read"
 			  permissions = [
 					"reopen_issue",
 					"reopen_pull_request",
@@ -79,67 +79,67 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
-			resource "github_organization_custom_role" "test" {
-			  name = "tf-acc-test-%s"
-			  description = "Updated test role description before"
-			  base_role = "read"
-			  permissions = [
-					"reopen_issue",
-					"reopen_pull_request",
-				]
-			}
-		`, randomID),
+				resource "github_organization_custom_role" "test" {
+					name        = "tf-acc-test-%s"
+					description = "Updated test role description before"
+					base_role   = "read"
+					permissions = [
+						"reopen_issue",
+						"reopen_pull_request",
+					]
+				}
+			`, randomID),
 			"after": fmt.Sprintf(`
-			resource "github_organization_custom_role" "test" {
-				name = "tf-acc-test-%s"
-			  description = "Updated test role description after"
-			  base_role = "write"
-			  permissions = [
-					"reopen_issue",
-					"read_code_scanning",
-					"reopen_pull_request",
-				]
-			}
+				resource "github_organization_custom_role" "test" {
+					name        = "tf-acc-test-rename-%s"
+					description = "Updated test role description after"
+					base_role   = "write"
+					permissions = [
+						"reopen_issue",
+						"read_code_scanning",
+						"reopen_pull_request",
+					]
+				}
 			`, randomID),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_organization_custom_role.test", "name",
+				resource.TestCheckResourceAttrSet(
+					"github_organization_custom_role.test", "name",
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "name",
+					fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "description",
+					"Updated test role description before",
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "base_role",
+					"read",
+				),
+				resource.TestCheckResourceAttr("github_organization_custom_role.test", "permissions.#", "2"),
 			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "description",
-				"Updated test role description before",
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "base_role",
-				"read",
-			),
-			resource.TestCheckResourceAttr("github_organization_custom_role.test", "permissions.#", "2"),
-		),
-		"after": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_organization_custom_role.test", "name",
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "description",
-				"Updated test role description after",
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_custom_role.test", "base_role",
-				"write",
-			),
-			resource.TestCheckResourceAttr("github_organization_custom_role.test", "permissions.#", "3"),
-		)}
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttrSet(
+					"github_organization_custom_role.test", "name",
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "name",
+					fmt.Sprintf(`tf-acc-test-rename-%s`, randomID),
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "description",
+					"Updated test role description after",
+				),
+				resource.TestCheckResourceAttr(
+					"github_organization_custom_role.test", "base_role",
+					"write",
+				),
+				resource.TestCheckResourceAttr("github_organization_custom_role.test", "permissions.#", "3"),
+			)}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -175,9 +175,9 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
-			  name = "tf-acc-test-%s"
+			  name        = "tf-acc-test-%s"
 			  description = "Test role description"
-			  base_role = "read"
+			  base_role   = "read"
 			  permissions = [
 					"reopen_issue",
 					"reopen_pull_request",
@@ -229,7 +229,6 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 		t.Run("with an anonymous account", func(t *testing.T) {
 			t.Skip("anonymous account not supported for this operation")
 		})
-
 
 		t.Run("with an individual account", func(t *testing.T) {
 			testCase(t, individual)

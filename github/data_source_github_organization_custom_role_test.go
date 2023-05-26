@@ -23,7 +23,7 @@ func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 					"reopen_pull_request",
 				]
 			}
-	`, randomID)
+		`, randomID)
 
 		config2 := config + `
 			data "github_organization_custom_role" "test" {
