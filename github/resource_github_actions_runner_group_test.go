@@ -28,7 +28,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			  visibility = "all"
 			  restricted_to_workflows = true
 			  selected_workflows = [".github/workflows/test.yml"]
-              allows_public_repositories = true
+			  allows_public_repositories = true
 			}
 		`, randomID)
 
