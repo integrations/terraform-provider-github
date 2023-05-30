@@ -26,35 +26,34 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			}
 
 			resource "github_branch" "test" {
-				repository = github_repository.test.name
-				branch     = "test"
+			  repository = github_repository.test.name
+			  branch     = "test"
 			}
 
 			resource "github_branch_default" "default"{
-				repository = github_repository.test.name
-				branch     = github_branch.test.branch
+			  repository = github_repository.test.name
+			  branch     = github_branch.test.branch
 			}
 
 			resource "github_repository_file" "workflow_file" {
-				depends_on  = [github_branch_default.default]
-
-				repository          = github_repository.test.name
-				file                = ".github/workflows/test.yml"
-				content             = ""
-				commit_message      = "Managed by Terraform"
-				commit_author       = "Terraform User"
-				commit_email        = "terraform@example.com"
-				overwrite_on_create = true
+			  depends_on  = [github_branch_default.default]
+			  repository          = github_repository.test.name
+			  file                = ".github/workflows/test.yml"
+			  content             = ""
+			  commit_message      = "Managed by Terraform"
+			  commit_author       = "Terraform User"
+			  commit_email        = "terraform@example.com"
+			  overwrite_on_create = true
 			}
 
 			resource "github_actions_runner_group" "test" {
-				depends_on  = [github_repository_file.workflow_file]
-
-				name       = github_repository.test.name
-				visibility = "all"
-				restricted_to_workflows = true
-				selected_workflows = ["${github_repository.test.full_name}/.github/workflows/test.yml@refs/heads/${github_branch.test.branch}"]
-				allows_public_repositories = true
+			  depends_on  = [github_repository_file.workflow_file]
+				
+			  name       = github_repository.test.name
+			  visibility = "all"
+			  restricted_to_workflows = true
+			  selected_workflows = ["${github_repository.test.full_name}/.github/workflows/test.yml@refs/heads/${github_branch.test.branch}"]
+			  allows_public_repositories = true
 			}
 		`, randomID)
 
