@@ -141,7 +141,6 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	if err != nil {
 		return err
 	}
-
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())

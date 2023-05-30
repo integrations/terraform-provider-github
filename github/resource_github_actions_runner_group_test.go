@@ -28,6 +28,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			  visibility = "all"
 			  restricted_to_workflows = true
 			  selected_workflows = [".github/workflows/test.yml"]
+              allows_public_repositories = true
 			}
 		`, randomID)
 
@@ -50,6 +51,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "selected_workflows",
 				"[\".github/workflows/test.yml\"]",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_runner_group.test", "allows_public_repositories",
+				"true",
 			),
 		)
 
