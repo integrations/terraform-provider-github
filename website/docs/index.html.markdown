@@ -117,7 +117,7 @@ The following arguments are supported in the `provider` block:
 
 * `retryable_errors` - (Optional) "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504]
 
-* `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 0
+* `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 

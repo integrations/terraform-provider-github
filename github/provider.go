@@ -43,7 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     0,
+				Default:     3,
 				Description: descriptions["max_retries"],
 			},
 			"organization": {
@@ -274,7 +274,7 @@ func init() {
 		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
 			"Defaults to [500, 502, 503, 504]",
 		"max_retries": "Number of times to retry a request after receiving an error status code" +
-			"Defaults to 0",
+			"Defaults to 3",
 	}
 }
 
@@ -364,7 +364,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
 
 		maxRetries := d.Get("max_retries").(int)
-		if readDelay < 0 {
+		if maxRetries < 0 {
 			return nil, fmt.Errorf("max_retries must be greater than or equal to 0")
 		}
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
