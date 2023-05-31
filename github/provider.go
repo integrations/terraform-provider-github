@@ -382,18 +382,18 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			return nil, fmt.Errorf("max_retries must be greater than or equal to 0")
 		}
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
-		retriableErrors := make(map[int]bool)
+		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
-			reParam := d.Get("retriable_errors").([]int)
+			reParam := d.Get("retryable_errors").([]interface{})
 			if len(reParam) == 0 {
-				return nil, fmt.Errorf("retriableErrors must not be empty")
+				reParam = []interface{}{500, 502, 503, 504}
 			}
 
 			for _, status := range reParam {
-				retriableErrors[status] = true
+				retryableErrors[status.(int)] = true
 			}
 
-			log.Printf("[DEBUG] Setting retriableErrors to %v", retriableErrors)
+			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
 		}
 
 		parallelRequests := d.Get("parallel_requests").(bool)
@@ -415,7 +415,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
 			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
 			RetryDelay:       time.Duration(retryDelay) * time.Millisecond,
-			RetryableErrors:  retriableErrors,
+			RetryableErrors:  retryableErrors,
 			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
 		}
