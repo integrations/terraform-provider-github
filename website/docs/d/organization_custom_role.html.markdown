@@ -31,5 +31,5 @@ The following additional attributes are exported:
 
 * `id` - The ID of the custom role.
 * `description` - The description for the custom role.
-* `base_role` - (The system role from which the role inherits permissions.
+* `base_role` - The system role from which the role inherits permissions.
 * `permissions` - A list of additional permissions included in this role.
