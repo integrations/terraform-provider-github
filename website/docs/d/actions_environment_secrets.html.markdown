@@ -5,7 +5,7 @@ description: |-
   Get Actions secrets of the repository environment
 ---
 
-# github\_actions\_environment\_variables
+# github\_actions\_environment\_secrets
 
 Use this data source to retrieve the list of secrets of the repository environment.
 
