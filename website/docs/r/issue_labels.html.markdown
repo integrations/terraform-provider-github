@@ -16,7 +16,7 @@ GitHub organization.
 
 This resource is authoritative. For adding a label to a repo in a non-authoritative manner, use github_issue_label instead.
 
-If you change the case of a label's name, its' color, or description, this resource will edit the existing label to match the new values. However, if you change the name of a label, this resource will create a new label with the new name and delete the old label.
+If you change the case of a label's name, its' color, or description, this resource will edit the existing label to match the new values. However, if you change the name of a label, this resource will create a new label with the new name and delete the old label. Beware that this will remove the label from any issues it was previously attached to.
 
 ## Example Usage
 
