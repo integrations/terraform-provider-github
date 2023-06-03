@@ -262,7 +262,9 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			}
 
 			// reset the request body
-			dataBuffer.Seek(0, io.SeekStart)
+			if _, err = dataBuffer.Seek(0, io.SeekStart); err != nil {
+				return nil, err
+			}
 		}
 
 		resp, err = t.transport.RoundTrip(req)
