@@ -432,7 +432,7 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
 `),
 			ResponseBody: `{
-  "message": "internal server error"
+  "message": "Resource created"
 }`,
 			StatusCode: 201,
 		},
