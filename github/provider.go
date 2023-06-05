@@ -134,6 +134,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 			"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
 			"github_repository_deploy_key":                                          resourceGithubRepositoryDeployKey(),
+			"github_repository_deployment_branch_policy":                            resourceGithubRepositoryDeploymentBranchPolicy(),
 			"github_repository_environment":                                         resourceGithubRepositoryEnvironment(),
 			"github_repository_file":                                                resourceGithubRepositoryFile(),
 			"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
