@@ -46,9 +46,7 @@ The following additional attributes are exported:
 
 * `id` - The ID of the deployment branch policy.
 
-
 ## Import
-
 
 ```
 $ terraform import github_repository_deployment_branch_policy.foo repo:env:id
