@@ -1,6 +1,6 @@
 ---
 layout: "github"
-page_title: "GitHub: repository_deployment_branch_policies"
+page_title: "GitHub: github_repository_deployment_branch_policies"
 description: |-
   Get the list of deployment branch policies for a given repo / env.
 ---
