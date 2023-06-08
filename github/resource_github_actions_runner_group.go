@@ -25,7 +25,8 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"allows_public_repositories": {
 				Type:        schema.TypeBool,
-				Computed:    true,
+				Optional:    true,
+				Default:     false,
 				Description: "Whether public repositories can be added to the runner group.",
 			},
 			"default": {
@@ -101,6 +102,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
@@ -128,11 +130,12 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
-			Name:                  &name,
-			Visibility:            &visibility,
-			RestrictedToWorkflows: &restrictedToWorkflows,
-			SelectedRepositoryIDs: selectedRepositoryIDs,
-			SelectedWorkflows:     selectedWorkflows,
+			Name:                     &name,
+			Visibility:               &visibility,
+			RestrictedToWorkflows:    &restrictedToWorkflows,
+			SelectedRepositoryIDs:    selectedRepositoryIDs,
+			SelectedWorkflows:        selectedWorkflows,
+			AllowsPublicRepositories: &allowsPublicRepositories,
 		},
 	)
 	if err != nil {
@@ -197,6 +200,11 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	//if runner group is nil (typically not modified) we can return early
+	if runnerGroup == nil {
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
 	d.Set("default", runnerGroup.GetDefault())
@@ -249,6 +257,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	visibility := d.Get("visibility").(string)
 	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	selectedWorkflows := []string{}
+	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
 		for _, workflow := range workflows.([]interface{}) {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
@@ -256,10 +265,11 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	options := github.UpdateRunnerGroupRequest{
-		Name:                  &name,
-		Visibility:            &visibility,
-		RestrictedToWorkflows: &restrictedToWorkflows,
-		SelectedWorkflows:     selectedWorkflows,
+		Name:                     &name,
+		Visibility:               &visibility,
+		RestrictedToWorkflows:    &restrictedToWorkflows,
+		SelectedWorkflows:        selectedWorkflows,
+		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
