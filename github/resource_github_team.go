@@ -50,6 +50,24 @@ func resourceGithubTeam() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID or slug of the parent team, if this is a nested team.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("parent_team_id") == d.Get("parent_team_read_id") || d.Get("parent_team_id") == d.Get("parent_team_read_slug") {
+						return true
+					}
+					return false
+				},
+			},
+			"parent_team_read_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The id of the parent team read in Github.",
+			},
+			"parent_team_read_slug": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The id of the parent team read in Github.",
 			},
 			"ldap_dn": {
 				Type:        schema.TypeString,
@@ -196,7 +214,9 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", team.GetName())
 	d.Set("privacy", team.GetPrivacy())
 	if parent := team.Parent; parent != nil {
-		d.Set("parent_team_id", parent.GetID())
+		d.Set("parent_team_id", strconv.FormatInt(team.Parent.GetID(), 10))
+		d.Set("parent_team_read_id", strconv.FormatInt(team.Parent.GetID(), 10))
+		d.Set("parent_team_read_slug", parent.Slug)
 	} else {
 		d.Set("parent_team_id", "")
 	}
@@ -305,6 +325,8 @@ func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	}
 
 	d.SetId(strconv.FormatInt(teamId, 10))
+	d.Set("create_default_maintainer", false)
+
 	return []*schema.ResourceData{d}, nil
 }
 
