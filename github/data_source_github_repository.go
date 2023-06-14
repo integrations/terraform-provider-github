@@ -135,6 +135,10 @@ func dataSourceGithubRepository() *schema.Resource {
 								},
 							},
 						},
+						"build_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"cname": {
 							Type:     schema.TypeString,
 							Computed: true,
