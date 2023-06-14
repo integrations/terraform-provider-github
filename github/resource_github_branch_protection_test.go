@@ -565,25 +565,26 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  auto_init = true
 			}
 
+			data "github_user" "test" {
+			  username = "%s"
+			}
+
 			resource "github_branch_protection" "test" {
 
 			  repository_id  = github_repository.test.node_id
 			  pattern        = "main"
 
 				force_push_bypassers = [
-					"1234",
+					data.github_user.test.node_id
 				]
 
 			}
 
-	`, randomID)
+	`, randomID, testOwnerFunc())
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_branch_protection.test", "force_push_bypassers.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "force_push_bypassers.0", "1234",
 			),
 		)
 

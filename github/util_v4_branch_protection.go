@@ -257,7 +257,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 		}
 		if len(bypassForcePushActorIDs) > 0 {
 			data.BypassForcePushActorIDs = bypassForcePushActorIDs
-			data.AllowsForcePushes = true
+			data.AllowsForcePushes = false
 		}
 	}
 
@@ -326,7 +326,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}
 		}
 		if len(bypassForcePushActorIDs) > 0 {
 			data.BypassForcePushActorIDs = bypassForcePushActorIDs
-			data.AllowsForcePushes = true
+			data.AllowsForcePushes = false
 		}
 	}
 
@@ -380,6 +380,7 @@ func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchP
 			}
 			if a.Actor.User.Login != "" {
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
+				continue
 			}
 			if a.Actor.App != (Actor{}) {
 				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
@@ -502,7 +503,7 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 }
 
 func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
-	if !protection.AllowsForcePushes {
+	if protection.AllowsForcePushes {
 		return nil
 	}
 	bypassForcePushAllowances := protection.BypassForcePushAllowances.Nodes
