@@ -51,6 +51,14 @@ resource "github_branch_protection" "example" {
     # github_team.example.node_id
   ]
 
+  force_push_bypassers = [
+    data.github_user.example.node_id,
+    "/exampleuser",
+    "exampleorganization/exampleteam",
+    # limited to a list of one type of restriction (user, team, app)
+    # github_team.example.node_id
+  ]
+
 }
 
 resource "github_repository" "example" {
@@ -85,6 +93,7 @@ The following arguments are supported:
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
 * `push_restrictions` - (Optional) The list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
+* `force_push_bypassers` - (Optional) The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 * `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
 * `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
 * `blocks_creations` - (Optional) Boolean, setting this to `true` to block creating the branch.

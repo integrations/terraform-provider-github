@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -51,11 +51,11 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *sch
 	secretName := d.Get("secret_name").(string)
 	selectedRepositories := d.Get("selected_repository_ids")
 
-	selectedRepositoryIDs := []string{}
+	selectedRepositoryIDs := github.DependabotSecretsSelectedRepoIDs{}
 
 	ids := selectedRepositories.(*schema.Set).List()
 	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, id.(string))
+		selectedRepositoryIDs = append(selectedRepositoryIDs, id.(int64))
 	}
 
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)
@@ -77,7 +77,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(d *schema.Resour
 		return err
 	}
 
-	selectedRepositoryIDs := []int64{}
+	selectedRepositoryIDs := github.DependabotSecretsSelectedRepoIDs{}
 	opt := &github.ListOptions{
 		PerPage: maxPerPage,
 	}
@@ -112,7 +112,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesDelete(d *schema.Reso
 		return err
 	}
 
-	selectedRepositoryIDs := []string{}
+	selectedRepositoryIDs := github.DependabotSecretsSelectedRepoIDs{}
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), selectedRepositoryIDs)
 	if err != nil {
 		return err
