@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-github/v53/github"
 	"io"
 	"log"
 	"net/http"
@@ -10,8 +11,6 @@ import (
 	"net/url"
 	"testing"
 	"time"
-
-	"github.com/google/go-github/v52/github"
 )
 
 func TestEtagTransport(t *testing.T) {

@@ -19,6 +19,7 @@ const (
 	PROTECTION_RESTRICTS_PUSHES                 = "push_restrictions"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSALS      = "restrict_dismissals"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSERS      = "dismissal_restrictions"
+	PROTECTION_FORCE_PUSHES_BYPASSERS           = "force_push_bypassers"
 	PROTECTION_PULL_REQUESTS_BYPASSERS          = "pull_request_bypassers"
 	PROTECTION_LOCK_BRANCH                      = "lock_branch"
 	PROTECTION_REQUIRES_LAST_PUSH_APPROVAL      = "require_last_push_approval"
