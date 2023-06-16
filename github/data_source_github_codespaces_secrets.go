@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v52/github"
 
@@ -14,17 +13,10 @@ func dataSourceGithubCodespacesSecrets() *schema.Resource {
 		Read: dataSourceGithubCodespacesSecretsRead,
 
 		Schema: map[string]*schema.Schema{
-			"full_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
-			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"full_name"},
+			"repository": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository.",
 			},
 			"secrets": {
 				Type:     schema.TypeList,
@@ -54,23 +46,8 @@ func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
-	var repoName string
 
-	if fullName, ok := d.GetOk("full_name"); ok {
-		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
-		if err != nil {
-			return err
-		}
-	}
-
-	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
-	}
-
-	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
-	}
+	repoName := d.Get("repository").(string)
 
 	options := github.ListOptions{
 		PerPage: 100,

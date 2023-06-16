@@ -28,12 +28,12 @@ func TestAccGithubCodespacesSecretsDataSource(t *testing.T) {
 
 		config2 := config + `
 			data "github_codespaces_secrets" "test" {
-				name = github_repository.test.name
+				repository = github_repository.test.name
 			}
 		`
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
 			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "secrets.#", "1"),
 			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "secrets.0.name", "DEP_SECRET_1"),
 			resource.TestCheckResourceAttrSet("data.github_codespaces_secrets.test", "secrets.0.created_at"),
