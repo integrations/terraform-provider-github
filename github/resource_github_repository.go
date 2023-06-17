@@ -725,16 +725,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]interface{}))
 		if opts != nil {
-			pages, res, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
-			if res.StatusCode != http.StatusNotFound && err != nil {
-				return err
-			}
-
-			if pages == nil {
-				_, _, err = client.Repositories.EnablePages(ctx, owner, repoName, &github.Pages{Source: opts.Source, BuildType: opts.BuildType})
-			} else {
-				_, err = client.Repositories.UpdatePages(ctx, owner, repoName, opts)
-			}
+			_, err := client.Repositories.UpdatePages(ctx, owner, repoName, opts)
 			if err != nil {
 				return err
 			}
@@ -836,26 +827,17 @@ func expandPages(input []interface{}) *github.Pages {
 		return nil
 	}
 	pages := input[0].(map[string]interface{})
-	var source *github.PagesSource
-	if pagesSource, ok := pages["source"].([]interface{})[0].(map[string]interface{}); ok {
-		if v, ok := pagesSource["branch"].(string); ok {
-			if v != "" {
-				source.Branch = github.String(v)
-			}
-		}
-		if v, ok := pagesSource["path"].(string); ok {
-			// To set to the root directory "/", leave source.Path unset
-			if v != "" && v != "/" {
-				source.Path = github.String(v)
-			}
+	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
+	source := &github.PagesSource{
+		Branch: github.String(pagesSource["branch"].(string)),
+	}
+	if v, ok := pagesSource["path"].(string); ok {
+		// To set to the root directory "/", leave source.Path unset
+		if v != "" && v != "/" {
+			source.Path = github.String(v)
 		}
 	}
-	var buildType *string
-	if v, ok := pages["build_type"].(string); ok {
-		buildType = github.String(v)
-	}
-
-	return &github.Pages{Source: source, BuildType: buildType}
+	return &github.Pages{Source: source}
 }
 
 func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
@@ -872,24 +854,21 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 		update.CNAME = github.String(v)
 	}
 
-	// Only set the github.PagesUpdate BuildType field if the value is a non-empty string.
-	if v, ok := pages["build_type"].(string); ok && v != "" {
-		update.BuildType = github.String(v)
-	}
-
 	// To update the GitHub Pages source, the github.PagesUpdate Source field
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
-	// This is only necessary if the BuildType is "legacy".
-	if update.BuildType == nil || *update.BuildType == "legacy" {
-		pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
-		sourceBranch := pagesSource["branch"].(string)
-		sourcePath := ""
-		if v, ok := pagesSource["path"].(string); ok && v != "" {
+	pagesSource := pages["source"].([]interface{})[0].(map[string]interface{})
+	sourceBranch := pagesSource["branch"].(string)
+	sourcePath := ""
+	if v, ok := pagesSource["path"].(string); ok {
+		if v != "" && v != "/" {
 			sourcePath = v
 		}
-		update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 	}
+	update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
+
+	pagesBuildType := pages["build_type"].(string)
+	update.BuildType = &pagesBuildType
 
 	return update
 }
