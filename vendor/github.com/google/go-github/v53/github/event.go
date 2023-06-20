@@ -49,6 +49,8 @@ func (e *Event) ParsePayload() (payload interface{}, err error) {
 		payload = &DeployKeyEvent{}
 	case "DeploymentEvent":
 		payload = &DeploymentEvent{}
+	case "DeploymentProtectionRuleEvent":
+		payload = &DeploymentProtectionRuleEvent{}
 	case "DeploymentStatusEvent":
 		payload = &DeploymentStatusEvent{}
 	case "DiscussionEvent":
@@ -125,6 +127,8 @@ func (e *Event) ParsePayload() (payload interface{}, err error) {
 		payload = &RepositoryVulnerabilityAlertEvent{}
 	case "SecretScanningAlertEvent":
 		payload = &SecretScanningAlertEvent{}
+	case "SecurityAdvisoryEvent":
+		payload = &SecurityAdvisoryEvent{}
 	case "StarEvent":
 		payload = &StarEvent{}
 	case "StatusEvent":

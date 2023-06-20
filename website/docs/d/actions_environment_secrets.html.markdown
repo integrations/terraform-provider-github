@@ -5,7 +5,7 @@ description: |-
   Get Actions secrets of the repository environment
 ---
 
-# github\_actions\_environment\_variables
+# github\_actions\_environment\_secrets
 
 Use this data source to retrieve the list of secrets of the repository environment.
 
@@ -22,7 +22,7 @@ data "github_actions_environment_secrets" "example" {
 
 ## Attributes Reference
 
- * `variables` - list of variables for the environment
-   * `name`         - Name of the variable
-   * `created_at`   - Timestamp of the variable creation
-   * `updated_at`   - Timestamp of the variable last update
+ * `secrets` - list of secrets for the environment
+   * `name`         - Name of the secret
+   * `created_at`   - Timestamp of the secret creation
+   * `updated_at`   - Timestamp of the secret last update
