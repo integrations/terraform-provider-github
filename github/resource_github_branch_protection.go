@@ -151,6 +151,12 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Description: "The list of actor Names/IDs that may push to the branch. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			PROTECTION_FORCE_PUSHES_BYPASSERS: {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 
 		Create: resourceGithubBranchProtectionCreate,
@@ -185,7 +191,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	var reviewIds, pushIds, bypassIds []string
+	var reviewIds, pushIds, bypassForcePushIds, bypassPullRequestIds []string
 	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
 	if err != nil {
 		return err
@@ -196,19 +202,26 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	bypassForcePushIds, err = getActorIds(data.BypassForcePushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassPullRequestIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
 	if err != nil {
 		return err
 	}
 
 	data.PushActorIDs = pushIds
 	data.ReviewDismissalActorIDs = reviewIds
-	data.BypassPullRequestActorIDs = bypassIds
+	data.BypassForcePushActorIDs = bypassForcePushIds
+	data.BypassPullRequestActorIDs = bypassPullRequestIds
 
 	input := githubv4.CreateBranchProtectionRuleInput{
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		BlocksCreations:                githubv4.NewBoolean(githubv4.Boolean(data.BlocksCreations)),
+		BypassForcePushActorIDs:        githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassForcePushActorIDs)),
 		BypassPullRequestActorIDs:      githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassPullRequestActorIDs)),
 		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
@@ -331,6 +344,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
+	forcePushBypassers := setForcePushBypassers(protection, data, meta)
+	err = d.Set(PROTECTION_FORCE_PUSHES_BYPASSERS, forcePushBypassers)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_FORCE_PUSHES_BYPASSERS, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
 	err = d.Set(PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.RequireLastPushApproval)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.Repository.Name, protection.Pattern, d.Id())
@@ -357,7 +376,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	var reviewIds, pushIds, bypassIds []string
+	var reviewIds, pushIds, bypassForcePushIds, bypassPullRequestIds []string
 	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
 	if err != nil {
 		return err
@@ -368,20 +387,27 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	bypassIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	bypassForcePushIds, err = getActorIds(data.BypassForcePushActorIDs, meta)
+	if err != nil {
+		return err
+	}
+
+	bypassPullRequestIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
 	if err != nil {
 		return err
 	}
 
 	data.PushActorIDs = pushIds
 	data.ReviewDismissalActorIDs = reviewIds
-	data.BypassPullRequestActorIDs = bypassIds
+	data.BypassForcePushActorIDs = bypassForcePushIds
+	data.BypassPullRequestActorIDs = bypassPullRequestIds
 
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:         d.Id(),
 		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
 		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		BlocksCreations:                githubv4.NewBoolean(githubv4.Boolean(data.BlocksCreations)),
+		BypassForcePushActorIDs:        githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassForcePushActorIDs)),
 		BypassPullRequestActorIDs:      githubv4NewIDSlice(githubv4IDSliceEmpty(data.BypassPullRequestActorIDs)),
 		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
