@@ -101,7 +101,7 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, id.(int64))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
 		}
 	}
 
