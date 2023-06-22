@@ -411,6 +411,7 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 			}
 			if a.Actor.User.Login != "" {
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
+				continue
 			}
 			if a.Actor.App != (Actor{}) {
 				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
