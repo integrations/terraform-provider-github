@@ -212,12 +212,7 @@ type RetryTransportOption func(*RetryTransport)
 // may be used to retry after response errors 5xx, for example.
 func NewRetryTransport(rt http.RoundTripper, options ...RetryTransportOption) *RetryTransport {
 	// Default to no retry if none is provided
-	defaultErrors := map[int]bool{
-		500: true,
-		502: true,
-		503: true,
-		504: true,
-	}
+	defaultErrors := getDefaultRetriableErrors()
 	rlt := &RetryTransport{transport: rt, retryDelay: time.Second, maxRetries: 0, retryableErrors: defaultErrors}
 
 	for _, opt := range options {

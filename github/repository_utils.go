@@ -108,3 +108,13 @@ func listAutolinks(client *github.Client, owner, repo string) ([]*github.Autolin
 
 	return allAutolinks, nil
 }
+
+// get the list of retriable errors
+func getDefaultRetriableErrors() map[int]bool {
+	return map[int]bool{
+		500: true,
+		502: true,
+		503: true,
+		504: true,
+	}
+}
