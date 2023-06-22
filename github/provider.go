@@ -386,11 +386,11 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		if maxRetries > 0 {
 			reParam := d.Get("retryable_errors").([]interface{})
 			if len(reParam) == 0 {
-				reParam = []interface{}{500, 502, 503, 504}
-			}
-
-			for _, status := range reParam {
-				retryableErrors[status.(int)] = true
+				retryableErrors = getDefaultRetriableErrors()
+			} else {
+				for _, status := range reParam {
+					retryableErrors[status.(int)] = true
+				}
 			}
 
 			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
