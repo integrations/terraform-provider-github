@@ -836,20 +836,23 @@ func expandPages(input []interface{}) *github.Pages {
 		return nil
 	}
 	pages := input[0].(map[string]interface{})
-	var source *github.PagesSource
-	if pagesSource, ok := pages["source"].([]interface{})[0].(map[string]interface{}); ok {
-		if v, ok := pagesSource["branch"].(string); ok {
-			if v != "" {
+	source := &github.PagesSource{
+		Branch: github.String("main"),
+	}
+	if len(pages["source"].([]interface{})) == 1 {
+		if pagesSource, ok := pages["source"].([]interface{})[0].(map[string]interface{}); ok {
+			if v, ok := pagesSource["branch"].(string); ok {
 				source.Branch = github.String(v)
 			}
-		}
-		if v, ok := pagesSource["path"].(string); ok {
-			// To set to the root directory "/", leave source.Path unset
-			if v != "" && v != "/" {
-				source.Path = github.String(v)
+			if v, ok := pagesSource["path"].(string); ok {
+				// To set to the root directory "/", leave source.Path unset
+				if v != "" && v != "/" {
+					source.Path = github.String(v)
+				}
 			}
 		}
 	}
+
 	var buildType *string
 	if v, ok := pages["build_type"].(string); ok {
 		buildType = github.String(v)

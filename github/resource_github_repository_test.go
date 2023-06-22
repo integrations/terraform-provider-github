@@ -859,6 +859,47 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	})
 
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "workflow",
+			"source":     []interface{}{map[string]interface{}{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+	})
+
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "legacy",
+			"source": []interface{}{map[string]interface{}{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
+	})
 }
 
 func TestAccGithubRepositorySecurity(t *testing.T) {
