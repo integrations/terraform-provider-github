@@ -20,7 +20,7 @@ func TestAccGithubCodespacesSecretsDataSource(t *testing.T) {
 			}
 
 			resource "github_codespaces_secret" "test" {
-				secret_name 		= "dep_secret_1"
+				secret_name 		= "cs_secret_1"
 				repository  		= github_repository.test.name
 				plaintext_value = "foo"
 			}
@@ -35,7 +35,7 @@ func TestAccGithubCodespacesSecretsDataSource(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
 			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "secrets.0.name", "DEP_SECRET_1"),
+			resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "secrets.0.name", "CS_SECRET_1"),
 			resource.TestCheckResourceAttrSet("data.github_codespaces_secrets.test", "secrets.0.created_at"),
 			resource.TestCheckResourceAttrSet("data.github_codespaces_secrets.test", "secrets.0.updated_at"),
 		)
@@ -56,6 +56,14 @@ func TestAccGithubCodespacesSecretsDataSource(t *testing.T) {
 				},
 			})
 		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
