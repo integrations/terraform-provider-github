@@ -22,34 +22,18 @@ in your code. See below for an example of this abstraction.
 ## Example Usage
 
 ```hcl
-resource "github_codespaces_user_secret" "example_secret" {
-  secret_name     = "example_secret_name"
-  visibility      = "private"
-  plaintext_value = var.some_secret_string
-}
-
-resource "github_codespaces_user_secret" "example_secret" {
-  secret_name     = "example_secret_name"
-  visibility      = "private"
-  encrypted_value = var.some_encrypted_secret_string
-}
-```
-
-```hcl
 data "github_repository" "repo" {
   full_name = "my-org/repo"
 }
 
 resource "github_codespaces_user_secret" "example_secret" {
   secret_name             = "example_secret_name"
-  visibility              = "selected"
   plaintext_value         = var.some_secret_string
   selected_repository_ids = [data.github_repository.repo.repo_id]
 }
 
 resource "github_codespaces_user_secret" "example_secret" {
   secret_name             = "example_secret_name"
-  visibility              = "selected"
   encrypted_value         = var.some_encrypted_secret_string
   selected_repository_ids = [data.github_repository.repo.repo_id]
 }
@@ -62,8 +46,6 @@ The following arguments are supported:
 * `secret_name`             - (Required) Name of the secret
 * `encrypted_value`         - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
 * `plaintext_value`         - (Optional) Plaintext value of the secret to be encrypted
-* `visibility`              - (Required) Configures the access that repositories have to the user secret.
-                              Must be one of `all`, `private`, `selected`. `selected_repository_ids` is required if set to `selected`.
 * `selected_repository_ids` - (Optional) An array of repository ids that can access the user secret.
 
 ## Attributes Reference

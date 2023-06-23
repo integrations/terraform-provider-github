@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -50,13 +49,6 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
 			},
-			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Configures the access that repositories have to the user secret. Must be one of 'all', 'private' or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
-				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:     true,
-			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
@@ -88,12 +80,7 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
-
-	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
-	}
 
 	selectedRepositoryIDs := github.SelectedRepoIDs{}
 
@@ -124,7 +111,6 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	eSecret := &github.EncryptedSecret{
 		Name:                  secretName,
 		KeyID:                 keyId,
-		Visibility:            visibility,
 		SelectedRepositoryIDs: selectedRepositoryIDs,
 		EncryptedValue:        encryptedValue,
 	}
@@ -158,29 +144,26 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 	d.Set("encrypted_value", d.Get("encrypted_value"))
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("created_at", secret.CreatedAt.String())
-	d.Set("visibility", secret.Visibility)
 
 	selectedRepositoryIDs := []int64{}
 
-	if secret.Visibility == "selected" {
-		opt := &github.ListOptions{
-			PerPage: 30,
+	opt := &github.ListOptions{
+		PerPage: 30,
+	}
+	for {
+		results, resp, err := client.Codespaces.ListSelectedReposForUserSecret(ctx, d.Id(), opt)
+		if err != nil {
+			return err
 		}
-		for {
-			results, resp, err := client.Codespaces.ListSelectedReposForUserSecret(ctx, d.Id(), opt)
-			if err != nil {
-				return err
-			}
 
-			for _, repo := range results.Repositories {
-				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
+		for _, repo := range results.Repositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
 		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
 	}
 
 	d.Set("selected_repository_ids", selectedRepositoryIDs)

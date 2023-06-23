@@ -16,9 +16,8 @@ func TestAccGithubCodespacesUserSecretsDataSource(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_codespaces_user_secret" "test" {
-				secret_name 		= "org_dep_secret_1_%s"
+				secret_name     = "user_cs_secret_1_%s"
 				plaintext_value = "foo"
-				visibility      = "private"
 			}
 		`, randomID)
 
@@ -29,8 +28,7 @@ func TestAccGithubCodespacesUserSecretsDataSource(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("ORG_DEP_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.0.visibility", "private"),
+			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("USER_CS_SECRET_1_%s", randomID))),
 			resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.created_at"),
 			resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.updated_at"),
 		)

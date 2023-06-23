@@ -18,13 +18,11 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 			resource "github_codespaces_user_secret" "plaintext_secret" {
 			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
-			  visibility       = "private"
 			}
 
 			resource "github_codespaces_user_secret" "encrypted_secret" {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
-			  visibility       = "private"
 			}
 		`, secretValue, secretValue)
 
@@ -95,12 +93,10 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 		config := `
 				resource "github_codespaces_user_secret" "plaintext_secret" {
 					secret_name      = "test_plaintext_secret"
-					visibility       = "private"
 				}
 
 				resource "github_codespaces_user_secret" "encrypted_secret" {
 					secret_name      = "test_encrypted_secret"
-					visibility       = "private"
 				}
 			`
 
@@ -133,7 +129,6 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 			resource "github_codespaces_user_secret" "test_secret" {
 				secret_name      = "test_plaintext_secret"
 				plaintext_value  = "%s"
-				visibility       = "private"
 			}
 		`, secretValue)
 
