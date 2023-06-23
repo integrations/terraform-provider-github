@@ -394,6 +394,7 @@ func resourceGithubRepository() *schema.Resource {
 				Description: " Set to 'true' to always suggest updating pull request branches.",
 			},
 		},
+		CustomizeDiff: customDiffFunction,
 	}
 }
 
@@ -941,4 +942,11 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 	}}
 
 	return []interface{}{securityAndAnalysisMap}
+}
+
+func customDiffFunction(diff *schema.ResourceDiff, v interface{}) error {
+	if diff.HasChange("name") {
+		diff.SetNewComputed("full_name")
+	}
+	return nil
 }
