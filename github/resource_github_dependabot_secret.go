@@ -16,13 +16,13 @@ func resourceGithubDependabotSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubDependabotSecretCreateOrUpdate,
 		Read:   resourceGithubDependabotSecretRead,
-		Update: resourceGithubDependabotSecretCreateOrUpdate,
 		Delete: resourceGithubDependabotSecretDelete,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the repository.",
 			},
 			"secret_name": {
