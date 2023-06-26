@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepositories(t *testing.T) {
@@ -859,6 +860,47 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	})
 
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "workflow",
+			"source":     []interface{}{map[string]interface{}{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+	})
+
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "legacy",
+			"source": []interface{}{map[string]interface{}{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
+	})
 }
 
 func TestAccGithubRepositorySecurity(t *testing.T) {
@@ -1365,4 +1407,22 @@ func reconfigureVisibility(config, visibility string) string {
 		fmt.Sprintf(`visibility = "%s"`, visibility),
 	)
 	return newConfig
+}
+
+type resourceDataLike map[string]interface{}
+
+func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+	v, ok := d[key]
+	return v, ok
+}
+
+func TestResourceGithubParseFullName(t *testing.T) {
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	assert.True(t, ok)
+	assert.Equal(t, "myrepo", repo)
+	assert.Equal(t, "myorg", org)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	assert.False(t, ok)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	assert.False(t, ok)
 }
