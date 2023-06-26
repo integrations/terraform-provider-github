@@ -24,6 +24,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
 
 	rn := "github_team_membership.test_team_membership"
+	rns := "github_team_membership.test_team_membership_slug"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -36,6 +37,8 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &membership),
 					testAccCheckGithubTeamMembershipRoleState(rn, "member", &membership),
+					testAccCheckGithubTeamMembershipExists(rns, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rns, "member", &membership),
 				),
 			},
 			{
@@ -43,10 +46,17 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &membership),
 					testAccCheckGithubTeamMembershipRoleState(rn, "maintainer", &membership),
+					testAccCheckGithubTeamMembershipExists(rns, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rns, "maintainer", &membership),
 				),
 			},
 			{
 				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      rns,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -222,12 +232,23 @@ resource "github_team" "test_team" {
   description = "Terraform acc test group"
 }
 
+resource "github_team" "test_team_slug" {
+  name        = "tf-acc-test-team-membership-%s-slug"
+  description = "Terraform acc test group"
+}
+
 resource "github_team_membership" "test_team_membership" {
   team_id  = "${github_team.test_team.id}"
   username = "%s"
   role     = "%s"
 }
-`, username, randString, username, role)
+
+resource "github_team_membership" "test_team_membership_slug" {
+  team_id  = "${github_team.test_team_slug.slug}"
+  username = "%s"
+  role     = "%s"
+}
+`, username, randString, randString, username, role, username, role)
 }
 
 func testAccGithubTeamMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
