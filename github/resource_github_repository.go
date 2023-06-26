@@ -593,8 +593,15 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
+
 	owner := meta.(*Owner).name
 	repoName := d.Id()
+
+	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
+	// case lookup the owner in the data, and use that, if present.
+	if explicitOwner, _, ok := resourceGithubParseFullName(d); ok && owner == "" {
+		owner = explicitOwner
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -941,4 +948,24 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 	}}
 
 	return []interface{}{securityAndAnalysisMap}
+}
+
+// In case full_name can be determined from the data, parses it into an org and repo name proper. For example,
+// resourceGithubParseFullName will return "myorg", "myrepo", true when full_name is "myorg/myrepo".
+func resourceGithubParseFullName(resourceDataLike interface {
+	GetOk(string) (interface{}, bool)
+}) (string, string, bool) {
+	x, ok := resourceDataLike.GetOk("full_name")
+	if !ok {
+		return "", "", false
+	}
+	s, ok := x.(string)
+	if !ok || s == "" {
+		return "", "", false
+	}
+	parts := strings.Split(s, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }

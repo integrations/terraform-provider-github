@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepositories(t *testing.T) {
@@ -1406,4 +1407,22 @@ func reconfigureVisibility(config, visibility string) string {
 		fmt.Sprintf(`visibility = "%s"`, visibility),
 	)
 	return newConfig
+}
+
+type resourceDataLike map[string]interface{}
+
+func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+	v, ok := d[key]
+	return v, ok
+}
+
+func TestResourceGithubParseFullName(t *testing.T) {
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	assert.True(t, ok)
+	assert.Equal(t, "myrepo", repo)
+	assert.Equal(t, "myorg", org)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	assert.False(t, ok)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	assert.False(t, ok)
 }
