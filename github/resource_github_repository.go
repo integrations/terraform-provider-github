@@ -394,6 +394,7 @@ func resourceGithubRepository() *schema.Resource {
 				Description: " Set to 'true' to always suggest updating pull request branches.",
 			},
 		},
+		CustomizeDiff: customDiffFunction,
 	}
 }
 
@@ -968,4 +969,11 @@ func resourceGithubParseFullName(resourceDataLike interface {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
+}
+
+func customDiffFunction(diff *schema.ResourceDiff, v interface{}) error {
+	if diff.HasChange("name") {
+		diff.SetNewComputed("full_name")
+	}
+	return nil
 }
