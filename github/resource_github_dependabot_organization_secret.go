@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"log"
-	"net/http"
 )
 
 func resourceGithubDependabotOrganizationSecret() *schema.Resource {
@@ -101,7 +102,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		ids := selectedRepositories.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, id.(int64))
+			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
 		}
 	}
 
