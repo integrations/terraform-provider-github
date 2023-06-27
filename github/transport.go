@@ -273,7 +273,7 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-// WithMaxRetries is used to set the max number of retries when encontrering an error
+// WithMaxRetries is used to set the max number of retries when encountering an error
 func WithMaxRetries(d int) RetryTransportOption {
 	return func(rt *RetryTransport) {
 		rt.maxRetries = d
