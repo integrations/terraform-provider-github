@@ -150,7 +150,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData
 	d.Set("repository", repoName)
 	d.Set("environment_name", environmentName)
 
-	err = resourceGithubBranchRead(d, meta)
+	err = resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 	if err != nil {
 		return nil, err
 	}
