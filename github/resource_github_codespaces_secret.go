@@ -14,13 +14,13 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubCodespacesSecretCreateOrUpdate,
 		Read:   resourceGithubCodespacesSecretRead,
-		Update: resourceGithubCodespacesSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesSecretDelete,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the repository.",
 			},
 			"secret_name": {
