@@ -17,7 +17,6 @@ func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsSecretCreateOrUpdate,
 		Read:   resourceGithubActionsSecretRead,
-		Update: resourceGithubActionsSecretCreateOrUpdate,
 		Delete: resourceGithubActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsSecretImport,
@@ -27,6 +26,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the repository.",
 			},
 			"secret_name": {

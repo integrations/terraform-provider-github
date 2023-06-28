@@ -16,7 +16,6 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubCodespacesSecretCreateOrUpdate,
 		Read:   resourceGithubCodespacesSecretRead,
-		Update: resourceGithubCodespacesSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubCodespacesSecretImport,
@@ -26,6 +25,7 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the repository.",
 			},
 			"secret_name": {
