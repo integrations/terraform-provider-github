@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -18,6 +19,9 @@ func resourceGithubActionsSecret() *schema.Resource {
 		Read:   resourceGithubActionsSecretRead,
 		Update: resourceGithubActionsSecretCreateOrUpdate,
 		Delete: resourceGithubActionsSecretDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceGithubActionsSecretImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -168,6 +172,39 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 	_, err = client.Actions.DeleteRepoSecret(ctx, orgName, repoName, secretName)
 
 	return err
+}
+
+func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	ctx := context.Background()
+
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<secret_name>")
+	}
+
+	d.SetId(buildTwoPartID(parts[0], parts[1]))
+
+	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	if err != nil {
+		return nil, err
+	}
+
+	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Set("repository", repoName)
+	d.Set("secret_name", secretName)
+
+	// encrypted_value or plaintext_value can not be imported
+
+	d.Set("created_at", secret.CreatedAt.String())
+	d.Set("updated_at", secret.UpdatedAt.String())
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
