@@ -9,9 +9,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepositories(t *testing.T) {
@@ -104,11 +106,19 @@ func TestAccGithubRepositories(t *testing.T) {
 					"github_repository.test", "name",
 					oldName,
 				),
+				resource.ComposeTestCheckFunc(
+					testCheckResourceAttrContains("github_repository.test", "full_name",
+						oldName),
+				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_repository.test", "name",
 					newName,
+				),
+				resource.ComposeTestCheckFunc(
+					testCheckResourceAttrContains("github_repository.test", "full_name",
+						newName),
 				),
 			),
 		}
@@ -1406,4 +1416,42 @@ func reconfigureVisibility(config, visibility string) string {
 		fmt.Sprintf(`visibility = "%s"`, visibility),
 	)
 	return newConfig
+}
+
+type resourceDataLike map[string]interface{}
+
+func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+	v, ok := d[key]
+	return v, ok
+}
+
+func TestResourceGithubParseFullName(t *testing.T) {
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	assert.True(t, ok)
+	assert.Equal(t, "myrepo", repo)
+	assert.Equal(t, "myorg", org)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	assert.False(t, ok)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	assert.False(t, ok)
+}
+
+func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s", resourceName)
+		}
+
+		value, ok := rs.Primary.Attributes[attributeName]
+		if !ok {
+			return fmt.Errorf("Attribute not found: %s", attributeName)
+		}
+
+		if !strings.Contains(value, substring) {
+			return fmt.Errorf("Attribute '%s' does not contain '%s'", value, substring)
+		}
+
+		return nil
+	}
 }

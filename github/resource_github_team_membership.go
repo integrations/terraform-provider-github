@@ -36,11 +36,10 @@ func resourceGithubTeamMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The GitHub team id or the GitHub team slug.",
-				ValidateFunc: validateTeamIDFunc,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub team id or the GitHub team slug.",
 			},
 			"username": {
 				Type:             schema.TypeString,

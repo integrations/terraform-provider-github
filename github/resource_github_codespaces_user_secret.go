@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,12 +11,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceGithubDependabotOrganizationSecret() *schema.Resource {
+func resourceGithubCodespacesUserSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubDependabotOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubDependabotOrganizationSecretRead,
-		Update: resourceGithubDependabotOrganizationSecretCreateOrUpdate,
-		Delete: resourceGithubDependabotOrganizationSecretDelete,
+		Create: resourceGithubCodespacesUserSecretCreateOrUpdate,
+		Read:   resourceGithubCodespacesUserSecretRead,
+		Update: resourceGithubCodespacesUserSecretCreateOrUpdate,
+		Delete: resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				d.Set("secret_name", d.Id())
@@ -50,13 +49,6 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
 			},
-			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private' or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
-				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:     true,
-			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
@@ -64,39 +56,33 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				},
 				Set:         schema.HashInt,
 				Optional:    true,
-				Description: "An array of repository ids that can access the organization secret.",
+				Description: "An array of repository ids that can access the user secret.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'dependabot_secret' creation.",
+				Description: "Date of 'codespaces_secret' creation.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'dependabot_secret' update.",
+				Description: "Date of 'codespaces_secret' update.",
 			},
 		},
 	}
 }
 
-func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.Background()
 
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	visibility := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
-	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
-	}
-
-	selectedRepositoryIDs := github.DependabotSecretsSelectedRepoIDs{}
+	selectedRepositoryIDs := github.SelectedRepoIDs{}
 
 	if hasSelectedRepositories {
 		ids := selectedRepositories.(*schema.Set).List()
@@ -106,7 +92,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		}
 	}
 
-	keyId, publicKey, err := getDependabotOrganizationPublicKeyDetails(owner, meta)
+	keyId, publicKey, err := getCodespacesUserPublicKeyDetails(meta)
 	if err != nil {
 		return err
 	}
@@ -121,30 +107,28 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an DependabotEncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.DependabotEncryptedSecret{
+	// Create an EncryptedSecret and encrypt the plaintext value into it
+	eSecret := &github.EncryptedSecret{
 		Name:                  secretName,
 		KeyID:                 keyId,
-		Visibility:            visibility,
 		SelectedRepositoryIDs: selectedRepositoryIDs,
 		EncryptedValue:        encryptedValue,
 	}
 
-	_, err = client.Dependabot.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
+	_, err = client.Codespaces.CreateOrUpdateUserSecret(ctx, eSecret)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(secretName)
-	return resourceGithubDependabotOrganizationSecretRead(d, meta)
+	return resourceGithubCodespacesUserSecretRead(d, meta)
 }
 
-func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	secret, _, err := client.Dependabot.GetOrgSecret(ctx, owner, d.Id())
+	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -160,29 +144,26 @@ func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta
 	d.Set("encrypted_value", d.Get("encrypted_value"))
 	d.Set("plaintext_value", d.Get("plaintext_value"))
 	d.Set("created_at", secret.CreatedAt.String())
-	d.Set("visibility", secret.Visibility)
 
 	selectedRepositoryIDs := []int64{}
 
-	if secret.Visibility == "selected" {
-		opt := &github.ListOptions{
-			PerPage: 30,
+	opt := &github.ListOptions{
+		PerPage: 30,
+	}
+	for {
+		results, resp, err := client.Codespaces.ListSelectedReposForUserSecret(ctx, d.Id(), opt)
+		if err != nil {
+			return err
 		}
-		for {
-			results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
-			if err != nil {
-				return err
-			}
 
-			for _, repo := range results.Repositories {
-				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
+		for _, repo := range results.Repositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
 		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
 	}
 
 	d.Set("selected_repository_ids", selectedRepositoryIDs)
@@ -212,21 +193,20 @@ func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
-	_, err := client.Dependabot.DeleteOrgSecret(ctx, orgName, d.Id())
+	_, err := client.Codespaces.DeleteUserSecret(ctx, d.Id())
 	return err
 }
 
-func getDependabotOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
+func getCodespacesUserPublicKeyDetails(meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	publicKey, _, err := client.Dependabot.GetOrgPublicKey(ctx, owner)
+	publicKey, _, err := client.Codespaces.GetUserPublicKey(ctx)
 	if err != nil {
 		return keyId, pkValue, err
 	}
