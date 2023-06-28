@@ -50,5 +50,16 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-* `created_at`      - Date of actions_secret creation.
-* `updated_at`      - Date of actions_secret update.
+* `created_at`      - Date of codespaces_secret creation.
+* `updated_at`      - Date of codespaces_secret update.
+
+## Import
+
+This resource can be imported using an ID made up of the `repository` and `secret_name`:
+
+```
+$ terraform import github_codespaces_secret.example_secret <repository>/<secret_name>
+```
+
+NOTE: the implementation is limited in that it won't fetch the value of the
+`plaintext_value` or `encrypted_value` fields when importing. You may need to ignore changes for these as a workaround.
