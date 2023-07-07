@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v53/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 // Docs: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
