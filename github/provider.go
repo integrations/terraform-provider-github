@@ -364,8 +364,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			return nil, err
 		}
 
-		meta.(*Owner).StopContext = p.StopContext()
-
 		return meta, nil
 	}
 }

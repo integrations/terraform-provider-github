@@ -25,11 +25,6 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "The `name` attribute is no longer necessary.",
-			},
 			"events": {
 				Type:        schema.TypeSet,
 				Required:    true,

@@ -23,7 +23,7 @@ func resourceGithubTeam() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("name")
 			}),
 		),

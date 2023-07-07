@@ -151,6 +151,7 @@ func (c *Config) Meta() (interface{}, error) {
 	var owner Owner
 	owner.v4client = v4client
 	owner.v3client = v3client
+	owner.StopContext = context.Background()
 
 	if c.Anonymous() {
 		log.Printf("[INFO] No token present; configuring anonymous owner.")
