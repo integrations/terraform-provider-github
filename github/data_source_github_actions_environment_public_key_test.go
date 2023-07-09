@@ -11,7 +11,20 @@ func TestAccGithubActionsEnvironmentPublicKeyDataSource(t *testing.T) {
 	t.Run("queries an environment public key without error", func(t *testing.T) {
 
 		config := `
-			data "github_actions_environment_public_key" "test" {}
+		    resource "github_repository" "test" {
+		        name      = "tf-acc-test-%s"
+		        auto_init = true
+		    }
+
+			resource "github_repository_environment" "test" {
+				repository       = github_repository.test.name
+				environment      = "test_environment_name"
+			}
+
+			data "github_actions_environment_public_key" "test" {
+				repository       = github_repository.test.name
+				environment      = "test_environment_name"
+			}
 		`
 
 		check := resource.ComposeTestCheckFunc(
