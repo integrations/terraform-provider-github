@@ -31,8 +31,8 @@ The following arguments are supported:
 * `role` - (Optional) The role of the user within the organization.
             Must be one of `member` or `admin`. Defaults to `member`.
 * `downgrade_on_destroy` - (Optional) Defaults to `false`. If set to true,
-						when this resource is destroyed, the member will not be removed
-						from the organization. Instead, the member's role will be
+            when this resource is destroyed, the member will not be removed
+            from the organization. Instead, the member's role will be
             downgraded to 'member'.
 
 
