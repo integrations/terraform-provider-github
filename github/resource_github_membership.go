@@ -38,6 +38,12 @@ func resourceGithubMembership() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"downgrade_on_destroy": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed.",
+			},
 		},
 	}
 }
@@ -126,8 +132,19 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Organizations.RemoveOrgMembership(ctx,
-		d.Get("username").(string), orgName)
+	username := d.Get("username").(string)
+	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
+	downgradeTo := "member"
+
+	if downgradeOnDestroy {
+		log.Printf("[INFO] Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo)
+		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
+			Role: github.String(downgradeTo),
+		})
+	} else {
+		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)
+		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
+	}
 
 	return err
 }
