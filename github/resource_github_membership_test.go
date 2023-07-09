@@ -234,7 +234,7 @@ func testAccGithubMembershipConfigDowngradable(username string) string {
   resource "github_membership" "test_org_membership" {
     username = "%s"
     role = "admin"
-	downgrade_on_destroy = %t
+    downgrade_on_destroy = %t
   }
 `, username, true)
 }
