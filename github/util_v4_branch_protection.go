@@ -504,7 +504,7 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 }
 
 func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
-	if protection.AllowsForcePushes {
+	if protection.AllowsForcePushes == githubv4.Boolean(true) {
 		return nil
 	}
 	bypassForcePushAllowances := protection.BypassForcePushAllowances.Nodes
