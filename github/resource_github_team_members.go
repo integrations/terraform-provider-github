@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"reflect"
+	"strings"
 
 	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 type MemberChange struct {
@@ -52,10 +54,6 @@ func resourceGithubTeamMembers() *schema.Resource {
 						},
 					},
 				},
-			},
-			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 		},
 	}
@@ -176,15 +174,15 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	client := meta.(*Owner).v4client
+	orgName := meta.(*Owner).name
 	teamIdString := d.Get("team_id").(string)
 	if teamIdString == "" && !d.IsNewResource() {
 		log.Printf("[DEBUG] Importing team with id %q", d.Id())
 		teamIdString = d.Id()
 	}
 
-	teamId, err := getTeamID(teamIdString, meta)
+	teamSlug, err := getTeamSlug(teamIdString, meta)
 	if err != nil {
 		return err
 	}
@@ -195,80 +193,44 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("team_id", teamIdString)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
-	etags := make([]string, 0)
-	// List members & maintainers as list 'all' drops role information
 	log.Printf("[DEBUG] Reading team members: %s", teamIdString)
-	memberOptions := github.TeamListTeamMembersOptions{
-		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
-		},
-		Role: "member",
+	var q struct {
+		Organization struct {
+			Team struct {
+				Members struct {
+					Edges []struct {
+						Node struct {
+							Login string
+						}
+						Role string
+					}
+				} `graphql:"members(membership:IMMEDIATE)"`
+			} `graphql:"team(slug:$teamSlug)"`
+		} `graphql:"organization(login:$orgName)"`
 	}
 
-	var members []*github.User
-	for {
-		member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &memberOptions)
-		if err != nil {
-			return err
-		}
-
-		etags = append(etags, resp.Header.Get("ETag"))
-		members = append(members, member...)
-		if resp.NextPage == 0 {
-			break
-		}
-		memberOptions.Page = resp.NextPage
+	variables := map[string]interface{}{
+		"teamSlug": githubv4.String(teamSlug),
+		"orgName":  githubv4.String(orgName),
 	}
 
-	log.Printf("[DEBUG] Reading team maintainers: %s", teamIdString)
-	maintainerOptions := github.TeamListTeamMembersOptions{
-		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
-		},
-		Role: "maintainer",
-	}
-	var maintainers []*github.User
-	for {
-		maintaner, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, teamId, &maintainerOptions)
-		if err != nil {
-			return err
-		}
-
-		etags = append(etags, resp.Header.Get("ETag"))
-		maintainers = append(maintainers, maintaner...)
-
-		if resp.NextPage == 0 {
-			break
-		}
-		maintainerOptions.Page = resp.NextPage
+	if err := client.Query(ctx, &q, variables); err != nil {
+		return err
 	}
 
-	teamMembersAndMaintainers := make([]interface{}, len(members)+len(maintainers))
+	teamMembersAndMaintainers := make([]interface{}, len(q.Organization.Team.Members.Edges))
 	// Add all members to the list
-	for i, member := range members {
+	for i, member := range q.Organization.Team.Members.Edges {
 		teamMembersAndMaintainers[i] = map[string]interface{}{
-			"username": member.Login,
-			"role":     "member",
-		}
-	}
-	// Add all maintainers to the list
-	for i, member := range maintainers {
-		teamMembersAndMaintainers[i+len(members)] = map[string]interface{}{
-			"username": member.Login,
-			"role":     "maintainer",
+			"username": member.Node.Login,
+			"role":     strings.ToLower(member.Role),
 		}
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
 		return err
 	}
-
-	// Combine etag of all requests
-	d.Set("etag", buildChecksumID(etags))
 
 	return nil
 }
