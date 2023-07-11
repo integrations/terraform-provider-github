@@ -24,11 +24,11 @@ func dataSourceGithubCollaborators() *schema.Resource {
 			},
 			"affiliation": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: validation.StringInSlice([]string{
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
 					"outside",
-				}, false),
+				}, false)),
 				Optional: true,
 				Default:  "all",
 			},

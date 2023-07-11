@@ -37,6 +37,8 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
+// wrapErrors is provided to easily turn errors into diag.Diagnostics
+// until we go through the provider and replace error usage
 func wrapErrors(errs []error) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -49,6 +51,32 @@ func wrapErrors(errs []error) diag.Diagnostics {
 	}
 
 	return diags
+}
+
+// toDiagFunc is a helper that operates on Hashicorp's helper/validation functions
+// and converts them to the diag.Diagnostic format
+func toDiagFunc(oldFunc schema.SchemaValidateFunc) schema.SchemaValidateDiagFunc {
+	return func(i interface{}, path cty.Path) diag.Diagnostics {
+		// TODO(kfcampbell): what are the ramifications of ignoring the path here?
+		warnings, errors := oldFunc(i, "hard-coded-path")
+		var diags diag.Diagnostics
+
+		for _, err := range errors {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  err.Error(),
+			})
+		}
+
+		for _, warn := range warnings {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  warn,
+			})
+		}
+
+		return diags
+	}
 }
 
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {

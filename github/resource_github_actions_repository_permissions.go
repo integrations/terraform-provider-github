@@ -25,7 +25,7 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: validation.StringInSlice([]string{"all", "local_only", "selected"}, false),
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -64,7 +64,7 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The GitHub repository.",
-				ValidateDiagFunc: validation.StringLenBetween(1, 100),
+				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100)),
 			},
 		},
 	}

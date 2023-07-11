@@ -68,9 +68,9 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ValidateDiagFunc: validation.StringInSlice([]string{
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"open", "closed",
-				}, true),
+				}, true)),
 				Default:     "open",
 				Description: "The state of the milestone. Either 'open' or 'closed'. Default: 'open'.",
 			},

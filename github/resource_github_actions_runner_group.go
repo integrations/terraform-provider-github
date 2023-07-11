@@ -72,7 +72,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The visibility of the runner group.",
-				ValidateDiagFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "selected", "private"}, false)),
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,
