@@ -22,10 +22,10 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Default:  false,
 			},
 			"results_per_page": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(0, 100),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				validateDiagFunc: validation.IntBetween(0, 100),
 			},
 			"teams": {
 				Type:     schema.TypeList,

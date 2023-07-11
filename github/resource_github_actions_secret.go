@@ -30,11 +30,11 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Description: "Name of the repository.",
 			},
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				validateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
 				Type:          schema.TypeString,

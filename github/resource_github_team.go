@@ -40,11 +40,11 @@ func resourceGithubTeam() *schema.Resource {
 				Description: "A description of the team.",
 			},
 			"privacy": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "secret",
-				Description:  "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
-				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "secret",
+				Description:      "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
+				validateDiagFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
 				Type:        schema.TypeString,

@@ -19,11 +19,11 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the existing secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the existing secret.",
+				validateDiagFunc: validateSecretNameFunc,
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,

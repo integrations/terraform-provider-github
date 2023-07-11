@@ -26,10 +26,10 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 				Description: "The organization custom repository role to create.",
 			},
 			"base_role": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The base role for the custom repository role.",
-				ValidateFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The base role for the custom repository role.",
+				validateDiagFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
 			},
 			"permissions": {
 				Type:        schema.TypeSet,

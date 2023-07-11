@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v53/github"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -35,8 +37,23 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
-func validateValueFunc(values []string) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (we []string, errors []error) {
+func wrapErrors(errs []error) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	for _, err := range errs {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Error",
+			Detail:   err.Error(),
+		})
+	}
+
+	return diags
+}
+
+func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
+	return func(v interface{}, k cty.Path) diag.Diagnostics {
+		errs := make([]error, 0)
 		value := v.(string)
 		valid := false
 		for _, role := range values {
@@ -47,9 +64,9 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 		}
 
 		if !valid {
-			errors = append(errors, fmt.Errorf("%s is an invalid value for argument %s", value, k))
+			errs = append(errs, fmt.Errorf("%s is an invalid value for argument %s", value, k))
 		}
-		return
+		return wrapErrors(errs)
 	}
 }
 
@@ -199,10 +216,11 @@ func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
-func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []error) {
+func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
+	errs := make([]error, 0)
 	name, ok := v.(string)
 	if !ok {
-		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
+		return wrapErrors([]error{fmt.Errorf("expected type of %s to be string", path)})
 	}
 
 	if !secretNameRegexp.MatchString(name) {
@@ -213,7 +231,7 @@ func validateSecretNameFunc(v interface{}, keyName string) (we []string, errs []
 		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
 	}
 
-	return we, errs
+	return wrapErrors(errs)
 }
 
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)

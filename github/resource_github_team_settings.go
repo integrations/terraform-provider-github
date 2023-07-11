@@ -48,7 +48,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:    true,
 							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
 							Default:     "ROUND_ROBIN",
-							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
+							validateDiagFunc: func(v interface{}, key string) (we []string, errs []error) {
 								algorithm, ok := v.(string)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
@@ -66,7 +66,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
+							validateDiagFunc: func(v interface{}, key string) (we []string, errs []error) {
 								count, ok := v.(int)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}

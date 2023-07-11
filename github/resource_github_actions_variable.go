@@ -26,11 +26,11 @@ func resourceGithubActionsVariable() *schema.Resource {
 				Description: "Name of the repository.",
 			},
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				validateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,

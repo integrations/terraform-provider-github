@@ -68,10 +68,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 			},
 			"membership_type": {
-				Type:         schema.TypeString,
-				Default:      "all",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"all", "immediate"}, false),
+				Type:             schema.TypeString,
+				Default:          "all",
+				Optional:         true,
+				validateDiagFunc: validation.StringInSlice([]string{"all", "immediate"}, false),
 			},
 			"summary_only": {
 				Type:     schema.TypeBool,
@@ -79,10 +79,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Default:  false,
 			},
 			"results_per_page": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(0, 100),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				validateDiagFunc: validation.IntBetween(0, 100),
 			},
 		},
 	}

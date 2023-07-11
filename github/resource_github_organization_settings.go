@@ -68,11 +68,11 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Description: "Whether or not repository projects are enabled for the organization.",
 			},
 			"default_repository_permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "read",
-				Description:  "The default permission for organization members to create new repositories. Can be one of 'read', 'write', 'admin' or 'none'.",
-				ValidateFunc: validation.StringInSlice([]string{"read", "write", "admin", "none"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "read",
+				Description:      "The default permission for organization members to create new repositories. Can be one of 'read', 'write', 'admin' or 'none'.",
+				validateDiagFunc: validation.StringInSlice([]string{"read", "write", "admin", "none"}, false),
 			},
 			"members_can_create_repositories": {
 				Type:        schema.TypeBool,

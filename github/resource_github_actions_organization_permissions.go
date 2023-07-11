@@ -21,16 +21,16 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"allowed_actions": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateFunc: validation.StringInSlice([]string{"all", "local_only", "selected"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
+				validateDiagFunc: validation.StringInSlice([]string{"all", "local_only", "selected"}, false),
 			},
 			"enabled_repositories": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
-				ValidateFunc: validation.StringInSlice([]string{"all", "none", "selected"}, false),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
+				validateDiagFunc: validation.StringInSlice([]string{"all", "none", "selected"}, false),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,

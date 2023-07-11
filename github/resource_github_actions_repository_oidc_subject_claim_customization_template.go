@@ -20,10 +20,10 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The name of the repository.",
-				ValidateFunc: validation.StringLenBetween(1, 100),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The name of the repository.",
+				validateDiagFunc: validation.StringLenBetween(1, 100),
 			},
 			"use_default": {
 				Type:        schema.TypeBool,

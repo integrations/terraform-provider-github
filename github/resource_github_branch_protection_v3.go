@@ -116,11 +116,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description: "Require an approved review in pull requests including files with a designated code owner.",
 						},
 						"required_approving_review_count": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      1,
-							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateFunc: validation.IntBetween(0, 6),
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Default:          1,
+							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
+							validateDiagFunc: validation.IntBetween(0, 6),
 						},
 						"bypass_pull_request_allowances": {
 							Type:     schema.TypeList,

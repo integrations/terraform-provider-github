@@ -69,10 +69,10 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Description: "GitHub API URL for the runner group's repositories.",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The visibility of the runner group.",
-				ValidateFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The visibility of the runner group.",
+				validateDiagFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,

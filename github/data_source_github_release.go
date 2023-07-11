@@ -28,7 +28,7 @@ func dataSourceGithubRelease() *schema.Resource {
 			"retrieve_by": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
+				validateDiagFunc: validation.StringInSlice([]string{
 					"latest",
 					"id",
 					"tag",

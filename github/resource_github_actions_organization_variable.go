@@ -22,11 +22,11 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				validateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -44,11 +44,11 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 				Description: "Date of 'actions_variable' update.",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:     true,
-				Description:  "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+				Type:             schema.TypeString,
+				Required:         true,
+				validateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				ForceNew:         true,
+				Description:      "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,

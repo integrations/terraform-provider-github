@@ -28,11 +28,11 @@ func resourceGithubMembership() *schema.Resource {
 				Description:      "The user to add to the organization.",
 			},
 			"role": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
-				Default:      "member",
-				Description:  "The role of the user within the organization. Must be one of 'member' or 'admin'.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				validateDiagFunc: validateValueFunc([]string{"member", "admin"}),
+				Default:          "member",
+				Description:      "The role of the user within the organization. Must be one of 'member' or 'admin'.",
 			},
 			"etag": {
 				Type:     schema.TypeString,

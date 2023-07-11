@@ -32,10 +32,10 @@ func resourceGithubRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
-				Description:  "The name of the repository.",
+				Type:             schema.TypeString,
+				Required:         true,
+				validateDiagFunc: validation.StringLenBetween(1, 100),
+				Description:      "The name of the repository.",
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -55,11 +55,11 @@ func resourceGithubRepository() *schema.Resource {
 				Deprecated:    "use visibility instead",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true, // is affected by "private"
-				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
-				Description:  "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true, // is affected by "private"
+				validateDiagFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
+				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
 			},
 			"security_and_analysis": {
 				Type:        schema.TypeList,
@@ -77,10 +77,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										validateDiagFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
 									},
 								},
 							},
@@ -93,10 +93,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										validateDiagFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 									},
 								},
 							},
@@ -109,10 +109,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										validateDiagFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
+										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 									},
 								},
 							},
@@ -266,11 +266,11 @@ func resourceGithubRepository() *schema.Resource {
 							},
 						},
 						"build_type": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "legacy",
-							Description:  "The type the page should be sourced.",
-							ValidateFunc: validateValueFunc([]string{"legacy", "workflow"}),
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "legacy",
+							Description:      "The type the page should be sourced.",
+							validateDiagFunc: validateValueFunc([]string{"legacy", "workflow"}),
 						},
 						"cname": {
 							Type:        schema.TypeString,
@@ -304,8 +304,8 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
+					Type:             schema.TypeString,
+					validateDiagFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
 				},
 			},
 			"vulnerability_alerts": {

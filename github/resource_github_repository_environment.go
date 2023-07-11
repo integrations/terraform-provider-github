@@ -34,10 +34,10 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 				Description: "The name of the environment.",
 			},
 			"wait_timer": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: validation.IntBetween(0, 43200),
-				Description:  "Amount of time to delay a job after the job is initially triggered.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				validateDiagFunc: validation.IntBetween(0, 43200),
+				Description:      "Amount of time to delay a job after the job is initially triggered.",
 			},
 			"reviewers": {
 				Type:        schema.TypeList,

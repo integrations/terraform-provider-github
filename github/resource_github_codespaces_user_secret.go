@@ -26,20 +26,20 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				validateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:          schema.TypeString,
-				ForceNew:      true,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"plaintext_value"},
-				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateFunc:  validation.StringIsBase64,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				Sensitive:        true,
+				ConflictsWith:    []string{"plaintext_value"},
+				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				validateDiagFunc: validation.StringIsBase64,
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
