@@ -138,6 +138,26 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 
 	if downgradeOnDestroy {
 		log.Printf("[INFO] Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo)
+
+		// Check to make sure this member still has access to the organization before downgrading.
+		// If we don't do this, the member would just be re-added to the organization.
+		membership, _, err := client.Organizations.GetOrgMembership(ctx, username, orgName)
+		if err != nil {
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
+					return nil
+				}
+			}
+
+			return err
+		}
+
+		if *membership.Role == downgradeTo {
+			log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo)
+			return nil
+		}
+
 		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
 			Role: github.String(downgradeTo),
 		})
