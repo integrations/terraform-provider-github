@@ -123,7 +123,8 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
+	var err error
+	err = checkOrganization(meta)
 	if err != nil {
 		return err
 	}
