@@ -48,7 +48,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 							Optional:         true,
 							Default:          "member",
 							Description:      "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
-							validateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
+							ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 						},
 					},
 				},

@@ -72,7 +72,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Optional:         true,
 				Default:          "read",
 				Description:      "The default permission for organization members to create new repositories. Can be one of 'read', 'write', 'admin' or 'none'.",
-				validateDiagFunc: validation.StringInSlice([]string{"read", "write", "admin", "none"}, false),
+				ValidateDiagFunc: validation.StringInSlice([]string{"read", "write", "admin", "none"}, false),
 			},
 			"members_can_create_repositories": {
 				Type:        schema.TypeBool,

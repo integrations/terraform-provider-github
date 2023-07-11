@@ -23,7 +23,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The name of the repository.",
-				validateDiagFunc: validation.StringLenBetween(1, 100),
+				ValidateDiagFunc: validation.StringLenBetween(1, 100),
 			},
 			"use_default": {
 				Type:        schema.TypeBool,

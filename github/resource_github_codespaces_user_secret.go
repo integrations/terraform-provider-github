@@ -30,7 +30,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the secret.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
@@ -39,7 +39,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 				Sensitive:        true,
 				ConflictsWith:    []string{"plaintext_value"},
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				validateDiagFunc: validation.StringIsBase64,
+				ValidateDiagFunc: validation.StringIsBase64,
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,

@@ -25,7 +25,7 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				validateDiagFunc: validation.IntBetween(0, 100),
+				ValidateDiagFunc: validation.IntBetween(0, 100),
 			},
 			"teams": {
 				Type:     schema.TypeList,

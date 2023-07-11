@@ -23,7 +23,7 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the existing secret.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,

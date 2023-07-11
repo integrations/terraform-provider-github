@@ -71,7 +71,7 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:             schema.TypeString,
 				Default:          "all",
 				Optional:         true,
-				validateDiagFunc: validation.StringInSlice([]string{"all", "immediate"}, false),
+				ValidateDiagFunc: validation.StringInSlice([]string{"all", "immediate"}, false),
 			},
 			"summary_only": {
 				Type:     schema.TypeBool,
@@ -82,7 +82,7 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				validateDiagFunc: validation.IntBetween(0, 100),
+				ValidateDiagFunc: validation.IntBetween(0, 100),
 			},
 		},
 	}

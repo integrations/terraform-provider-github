@@ -1355,7 +1355,7 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	_, err := schema.validateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
+	_, err := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
 	if err != nil {
 		t.Error(fmt.Errorf("unexpected topic validation failure: %s", err))
 	}
@@ -1365,7 +1365,7 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
-	_, err := schema.validateDiagFunc(strings.Repeat("a", 51), "topic")
+	_, err := schema.ValidateDiagFunc(strings.Repeat("a", 51), "topic")
 	if len(err) != 1 {
 		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(err)))
 	}

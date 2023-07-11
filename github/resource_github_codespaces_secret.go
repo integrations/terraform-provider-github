@@ -33,7 +33,7 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the secret.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
 				Type:          schema.TypeString,

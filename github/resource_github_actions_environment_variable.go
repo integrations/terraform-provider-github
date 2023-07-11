@@ -36,7 +36,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the variable.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,

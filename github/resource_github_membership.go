@@ -30,7 +30,7 @@ func resourceGithubMembership() *schema.Resource {
 			"role": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				validateDiagFunc: validateValueFunc([]string{"member", "admin"}),
+				ValidateDiagFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:          "member",
 				Description:      "The role of the user within the organization. Must be one of 'member' or 'admin'.",
 			},

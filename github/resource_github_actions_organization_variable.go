@@ -26,7 +26,7 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the variable.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -46,7 +46,7 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 			"visibility": {
 				Type:             schema.TypeString,
 				Required:         true,
-				validateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:         true,
 				Description:      "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},

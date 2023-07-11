@@ -31,7 +31,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Name of the secret.",
-				validateDiagFunc: validateSecretNameFunc,
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
@@ -40,7 +40,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 				Sensitive:        true,
 				ConflictsWith:    []string{"plaintext_value"},
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				validateDiagFunc: validation.StringIsBase64,
+				ValidateDiagFunc: validation.StringIsBase64,
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -54,7 +54,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private' or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
-				validateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:         true,
 			},
 			"selected_repository_ids": {
