@@ -42,7 +42,7 @@ func resourceGithubMembership() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed.",
+				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization",
 			},
 		},
 	}
