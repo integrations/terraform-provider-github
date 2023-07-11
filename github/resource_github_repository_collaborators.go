@@ -54,10 +54,9 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "push",
-							ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "push",
 						},
 						"team_id": {
 							Type:        schema.TypeString,
