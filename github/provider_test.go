@@ -6,11 +6,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAccProviders map[string]*schema.Provider
-var testAccProviderFactories func(providers *[]*schema.Provider) map[string]
+var testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
 var testAccProvider *schema.Provider
 
 func init() {
@@ -18,9 +17,9 @@ func init() {
 	testAccProviders = map[string]*schema.Provider{
 		"github": testAccProvider,
 	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory {
-		return map[string]terraform.ResourceProviderFactory{
-			"github": func() (schema.Provider, error) {
+	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error) {
+		return map[string]func() (*schema.Provider, error){
+			"github": func() (*schema.Provider, error) {
 				p := Provider()
 				*providers = append(*providers, p)
 				return p, nil
