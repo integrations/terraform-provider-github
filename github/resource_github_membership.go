@@ -123,8 +123,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	var err error
-	err = checkOrganization(meta)
+	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
@@ -142,7 +141,8 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 
 		// Check to make sure this member still has access to the organization before downgrading.
 		// If we don't do this, the member would just be re-added to the organization.
-		membership, _, err := client.Organizations.GetOrgMembership(ctx, username, orgName)
+		var membership *github.Membership
+		membership, _, err = client.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
 			if ghErr, ok := err.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
