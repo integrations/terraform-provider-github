@@ -60,9 +60,18 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("ref", *ref.Ref)
-	d.Set("sha", *ref.Object.SHA)
+	err = d.Set("etag", resp.Header.Get("ETag"))
+	if err != nil {
+		return err
+	}
+	err = d.Set("ref", *ref.Ref)
+	if err != nil {
+		return err
+	}
+	err = d.Set("sha", *ref.Object.SHA)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

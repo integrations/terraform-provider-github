@@ -96,7 +96,10 @@ func dataSourceGithubActionsSecretsRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(repoName)
-	d.Set("secrets", all_secrets)
+	err := d.Set("secrets", all_secrets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

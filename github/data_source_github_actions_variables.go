@@ -101,7 +101,10 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(repoName)
-	d.Set("variables", all_variables)
+	err := d.Set("variables", all_variables)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

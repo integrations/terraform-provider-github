@@ -40,8 +40,14 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(
 	}
 
 	d.SetId(repository)
-	d.Set("use_default", template.UseDefault)
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	err = d.Set("use_default", template.UseDefault)
+	if err != nil {
+		return err
+	}
+	err = d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

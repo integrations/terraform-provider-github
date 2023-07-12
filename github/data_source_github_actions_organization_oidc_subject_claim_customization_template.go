@@ -38,7 +38,10 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRea
 	}
 
 	d.SetId(orgName)
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	err = d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

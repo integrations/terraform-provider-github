@@ -76,7 +76,10 @@ func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, me
 	}
 
 	d.SetId(owner)
-	d.Set("variables", all_variables)
+	err := d.Set("variables", all_variables)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

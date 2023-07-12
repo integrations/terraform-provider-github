@@ -96,7 +96,10 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(repoName)
-	d.Set("secrets", all_secrets)
+	err := d.Set("secrets", all_secrets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

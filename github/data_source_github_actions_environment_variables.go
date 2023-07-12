@@ -112,7 +112,10 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 	}
 
 	d.SetId(buildTwoPartID(repoName, env))
-	d.Set("variables", all_variables)
+	err = d.Set("variables", all_variables)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

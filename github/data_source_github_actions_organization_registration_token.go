@@ -36,8 +36,14 @@ func dataSourceGithubActionsOrganizationRegistrationTokenRead(d *schema.Resource
 	}
 
 	d.SetId(owner)
-	d.Set("token", token.Token)
-	d.Set("expires_at", token.ExpiresAt.Unix())
+	err = d.Set("token", token.Token)
+	if err != nil {
+		return err
+	}
+	err = d.Set("expires_at", token.ExpiresAt.Unix())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
