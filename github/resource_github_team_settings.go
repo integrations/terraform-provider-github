@@ -48,7 +48,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:    true,
 							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
 							Default:     "ROUND_ROBIN",
-							ValidateDiagFunc: func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
 								algorithm, ok := v.(string)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
@@ -59,14 +59,14 @@ func resourceGithubTeamSettings() *schema.Resource {
 								}
 
 								return we, errs
-							},
+							}),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateDiagFunc: func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
 								count, ok := v.(int)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}
@@ -75,7 +75,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 									errs = append(errs, errors.New("review request delegation reviewer count must be a positive number"))
 								}
 								return we, errs
-							},
+							}),
 						},
 						"notify": {
 							Type:        schema.TypeBool,
