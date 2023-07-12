@@ -166,6 +166,22 @@ func (a *ActionsPermissionsRepository) GetEnabled() bool {
 	return *a.Enabled
 }
 
+// GetDefaultWorkflowPermissions returns the DefaultWorkflowPermissions field if it's non-nil, zero value otherwise.
+func (d *DefaultWorkflowPermissionsRepository) GetDefaultWorkflowPermissions() string {
+	if d == nil || d.DefaultWorkflowPermissions == nil {
+		return ""
+	}
+	return *d.DefaultWorkflowPermissions
+}
+
+// GetCanApprovePullRequestReviews returns the CanApprovePullRequestReviews field if it's non-nil, zero value otherwise.
+func (d *DefaultWorkflowPermissionsRepository) GetCanApprovePullRequestReviews() bool {
+	if d == nil || d.CanApprovePullRequestReviews == nil {
+		return false
+	}
+	return *d.CanApprovePullRequestReviews
+}
+
 // GetSelectedActionsURL returns the SelectedActionsURL field if it's non-nil, zero value otherwise.
 func (a *ActionsPermissionsRepository) GetSelectedActionsURL() string {
 	if a == nil || a.SelectedActionsURL == nil {
