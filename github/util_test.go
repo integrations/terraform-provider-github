@@ -154,7 +154,7 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 			if tc.Error {
 				t.Fatalf("expected error, got none (%s)", tc.Name)
 			} else {
-				t.Fatalf("unexpected error(s): %s (%s)", diags, tc.Name)
+				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
 			}
 		}
 	}
