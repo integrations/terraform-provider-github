@@ -77,8 +77,12 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
-	d.Set("repository", repository)
-	d.Set("webhooks", results)
+	if err := d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err := d.Set("webhooks", results); err != nil {
+		return err
+	}
 
 	return nil
 }

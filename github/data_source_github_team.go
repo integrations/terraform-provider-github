@@ -192,14 +192,30 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
-	d.Set("name", team.GetName())
-	d.Set("members", members)
-	d.Set("repositories", repositories)
-	d.Set("repositories_detailed", repositories_detailed)
-	d.Set("description", team.GetDescription())
-	d.Set("privacy", team.GetPrivacy())
-	d.Set("permission", team.GetPermission())
-	d.Set("node_id", team.GetNodeID())
+	if err = d.Set("name", team.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("members", members); err != nil {
+		return err
+	}
+	if err = d.Set("repositories", repositories); err != nil {
+		return err
+	}
+	if err = d.Set("repositories_detailed", repositories_detailed); err != nil {
+		return err
+	}
+	if err = d.Set("description", team.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
+		return err
+	}
+	if err = d.Set("permission", team.GetPermission()); err != nil {
+		return err
+	}
+	if err = d.Set("node_id", team.GetNodeID()); err != nil {
+		return err
+	}
 
 	return nil
 }

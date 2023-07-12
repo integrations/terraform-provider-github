@@ -166,11 +166,21 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		return err
 	}
 
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
-	d.Set("visibility", *variable.Visibility)
+	if err = d.Set("variable_name", name); err != nil {
+		return err
+	}
+	if err = d.Set("value", variable.Value); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("visibility", *variable.Visibility); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 
@@ -195,7 +205,9 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		}
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

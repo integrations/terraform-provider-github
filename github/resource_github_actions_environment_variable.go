@@ -140,12 +140,24 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", env)
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("environment", env); err != nil {
+		return err
+	}
+	if err = d.Set("variable_name", name); err != nil {
+		return err
+	}
+	if err = d.Set("value", variable.Value); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return err
+	}
 
 	return nil
 }

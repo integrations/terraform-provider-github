@@ -25,7 +25,9 @@ func dataSourceGithubSshKeysRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId("github-ssh-keys")
-	d.Set("keys", api.SSHKeys)
+	if err = d.Set("keys", api.SSHKeys); err != nil {
+		return err
+	}
 
 	return nil
 }

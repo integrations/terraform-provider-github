@@ -83,7 +83,9 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(tree.GetSHA())
-	d.Set("entries", entries)
+	if err = d.Set("entries", entries); err != nil {
+		return err
+	}
 
 	return nil
 }

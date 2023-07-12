@@ -114,11 +114,21 @@ func resourceGithubActionsVariableRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("variable_name", variableName)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("variable_name", variableName); err != nil {
+		return err
+	}
+	if err = d.Set("value", variable.Value); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -52,10 +52,18 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 	resp, _ := client.Do(ctx, req, &body)
 
 	d.SetId(resp.Header.Get("x-github-request-id"))
-	d.Set("code", resp.StatusCode)
-	d.Set("status", resp.Status)
-	d.Set("headers", resp.Header)
-	d.Set("body", body)
+	if err = d.Set("code", resp.StatusCode); err != nil {
+		return err
+	}
+	if err = d.Set("status", resp.Status); err != nil {
+		return err
+	}
+	if err = d.Set("headers", resp.Header); err != nil {
+		return err
+	}
+	if err = d.Set("body", body); err != nil {
+		return err
+	}
 
 	return nil
 }
