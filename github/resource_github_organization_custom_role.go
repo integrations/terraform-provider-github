@@ -112,10 +112,18 @@ func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta inter
 		return nil
 	}
 
-	d.Set("name", role.Name)
-	d.Set("description", role.Description)
-	d.Set("base_role", role.BaseRole)
-	d.Set("permissions", role.Permissions)
+	if err = d.Set("name", role.Name); err != nil {
+		return err
+	}
+	if err = d.Set("description", role.Description); err != nil {
+		return err
+	}
+	if err = d.Set("base_role", role.BaseRole); err != nil {
+		return err
+	}
+	if err = d.Set("permissions", role.Permissions); err != nil {
+		return err
+	}
 
 	return nil
 }

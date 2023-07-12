@@ -20,7 +20,9 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 		Delete: resourceGithubCodespacesOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("secret_name", d.Id())
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -216,7 +218,9 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
-		d.Set("updated_at", secret.UpdatedAt.String())
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil

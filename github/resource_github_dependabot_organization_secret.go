@@ -20,7 +20,9 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 		Delete: resourceGithubDependabotOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("secret_name", d.Id())
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
