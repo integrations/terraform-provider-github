@@ -47,7 +47,9 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 					id = strconv.FormatInt(*autolink.ID, 10)
 				}
 
-				d.Set("repository", repository)
+				if err = d.Set("repository", repository); err != nil {
+					return nil, err
+				}
 				d.SetId(id)
 				return []*schema.ResourceData{d}, nil
 			},
@@ -143,10 +145,18 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	// Set resource fields
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
-	d.Set("repository", repoName)
-	d.Set("key_prefix", autolinkRef.KeyPrefix)
-	d.Set("target_url_template", autolinkRef.URLTemplate)
-	d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric)
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("key_prefix", autolinkRef.KeyPrefix); err != nil {
+		return err
+	}
+	if err = d.Set("target_url_template", autolinkRef.URLTemplate); err != nil {
+		return err
+	}
+	if err = d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric); err != nil {
+		return err
+	}
 
 	return nil
 }

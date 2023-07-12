@@ -1051,7 +1051,9 @@ func resourceGithubParseFullName(resourceDataLike interface {
 
 func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	if diff.HasChange("name") {
-		diff.SetNewComputed("full_name")
+		if err := diff.SetNewComputed("full_name"); err != nil {
+			return err
+		}
 	}
 	return nil
 }

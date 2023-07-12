@@ -112,10 +112,18 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("environment_name", environmentName)
-	d.Set("name", policy.Name)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("environment_name", environmentName); err != nil {
+		return err
+	}
+	if err = d.Set("name", policy.Name); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -147,8 +155,12 @@ func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData
 	}
 
 	d.SetId(id)
-	d.Set("repository", repoName)
-	d.Set("environment_name", environmentName)
+	if err = d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err = d.Set("environment_name", environmentName); err != nil {
+		return nil, err
+	}
 
 	err = resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 	if err != nil {
