@@ -1,12 +1,14 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -220,7 +222,7 @@ func Provider() *schema.Provider {
 		},
 	}
 
-	p.ConfigureFunc = providerConfigure(p)
+	p.ConfigureContextFunc = providerConfigure(p)
 
 	return p
 }
@@ -259,8 +261,8 @@ func init() {
 	}
 }
 
-func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
@@ -296,13 +298,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
 				appID = v
 			} else {
-				return nil, fmt.Errorf("app_auth.id must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
 			}
 
 			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
 				appInstallationID = v
 			} else {
-				return nil, fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
 			}
 
 			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
@@ -315,12 +317,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 				// actual new line character before decoding.
 				appPemFile = strings.Replace(v, `\n`, "\n", -1)
 			} else {
-				return nil, fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
 			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
 			if err != nil {
-				return nil, err
+				return nil, wrapErrors([]error{err})
 			}
 
 			token = appToken
@@ -328,13 +330,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
-			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
+			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
 		}
 		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
-			return nil, fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")
+			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
@@ -342,10 +344,10 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
 
 		if err != nil {
-			return nil, err
+			return nil, wrapErrors([]error{err})
 		}
 		if parallelRequests && isGithubDotCom {
-			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
+			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
 		}
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
@@ -361,7 +363,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		meta, err := config.Meta()
 		if err != nil {
-			return nil, err
+			return nil, wrapErrors([]error{err})
 		}
 
 		return meta, nil
