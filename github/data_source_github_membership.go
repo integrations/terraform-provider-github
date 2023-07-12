@@ -56,9 +56,21 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(buildTwoPartID(membership.GetOrganization().GetLogin(), membership.GetUser().GetLogin()))
 
-	d.Set("username", membership.GetUser().GetLogin())
-	d.Set("role", membership.GetRole())
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("state", membership.GetState())
+	err = d.Set("username", membership.GetUser().GetLogin())
+	if err != nil {
+		return err
+	}
+	err = d.Set("role", membership.GetRole())
+	if err != nil {
+		return err
+	}
+	err = d.Set("etag", resp.Header.Get("ETag"))
+	if err != nil {
+		return err
+	}
+	err = d.Set("state", membership.GetState())
+	if err != nil {
+		return err
+	}
 	return nil
 }

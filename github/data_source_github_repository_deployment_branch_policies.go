@@ -65,7 +65,10 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 	}
 
 	d.SetId(repoName + ":" + environmentName)
-	d.Set("deployment_branch_policies", results)
+	err = d.Set("deployment_branch_policies", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

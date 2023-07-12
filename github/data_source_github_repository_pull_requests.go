@@ -221,7 +221,9 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta int
 		direction,
 	}, "/"))
 
-	d.Set("results", results)
+	if err := d.Set("results", results); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -153,15 +153,42 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
-	d.Set("login", organization.GetLogin())
-	d.Set("name", organization.GetName())
-	d.Set("orgname", name)
-	d.Set("node_id", organization.GetNodeID())
-	d.Set("description", organization.GetDescription())
-	d.Set("plan", planName)
-	d.Set("repositories", repoList)
-	d.Set("members", members)
-	d.Set("users", users)
+	err = d.Set("login", organization.GetLogin())
+	if err != nil {
+		return err
+	}
+	err = d.Set("name", organization.GetName())
+	if err != nil {
+		return err
+	}
+	err = d.Set("orgname", name)
+	if err != nil {
+		return err
+	}
+	err = d.Set("node_id", organization.GetNodeID())
+	if err != nil {
+		return err
+	}
+	err = d.Set("description", organization.GetDescription())
+	if err != nil {
+		return err
+	}
+	err = d.Set("plan", planName)
+	if err != nil {
+		return err
+	}
+	err = d.Set("repositories", repoList)
+	if err != nil {
+		return err
+	}
+	err = d.Set("members", members)
+	if err != nil {
+		return err
+	}
+	err = d.Set("users", users)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

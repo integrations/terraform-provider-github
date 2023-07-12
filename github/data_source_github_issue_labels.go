@@ -77,7 +77,10 @@ func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) e
 		opts.Page = resp.NextPage
 	}
 
-	d.Set("labels", allLabels)
+	err := d.Set("labels", allLabels)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

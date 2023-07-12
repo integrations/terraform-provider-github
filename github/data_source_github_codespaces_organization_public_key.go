@@ -40,8 +40,14 @@ func dataSourceGithubCodespacesOrganizationPublicKeyRead(d *schema.ResourceData,
 	}
 
 	d.SetId(publicKey.GetKeyID())
-	d.Set("key_id", publicKey.GetKeyID())
-	d.Set("key", publicKey.GetKey())
+	err = d.Set("key_id", publicKey.GetKeyID())
+	if err != nil {
+		return err
+	}
+	err = d.Set("key", publicKey.GetKey())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

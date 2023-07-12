@@ -79,10 +79,19 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(query)
-	d.Set("full_names", fullNames)
-	d.Set("names", names)
+	err = d.Set("full_names", fullNames)
+	if err != nil {
+		return err
+	}
+	err = d.Set("names", names)
+	if err != nil {
+		return err
+	}
 	if includeRepoId {
-		d.Set("repo_ids", repoIDs)
+		err = d.Set("repo_ids", repoIDs)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

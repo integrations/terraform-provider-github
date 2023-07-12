@@ -60,7 +60,10 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta int
 	}
 
 	d.SetId(repoName)
-	d.Set("environments", results)
+	err := d.Set("environments", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

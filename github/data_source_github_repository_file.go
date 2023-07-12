@@ -113,10 +113,18 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	d.Set("content", content)
-	d.Set("repository", repo)
-	d.Set("file", file)
-	d.Set("sha", fc.GetSHA())
+	if err = d.Set("content", content); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repo); err != nil {
+		return err
+	}
+	if err = d.Set("file", file); err != nil {
+		return err
+	}
+	if err = d.Set("sha", fc.GetSHA()); err != nil {
+		return err
+	}
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {
@@ -127,7 +135,9 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 	ref := parsedQuery["ref"][0]
-	d.Set("ref", ref)
+	if err = d.Set("ref", ref); err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
 	commit, err := getFileCommit(client, owner, repo, file, ref)
@@ -136,10 +146,18 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
-	d.Set("commit_message", commit.GetCommit().GetMessage())
+	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
+		return err
+	}
+	if err = d.Set("commit_author", commit.Commit.GetCommitter().GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("commit_email", commit.Commit.GetCommitter().GetEmail()); err != nil {
+		return err
+	}
+	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
+		return err
+	}
 
 	return nil
 }

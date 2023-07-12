@@ -64,7 +64,10 @@ func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, me
 	}
 
 	d.SetId(repoName)
-	d.Set("autolink_references", results)
+	err := d.Set("autolink_references", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

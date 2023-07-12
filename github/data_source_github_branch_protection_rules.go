@@ -75,7 +75,10 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(string(query.Repository.ID))
-	d.Set("rules", rules)
+	err := d.Set("rules", rules)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

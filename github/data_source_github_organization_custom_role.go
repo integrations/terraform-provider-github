@@ -69,10 +69,22 @@ func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta int
 	}
 
 	d.SetId(fmt.Sprint(*role.ID))
-	d.Set("name", role.Name)
-	d.Set("description", role.Description)
-	d.Set("base_role", role.BaseRole)
-	d.Set("permissions", role.Permissions)
+	err = d.Set("name", role.Name)
+	if err != nil {
+		return err
+	}
+	err = d.Set("description", role.Description)
+	if err != nil {
+		return err
+	}
+	err = d.Set("base_role", role.BaseRole)
+	if err != nil {
+		return err
+	}
+	err = d.Set("permissions", role.Permissions)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

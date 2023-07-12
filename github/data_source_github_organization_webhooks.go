@@ -70,7 +70,10 @@ func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta inter
 	}
 
 	d.SetId(owner)
-	d.Set("webhooks", results)
+	err := d.Set("webhooks", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -117,7 +117,10 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(string(query.Organization.ID))
-	d.Set("teams", teams)
+	err = d.Set("teams", teams)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

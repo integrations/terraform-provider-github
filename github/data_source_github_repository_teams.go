@@ -96,7 +96,9 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(repoName)
-	d.Set("teams", all_teams)
+	if err := d.Set("teams", all_teams); err != nil {
+		return err
+	}
 
 	return nil
 }

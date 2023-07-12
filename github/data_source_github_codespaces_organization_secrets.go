@@ -72,7 +72,10 @@ func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, m
 	}
 
 	d.SetId(owner)
-	d.Set("secrets", all_secrets)
+	err := d.Set("secrets", all_secrets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

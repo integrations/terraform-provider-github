@@ -73,7 +73,10 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta inter
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
-	d.Set("keys", results)
+	err := d.Set("keys", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

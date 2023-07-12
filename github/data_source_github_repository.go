@@ -250,36 +250,126 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(repoName)
 
-	d.Set("name", repo.GetName())
-	d.Set("description", repo.GetDescription())
-	d.Set("homepage_url", repo.GetHomepage())
-	d.Set("private", repo.GetPrivate())
-	d.Set("visibility", repo.GetVisibility())
-	d.Set("has_issues", repo.GetHasIssues())
-	d.Set("has_discussions", repo.GetHasDiscussions())
-	d.Set("has_wiki", repo.GetHasWiki())
-	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("fork", repo.GetFork())
-	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-	d.Set("has_downloads", repo.GetHasDownloads())
-	d.Set("full_name", repo.GetFullName())
-	d.Set("default_branch", repo.GetDefaultBranch())
-	d.Set("html_url", repo.GetHTMLURL())
-	d.Set("ssh_clone_url", repo.GetSSHURL())
-	d.Set("svn_url", repo.GetSVNURL())
-	d.Set("git_clone_url", repo.GetGitURL())
-	d.Set("http_clone_url", repo.GetCloneURL())
-	d.Set("archived", repo.GetArchived())
-	d.Set("node_id", repo.GetNodeID())
-	d.Set("repo_id", repo.GetID())
-	d.Set("has_projects", repo.GetHasProjects())
+	err = d.Set("name", repo.GetName())
+	if err != nil {
+		return err
+	}
+	err = d.Set("description", repo.GetDescription())
+	if err != nil {
+		return err
+	}
+	err = d.Set("homepage_url", repo.GetHomepage())
+	if err != nil {
+		return err
+	}
+	err = d.Set("private", repo.GetPrivate())
+	if err != nil {
+		return err
+	}
+	err = d.Set("visibility", repo.GetVisibility())
+	if err != nil {
+		return err
+	}
+	err = d.Set("has_issues", repo.GetHasIssues())
+	if err != nil {
+		return err
+	}
+	err = d.Set("has_discussions", repo.GetHasDiscussions())
+	if err != nil {
+		return err
+	}
+	err = d.Set("has_wiki", repo.GetHasWiki())
+	if err != nil {
+		return err
+	}
+	err = d.Set("is_template", repo.GetIsTemplate())
+	if err != nil {
+		return err
+	}
+	err = d.Set("fork", repo.GetFork())
+	if err != nil {
+		return err
+	}
+	err = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+	if err != nil {
+		return err
+	}
+	err = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+	if err != nil {
+		return err
+	}
+	err = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+	if err != nil {
+		return err
+	}
+	err = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	if err != nil {
+		return err
+	}
+	err = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	if err != nil {
+		return err
+	}
+	err = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+	if err != nil {
+		return err
+	}
+	err = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+	if err != nil {
+		return err
+	}
+	err = d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+	if err != nil {
+		return err
+	}
+	err = d.Set("has_downloads", repo.GetHasDownloads())
+	if err != nil {
+		return err
+	}
+	err = d.Set("full_name", repo.GetFullName())
+	if err != nil {
+		return err
+	}
+	err = d.Set("default_branch", repo.GetDefaultBranch())
+	if err != nil {
+		return err
+	}
+	err = d.Set("html_url", repo.GetHTMLURL())
+	if err != nil {
+		return err
+	}
+	err = d.Set("ssh_clone_url", repo.GetSSHURL())
+	if err != nil {
+		return err
+	}
+	err = d.Set("svn_url", repo.GetSVNURL())
+	if err != nil {
+		return err
+	}
+	err = d.Set("git_clone_url", repo.GetGitURL())
+	if err != nil {
+		return err
+	}
+	err = d.Set("http_clone_url", repo.GetCloneURL())
+	if err != nil {
+		return err
+	}
+	err = d.Set("archived", repo.GetArchived())
+	if err != nil {
+		return err
+	}
+	err = d.Set("node_id", repo.GetNodeID())
+	if err != nil {
+		return err
+	}
+	err = d.Set("repo_id", repo.GetID())
+	if err != nil {
+		return err
+	}
+	err = d.Set("has_projects", repo.GetHasProjects())
+	if err != nil {
+		return err
+	}
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
@@ -290,18 +380,27 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("error setting pages: %w", err)
 		}
 	} else {
-		d.Set("pages", flattenPages(nil))
+		err = d.Set("pages", flattenPages(nil))
+		if err != nil {
+			return err
+		}
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		err = d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
 		})
+		if err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		err = d.Set("template", []interface{}{})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
