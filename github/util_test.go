@@ -58,9 +58,11 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 	validationFunc := validateValueFunc([]string{"valid_one", "valid_two"})
 
 	for _, tc := range cases {
-		_, errors := validationFunc(tc.Value, "test_arg")
+		// TODO(kfcampbell): what are the ramifications of passing nil in here?
+		// used to be "test_arg" as a string
+		diags := validationFunc(tc.Value, nil)
 
-		if len(errors) != tc.ErrCount {
+		if len(diags) != tc.ErrCount {
 			t.Fatalf("Expected 1 validation error")
 		}
 	}
@@ -144,13 +146,15 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 
 	for _, tc := range cases {
 		var name interface{} = tc.Name
-		_, errors := validateSecretNameFunc(name, "")
+		// TODO(kfcampbell): what are the ramifications of passign in nil here?
+		// used to be the empty string ""
+		diags := validateSecretNameFunc(name, nil)
 
-		if tc.Error != (len(errors) != 0) {
+		if tc.Error != (len(diags) != 0) {
 			if tc.Error {
 				t.Fatalf("expected error, got none (%s)", tc.Name)
 			} else {
-				t.Fatalf("unexpected error(s): %s (%s)", errors, tc.Name)
+				t.Fatalf("unexpected error(s): %s (%s)", diags, tc.Name)
 			}
 		}
 	}

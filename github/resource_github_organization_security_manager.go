@@ -17,7 +17,7 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 		Update: resourceGithubOrganizationSecurityManagerUpdate,
 		Delete: resourceGithubOrganizationSecurityManagerDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

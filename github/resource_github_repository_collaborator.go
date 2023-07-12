@@ -18,7 +18,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		Update: resourceGithubRepositoryCollaboratorUpdate,
 		Delete: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		// editing repository collaborators are not supported by github api so forcing new on any changes

@@ -17,7 +17,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 		Read:   resourceGithubUserSshKeyRead,
 		Delete: resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

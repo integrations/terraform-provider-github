@@ -16,7 +16,7 @@ func resourceGithubActionsVariable() *schema.Resource {
 		Update: resourceGithubActionsVariableUpdate,
 		Delete: resourceGithubActionsVariableDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

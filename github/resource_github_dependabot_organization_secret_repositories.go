@@ -14,7 +14,7 @@ func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 		Update: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
 		Delete: resourceGithubDependabotOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

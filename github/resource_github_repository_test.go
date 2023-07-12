@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -1356,7 +1355,9 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
+	// TODO(kfcampbell): what are the ramifications of passing a nil path in?
+	// used to be "topic" as a string
+	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", nil)
 	if diags.HasError() {
 		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
 	}
@@ -1366,9 +1367,11 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path("topic"))
+	// TODO(kfcampbell): what are the ramifications of passing a nil path in?
+	// used to be "topic" as a string
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), nil)
 	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(err)))
+		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
 	}
 	expectedFailure := "invalid value for topic (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
 	actualFailure := diags[0].Summary

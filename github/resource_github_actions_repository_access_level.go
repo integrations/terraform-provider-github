@@ -15,7 +15,7 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 		Update: resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
 		Delete: resourceGithubActionsRepositoryAccessLevelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

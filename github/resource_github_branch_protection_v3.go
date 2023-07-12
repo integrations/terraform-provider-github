@@ -18,7 +18,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 		Update: resourceGithubBranchProtectionV3Update,
 		Delete: resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

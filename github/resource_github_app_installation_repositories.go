@@ -16,7 +16,7 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 		Update: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
 		Delete: resourceGithubAppInstallationRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

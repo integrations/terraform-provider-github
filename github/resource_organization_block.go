@@ -15,7 +15,7 @@ func resourceOrganizationBlock() *schema.Resource {
 		Read:   resourceOrganizationBlockRead,
 		Delete: resourceOrganizationBlockDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

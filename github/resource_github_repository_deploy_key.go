@@ -18,7 +18,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 		Read:   resourceGithubRepositoryDeployKeyRead,
 		Delete: resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		// Deploy keys are defined immutable in the API. Updating results in force new.

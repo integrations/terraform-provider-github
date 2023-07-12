@@ -18,7 +18,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		Update: resourceGithubRepositoryCollaboratorsUpdate,
 		Delete: resourceGithubRepositoryCollaboratorsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

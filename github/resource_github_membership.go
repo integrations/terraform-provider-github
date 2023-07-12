@@ -16,7 +16,7 @@ func resourceGithubMembership() *schema.Resource {
 		Update: resourceGithubMembershipCreateOrUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

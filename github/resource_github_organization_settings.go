@@ -17,7 +17,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 		Update: resourceGithubOrganizationSettingsCreateOrUpdate,
 		Delete: resourceGithubOrganizationSettingsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"billing_email": {

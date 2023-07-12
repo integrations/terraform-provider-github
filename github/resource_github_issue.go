@@ -17,7 +17,7 @@ func resourceGithubIssue() *schema.Resource {
 		Update: resourceGithubIssueCreateOrUpdate,
 		Delete: resourceGithubIssueDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {

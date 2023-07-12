@@ -18,7 +18,7 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 		Update: resourceGithubRepositoryEnvironmentUpdate,
 		Delete: resourceGithubRepositoryEnvironmentDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {

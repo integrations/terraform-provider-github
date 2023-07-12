@@ -14,7 +14,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *s
 		Update: resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"include_claim_keys": {
