@@ -152,7 +152,7 @@ func NewLinter(needs Needs, excludes []string) (*Linter, error) {
 	}
 
 	return &Linter{
-		needs:           needs,
+		needs:           needs | NeedsMachineOnly,
 		excludeByLinter: excludeByName,
 	}, nil
 }
@@ -184,11 +184,13 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 					leadingSpace = leadingSpaceMatches[1]
 				}
 
-				directiveWithOptionalLeadingSpace := comment.Text
+				directiveWithOptionalLeadingSpace := "//"
 				if len(leadingSpace) > 0 {
-					split := strings.Split(strings.SplitN(comment.Text, ":", 2)[0], "//")
-					directiveWithOptionalLeadingSpace = "// " + strings.TrimSpace(split[1])
+					directiveWithOptionalLeadingSpace += " "
 				}
+
+				split := strings.Split(strings.SplitN(comment.Text, ":", 2)[0], "//")
+				directiveWithOptionalLeadingSpace += strings.TrimSpace(split[1])
 
 				pos := fset.Position(comment.Pos())
 				end := fset.Position(comment.End())
@@ -199,7 +201,7 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 					position:                          pos,
 				}
 
-				// check for, report and eliminate leading spaces so we can check for other issues
+				// check for, report and eliminate leading spaces, so we can check for other issues
 				if len(leadingSpace) > 0 {
 					removeWhitespace := &result.Replacement{
 						Inline: &result.InlineFix{
@@ -227,8 +229,9 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 				}
 
 				lintersText, explanation := fullMatches[1], fullMatches[2]
+
 				var linters []string
-				if len(lintersText) > 0 {
+				if len(lintersText) > 0 && !strings.HasPrefix(lintersText, "all") {
 					lls := strings.Split(lintersText, ",")
 					linters = make([]string, 0, len(lls))
 					rangeStart := (pos.Column - 1) + len("//") + len(leadingSpace) + len("nolint:")
@@ -281,7 +284,7 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 
 				if (l.needs&NeedsExplanation) != 0 && (explanation == "" || strings.TrimSpace(explanation) == "//") {
 					needsExplanation := len(linters) == 0 // if no linters are mentioned, we must have explanation
-					// otherwise, check if we are excluding all of the mentioned linters
+					// otherwise, check if we are excluding all the mentioned linters
 					for _, ll := range linters {
 						if !l.excludeByLinter[ll] { // if a linter does require explanation
 							needsExplanation = true
