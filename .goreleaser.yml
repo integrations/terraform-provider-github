@@ -1,9 +1,11 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
 before:
-  hooks:
+  hooks: []
     # this is just an example and not a requirement for provider building/publishing
-    - go mod tidy
+    # commenting for now to unbreak releases. this can be uncommented when we
+    # update from v1.17.2 to v2 of the terraform-provider-sdk.
+    # - go mod tidy
 builds:
 - env:
     # goreleaser does not work with CGO, it could also complicate
