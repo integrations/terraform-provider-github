@@ -11,7 +11,6 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubUserExternalIdentityRead,
 
-		// TODO: fix this
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:     schema.TypeString,
@@ -71,7 +70,7 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 							Username githubv4.String
 						}
 					}
-				} `graphql:"externalIdentities(first: 1, login:$username)"` // TODO: First 1 should be fine?
+				} `graphql:"externalIdentities(first: 1, login:$username)"` // There should only ever be one external identity configured
 			}
 		} `graphql:"organization(login: $orgName)"`
 	}
