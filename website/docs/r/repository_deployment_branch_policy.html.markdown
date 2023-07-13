@@ -23,7 +23,7 @@ resource "github_repository_environment" "env" {
 }
 
 resource "github_repository_deployment_branch_policy" "foo" {
-  reposistory = "my_repo"
+  repository = "my_repo"
   environment_name = "my_env"
   name = "foo"
 }
