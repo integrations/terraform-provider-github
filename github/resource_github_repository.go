@@ -636,7 +636,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("has_projects", repo.GetHasProjects())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
-	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
 	d.Set("html_url", repo.GetHTMLURL())
@@ -648,7 +647,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
-	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
@@ -656,7 +654,9 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("has_downloads", repo.GetHasDownloads())
 		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
 		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
 		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
