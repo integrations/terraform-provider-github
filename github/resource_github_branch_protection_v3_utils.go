@@ -53,14 +53,16 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		for _, c := range rsc.Contexts {
 			// Parse into contexts
 			contexts = append(contexts, c)
-			checks = append(contexts, c)
 		}
 
 		// Flatten checks
 		for _, chk := range rsc.Checks {
-			// Parse into contexts
-			contexts = append(contexts, chk.Context)
-			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID))
+			// Parse into checks
+			if chk.AppID != nil {
+				checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
+			} else {
+				checks = append(checks, chk.Context)
+			}
 		}
 
 		return d.Set("required_status_checks", []interface{}{
