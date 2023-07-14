@@ -22,6 +22,9 @@ type Config struct {
 	Insecure         bool
 	WriteDelay       time.Duration
 	ReadDelay        time.Duration
+	RetryDelay       time.Duration
+	RetryableErrors  map[int]bool
+	MaxRetries       int
 	ParallelRequests bool
 }
 
@@ -34,7 +37,7 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, parallelRequests bool) *http.Client {
+func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
@@ -43,6 +46,10 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
 	}, client.Transport)
+
+	if maxRetries > 0 {
+		client.Transport = NewRetryTransport(client.Transport, WithRetryDelay(retryDelay), WithRetryableErrors(retryableErrors), WithMaxRetries(maxRetries))
+	}
 
 	return client
 }
@@ -55,7 +62,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) Anonymous() bool {
@@ -64,7 +71,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
