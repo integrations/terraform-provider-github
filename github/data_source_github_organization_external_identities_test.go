@@ -12,14 +12,12 @@ func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
 	}
 
 	t.Run("queries without error", func(t *testing.T) {
-		config := `
-			data "github_organization_external_identities" "test" {}
-		`
+		config := `data "github_organization_external_identities" "test" {}`
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization_external_identities.test", "identities.#"),
 			resource.TestCheckResourceAttrSet("data.github_organization_external_identities.test", "identities.0.login"),
-			resource.TestCheckResourceAttrSet("data.github_organization_external_identities.test", "identities.0.samlIdentityNameId"),
+			resource.TestCheckResourceAttrSet("data.github_organization_external_identities.test", "identities.0.saml_identity.name_id"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

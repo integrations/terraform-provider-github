@@ -13,10 +13,26 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 			"identities": {
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"login": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"saml_identity": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"scim_identity": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
 					},
 				},
 			},
@@ -40,7 +56,15 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 								Login githubv4.String
 							}
 							SamlIdentity struct {
-								NameId githubv4.String
+								NameId     githubv4.String
+								Username   githubv4.String
+								GivenName  githubv4.String
+								FamilyName githubv4.String
+							}
+							ScimIdentity struct {
+								Username   githubv4.String
+								GivenName  githubv4.String
+								FamilyName githubv4.String
 							}
 						}
 					}
@@ -57,7 +81,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 		"after": (*githubv4.String)(nil),
 	}
 
-	var identities []map[string]string
+	var identities []map[string]interface{}
 
 	for {
 		err := client4.Query(ctx, &query, variables)
@@ -65,10 +89,30 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 			return err
 		}
 		for _, edge := range query.Organization.SamlIdentityProvider.ExternalIdentities.Edges {
-			identities = append(identities, map[string]string{
-				"login":              string(edge.Node.User.Login),
-				"samlIdentityNameId": string(edge.Node.SamlIdentity.NameId),
-			})
+			identity := map[string]interface{}{
+				"login":         string(edge.Node.User.Login),
+				"saml_identity": nil,
+				"scim_identity": nil,
+			}
+
+			if edge.Node.SamlIdentity.NameId != "" {
+				identity["saml_identity"] = map[string]string{
+					"name_id":     string(edge.Node.SamlIdentity.NameId),
+					"username":    string(edge.Node.SamlIdentity.Username),
+					"given_name":  string(edge.Node.SamlIdentity.GivenName),
+					"family_name": string(edge.Node.SamlIdentity.FamilyName),
+				}
+			}
+
+			if edge.Node.ScimIdentity.Username != "" {
+				identity["scim_identity"] = map[string]string{
+					"username":    string(edge.Node.ScimIdentity.Username),
+					"given_name":  string(edge.Node.ScimIdentity.GivenName),
+					"family_name": string(edge.Node.ScimIdentity.FamilyName),
+				}
+			}
+
+			identities = append(identities, identity)
 		}
 		if !query.Organization.SamlIdentityProvider.ExternalIdentities.PageInfo.HasNextPage {
 			break
