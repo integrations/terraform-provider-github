@@ -310,66 +310,55 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	 conditions := []interface{}{
+		map[string]interface{}{
+			"include": ruleset.GetConditions().RefName.Include,
+			"exclude": ruleset.GetConditions().RefName.Exclude,
+		},
+	}
+
+	rules_toggleable := map[string]bool{
+			"creation": false,
+			"update": false,
+			"deletion": false,
+			"required_linear_history": false,
+			"required_signatures": false,
+			"non_fast_forward": false,
+	}
+
+	for _, rule := range ruleset.Rules {
+		switch rule_type := rule.Type; rule_type {
+		case "required_deployments":
+
+			rule.GetParameters()
+
+			fmt.Println("TODO: Implement this")
+		case "pull_request":
+			fmt.Println("TODO: Implement this")
+		case "required_status_checks":
+			fmt.Println("TODO: Implement this")
+		
+		default:
+			// TODO: Is there a better way of doing this? 
+			if _, ok := rules_toggleable[rule_type]; !ok {
+				return fmt.Errorf("Unexpected rule %q.", rule_type) 
+			}
+
+			rules_toggleable[rule_type] = true
+		}
+	}
+
+
 	d.Set("id", ruleset.ID)
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
 	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("conditions", ruleset.GetConditions())
-
-
-
-
-
-
-
-
-
-
-
-	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, 10)
-	if err != nil {
-		return err
-	}
-
-	if head := pullRequest.GetHead(); head != nil {
-		d.Set("head_ref", head.GetRef())
-		d.Set("head_sha", head.GetSHA())
-	} else {
-		// Totally unexpected condition. Better do that than segfault, I guess?
-		log.Printf("[INFO] Head branch missing, expected %s", d.Get("head_ref"))
-		d.SetId("")
-		return nil
-	}
-
-	if base := pullRequest.GetBase(); base != nil {
-		d.Set("base_ref", base.GetRef())
-		d.Set("base_sha", base.GetSHA())
-	} else {
-		// Seme logic as with the missing head branch.
-		log.Printf("[INFO] Base branch missing, expected %s", d.Get("base_ref"))
-		d.SetId("")
-		return nil
-	}
-
-	d.Set("body", pullRequest.GetBody())
-	d.Set("title", pullRequest.GetTitle())
-	d.Set("draft", pullRequest.GetDraft())
-	d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify())
-	d.Set("number", pullRequest.GetNumber())
-	d.Set("state", pullRequest.GetState())
-	d.Set("opened_at", pullRequest.GetCreatedAt().Unix())
-	d.Set("updated_at", pullRequest.GetUpdatedAt().Unix())
-
-	if user := pullRequest.GetUser(); user != nil {
-		d.Set("opened_by", user.GetLogin())
-	}
-
-	labels := []string{}
-	for _, label := range pullRequest.Labels {
-		labels = append(labels, label.GetName())
-	}
-	d.Set("labels", labels)
-
+	d.Set("conditions", conditions)
+	// d.Set("rules", rules)
+	// d.Set("bypass_actors", ruleset.BypassActors)
+	d.Set("source_type", ruleset.GetSourceType())
+	d.Set("source", ruleset.Source)
+	
 	return nil
 }
 
