@@ -36,7 +36,6 @@ If a user is managed by SAML, the `saml_identity` object will contain:
 
 - `name_id` - The member's SAML NameID
 - `username` - The member's SAML Username
-- `groups` - The member's SAML Groups
 - `family_name` - The member's SAML Family Name
 - `given_name` - The member's SAML Given Name
 
