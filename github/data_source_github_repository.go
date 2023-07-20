@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -134,6 +134,10 @@ func dataSourceGithubRepository() *schema.Resource {
 									},
 								},
 							},
+						},
+						"build_type": {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 						"cname": {
 							Type:     schema.TypeString,
