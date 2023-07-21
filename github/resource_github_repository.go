@@ -34,7 +34,7 @@ func resourceGithubRepository() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-zA-Z0-9_.]{1,100}$`), "must be a valid repository name of max 100 characters"),
 				Description:  "The name of the repository.",
 			},
 			"description": {
