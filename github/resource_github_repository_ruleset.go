@@ -112,7 +112,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description: "Prevent users with push access from force pushing to branches.",
 			},
 			"rule_required_deployments": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
@@ -252,11 +252,10 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interfac
 
 	d.SetId(buildThreePartID(orgName, repoName, strconv.FormatInt(ruleset.ID, 10)))
 
-	return resourceGithubRepositoryPullRequestRead(d, meta)
+	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
 func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{}) error {
-	// TODO: Implement
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
@@ -270,11 +269,9 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	conditions := []interface{}{
-		map[string]interface{}{
-			"include": ruleset.GetConditions().RefName.Include,
-			"exclude": ruleset.GetConditions().RefName.Exclude,
-		},
+
+	if err := flattenAndSetRulesetConditions(d, ruleset); err != nil {
+		return fmt.Errorf("error setting conditions: %v", err)
 	}
 
 	rules_toggleable := map[string]bool{
@@ -312,7 +309,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
 	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("conditions", conditions)
+	// d.Set("conditions", conditions)
 	// d.Set("rules", rules)
 	// d.Set("bypass_actors", ruleset.BypassActors)
 	d.Set("source_type", ruleset.GetSourceType())

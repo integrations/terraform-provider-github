@@ -116,25 +116,22 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 		}
 	}
 
-	if v, ok := d.GetOk("rule_required_deployments"); ok {
-		vL := v.([]interface{})
-		if len(vL) > 0 {
-			requiredDeploymentEnvs := make([]string, len(vL))
-			for i, env := range vL {
-				requiredDeploymentEnvs[i] = env.(string)
-			}
-
-			mRequiredDeploymentParams := github.RequiredDeploymentEnvironmentsRuleParameters{
-				RequiredDeploymentEnvironments: requiredDeploymentEnvs,
-			}
-			bytes, _ := json.Marshal(mRequiredDeploymentParams)
-			rawParams := json.RawMessage(bytes)
-			requiredDeploymentRule := &github.RepositoryRule{
-				Type:       "required_deployments", // Drop the "rule_", that is only to make the provider implementation easier
-				Parameters: &rawParams,
-			}
-			rulesetRules = append(rulesetRules, requiredDeploymentRule)		
+	if deploymentEnvs, ok := d.GetOk("rule_required_deployments"); ok {
+		requiredDeploymentEnvs := []string{}
+		for _, env := range deploymentEnvs.(*schema.Set).List() {
+			requiredDeploymentEnvs = append(requiredDeploymentEnvs, env.(string))
 		}
+
+		mRequiredDeploymentParams := github.RequiredDeploymentEnvironmentsRuleParameters{
+			RequiredDeploymentEnvironments: requiredDeploymentEnvs,
+		}
+		bytes, _ := json.Marshal(mRequiredDeploymentParams)
+		rawParams := json.RawMessage(bytes)
+		requiredDeploymentRule := &github.RepositoryRule{
+			Type:       "required_deployments", // Drop the "rule_", that is only to make the provider implementation easier
+			Parameters: &rawParams,
+		}
+		rulesetRules = append(rulesetRules, requiredDeploymentRule)		
 	}
 
 	if v, ok := d.GetOk("rule_pull_request"); ok {
@@ -233,4 +230,17 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 
 
 	return nil, nil
+}
+
+func flattenAndSetRulesetConditions(d *schema.ResourceData, ruleset *github.Ruleset) error {
+	rc := ruleset.GetConditions()
+	if rc != nil && rc.GetRefName() != nil {
+		return d.Set("conditions", []interface{}{
+			map[string]interface{}{
+				"include": rc.GetRefName().Include,
+				"exclude": rc.GetRefName().Exclude,
+			},
+		})
+	}
+	return d.Set("conditions", []interface{}{})
 }
