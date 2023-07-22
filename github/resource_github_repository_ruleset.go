@@ -17,19 +17,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 		Read:   resourceGithubRepositoryRulesetRead,
 		Update: resourceGithubRepositoryRulesetUpdate,
 		Delete: resourceGithubRepositoryRulesetDelete,
-
-		// TODO: Implement this
-		// Importer: &schema.ResourceImporter{
-		// 	State: func(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
-		// 		_, baseRepository, _, err := parsePullRequestID(d)
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		d.Set("base_repository", baseRepository)
-
-		// 		return []*schema.ResourceData{d}, nil
-		// 	},
-		// },
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -91,113 +81,100 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 					},
 				},
 			},
-			"rules": {
+			"rule_creation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Only allow users with bypass permission to create matching refs.",
+			},
+			"rule_update": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Only allow users with bypass permission to update matching refs.",
+			},
+			"rule_deletion": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Only allow users with bypass permissions to delete matching refs.",
+			},
+			"rule_required_linear_history": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Prevent merge commits from being pushed to matching branches.",
+			},
+			"rule_required_signatures": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Commits pushed to matching branches must have verified signatures.",
+			},
+			"rule_non_fast_forward": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Prevent users with push access from force pushing to branches.",
+			},
+			"rule_required_deployments": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"rule_pull_request": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "The rules that the ruleset will enforce",
+				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"creation": {
+						"dismiss_stale_reviews_on_push": {
 							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Only allow users with bypass permission to create matching refs.",
+							Required:    true,
+							Description: "New, reviewable commits pushed will dismiss previous pull request review approvals.",
 						},
-						"update": {
+						"require_code_owner_review": {
 							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Only allow users with bypass permission to update matching refs.",
+							Required:    true,
+							Description: "Require an approving review in pull requests that modify files that have a designated code owner.",
 						},
-						"deletion": {
+						"require_last_push_approval": {
 							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Only allow users with bypass permissions to delete matching refs.",
+							Required:    true,
+							Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it.",
 						},
-						"required_linear_history": {
+						"required_approving_review_count": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							Description:  "The number of approving reviews that are required before a pull request can be merged.",
+							ValidateFunc: validation.IntBetween(0, 10),
+						},
+						"required_review_thread_resolution": {
 							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Prevent merge commits from being pushed to matching branches.",
+							Required:    true,
+							Description: "All conversations on code must be resolved before a pull request can be merged.",
 						},
-						"required_signatures": {
+					},
+				},
+			},
+			"rule_required_status_checks": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"strict_required_status_checks_policy": {
 							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Commits pushed to matching branches must have verified signatures.",
-						},
-						"non_fast_forward": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Prevent users with push access from force pushing to branches.",
-						},
-						"required_deployments": {
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
-							Elem:        &schema.Schema{Type: schema.TypeString},
-						},
-						"pull_request": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"dismiss_stale_reviews_on_push": {
-										Type:        schema.TypeBool,
-										Required:    true,
-										Description: "New, reviewable commits pushed will dismiss previous pull request review approvals.",
-									},
-									"require_code_owner_review": {
-										Type:        schema.TypeBool,
-										Required:    true,
-										Description: "Require an approving review in pull requests that modify files that have a designated code owner.",
-									},
-									"require_last_push_approval": {
-										Type:        schema.TypeBool,
-										Required:    true,
-										Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it.",
-									},
-									"required_approving_review_count": {
-										Type:         schema.TypeInt,
-										Required:     true,
-										Description:  "The number of approving reviews that are required before a pull request can be merged.",
-										ValidateFunc: validation.IntBetween(0, 10),
-									},
-									"required_review_thread_resolution": {
-										Type:        schema.TypeBool,
-										Required:    true,
-										Description: "All conversations on code must be resolved before a pull request can be merged.",
-									},
-								},
-							},
+							Required:    true,
+							Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled.",
 						},
 						"required_status_checks": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"strict_required_status_checks_policy": {
-										Type:        schema.TypeBool,
-										Required:    true,
-										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled.",
-									},
-									"required_status_checks": {
-										// This field is based on "checks" in github_branch_protection_v3, which combines the context and integration_id (or app_id which it's called in branch_protection rules) into one string
-										// TODO: The API spec says that the context is the only required field. Maybe change this implementation to only use the context and ignore the integration_id?
-										Type:        schema.TypeSet,
-										Required:    true,
-										Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'integration_id' like so 'context:integration_id'",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
-										},
-									},
-								},
+							// This field is based on "checks" in github_branch_protection_v3, which combines the context and integration_id (or app_id which it's called in branch_protection rules) into one string
+							// TODO: The API spec says that the context is the only required field. Maybe change this implementation to only use the context and ignore the integration_id?
+							Type:        schema.TypeSet,
+							Required:    true,
+							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'integration_id' like so 'context:integration_id'. Also supports only the 'context'",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
 							},
 						},
-
-						// TODO: There seems to be some rules available in https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.2022-11-28.json which are not available through the UI. I'll skip these for now
-
 					},
 				},
 			},
@@ -251,54 +228,29 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Computed:    true,
 				Description: "Source of the ruleset (OWNER/REPO).",
 			},
-			// TODO: Look into BypassMode
 		},
 	}
 }
 
 func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
-	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	var ruleset *github.Ruleset
-
-	client.Repositories.CreateRuleset(ctx, orgName, repoName, ruleset)
-
-	// For convenience, by default we expect that the base repository and head
-	// repository owners are the same, and both belong to the caller, indicating
-	// a "PR within the same repo" scenario. The head will *always* belong to
-	// the current caller, the base - not necessarily. The base will belong to
-	// another namespace in case of forks, and this resource supports them.
-	headOwner := meta.(*Owner).name
-
-	baseOwner := headOwner
-	if explicitBaseOwner, ok := d.GetOk("owner"); ok {
-		baseOwner = explicitBaseOwner.(string)
+	sourceType := "Repository"
+	rulesetRequest, err := buildRulesetRequest(d, &sourceType)
+	if err != nil {
+		return err
 	}
+	ctx := context.Background()
 
-	baseRepository := d.Get("base_repository").(string)
-
-	head := d.Get("head_ref").(string)
-	if headOwner != baseOwner {
-		head = strings.Join([]string{headOwner, head}, ":")
-	}
-
-	pullRequest, _, err := client.PullRequests.Create(ctx, baseOwner, baseRepository, &github.NewPullRequest{
-		Title:               github.String(d.Get("title").(string)),
-		Head:                github.String(head),
-		Base:                github.String(d.Get("base_ref").(string)),
-		Body:                github.String(d.Get("body").(string)),
-		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
-	})
-
+	ruleset, _, err := client.Repositories.CreateRuleset(ctx, orgName, repoName, rulesetRequest)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildThreePartID(baseOwner, baseRepository, strconv.Itoa(pullRequest.GetNumber())))
+	d.SetId(buildThreePartID(orgName, repoName, strconv.FormatInt(ruleset.ID, 10)))
 
 	return resourceGithubRepositoryPullRequestRead(d, meta)
 }
@@ -326,12 +278,12 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	}
 
 	rules_toggleable := map[string]bool{
-		"creation":                false,
-		"update":                  false,
-		"deletion":                false,
-		"required_linear_history": false,
-		"required_signatures":     false,
-		"non_fast_forward":        false,
+		"rule_creation":                false,
+		"rule_update":                  false,
+		"rule_deletion":                false,
+		"rule_required_linear_history": false,
+		"rule_required_signatures":     false,
+		"rule_non_fast_forward":        false,
 	}
 
 	for _, rule := range ruleset.Rules {
@@ -442,7 +394,7 @@ func parseRulesetID(d *schema.ResourceData) (owner, repository string, id int64,
 	}
 
 	if id, err = strconv.ParseInt(strNumber, 10, 64); err != nil {
-		err = fmt.Errorf("invalid PR number %s: %w", strNumber, err)
+		err = fmt.Errorf("invalid Ruleset number %s: %w", strNumber, err)
 	}
 
 	return
