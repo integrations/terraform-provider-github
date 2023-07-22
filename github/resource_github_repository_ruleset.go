@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -76,7 +75,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description: "Target branches/tags. Both an inclusion and exclusion list, supporting regexes as well as ALL branches/tags and the default branch",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						// TODO: Should the default branch + ALL branches/tags have it's own field? 
+						// TODO: Should the default branch + ALL branches/tags have it's own field?
 						"include": {
 							Type:        schema.TypeSet,
 							Optional:    true,
@@ -158,9 +157,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it.",
 									},
 									"required_approving_review_count": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The number of approving reviews that are required before a pull request can be merged.",
+										Type:         schema.TypeInt,
+										Required:     true,
+										Description:  "The number of approving reviews that are required before a pull request can be merged.",
 										ValidateFunc: validation.IntBetween(0, 10),
 									},
 									"required_review_thread_resolution": {
@@ -168,7 +167,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Required:    true,
 										Description: "All conversations on code must be resolved before a pull request can be merged.",
 									},
-			
 								},
 							},
 						},
@@ -194,25 +192,24 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 											Type: schema.TypeString,
 										},
 									},
-								},	
+								},
 							},
 						},
 
-
-						
-						// TODO: There seems to be some rules available in https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.2022-11-28.json which are not available through the UI. I'll skip these for now 
+						// TODO: There seems to be some rules available in https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.2022-11-28.json which are not available through the UI. I'll skip these for now
 
 					},
 				},
 			},
 			"bypass_actors": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "An actor that can bypass rules in a ruleset.",
+				Description: "A list of actors that can bypass rules in a ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						// TODO: Is there a better API for this upcoming? Currently you have to set the bypass list by ID, which is not really user friendly
 						"actor_id": {
-							Type:        schema.TypeString,
+							Type:        schema.TypeInt,
 							Description: "The ID of the actor that can bypass a ruleset",
 							Required:    true,
 						},
@@ -230,11 +227,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"bypass_mode": {
 							Type:     schema.TypeString,
 							Required: true,
+							Description: "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests.",
+							ValidateFunc: validation.StringInSlice([]string{
+								"always",
+								"pull_request",	  
+							}, false),
 						},
 					},
 				},
 			},
-			"id": {
+			"ruleset_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The id of the Ruleset within the repository.",
@@ -255,9 +257,15 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 }
 
 func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
-	// TODO: Implement
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
+
+	orgName := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+
+	var ruleset *github.Ruleset
+
+	client.Repositories.CreateRuleset(ctx, orgName, repoName, ruleset)
 
 	// For convenience, by default we expect that the base repository and head
 	// repository owners are the same, and both belong to the caller, indicating
@@ -310,7 +318,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	 conditions := []interface{}{
+	conditions := []interface{}{
 		map[string]interface{}{
 			"include": ruleset.GetConditions().RefName.Include,
 			"exclude": ruleset.GetConditions().RefName.Exclude,
@@ -318,12 +326,12 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	}
 
 	rules_toggleable := map[string]bool{
-			"creation": false,
-			"update": false,
-			"deletion": false,
-			"required_linear_history": false,
-			"required_signatures": false,
-			"non_fast_forward": false,
+		"creation":                false,
+		"update":                  false,
+		"deletion":                false,
+		"required_linear_history": false,
+		"required_signatures":     false,
+		"non_fast_forward":        false,
 	}
 
 	for _, rule := range ruleset.Rules {
@@ -337,19 +345,18 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 			fmt.Println("TODO: Implement this")
 		case "required_status_checks":
 			fmt.Println("TODO: Implement this")
-		
+
 		default:
-			// TODO: Is there a better way of doing this? 
+			// TODO: Is there a better way of doing this?
 			if _, ok := rules_toggleable[rule_type]; !ok {
-				return fmt.Errorf("Unexpected rule %q.", rule_type) 
+				return fmt.Errorf("Unexpected rule %q.", rule_type)
 			}
 
 			rules_toggleable[rule_type] = true
 		}
 	}
 
-
-	d.Set("id", ruleset.ID)
+	d.Set("ruleset_id", ruleset.ID)
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
 	d.Set("enforcement", ruleset.Enforcement)
@@ -358,7 +365,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	// d.Set("bypass_actors", ruleset.BypassActors)
 	d.Set("source_type", ruleset.GetSourceType())
 	d.Set("source", ruleset.Source)
-	
+
 	return nil
 }
 
@@ -430,7 +437,7 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interfac
 func parseRulesetID(d *schema.ResourceData) (owner, repository string, id int64, err error) {
 	var strNumber string
 
-	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "repository", "id"); err != nil {
+	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "repository", "ruleset_id"); err != nil {
 		return
 	}
 
