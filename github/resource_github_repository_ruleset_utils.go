@@ -14,13 +14,10 @@ import (
 func buildRulesetRequest(d *schema.ResourceData, sourceType *string) (*github.Ruleset, error) {
 	target := d.Get("target").(string)
 	req := &github.Ruleset{
-		// ID:           0,
 		Name:        d.Get("name").(string),
 		Target:      &target,
 		SourceType:  sourceType,
 		Enforcement: d.Get("enforcement").(string),
-		// BypassMode:   new(string), TODO: what is this?
-		// Links:        &github.RulesetLinks{}, TODO: Ignore this?
 	}
 
 	bypassActors, err := expandBypassActors(d)
