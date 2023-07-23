@@ -13,9 +13,9 @@ import (
 
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryRulesetCreateOrUpdate,
+		Create: resourceGithubRepositoryRulesetCreate,
 		Read:   resourceGithubRepositoryRulesetRead,
-		// Update: resourceGithubRepositoryRulesetUpdate, // TODO: Implement update, replacement fine for now
+		Update: resourceGithubRepositoryRulesetUpdate, 
 		Delete: resourceGithubRepositoryRulesetDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -37,13 +37,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The name of the Ruleset within the repository.",
 			},
 			"target": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The target of the ruleset. Either branch or tag.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"branch",
@@ -53,7 +51,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"enforcement": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The enforcement level of the ruleset. One of active, disabled or evaluate. `evaluate` allows admins to test rules before enforcing them. Admins can view insights on the Rule Insights page (`evaluate` is only available with GitHub Enterprise).",
 				ValidateFunc: validation.StringInSlice([]string{
 					"active",
@@ -64,7 +61,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"conditions": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Target branches/tags. Both an inclusion and exclusion list, supporting regexes as well as ALL branches/tags and the default branch",
 				Elem: &schema.Resource{
@@ -73,14 +69,12 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"include": {
 							Type:        schema.TypeSet,
 							Optional:    true,
-							ForceNew:    true, // TODO: Remove this when updating is implemented
 							Description: "Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"exclude": {
 							Type:        schema.TypeSet,
 							Optional:    true,
-							ForceNew:    true, // TODO: Remove this when updating is implemented
 							Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
@@ -90,7 +84,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"rule_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Only allow users with bypass permission to create matching refs.",
 			},
 			// TODO: Borken currently. When underlying sdk gets a version bump, its fixed
@@ -103,38 +96,32 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"rule_deletion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Only allow users with bypass permissions to delete matching refs.",
 			},
 			"rule_required_linear_history": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Prevent merge commits from being pushed to matching branches.",
 			},
 			"rule_required_signatures": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Commits pushed to matching branches must have verified signatures.",
 			},
 			"rule_non_fast_forward": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Prevent users with push access from force pushing to branches.",
 			},
 			"rule_required_deployments": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"rule_pull_request": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem: &schema.Resource{
@@ -171,7 +158,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"rule_required_status_checks": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
 				Elem: &schema.Resource{
@@ -250,11 +236,15 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryRulesetCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
+	repository := d.Get("repository").(string)
 
 	sourceType := "Repository"
 	rulesetRequest, err := buildRulesetRequest(d, &sourceType)
@@ -263,12 +253,12 @@ func resourceGithubRepositoryRulesetCreateOrUpdate(d *schema.ResourceData, meta 
 	}
 	ctx := context.Background()
 
-	ruleset, _, err := client.Repositories.CreateRuleset(ctx, orgName, repoName, rulesetRequest)
+	ruleset, _, err := client.Repositories.CreateRuleset(ctx, owner, repository, rulesetRequest)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildThreePartID(orgName, repoName, strconv.FormatInt(ruleset.ID, 10)))
+	d.SetId(buildThreePartID(owner, repository, strconv.FormatInt(ruleset.ID, 10)))
 
 	return resourceGithubRepositoryRulesetRead(d, meta)
 }
@@ -373,6 +363,33 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	d.Set("source", ruleset.Source)
 
 	return nil
+}
+
+func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*Owner).v3client
+
+	owner, repository, id, err := parseRulesetID(d)
+	if err != nil {
+		return err
+	}
+
+	sourceType := "Repository"
+	rulesetRequest, err := buildRulesetRequest(d, &sourceType)
+	if err != nil {
+		return err
+	}
+
+	// TODO: wtf even is this? I have no idea what golang contexts are
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repository, id, rulesetRequest)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(buildThreePartID(owner, repository, strconv.FormatInt(ruleset.ID, 10)))
+
+	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
 func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
