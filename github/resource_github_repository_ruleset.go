@@ -194,7 +194,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			// TODO: Broken until a bump in the underlying sdk
-			// "bypass_actors": {
+			// "": {
 			// 	Type:        schema.TypeSet,
 			// 	Optional:    true,
 			// 	ForceNew:    true, // TODO: Remove this when updating is implemented
@@ -359,6 +359,9 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 			d.Set(fmt.Sprintf("rule_%s", rule_type), true)
 		}
 	}
+
+	// TODO: Waiting until go-github has been bumped 
+	// d.Set("", ruleset.BypassActors)
 
 	d.Set("ruleset_id", ruleset.ID)
 	d.Set("repository", repository)
