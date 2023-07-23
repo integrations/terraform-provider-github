@@ -183,7 +183,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						},
 						"required_status_checks": {
 							// This field is based on "checks" in github_branch_protection_v3, which combines the context and integration_id (or app_id which it's called in branch_protection rules) into one string
-							// TODO: The API spec says that the context is the only required field. Maybe change this implementation to only use the context and ignore the integration_id?
 							Type:        schema.TypeSet,
 							Required:    true,
 							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'integration_id' like so 'context:integration_id'. Also supports only the 'context'",
