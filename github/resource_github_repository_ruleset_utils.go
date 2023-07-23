@@ -208,7 +208,7 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 
 				var rrscCheck *github.RuleRequiredStatusChecks
 				if cIntegrationId != "" {
-					// If we have a valid app_id, include it in the RSC
+					// If we have a valid integration_id, include it in the RRSC
 					rrscIntegrationId, err := strconv.Atoi(cIntegrationId)
 					if err != nil {
 						return nil, fmt.Errorf("could not parse %v as valid integration_id", cIntegrationId)
