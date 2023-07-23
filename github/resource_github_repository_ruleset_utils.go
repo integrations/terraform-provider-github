@@ -54,13 +54,14 @@ func expandBypassActors(d *schema.ResourceData) ([]*github.BypassActor, error) {
 	if v, ok := d.GetOk("bypass_actors"); ok {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
+
 			m := v.(map[string]interface{})
-			actorID := m["actor_id"].(*int64)
-			actorType := m["actor_type"].(*string)
+			actorID := int64(m["actor_id"].(int))
+			actorType := m["actor_type"].(string)
 			// actorBypasMode := m["bypass_mode"].(string) // Pending a bump of the underlying sdk (needs https://github.com/google/go-github/blob/c030d43bc8e3003715a3de91972b1a594039d262/github/repos_rules.go#L15-L21)
 			bypassActor := &github.BypassActor{
-				ActorID:   actorID,
-				ActorType: actorType,
+				ActorID:   &actorID,
+				ActorType: &actorType,
 				// BypassMode: actorBypasMode,
 			}
 			bypassActors = append(bypassActors, bypassActor)
@@ -99,22 +100,39 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 	rulesetRules := make([]*github.RepositoryRule, 0)
 
 	rules_toggleable := []string{
-		"rule_creation",               
-		"rule_update",                 
-		"rule_deletion",               
-		"rule_required_linear_history",
-		"rule_required_signatures",    
-		"rule_non_fast_forward",       
+		"creation",               
+		"deletion",               
+		"required_linear_history",
+		"required_signatures",    
+		"non_fast_forward",
 	}
 	for _, ruleName := range rules_toggleable {
-		rulesOn := d.Get(ruleName).(bool)
-		if rulesOn {
+		ruleTurnedOn := d.Get(fmt.Sprintf("rule_%s", ruleName)).(bool)
+		if ruleTurnedOn {
 			toggleableRule := &github.RepositoryRule{
 				Type:       ruleName,
 			}
 			rulesetRules = append(rulesetRules, toggleableRule)
 		}
 	}
+
+	// TODO: Update seems to be broken with the underlying sdk, maybe needs a bump? I don't think so though, I just think the sdk expects an extra bool where it should not be. idk, look more later
+	// if updateRule, ok := d.GetOk("rule_update"); ok {
+	// 	ruleTurnedOn := updateRule.(bool)
+	// 	if ruleTurnedOn {
+	// 		// TODO: I can't find this option in the UI. Does it do anything?
+	// 		mUpdateRuleParams := github.UpdateAllowsFetchAndMergeRuleParameters{
+	// 			UpdateAllowsFetchAndMerge: true,
+	// 		}
+	// 		bytes, _ := json.Marshal(mUpdateRuleParams)
+	// 		rawParams := json.RawMessage(bytes)
+	// 		toggleableRule := &github.RepositoryRule{
+	// 			Type:       "update",
+	// 			Parameters: &rawParams,
+	// 		}
+	// 		rulesetRules = append(rulesetRules, toggleableRule)
+	// 	}
+	// }
 
 	if deploymentEnvs, ok := d.GetOk("rule_required_deployments"); ok {
 		requiredDeploymentEnvs := []string{}
@@ -125,13 +143,14 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 		mRequiredDeploymentParams := github.RequiredDeploymentEnvironmentsRuleParameters{
 			RequiredDeploymentEnvironments: requiredDeploymentEnvs,
 		}
+
 		bytes, _ := json.Marshal(mRequiredDeploymentParams)
 		rawParams := json.RawMessage(bytes)
 		requiredDeploymentRule := &github.RepositoryRule{
 			Type:       "required_deployments", // Drop the "rule_", that is only to make the provider implementation easier
 			Parameters: &rawParams,
 		}
-		rulesetRules = append(rulesetRules, requiredDeploymentRule)		
+		rulesetRules = append(rulesetRules, requiredDeploymentRule)
 	}
 
 	if v, ok := d.GetOk("rule_pull_request"); ok {
@@ -140,9 +159,8 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 			return nil, errors.New("cannot specify rule_pull_request more than one time")
 		}
 		for _, v := range vL {
-			// List can only have one item, safe to early return here
 			if v == nil {
-				return nil, nil
+				break
 			}
 			m := v.(map[string]interface{})
 			
@@ -161,8 +179,6 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 			}
 			rulesetRules = append(rulesetRules, requiredDeploymentRule)
 		}
-
-		return rulesetRules, nil
 	}
 
 	if v, ok := d.GetOk("rule_required_status_checks"); ok {
@@ -171,18 +187,17 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 			return nil, errors.New("cannot specify rule_required_status_checks more than one time")
 		}
 		for _, v := range vL {
-			// List can only have one item, safe to early return here
 			if v == nil {
-				return nil, nil
+				break
 			}
 			m := v.(map[string]interface{})
 
-			requiredStatusChecks := m["strict_required_status_checks_policy"].([]string)
+			requiredStatusChecks := m["required_status_checks"].(*schema.Set).List()
 			requiredStatusChecksList := make([]github.RuleRequiredStatusChecks, 0)
 			for _, statusCheck := range requiredStatusChecks {
 
 				// Expect a string of "context:integration_id", allowing for the absence of "integration_id"
-				parts := strings.SplitN(statusCheck, ":", 2)
+				parts := strings.SplitN(statusCheck.(string), ":", 2)
 				var cContext, cIntegrationId string
 				switch len(parts) {
 					case 1:
@@ -191,7 +206,7 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 						cContext, cIntegrationId = parts[0], parts[1]
 					default:
 						// TODO: What is the prefered way of throwing errors? fmt.Errorf() or errors.New()?
-						return nil, fmt.Errorf("Could not parse check '%s'. Expected `context:integration_id` or `context`", statusCheck)
+						return nil, fmt.Errorf("could not parse check '%s'. Expected `context:integration_id` or `context`", statusCheck)
 				}
 
 				var rrscCheck *github.RuleRequiredStatusChecks
@@ -199,7 +214,7 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 					// If we have a valid app_id, include it in the RSC
 					rrscIntegrationId, err := strconv.Atoi(cIntegrationId)
 					if err != nil {
-						return nil, fmt.Errorf("Could not parse %v as valid integration_id", cIntegrationId)
+						return nil, fmt.Errorf("could not parse %v as valid integration_id", cIntegrationId)
 					}
 					rrscIntegrationId64 := int64(rrscIntegrationId)
 					rrscCheck = &github.RuleRequiredStatusChecks{Context: cContext, IntegrationID: &rrscIntegrationId64}
@@ -225,11 +240,9 @@ func expandRules(d *schema.ResourceData) ([]*github.RepositoryRule, error) {
 			rulesetRules = append(rulesetRules, requiredDeploymentRule)
 		}
 
-		return rulesetRules, nil
 	}
 
-
-	return nil, nil
+	return rulesetRules, nil
 }
 
 func flattenAndSetRulesetConditions(d *schema.ResourceData, ruleset *github.Ruleset) error {

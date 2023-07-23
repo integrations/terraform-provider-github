@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -13,9 +13,9 @@ import (
 
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryRulesetCreate,
+		Create: resourceGithubRepositoryRulesetCreateOrUpdate,
 		Read:   resourceGithubRepositoryRulesetRead,
-		Update: resourceGithubRepositoryRulesetUpdate,
+		// Update: resourceGithubRepositoryRulesetUpdate, // TODO: Implement update, replacement fine for now
 		Delete: resourceGithubRepositoryRulesetDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -37,11 +37,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The name of the Ruleset within the repository.",
 			},
 			"target": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The target of the ruleset. Either branch or tag.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"branch",
@@ -51,6 +53,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"enforcement": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "The enforcement level of the ruleset. One of active, disabled or evaluate. `evaluate` allows admins to test rules before enforcing them. Admins can view insights on the Rule Insights page (`evaluate` is only available with GitHub Enterprise).",
 				ValidateFunc: validation.StringInSlice([]string{
 					"active",
@@ -61,6 +64,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"conditions": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Target branches/tags. Both an inclusion and exclusion list, supporting regexes as well as ALL branches/tags and the default branch",
 				Elem: &schema.Resource{
@@ -69,12 +73,14 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"include": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							ForceNew:    true, // TODO: Remove this when updating is implemented
 							Description: "Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"exclude": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							ForceNew:    true, // TODO: Remove this when updating is implemented
 							Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
@@ -84,42 +90,51 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"rule_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Only allow users with bypass permission to create matching refs.",
 			},
-			"rule_update": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Only allow users with bypass permission to update matching refs.",
-			},
+			// TODO: Borken currently. When underlying sdk gets a version bump, its fixed
+			// "rule_update": {
+			// 	Type:        schema.TypeBool,
+			// 	Optional:    true,
+			// 	ForceNew:    true, // TODO: Remove this when updating is implemented
+			// 	Description: "Only allow users with bypass permission to update matching refs.",
+			// },
 			"rule_deletion": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Only allow users with bypass permissions to delete matching refs.",
 			},
 			"rule_required_linear_history": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Prevent merge commits from being pushed to matching branches.",
 			},
 			"rule_required_signatures": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Commits pushed to matching branches must have verified signatures.",
 			},
 			"rule_non_fast_forward": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Prevent users with push access from force pushing to branches.",
 			},
 			"rule_required_deployments": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"rule_pull_request": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 				Elem: &schema.Resource{
@@ -156,6 +171,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"rule_required_status_checks": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				ForceNew:    true, // TODO: Remove this when updating is implemented
 				MaxItems:    1,
 				Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
 				Elem: &schema.Resource{
@@ -178,41 +194,44 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 					},
 				},
 			},
-			"bypass_actors": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "A list of actors that can bypass rules in a ruleset.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						// TODO: Is there a better API for this upcoming? Currently you have to set the bypass list by ID, which is not really user friendly
-						"actor_id": {
-							Type:        schema.TypeInt,
-							Description: "The ID of the actor that can bypass a ruleset",
-							Required:    true,
-						},
-						"actor_type": {
-							Type:        schema.TypeString,
-							Description: "The type of actor that can bypass a ruleset. One of RepositoryRole, Team, Integration or OrganizationAdmin",
-							Required:    true,
-							ValidateFunc: validation.StringInSlice([]string{
-								"RepositoryRole",
-								"Team",
-								"Integration",
-								"OrganizationAdmin",
-							}, false),
-						},
-						"bypass_mode": {
-							Type:     schema.TypeString,
-							Required: true,
-							Description: "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests.",
-							ValidateFunc: validation.StringInSlice([]string{
-								"always",
-								"pull_request",	  
-							}, false),
-						},
-					},
-				},
-			},
+			// TODO: Broken until a bump in the underlying sdk
+			// "bypass_actors": {
+			// 	Type:        schema.TypeSet,
+			// 	Optional:    true,
+			// 	ForceNew:    true, // TODO: Remove this when updating is implemented
+			// 	Description: "A list of actors that can bypass rules in a ruleset.",
+			// 	Elem: &schema.Resource{
+			// 		Schema: map[string]*schema.Schema{
+			// 			// TODO: Is there a better API for this upcoming? Currently you have to set the bypass list by ID, which is not really user friendly
+			// 			"actor_id": {
+			// 				Type:        schema.TypeInt,
+			// 				Description: "The ID of the actor that can bypass a ruleset",
+			// 				Required:    true,
+			// 			},
+			// 			"actor_type": {
+			// 				Type:        schema.TypeString,
+			// 				Description: "The type of actor that can bypass a ruleset. One of RepositoryRole, Team, Integration or OrganizationAdmin",
+			// 				Required:    true,
+			// 				ValidateFunc: validation.StringInSlice([]string{
+			// 					"RepositoryRole",
+			// 					"Team",
+			// 					"Integration",
+			// 					"OrganizationAdmin",
+			// 				}, false),
+			// 			},
+			// 			// TODO: Needs a bump in the underlying sdk
+			// 			// "bypass_mode": {
+			// 			// 	Type:     schema.TypeString,
+			// 			// 	Required: true,
+			// 			// 	Description: "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests.",
+			// 			// 	ValidateFunc: validation.StringInSlice([]string{
+			// 			// 		"always",
+			// 			// 		"pull_request",	  
+			// 			// 	}, false),
+			// 			// },
+			// 		},
+			// 	},
+			// },
 			"ruleset_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -232,7 +251,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
@@ -269,113 +288,101 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-
 	if err := flattenAndSetRulesetConditions(d, ruleset); err != nil {
 		return fmt.Errorf("error setting conditions: %v", err)
 	}
 
 	rules_toggleable := map[string]bool{
-		"rule_creation":                false,
-		"rule_update":                  false,
-		"rule_deletion":                false,
-		"rule_required_linear_history": false,
-		"rule_required_signatures":     false,
-		"rule_non_fast_forward":        false,
+		"creation":                false,
+		// "update":                  false, // TODO: Currently broken
+		"deletion":                false,
+		"required_linear_history": false,
+		"required_signatures":     false,
+		"non_fast_forward":        false,
 	}
 
 	for _, rule := range ruleset.Rules {
 		switch rule_type := rule.Type; rule_type {
 		case "required_deployments":
+			var rderParams *github.RequiredDeploymentEnvironmentsRuleParameters
+			err := json.Unmarshal(rule.GetParameters(), &rderParams)
+			if err != nil {
+				return err
+			}
+			d.Set("rule_required_deployments", rderParams.RequiredDeploymentEnvironments)
 
-			rule.GetParameters()
-
-			fmt.Println("TODO: Implement this")
 		case "pull_request":
-			fmt.Println("TODO: Implement this")
+			var prrParams *github.PullRequestRuleParameters
+			err := json.Unmarshal(rule.GetParameters(), &prrParams)
+			if err != nil {
+				return err
+			}
+
+			d.Set("rule_pull_request", []interface{}{
+				map[string]interface{}{
+					"dismiss_stale_reviews_on_push": prrParams.DismissStaleReviewsOnPush,
+					"require_code_owner_review": prrParams.RequireCodeOwnerReview,
+					"require_last_push_approval": prrParams.RequireLastPushApproval,
+					"required_approving_review_count": prrParams.RequiredApprovingReviewCount,
+					"required_review_thread_resolution": prrParams.RequiredReviewThreadResolution,
+				},
+			})
+
 		case "required_status_checks":
-			fmt.Println("TODO: Implement this")
+			var rscrParams *github.RequiredStatusChecksRuleParameters
+			err := json.Unmarshal(rule.GetParameters(), &rscrParams)
+			if err != nil {
+				return err
+			}
+
+			var checks []interface{}
+			for _, chk := range rscrParams.RequiredStatusChecks {
+				if chk.GetIntegrationID() != 0 {
+					checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, chk.GetIntegrationID()))
+				} else {
+					checks = append(checks, chk.Context)
+				}
+			}
+
+			d.Set("rule_required_status_checks", []interface{}{
+				map[string]interface{}{
+					"strict_required_status_checks_policy": rscrParams.StrictRequiredStatusChecksPolicy,
+					"required_status_checks": schema.NewSet(schema.HashString, checks),
+				},
+			})
 
 		default:
 			// TODO: Is there a better way of doing this?
 			if _, ok := rules_toggleable[rule_type]; !ok {
-				return fmt.Errorf("Unexpected rule %q.", rule_type)
+				return fmt.Errorf("unexpected rule %q", rule_type)
 			}
 
-			rules_toggleable[rule_type] = true
+			d.Set(fmt.Sprintf("rule_%s", rule_type), true)
 		}
 	}
 
 	d.Set("ruleset_id", ruleset.ID)
+	d.Set("repository", repository)
+	d.Set("owner", owner)
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
 	d.Set("enforcement", ruleset.Enforcement)
-	// d.Set("conditions", conditions)
-	// d.Set("rules", rules)
-	// d.Set("bypass_actors", ruleset.BypassActors)
 	d.Set("source_type", ruleset.GetSourceType())
 	d.Set("source", ruleset.Source)
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
-	// TODO: Implement
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
-
-	owner, repository, number, err := parsePullRequestID(d)
-	if err != nil {
-		return err
-	}
-
-	update := &github.PullRequest{
-		Title:               github.String(d.Get("title").(string)),
-		Body:                github.String(d.Get("body").(string)),
-		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
-	}
-
-	if d.HasChange("base_ref") {
-		update.Base = &github.PullRequestBranch{
-			Ref: github.String(d.Get("base_ref").(string)),
-		}
-	}
-
-	_, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update)
-	if err == nil {
-		return resourceGithubRepositoryPullRequestRead(d, meta)
-	}
-
-	errors := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
-
-	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
-		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
-	}
-
-	return fmt.Errorf(strings.Join(errors, ", "))
-}
-
 func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
-	// TODO: Implement this
-
-	// It's not entirely clear how to treat PR deletion according to Terraform's
-	// CRUD semantics. The approach we're taking here is to close the PR unless
-	// it's already closed or merged. Merging it feels intuitively wrong in what
-	// effectively is a destructor.
-	if d.Get("state").(string) != "open" {
-		d.SetId("")
-		return nil
-	}
-
-	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
-	owner, repository, number, err := parsePullRequestID(d)
+	owner, repository, id, err := parseRulesetID(d)
 	if err != nil {
 		return err
 	}
 
-	update := &github.PullRequest{State: github.String("closed")}
-	if _, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update); err != nil {
+	_, err = client.Repositories.DeleteRuleset(context.TODO(), owner, repository, id)
+	if err != nil {
 		return err
 	}
 
