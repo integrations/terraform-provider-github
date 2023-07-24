@@ -1470,3 +1470,18 @@ func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) 
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
 }
+
+func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	_, err := schema.ValidateFunc("test space", "name")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
