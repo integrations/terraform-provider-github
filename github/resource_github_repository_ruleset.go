@@ -160,10 +160,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Required: true,
-									},
 									"required_deployment_environments": {
 										Type:        schema.TypeList,
 										Required:    true,
@@ -187,11 +183,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -272,11 +263,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_message_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -307,11 +293,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_author_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -342,11 +323,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Parameters to be used for the committer_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -377,11 +353,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Parameters to be used for the branch_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -412,11 +383,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Parameters to be used for the tag_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
