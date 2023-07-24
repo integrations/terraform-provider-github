@@ -42,6 +42,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the repository to apply rulset to.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
+			},
 			"enforcement": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -469,6 +475,10 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 	rulesetReq := resourceGithubRulesetObject(d, true)
 
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
@@ -488,6 +498,10 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -532,6 +546,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	d.Set("rules", flattenRules(ruleset.Rules, true))
 	d.Set("node_id", ruleset.GetNodeID())
 	d.Set("ruleset_id", ruleset.ID)
+	d.Set("owner", owner)
 
 	return nil
 }
@@ -541,8 +556,12 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 
 	rulesetReq := resourceGithubRulesetObject(d, true)
 
-	repoName := d.Get("repository").(string)
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
+	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -561,8 +580,12 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 
 func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	repoName := d.Get("repository").(string)
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+	
+	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)

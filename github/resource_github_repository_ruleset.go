@@ -42,6 +42,12 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the repository to apply rulset to.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
+			},
 			"enforcement": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -450,6 +456,10 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interfac
 	rulesetReq := resourceGithubRulesetObject(d, false)
 
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
@@ -469,6 +479,10 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -507,6 +521,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	d.Set("rules", flattenRules(ruleset.Rules, false))
 	d.Set("node_id", ruleset.GetNodeID())
 	d.Set("ruleset_id", ruleset.ID)
+	d.Set("owner", owner)
 
 	return nil
 }
@@ -516,8 +531,12 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	rulesetReq := resourceGithubRulesetObject(d, false)
 
-	repoName := d.Get("repository").(string)
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
+	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -536,8 +555,12 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	repoName := d.Get("repository").(string)
 	owner := meta.(*Owner).name
+	if explicitOwner, ok := d.GetOk("owner"); ok {
+		owner = explicitOwner.(string)
+	}
+
+	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
