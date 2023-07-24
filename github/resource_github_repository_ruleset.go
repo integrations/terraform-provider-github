@@ -69,6 +69,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"actor_type": {
 							Type:        schema.TypeString,
 							Required:    true,
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
 							Description: "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
 						},
 						"bypass_mode": {
