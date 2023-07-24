@@ -2,6 +2,7 @@ package github
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/v53/github"
@@ -281,23 +282,30 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	// Required status checks rule
 	if v, ok := rulesMap["required_status_checks"].([]interface{}); ok && len(v) != 0 {
 		requiredStatusMap := v[0].(map[string]interface{})
-		if enabled, ok := requiredStatusMap["enabled"].(bool); ok && enabled {
-			requiredStatusChecks := make([]github.RuleRequiredStatusChecks, 0)
-			if requiredStatusChecksInput, ok := requiredStatusMap["required_check"].([]map[string]interface{}); ok {
-				for _, check := range requiredStatusChecksInput {
-					requiredStatusChecks = append(requiredStatusChecks, github.RuleRequiredStatusChecks{
-						Context:       check["context"].(string),
-						IntegrationID: check["integration_id"].(*int64),
-					})
-				}
-			}
+		requiredStatusChecks := make([]github.RuleRequiredStatusChecks, 0)
 
-			params := &github.RequiredStatusChecksRuleParameters{
-				RequiredStatusChecks:             requiredStatusChecks,
-				StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"].(interface{}); ok {
+
+			requiredStatusChecksSet := requiredStatusChecksInput.(*schema.Set)
+			for _, checkMap := range requiredStatusChecksSet.List() {
+				check := checkMap.(map[string]interface{})
+				integrationID := github.Int64(int64(check["integration_id"].(int)))
+
+				params := &github.RuleRequiredStatusChecks{
+					Context:       check["context"].(string),
+					IntegrationID: integrationID,
+				}
+				requiredStatusChecks = append(requiredStatusChecks, *params)
 			}
-			rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 		}
+
+		params := &github.RequiredStatusChecksRuleParameters{
+			RequiredStatusChecks:             requiredStatusChecks,
+			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+		}
+
+		fmt.Printf("status checks rule: %v", github.Stringify(requiredStatusChecks))
+		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
 
 	return rulesSlice
@@ -328,7 +336,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["negate"] = *params.Negate
 			rule["operator"] = params.Operator
 			rule["pattern"] = params.Pattern
-			rulesMap[v.Type] = rule
+			rulesMap[v.Type] = []map[string]interface{}{rule}
 
 		case "required_deployments":
 			if !org {
@@ -342,7 +350,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 				rule := make(map[string]interface{})
 				rule["required_deployment_environments"] = params.RequiredDeploymentEnvironments
-				rulesMap[v.Type] = rule
+				rulesMap[v.Type] = []map[string]interface{}{rule}
 			}
 
 		case "pull_request":
@@ -360,7 +368,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["require_last_push_approval"] = params.RequireLastPushApproval
 			rule["required_approving_review_count"] = params.RequiredApprovingReviewCount
 			rule["required_review_thread_resolution"] = params.RequiredReviewThreadResolution
-			rulesMap[v.Type] = rule
+			rulesMap[v.Type] = []map[string]interface{}{rule}
 
 		case "required_status_checks":
 			var params github.RequiredStatusChecksRuleParameters
@@ -373,16 +381,17 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 			requiredStatusChecksSlice := make([]map[string]interface{}, 0)
 			for _, check := range params.RequiredStatusChecks {
+				integrationID := check.IntegrationID
 				requiredStatusChecksSlice = append(requiredStatusChecksSlice, map[string]interface{}{
 					"context":        check.Context,
-					"integration_id": check.IntegrationID,
+					"integration_id": *integrationID,
 				})
 			}
 
 			rule := make(map[string]interface{})
 			rule["required_check"] = requiredStatusChecksSlice
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
-			rulesMap[v.Type] = rule
+			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}
 
