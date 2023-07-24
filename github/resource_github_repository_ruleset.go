@@ -455,7 +455,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, false)
+	rulesetReq := resourceGithubRulesetObject(d, "")
 
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
@@ -531,7 +531,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, false)
+	rulesetReq := resourceGithubRulesetObject(d, "")
 
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {

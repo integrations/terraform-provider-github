@@ -8,15 +8,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceGithubRulesetObject(d *schema.ResourceData, org bool) *github.Ruleset {
+func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {
+	isOrgLevel := len(org) > 0
+
+	var source, sourceType string
+	if isOrgLevel {
+		source = org
+		sourceType = "Organization"
+	} else {
+		source = d.Get("repository").(string)
+		sourceType = "Repository"
+	}
+	
 	return &github.Ruleset{
 		Name:         d.Get("name").(string),
 		Target:       github.String(d.Get("target").(string)),
-		Source:       d.Get("repository").(string),
+		Source:       source,
+		SourceType:   &sourceType,
 		Enforcement:  d.Get("enforcement").(string),
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]interface{})),
-		Conditions:   expandConditions(d.Get("conditions").([]interface{}), org),
-		Rules:        expandRules(d.Get("rules").([]interface{}), org),
+		Conditions:   expandConditions(d.Get("conditions").([]interface{}), isOrgLevel),
+		Rules:        expandRules(d.Get("rules").([]interface{}), isOrgLevel),
 	}
 }
 

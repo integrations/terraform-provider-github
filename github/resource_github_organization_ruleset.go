@@ -469,20 +469,19 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, true)
-
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
+	rulesetReq := resourceGithubRulesetObject(d, owner)
+
 	ctx := context.Background()
 
 	var ruleset *github.Ruleset
 	var err error
 
-	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, _, err = client.Organizations.CreateOrganizationRuleset(ctx, owner, rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -499,7 +498,6 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -519,15 +517,15 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	var ruleset *github.Ruleset
 	var resp *github.Response
 
-	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
+	ruleset, resp, err = client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub",
-					owner, repoName, rulesetID)
+				log.Printf("[INFO] Removing ruleset %s: %d from state because it no longer exists in GitHub",
+					owner, rulesetID)
 				d.SetId("")
 				return nil
 			}
@@ -551,14 +549,13 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, true)
-
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
+	rulesetReq := resourceGithubRulesetObject(d, owner)
+
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -566,7 +563,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	ruleset, _, err := client.Organizations.UpdateOrganizationRuleset(ctx, owner, rulesetID, rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -582,14 +579,13 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 		owner = explicitOwner.(string)
 	}
 	
-	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
-	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
+	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
+	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
 	return err
 }
