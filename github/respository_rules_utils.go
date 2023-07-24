@@ -2,7 +2,6 @@ package github
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/google/go-github/v53/github"
@@ -304,7 +303,6 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
 		}
 
-		fmt.Printf("status checks rule: %v", github.Stringify(requiredStatusChecks))
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
 
