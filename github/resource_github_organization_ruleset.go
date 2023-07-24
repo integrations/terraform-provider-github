@@ -93,31 +93,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description: "Parameters for a repository ruleset ref name condition.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"inlcude": {
-										Type:        schema.TypeList,
-										Required:    true,
-										Description: "Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
-										},
-									},
-									"exclude": {
-										Type:        schema.TypeList,
-										Required:    true,
-										Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
-										},
-									},
-								},
-							},
-						},
 						"repository_name": {
 							Type:          schema.TypeList,
 							Optional:      true,
@@ -189,6 +164,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:    true,
 							Description: "Prevent merge commits from being pushed to matching branches.",
 						},
+
+						// TODO: required_deployments should be here
+
 						"required_signatures": {
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -201,11 +179,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -286,11 +259,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_message_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -321,11 +289,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_author_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -356,11 +319,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the committer_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -391,11 +349,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the branch_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -426,11 +379,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the tag_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
