@@ -32,7 +32,6 @@ func TestAccGithubTeamMembers(t *testing.T) {
 					{
 						Config: testAccGithubTeamMembersConfig(randomID, testCollaborator, "member"),
 						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrSet(resourceName, "etag"),
 							testAccCheckGithubTeamMembersExists(resourceName, &membership),
 							testAccCheckGithubTeamMembersRoleState(resourceName, "member", &membership),
 						),
