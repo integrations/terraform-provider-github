@@ -8,19 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Token      string
-	Owner      string
-	BaseURL    string
-	Insecure   bool
-	WriteDelay time.Duration
-	ReadDelay  time.Duration
+	Token            string
+	Owner            string
+	BaseURL          string
+	Insecure         bool
+	WriteDelay       time.Duration
+	ReadDelay        time.Duration
+	ParallelRequests bool
 }
 
 type Owner struct {
@@ -32,11 +33,11 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration) *http.Client {
+func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, parallelRequests bool) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
-	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay))
-	client.Transport = logging.NewTransport("Github", client.Transport)
+	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
+	client.Transport = logging.NewTransport("GitHub", client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
@@ -53,7 +54,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
 }
 
 func (c *Config) Anonymous() bool {
@@ -62,7 +63,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {

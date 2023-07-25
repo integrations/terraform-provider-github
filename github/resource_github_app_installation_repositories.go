@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -21,17 +21,19 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"installation_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub app installation id.",
 			},
 			"selected_repositories": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Set:      schema.HashString,
-				Required: true,
+				Set:         schema.HashString,
+				Required:    true,
+				Description: "A list of repository names to install the app on.",
 			},
 		},
 	}

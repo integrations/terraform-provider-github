@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -18,26 +18,41 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				if err != nil {
+					return nil, err
+				}
+
+				teamId, err := getTeamID(teamIdString, meta)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateTeamIDFunc,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub team id or the GitHub team slug.",
 			},
 			"username": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
+				Description:      "The user to add to the team.",
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "member",
+				Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
@@ -53,9 +68,9 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	ctx := context.Background()
 
@@ -87,9 +102,9 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 
 	// We intentionally set these early to allow reconciliation
@@ -130,9 +145,9 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	username := d.Get("username").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

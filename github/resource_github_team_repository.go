@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -17,7 +17,20 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Update: resourceGithubTeamRepositoryUpdate,
 		Delete: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				if err != nil {
+					return nil, err
+				}
+
+				teamId, err := getTeamID(teamIdString, meta)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -28,14 +41,16 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "ID or slug of team",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository to add to the team.",
 			},
 			"permission": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "pull",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "pull",
+				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -98,9 +113,9 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -157,7 +172,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
+	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,

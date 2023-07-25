@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -50,6 +50,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"has_discussions": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"has_projects": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -63,6 +67,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"is_template": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"fork": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -126,6 +134,10 @@ func dataSourceGithubRepository() *schema.Resource {
 									},
 								},
 							},
+						},
+						"build_type": {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 						"cname": {
 							Type:     schema.TypeString,
@@ -244,8 +256,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())
 	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
 	d.Set("has_wiki", repo.GetHasWiki())
 	d.Set("is_template", repo.GetIsTemplate())
+	d.Set("fork", repo.GetFork())
 	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())

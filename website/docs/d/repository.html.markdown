@@ -39,11 +39,15 @@ The following arguments are supported:
 
 * `has_issues` - Whether the repository has GitHub Issues enabled.
 
+* `has_discussions` - Whether the repository has GitHub Discussions enabled.
+
 * `has_projects` - Whether the repository has the GitHub Projects enabled.
 
 * `has_wiki` - Whether the repository has the GitHub Wiki enabled.
 
 * `is_template` - Whether the repository is a template repository.
+
+* `fork` - Whether the repository is a fork.
 
 * `allow_merge_commit` - Whether the repository allows merge commits.
 

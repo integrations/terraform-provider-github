@@ -556,6 +556,118 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 	})
 
+	t.Run("configures non-empty list of force push bypassers", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			data "github_user" "test" {
+			  username = "%s"
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id  = github_repository.test.node_id
+			  pattern        = "main"
+
+				force_push_bypassers = [
+					data.github_user.test.node_id
+				]
+
+			}
+
+	`, randomID, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "force_push_bypassers.#", "1",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("configures empty list of force push bypassers", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id  = github_repository.test.node_id
+			  pattern        = "main"
+
+				force_push_bypassers = []
+
+			}
+
+	`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "force_push_bypassers.#", "0",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("configures non-empty list of pull request bypassers", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
@@ -582,10 +694,10 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.#", "1",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.0", "1234",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.0", "1234",
 			),
 		)
 
@@ -640,7 +752,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews.#", "0",
+				"github_branch_protection.test", "required_pull_request_reviews.0.pull_request_bypassers.#", "0",
 			),
 		)
 

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -32,7 +32,6 @@ func TestAccGithubTeamMembers(t *testing.T) {
 					{
 						Config: testAccGithubTeamMembersConfig(randomID, testCollaborator, "member"),
 						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrSet(resourceName, "etag"),
 							testAccCheckGithubTeamMembersExists(resourceName, &membership),
 							testAccCheckGithubTeamMembersRoleState(resourceName, "member", &membership),
 						),

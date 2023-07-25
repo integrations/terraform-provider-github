@@ -3,11 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -24,8 +26,29 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
 				}
-				d.Set("repository", parts[0])
-				d.SetId(parts[1])
+
+				repository := parts[0]
+				id := parts[1]
+
+				// If the second part of the provided ID isn't an integer, assume that the
+				// caller provided the key prefix for the autolink reference, and look up
+				// the autolink by the key prefix.
+
+				_, err := strconv.Atoi(id)
+				if err != nil {
+					client := meta.(*Owner).v3client
+					owner := meta.(*Owner).name
+
+					autolink, err := getAutolinkByKeyPrefix(client, owner, repository, id)
+					if err != nil {
+						return nil, err
+					}
+
+					id = strconv.FormatInt(*autolink.ID, 10)
+				}
+
+				d.Set("repository", repository)
+				d.SetId(id)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -49,7 +72,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Required:     true,
 				ForceNew:     true,
 				Description:  "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*(:[0-9]+)?\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
 			},
 			"is_alphanumeric": {
 				Type:        schema.TypeBool,
@@ -107,6 +130,14 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 

@@ -3,14 +3,17 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepositories(t *testing.T) {
@@ -24,7 +27,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 			  name         = "tf-acc-test-create-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
-
+			  has_discussions      = true
 			  has_issues           = true
 			  has_wiki             = true
 			  has_downloads        = true
@@ -42,6 +45,10 @@ func TestAccGithubRepositories(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "has_issues",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_discussions",
 				"true",
 			),
 			resource.TestCheckResourceAttr(
@@ -99,11 +106,19 @@ func TestAccGithubRepositories(t *testing.T) {
 					"github_repository.test", "name",
 					oldName,
 				),
+				resource.ComposeTestCheckFunc(
+					testCheckResourceAttrContains("github_repository.test", "full_name",
+						oldName),
+				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_repository.test", "name",
 					newName,
+				),
+				resource.ComposeTestCheckFunc(
+					testCheckResourceAttrContains("github_repository.test", "full_name",
+						newName),
 				),
 			),
 		}
@@ -760,7 +775,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("manages the pages feature for a repository", func(t *testing.T) {
+	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -808,42 +823,25 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	})
 
-}
-
-func TestAccGithubRepositorySecurity(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("manages the security feature for a repository", func(t *testing.T) {
+	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-		resource "github_repository" "test" {
-			name        = "tf-acc-%s"
-			description = "A repository created by Terraform to test security features"
-			visibility  = "internal"
-			security_and_analysis {
-			  advanced_security {
-				status = "enabled"
-			  }
-			  secret_scanning {
-				status = "enabled"
-			  }
-			  secret_scanning_push_protection {
-				status = "enabled"
+			resource "github_repository" "test" {
+				name         = "tf-acc-%s"
+				auto_init    = true
+				pages {
+					build_type = "workflow"
+				}
 			}
-		  }
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
-				"enabled",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
-				"enabled",
+				"github_repository.test", "pages.0.source.0.branch",
+				"main",
 			),
 		)
+
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
@@ -862,11 +860,178 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
+			testCase(t, individual)
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "workflow",
+			"source":     []interface{}{map[string]interface{}{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+	})
+
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		input := []interface{}{map[string]interface{}{
+			"build_type": "legacy",
+			"source": []interface{}{map[string]interface{}{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
+	})
+}
+
+func TestAccGithubRepositorySecurity(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("manages the security feature for a repository", func(t *testing.T) {
+
+		t.Run("for a private repository", func(t *testing.T) {
+			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
+
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "private"
+			  security_and_analysis {
+			    advanced_security {
+			      status = "enabled"
+			    }
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    secret_scanning_push_protection {
+			       status = "enabled"
+			    }
+			  }
+			}
+			`, randomID)
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
+					},
+				})
+			}
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
+		})
+
+		t.Run("for a public repository", func(t *testing.T) {
+
+			config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name        = "tf-acc-%s"
+			  description = "A repository created by Terraform to test security features"
+			  visibility  = "public"
+			  security_and_analysis {
+			    secret_scanning {
+			      status = "enabled"
+			    }
+			    # seems like it can only be "enabled" for an organization that has purchased GHAS
+			    secret_scanning_push_protection {
+			       status = "disabled"
+			    }
+			  }
+			}
+			`, randomID)
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+					"disabled",
+				),
+			)
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config: config,
+							Check:  check,
+						},
+					},
+				})
+			}
+
+			t.Run("with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+
+			t.Run("with an individual account", func(t *testing.T) {
+				testCase(t, individual)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				testCase(t, organization)
+			})
 		})
 	})
 }
@@ -1251,4 +1416,72 @@ func reconfigureVisibility(config, visibility string) string {
 		fmt.Sprintf(`visibility = "%s"`, visibility),
 	)
 	return newConfig
+}
+
+type resourceDataLike map[string]interface{}
+
+func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+	v, ok := d[key]
+	return v, ok
+}
+
+func TestResourceGithubParseFullName(t *testing.T) {
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	assert.True(t, ok)
+	assert.Equal(t, "myrepo", repo)
+	assert.Equal(t, "myorg", org)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	assert.False(t, ok)
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	assert.False(t, ok)
+}
+
+func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s", resourceName)
+		}
+
+		value, ok := rs.Primary.Attributes[attributeName]
+		if !ok {
+			return fmt.Errorf("Attribute not found: %s", attributeName)
+		}
+
+		if !strings.Contains(value, substring) {
+			return fmt.Errorf("Attribute '%s' does not contain '%s'", value, substring)
+		}
+
+		return nil
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	_, err := schema.ValidateFunc(strings.Repeat("a", 101), "name")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	_, err := schema.ValidateFunc("test space", "name")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
 }

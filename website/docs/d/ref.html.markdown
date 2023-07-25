@@ -13,14 +13,17 @@ Use this data source to retrieve information about a repository ref.
 
 ```hcl
 data "github_ref" "development" {
+  owner      = "example"
   repository = "example"
-  ref     = "heads/development"
+  ref        = "heads/development"
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
+
+* `owner` -  (Required) Owner of the repository.
 
 * `repository` - (Required) The GitHub repository name.
 
@@ -31,5 +34,7 @@ The following arguments are supported:
 The following additional attributes are exported:
 
 * `etag` - An etag representing the ref.
+
+* `id` - A string storing a reference to the repository name and ref.
 
 * `sha` - A string storing the reference's `HEAD` commit's SHA1.
