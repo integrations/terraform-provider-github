@@ -35,12 +35,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
 				Description: "Possible values are `branch` and `tag`.",
-			},
-			"repository": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the repository to apply rulset to.",
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -69,6 +65,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"actor_type": {
 							Type:        schema.TypeString,
 							Required:    true,
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
 							Description: "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
 						},
 						"bypass_mode": {
@@ -96,31 +93,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description: "Parameters for a repository ruleset ref name condition.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"inlcude": {
-										Type:        schema.TypeList,
-										Required:    true,
-										Description: "Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
-										},
-									},
-									"exclude": {
-										Type:        schema.TypeList,
-										Required:    true,
-										Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
-										},
-									},
-								},
-							},
-						},
 						"repository_name": {
 							Type:          schema.TypeList,
 							Optional:      true,
@@ -192,6 +164,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:    true,
 							Description: "Prevent merge commits from being pushed to matching branches.",
 						},
+
+						// TODO: required_deployments should be here
+
 						"required_signatures": {
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -204,11 +179,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -289,11 +259,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_message_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -324,11 +289,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the commit_author_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -359,11 +319,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the committer_email_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -394,11 +349,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the branch_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -429,11 +379,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Parameters to be used for the tag_name_pattern rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"enabled": {
-										Type:     schema.TypeBool,
-										Optional: true,
-										Default:  false,
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -472,20 +417,19 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, true)
-
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
+	rulesetReq := resourceGithubRulesetObject(d, owner)
+
 	ctx := context.Background()
 
 	var ruleset *github.Ruleset
 	var err error
 
-	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, _, err = client.Organizations.CreateOrganizationRuleset(ctx, owner, rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -502,7 +446,6 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -522,15 +465,15 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	var ruleset *github.Ruleset
 	var resp *github.Response
 
-	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
+	ruleset, resp, err = client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub",
-					owner, repoName, rulesetID)
+				log.Printf("[INFO] Removing ruleset %s: %d from state because it no longer exists in GitHub",
+					owner, rulesetID)
 				d.SetId("")
 				return nil
 			}
@@ -554,14 +497,13 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, true)
-
 	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
 
-	repoName := d.Get("repository").(string)
+	rulesetReq := resourceGithubRulesetObject(d, owner)
+
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
@@ -569,7 +511,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	ruleset, _, err := client.Organizations.UpdateOrganizationRuleset(ctx, owner, rulesetID, rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -585,14 +527,13 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 		owner = explicitOwner.(string)
 	}
 	
-	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
-	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
+	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
+	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
 	return err
 }

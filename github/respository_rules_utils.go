@@ -8,15 +8,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceGithubRulesetObject(d *schema.ResourceData, org bool) *github.Ruleset {
+func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {
+	isOrgLevel := len(org) > 0
+
+	var source, sourceType string
+	if isOrgLevel {
+		source = org
+		sourceType = "Organization"
+	} else {
+		source = d.Get("repository").(string)
+		sourceType = "Repository"
+	}
+	
 	return &github.Ruleset{
 		Name:         d.Get("name").(string),
 		Target:       github.String(d.Get("target").(string)),
-		Source:       d.Get("repository").(string),
+		Source:       source,
+		SourceType:   &sourceType,
 		Enforcement:  d.Get("enforcement").(string),
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]interface{})),
-		Conditions:   expandConditions(d.Get("conditions").([]interface{}), org),
-		Rules:        expandRules(d.Get("rules").([]interface{}), org),
+		Conditions:   expandConditions(d.Get("conditions").([]interface{}), isOrgLevel),
+		Rules:        expandRules(d.Get("rules").([]interface{}), isOrgLevel),
 	}
 }
 
@@ -215,18 +227,16 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	if !org {
 		if v, ok := rulesMap["required_deployments"].([]interface{}); ok && len(v) != 0 {
 			requiredDeploymentsMap := v[0].(map[string]interface{})
-			if enabled, ok := requiredDeploymentsMap["enabled"].(bool); ok && enabled {
-				envs := make([]string, 0)
-				for _, v := range requiredDeploymentsMap["required_deployment_environments"].([]interface{}) {
-					envs = append(envs, v.(string))
-				}
-
-				params := &github.RequiredDeploymentEnvironmentsRuleParameters{
-					RequiredDeploymentEnvironments: envs,
-				}
-
-				rulesSlice = append(rulesSlice, github.NewRequiredDeploymentsRule(params))
+			envs := make([]string, 0)
+			for _, v := range requiredDeploymentsMap["required_deployment_environments"].([]interface{}) {
+				envs = append(envs, v.(string))
 			}
+
+			params := &github.RequiredDeploymentEnvironmentsRuleParameters{
+				RequiredDeploymentEnvironments: envs,
+			}
+
+			rulesSlice = append(rulesSlice, github.NewRequiredDeploymentsRule(params))
 		}
 	}
 
@@ -234,30 +244,28 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	for _, k := range []string{"commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern"} {
 		if v, ok := rulesMap[k].([]interface{}); ok && len(v) != 0 {
 			patternParametersMap := v[0].(map[string]interface{})
-			if enabled, ok := patternParametersMap["enabled"].(bool); ok && enabled {
 
-				name := patternParametersMap["name"].(string)
-				negate := patternParametersMap["negate"].(bool)
+			name := patternParametersMap["name"].(string)
+			negate := patternParametersMap["negate"].(bool)
 
-				params := &github.RulePatternParameters{
-					Name:     &name,
-					Negate:   &negate,
-					Operator: patternParametersMap["operator"].(string),
-					Pattern:  patternParametersMap["pattern"].(string),
-				}
+			params := &github.RulePatternParameters{
+				Name:     &name,
+				Negate:   &negate,
+				Operator: patternParametersMap["operator"].(string),
+				Pattern:  patternParametersMap["pattern"].(string),
+			}
 
-				switch k {
-				case "commit_message_pattern":
-					rulesSlice = append(rulesSlice, github.NewCommitMessagePatternRule(params))
-				case "commit_author_email_pattern":
-					rulesSlice = append(rulesSlice, github.NewCommitAuthorEmailPatternRule(params))
-				case "committer_email_pattern":
-					rulesSlice = append(rulesSlice, github.NewCommitterEmailPatternRule(params))
-				case "branch_name_pattern":
-					rulesSlice = append(rulesSlice, github.NewBranchNamePatternRule(params))
-				case "tag_name_pattern":
-					rulesSlice = append(rulesSlice, github.NewTagNamePatternRule(params))
-				}
+			switch k {
+			case "commit_message_pattern":
+				rulesSlice = append(rulesSlice, github.NewCommitMessagePatternRule(params))
+			case "commit_author_email_pattern":
+				rulesSlice = append(rulesSlice, github.NewCommitAuthorEmailPatternRule(params))
+			case "committer_email_pattern":
+				rulesSlice = append(rulesSlice, github.NewCommitterEmailPatternRule(params))
+			case "branch_name_pattern":
+				rulesSlice = append(rulesSlice, github.NewBranchNamePatternRule(params))
+			case "tag_name_pattern":
+				rulesSlice = append(rulesSlice, github.NewTagNamePatternRule(params))
 			}
 		}
 	}
@@ -265,17 +273,15 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]interface{}); ok && len(v) != 0 {
 		pullRequestMap := v[0].(map[string]interface{})
-		if enabled, ok := pullRequestMap["enabled"].(bool); ok && enabled {
-			params := &github.PullRequestRuleParameters{
-				DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
-				RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
-				RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
-				RequiredApprovingReviewCount:   pullRequestMap["required_approving_review_count"].(int),
-				RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
-			}
-
-			rulesSlice = append(rulesSlice, github.NewPullRequestRule(params))
+		params := &github.PullRequestRuleParameters{
+			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
+			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
+			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
+			RequiredApprovingReviewCount:   pullRequestMap["required_approving_review_count"].(int),
+			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
 		}
+
+		rulesSlice = append(rulesSlice, github.NewPullRequestRule(params))
 	}
 
 	// Required status checks rule
