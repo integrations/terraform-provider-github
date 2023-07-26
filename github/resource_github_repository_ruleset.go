@@ -33,21 +33,15 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:         schema.TypeString,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description: "Possible values are `branch` and `tag`.",
+				Description:  "Possible values are `branch` and `tag`.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the repository to apply rulset to.",
-			},
-			"owner": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -68,10 +62,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset",
 						},
 						"actor_type": {
-							Type:        schema.TypeString,
-							Required:    true,
+							Type:         schema.TypeString,
+							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description: "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -424,9 +418,6 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interfac
 	rulesetReq := resourceGithubRulesetObject(d, "")
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
@@ -447,9 +438,6 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -489,7 +477,6 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	d.Set("rules", flattenRules(ruleset.Rules, false))
 	d.Set("node_id", ruleset.GetNodeID())
 	d.Set("ruleset_id", ruleset.ID)
-	d.Set("owner", owner)
 
 	return nil
 }
@@ -500,9 +487,6 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 	rulesetReq := resourceGithubRulesetObject(d, "")
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -524,9 +508,6 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)

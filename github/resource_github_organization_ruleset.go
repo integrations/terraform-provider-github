@@ -33,16 +33,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:         schema.TypeString,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description: "Possible values are `branch` and `tag`.",
-			},
-			"owner": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
+				Description:  "Possible values are `branch` and `tag`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -63,10 +57,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset",
 						},
 						"actor_type": {
-							Type:        schema.TypeString,
-							Required:    true,
+							Type:         schema.TypeString,
+							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description: "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -93,6 +87,31 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description: "Parameters for a repository ruleset ref name condition.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"ref_name": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Description: "Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 						"repository_name": {
 							Type:          schema.TypeList,
 							Optional:      true,
@@ -164,9 +183,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:    true,
 							Description: "Prevent merge commits from being pushed to matching branches.",
 						},
-
-						// TODO: required_deployments should be here
-
 						"required_signatures": {
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -220,7 +236,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"required_check": {
-										Type:        schema.TypeList,
+										Type:        schema.TypeSet,
 										MinItems:    1,
 										Required:    true,
 										Description: "Status checks that are required.",
@@ -418,9 +434,6 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
@@ -434,7 +447,6 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
@@ -442,19 +454,10 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
-	}
-
-	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
-	// case lookup the owner in the data, and use that, if present.
-	if explicitOwner, _, ok := resourceGithubParseFullName(d); ok && owner == "" {
-		owner = explicitOwner
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -489,7 +492,6 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 	d.Set("rules", flattenRules(ruleset.Rules, true))
 	d.Set("node_id", ruleset.GetNodeID())
 	d.Set("ruleset_id", ruleset.ID)
-	d.Set("owner", owner)
 
 	return nil
 }
@@ -498,9 +500,6 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
@@ -523,10 +522,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
-	}
-	
+
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)

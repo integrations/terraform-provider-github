@@ -19,7 +19,7 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rul
 		source = d.Get("repository").(string)
 		sourceType = "Repository"
 	}
-	
+
 	return &github.Ruleset{
 		Name:         d.Get("name").(string),
 		Target:       github.String(d.Get("target").(string)),
@@ -85,7 +85,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 	inputConditions := input[0].(map[string]interface{})
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]interface{}); ok && v != nil {
+	if v, ok := inputConditions["ref_name"].([]interface{}); ok && v != nil && len(v) != 0 {
 		inputRefName := v[0].(map[string]interface{})
 		include := make([]string, 0)
 		exclude := make([]string, 0)
@@ -111,7 +111,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 	// org-only fields
 	if org {
 		// repository_name
-		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil {
+		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]interface{})
 			include := make([]string, 0)
 			exclude := make([]string, 0)
@@ -297,9 +297,13 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 				integrationID := github.Int64(int64(check["integration_id"].(int)))
 
 				params := &github.RuleRequiredStatusChecks{
-					Context:       check["context"].(string),
-					IntegrationID: integrationID,
+					Context: check["context"].(string),
 				}
+
+				if *integrationID != 0 {
+					params.IntegrationID = integrationID
+				}
+
 				requiredStatusChecks = append(requiredStatusChecks, *params)
 			}
 		}
@@ -308,7 +312,6 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			RequiredStatusChecks:             requiredStatusChecks,
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
 		}
-
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
 
@@ -385,10 +388,13 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 			requiredStatusChecksSlice := make([]map[string]interface{}, 0)
 			for _, check := range params.RequiredStatusChecks {
-				integrationID := check.IntegrationID
+				integrationID := int64(0)
+				if check.IntegrationID != nil {
+					integrationID = *check.IntegrationID
+				}
 				requiredStatusChecksSlice = append(requiredStatusChecksSlice, map[string]interface{}{
 					"context":        check.Context,
-					"integration_id": *integrationID,
+					"integration_id": integrationID,
 				})
 			}
 
