@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,9 +19,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 		Update: resourceGithubRepositoryRulesetUpdate,
 		Delete: resourceGithubRepositoryRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				return []*schema.ResourceData{d}, nil
-			},
+			State: resourceGithubRepositoryRulesetImport,
 		},
 
 		SchemaVersion: 1,
@@ -232,6 +231,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 												"integration_id": {
 													Type:        schema.TypeInt,
 													Optional:    true,
+													Default:     0,
 													Description: "The optional integration ID that this status check must originate from.",
 												},
 											},
@@ -408,7 +408,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Computed: true,
 			},
 		},
-		// CustomizeDiff: customDiffFunction,
 	}
 }
 
@@ -519,4 +518,37 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
 	return err
+}
+
+func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
+	if err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+
+	rulesetID, err := strconv.ParseInt(rulesetIDStr, 10, 64)
+	if err != nil {
+		return []*schema.ResourceData{d}, unconvertibleIdErr(rulesetIDStr, err)
+	}
+	if rulesetID == 0 {
+		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+	}
+	log.Printf("[DEBUG] Importing repository ruleset with ID: %d, for repository: %s", rulesetID, repoName)
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	ctx := context.Background()
+	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if repository == nil || err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+	d.Set("repository", *repository.Name)
+
+	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
+	if ruleset == nil || err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+
+	return []*schema.ResourceData{d}, nil
 }

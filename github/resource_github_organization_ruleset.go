@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,9 +19,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 		Update: resourceGithubOrganizationRulesetUpdate,
 		Delete: resourceGithubOrganizationRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				return []*schema.ResourceData{d}, nil
-			},
+			State: resourceGithubOrganizationRulesetImport,
 		},
 
 		SchemaVersion: 1,
@@ -250,6 +249,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"integration_id": {
 													Type:        schema.TypeInt,
 													Optional:    true,
+													Default:     0,
 													Description: "The optional integration ID that this status check must originate from.",
 												},
 											},
@@ -426,7 +426,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Computed: true,
 			},
 		},
-		// CustomizeDiff: customDiffFunction,
 	}
 }
 
@@ -532,4 +531,27 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
 	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
 	return err
+}
+
+func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
+	}
+	if rulesetID == 0 {
+		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+	}
+	log.Printf("[DEBUG] Importing organization ruleset with ID: %d", rulesetID)
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	ctx := context.Background()
+
+	ruleset, _, err := client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
+	if ruleset == nil || err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+
+	return []*schema.ResourceData{d}, nil
 }

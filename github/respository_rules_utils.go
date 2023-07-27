@@ -289,14 +289,14 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		requiredStatusMap := v[0].(map[string]interface{})
 		requiredStatusChecks := make([]github.RuleRequiredStatusChecks, 0)
 
-		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"].(interface{}); ok {
+		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"]; ok {
 
 			requiredStatusChecksSet := requiredStatusChecksInput.(*schema.Set)
 			for _, checkMap := range requiredStatusChecksSet.List() {
 				check := checkMap.(map[string]interface{})
 				integrationID := github.Int64(int64(check["integration_id"].(int)))
 
-				params := &github.RuleRequiredStatusChecks{
+				params := github.RuleRequiredStatusChecks{
 					Context: check["context"].(string),
 				}
 
@@ -304,7 +304,7 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 					params.IntegrationID = integrationID
 				}
 
-				requiredStatusChecks = append(requiredStatusChecks, *params)
+				requiredStatusChecks = append(requiredStatusChecks, params)
 			}
 		}
 
