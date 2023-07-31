@@ -16,11 +16,6 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"organization": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			// Can't set named Keys from what I understand (https://discuss.hashicorp.com/t/custom-provider-how-to-reference-computed-attribute-of-typemap-list-set-defined-as-nested-block/22898/2)
 			"saml_identity": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -34,6 +29,10 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"login": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -62,26 +61,31 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	}
-	if len(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes) == 0 {
-		return fmt.Errorf("There was no external identity found for username %q in Organization %q", username, orgName)
+	if len(query.Organization.SamlIdentityProvider.ExternalIdentities.Edges) == 0 {
+		return fmt.Errorf("there was no external identity found for username %q in Organization %q", username, orgName)
 	}
 
+	externalIdentityNode := query.Organization.SamlIdentityProvider.ExternalIdentities.Edges[0].Node // There should only be one user in this list
+
 	samlIdentity := map[string]string{
-		"family_name": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].SamlIdentity.FamilyName),
-		"given_name": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].SamlIdentity.GivenName),
-		"name_id": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].SamlIdentity.NameID),
-		"username": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].SamlIdentity.Username),
+		"family_name": string(externalIdentityNode.SamlIdentity.FamilyName),
+		"given_name":  string(externalIdentityNode.SamlIdentity.GivenName),
+		"name_id":     string(externalIdentityNode.SamlIdentity.NameId),
+		"username":    string(externalIdentityNode.SamlIdentity.Username),
 	}
 
 	scimIdentity := map[string]string{
-		"family_name": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].ScimIdentity.FamilyName),
-		"given_name": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].ScimIdentity.GivenName),
-		"username": string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].ScimIdentity.Username),
+		"family_name": string(externalIdentityNode.ScimIdentity.FamilyName),
+		"given_name":  string(externalIdentityNode.ScimIdentity.GivenName),
+		"username":    string(externalIdentityNode.ScimIdentity.Username),
 	}
 
-	// TODO: Is this a valid ID?
-	d.SetId(string(query.Organization.SamlIdentityProvider.ExternalIdentities.Nodes[0].ID))
+	login := string(externalIdentityNode.User.Login)
+
+	d.SetId(fmt.Sprintf("%s/%s", orgName, username))
 	d.Set("saml_identity", samlIdentity)
 	d.Set("scim_identity", scimIdentity)
+	d.Set("login", login)
+	d.Set("username", login)
 	return nil
 }
