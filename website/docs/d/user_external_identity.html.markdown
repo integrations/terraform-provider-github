@@ -2,29 +2,50 @@
 layout: "github"
 page_title: "GitHub: github_user_external_identity"
 description: |-
-  Get information on user's identity in extrenal IDP.
+  Get a specific organization member's SAML/SCIM linked external identity 
 ---
 
 # github_user_external_identity
 
-Use this data source to find out the external IDP identity of a user inside a specific GitHub Organization. See more about external IDP:s [here](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-saml-single-sign-on-for-your-organization/connecting-your-identity-provider-to-your-organization).
+Use this data source to retrieve a specific organization member's SAML or SCIM user
+attributes.
 
 ## Example Usage
 
 ```hcl
-data "github_user_external_identity" "test" {
-  username        = "username"
-  organization    = "github-org"
+data "github_user_external_identity" "example_user" {
+  username = "example-user"
 }
 ```
 
 ## Argument Reference
 
- * `username` - (Required) The username to lookup in the organization.
+The following arguments are supported:
 
- * `organization` - (Optional) The organization to check for the above username. If left empty, the Organization configured in the provider itself will be used
+- `username` - (Required) The username of the member to fetch external identity for.
 
 ## Attributes Reference
 
- * `saml_identity` - The SAML information from the external IDP
- * `scim_identity` - The SCIM information from the external IDP
+- `login` - The username of the GitHub user
+- `saml_identity` - An Object containing the user's SAML data. This object will
+  be empty if the user is not managed by SAML.
+- `scim_identity` - An Object contining the user's SCIM data. This object will
+  be empty if the user is not managed by SCIM.
+
+---
+
+If a user is managed by SAML, the `saml_identity` object will contain:
+
+- `name_id` - The member's SAML NameID
+- `username` - The member's SAML Username
+- `family_name` - The member's SAML Family Name
+- `given_name` - The member's SAML Given Name
+
+---
+
+If a user is managed by SCIM, the `scim_identity` object will contain:
+
+- `scim_username` - The member's SCIM Username. (will be empty string if user is
+  not managed by SCIM)
+- `scim_family_name` - The member's SCIM Family Name
+- `scim_given_name` - The member's SCIM Given Name
