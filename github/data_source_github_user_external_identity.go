@@ -45,32 +45,10 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 
-	if configuredOrg := d.Get("organization").(string); configuredOrg != "" {
-		orgName = configuredOrg
-	}
-
 	var query struct {
 		Organization struct {
 			SamlIdentityProvider struct {
-				ExternalIdentities struct {
-					Nodes []struct {
-						ID   githubv4.String
-						User struct {
-							Login githubv4.String
-						}
-						SamlIdentity struct {
-							FamilyName githubv4.String
-							GivenName githubv4.String
-							NameID   githubv4.String
-							Username githubv4.String
-						}
-						ScimIdentity struct {
-							FamilyName githubv4.String
-							GivenName githubv4.String
-							Username githubv4.String
-						}
-					}
-				} `graphql:"externalIdentities(first: 1, login:$username)"` // There should only ever be one external identity configured
+				ExternalIdentities `graphql:"externalIdentities(first: 1, login:$username)"` // There should only ever be one external identity configured
 			}
 		} `graphql:"organization(login: $orgName)"`
 	}

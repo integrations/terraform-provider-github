@@ -5,6 +5,31 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+type ExternalIdentities struct {
+	Edges []struct {
+		Node struct {
+			User struct {
+				Login githubv4.String
+			}
+			SamlIdentity struct {
+				NameId     githubv4.String
+				Username   githubv4.String
+				GivenName  githubv4.String
+				FamilyName githubv4.String
+			}
+			ScimIdentity struct {
+				Username   githubv4.String
+				GivenName  githubv4.String
+				FamilyName githubv4.String
+			}
+		}
+	}
+	PageInfo struct {
+		EndCursor   githubv4.String
+		HasNextPage bool
+	}
+}
+
 func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubOrganizationExternalIdentitiesRead,
@@ -49,30 +74,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 	var query struct {
 		Organization struct {
 			SamlIdentityProvider struct {
-				ExternalIdentities struct {
-					Edges []struct {
-						Node struct {
-							User struct {
-								Login githubv4.String
-							}
-							SamlIdentity struct {
-								NameId     githubv4.String
-								Username   githubv4.String
-								GivenName  githubv4.String
-								FamilyName githubv4.String
-							}
-							ScimIdentity struct {
-								Username   githubv4.String
-								GivenName  githubv4.String
-								FamilyName githubv4.String
-							}
-						}
-					}
-					PageInfo struct {
-						EndCursor   githubv4.String
-						HasNextPage bool
-					}
-				} `graphql:"externalIdentities(first: 100, after: $after)"`
+				ExternalIdentities `graphql:"externalIdentities(first: 100, after: $after)"`
 			}
 		} `graphql:"organization(login: $login)"`
 	}
