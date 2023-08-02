@@ -115,6 +115,80 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
+		if isEnterprise != "true" {
+			t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+		}
+
+		if testEnterprise == "" {
+			t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+		}
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+				auto_init = false
+			}
+
+			resource "github_repository_environment" "example" {
+				environment  = "test"
+				repository   = github_repository.test.name
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					branch_name_pattern {
+						name     = "test"
+						negate   = false
+						operator = "starts_with"
+						pattern  = "test"
+					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test", "name",
+				"test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test", "enforcement",
+				"active",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
 	t.Run("Updates a ruleset name without error", func(t *testing.T) {
 
 		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
@@ -198,14 +272,56 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			  auto_init 	 = false
 			}
 
+			resource "github_repository_environment" "example" {
+				environment  = "test"
+				repository   = github_repository.test.name
+			}
+
 			resource "github_repository_ruleset" "test" {
-				name        = "tf-acc-test-import-%[1]s"
+				name        = "test"
 				repository  = github_repository.test.id
 				target      = "branch"
 				enforcement = "active"
 
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
 				rules {
 					creation = true
+
+					update = true
+
+					deletion                = true
+					required_linear_history = true
+
+					required_deployments {
+						required_deployment_environments = ["test"]
+					}
+
+					required_signatures = false
+
+					pull_request {
+						required_approving_review_count   = 2
+						required_review_thread_resolution = true
+						require_code_owner_review         = true
+						dismiss_stale_reviews_on_push     = true
+						require_last_push_approval        = true
+					}
+
+					required_status_checks {
+					
+						required_check {
+							context = "ci"
+						}
+						
+						strict_required_status_checks_policy = true
+					}
+
+					non_fast_forward = true
 				}
 			}
 		`, randomID)

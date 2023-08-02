@@ -174,7 +174,7 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 		repositoryNameSlice := make([]map[string]interface{}, 0)
 
 		if conditions.RepositoryName != nil {
-			repositoryNameSlice = append(refNameSlice, map[string]interface{}{
+			repositoryNameSlice = append(repositoryNameSlice, map[string]interface{}{
 				"include":   conditions.RepositoryName.Include,
 				"exclude":   conditions.RepositoryName.Exclude,
 				"protected": *conditions.RepositoryName.Protected,
@@ -204,7 +204,13 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	}
 
 	if v, ok := rulesMap["update"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewUpdateRule())
+		params := github.UpdateAllowsFetchAndMergeRuleParameters{}
+		if fetchAndMerge, ok := rulesMap["update"].(bool); ok && fetchAndMerge {
+			params.UpdateAllowsFetchAndMerge = true
+		} else {
+			params.UpdateAllowsFetchAndMerge = false
+		}
+		rulesSlice = append(rulesSlice, github.NewUpdateRule(&params))
 	}
 
 	if v, ok := rulesMap["deletion"].(bool); ok && v {
@@ -326,7 +332,21 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 	rulesMap := make(map[string]interface{})
 	for _, v := range rules {
 		switch v.Type {
-		case "creation", "update", "deletion", "required_linear_history", "required_signatures", "non_fast_forward":
+		case "creation", "deletion", "required_linear_history", "required_signatures", "non_fast_forward":
+			rulesMap[v.Type] = true
+
+		case "update":
+			var params github.UpdateAllowsFetchAndMergeRuleParameters
+			if v.Parameters != nil {
+				err := json.Unmarshal(*v.Parameters, &params)
+				if err != nil {
+					log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+						v.Type, v.Parameters)
+				}
+				rulesMap["update_allows_fetch_and_merge"] = params.UpdateAllowsFetchAndMerge
+			} else {
+				rulesMap["update_allows_fetch_and_merge"] = false
+			}
 			rulesMap[v.Type] = true
 
 		case "commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern":

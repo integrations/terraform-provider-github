@@ -238,7 +238,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Type:        schema.TypeSet,
 										MinItems:    1,
 										Required:    true,
-										Description: "Status checks that are required.",
+										Description: "Status checks that are required. Several can be defined.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"context": {
@@ -359,10 +359,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"branch_name_pattern": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Parameters to be used for the branch_name_pattern rule.",
+							Type:          schema.TypeList,
+							MaxItems:      1,
+							Optional:      true,
+							ConflictsWith: []string{"rules.0.tag_name_pattern"},
+							Description:   "Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -389,10 +390,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"tag_name_pattern": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Parameters to be used for the tag_name_pattern rule.",
+							Type:          schema.TypeList,
+							MaxItems:      1,
+							Optional:      true,
+							ConflictsWith: []string{"rules.0.branch_name_pattern"},
+							Description:   "Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {

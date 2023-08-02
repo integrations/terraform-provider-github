@@ -48,7 +48,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
-
 			"bypass_actors": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -135,6 +134,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Only allow users with bypass permission to update matching refs.",
+						},
+						"update_allows_fetch_and_merge": {
+							Type:         schema.TypeBool,
+							Optional:     true,
+							Default:      false,
+							RequiredWith: []string{"rules.0.update"},
+							Description:  "Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`.",
 						},
 						"deletion": {
 							Type:        schema.TypeBool,
@@ -254,7 +260,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the commit_message_pattern rule.",
+							Description: "Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -284,7 +290,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the commit_author_email_pattern rule.",
+							Description: "Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -314,7 +320,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the committer_email_pattern rule.",
+							Description: "Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -341,10 +347,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							},
 						},
 						"branch_name_pattern": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Parameters to be used for the branch_name_pattern rule.",
+							Type:          schema.TypeList,
+							MaxItems:      1,
+							Optional:      true,
+							ConflictsWith: []string{"rules.0.tag_name_pattern"},
+							Description:   "Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -371,10 +378,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							},
 						},
 						"tag_name_pattern": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Parameters to be used for the tag_name_pattern rule.",
+							Type:          schema.TypeList,
+							MaxItems:      1,
+							Optional:      true,
+							ConflictsWith: []string{"rules.0.branch_name_pattern"},
+							Description:   "Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
