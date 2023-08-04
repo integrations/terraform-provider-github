@@ -43,8 +43,8 @@ If a user is managed by SAML, the `saml_identity` object will contain:
 
 If a user is managed by SCIM, the `scim_identity` object will contain:
 
-- `scim_username` - The member's SCIM Username. (will be empty string if user is
-  not managed by SCIM)
-- `scim_groups` - The member's SCIM Groups
-- `scim_family_name` - The member's SCIM Family Name
-- `scim_given_name` - The member's SCIM Given Name
+- `username` - The member's SCIM Username. (will be empty string if user is not
+  managed by SCIM)
+- `groups` - The member's SCIM Groups
+- `family_name` - The member's SCIM Family Name
+- `given_name` - The member's SCIM Given Name
