@@ -41,7 +41,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in provider configuration.",
+				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration.",
 			},
 			"description": {
 				Type:        schema.TypeString,
