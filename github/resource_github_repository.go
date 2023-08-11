@@ -465,32 +465,28 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return &github.Repository{
-		Name:                     github.String(d.Get("name").(string)),
-		Description:              github.String(d.Get("description").(string)),
-		Homepage:                 github.String(d.Get("homepage_url").(string)),
-		Visibility:               github.String(calculateVisibility(d)),
-		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
-		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
-		HasDiscussions:           github.Bool(d.Get("has_discussions").(bool)),
-		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
-		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
-		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
-		AllowMergeCommit:         github.Bool(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
-		SquashMergeCommitTitle:   github.String(d.Get("squash_merge_commit_title").(string)),
-		SquashMergeCommitMessage: github.String(d.Get("squash_merge_commit_message").(string)),
-		MergeCommitTitle:         github.String(d.Get("merge_commit_title").(string)),
-		MergeCommitMessage:       github.String(d.Get("merge_commit_message").(string)),
-		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
-		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
-		LicenseTemplate:          github.String(d.Get("license_template").(string)),
-		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
-		Archived:                 github.Bool(d.Get("archived").(bool)),
-		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
-		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
-		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
+		Name:                github.String(d.Get("name").(string)),
+		Description:         github.String(d.Get("description").(string)),
+		Homepage:            github.String(d.Get("homepage_url").(string)),
+		Visibility:          github.String(calculateVisibility(d)),
+		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
+		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
+		HasDiscussions:      github.Bool(d.Get("has_discussions").(bool)),
+		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
+		HasWiki:             github.Bool(d.Get("has_wiki").(bool)),
+		IsTemplate:          github.Bool(d.Get("is_template").(bool)),
+		AllowMergeCommit:    github.Bool(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
+		AllowAutoMerge:      github.Bool(d.Get("allow_auto_merge").(bool)),
+		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
+		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
+		LicenseTemplate:     github.String(d.Get("license_template").(string)),
+		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
+		Archived:            github.Bool(d.Get("archived").(bool)),
+		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:   github.Bool(d.Get("allow_update_branch").(bool)),
+		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
 	}
 }
 
@@ -520,6 +516,24 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	if ok {
 		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
+		}
+	}
+
+	// only configure merge commit if we are in commit merge strategy
+	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
+	if ok {
+		if allowMergeCommit {
+			repoReq.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
+			repoReq.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+		}
+	}
+
+	// only configure squash commit if we are in squash merge strategy
+	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
+	if ok {
+		if allowSquashMerge {
+			repoReq.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
+			repoReq.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
 		}
 	}
 
