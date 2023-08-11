@@ -17,6 +17,10 @@ data "github_organization" "example" {
 }
 ```
 
+## Argument Reference
+
+* `ignore_archived_repos` - Whether or not to include archived repos in the `repositories` list
+
 ## Attributes Reference
 
  * `id` - The ID of the organization
