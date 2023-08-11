@@ -23,9 +23,11 @@ resource "github_repository_environment" "env" {
 }
 
 resource "github_repository_deployment_branch_policy" "foo" {
-  repository = "my_repo"
+  depends_on = [github_repository_environment.env]
+
+  repository       = "my_repo"
   environment_name = "my_env"
-  name = "foo"
+  name             = "foo"
 }
 ```
 
@@ -36,7 +38,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository to create the policy in.
 
-* `environment_name` - (Required) The name of the environment. This environment must have `deployment_branch_policy.custom_branch_policies` set to true.
+* `environment_name` - (Required) The name of the environment. This environment must have `deployment_branch_policy.custom_branch_policies` set to true or a 404 error will be thrown.
 
 * `name` - (Required) The name pattern that branches must match in order to deploy to the environment.
 
