@@ -1,28 +1,30 @@
 ---
 layout: "github"
-page_title: "GitHub: github_organization_external_identities"
+page_title: "GitHub: github_user_external_identity"
 description: |-
-  Get a list of organization members and their SAML linked external identity NameID
+  Get a specific organization member's SAML/SCIM linked external identity 
 ---
 
-# github_organization_external_identities
+# github_user_external_identity
 
-Use this data source to retrieve each organization member's SAML or SCIM user
+Use this data source to retrieve a specific organization member's SAML or SCIM user
 attributes.
 
 ## Example Usage
 
 ```hcl
-data "github_organization_external_identities" "all" {}
+data "github_user_external_identity" "example_user" {
+  username = "example-user"
+}
 ```
 
+## Argument Reference
+
+The following arguments are supported:
+
+- `username` - (Required) The username of the member to fetch external identity for.
+
 ## Attributes Reference
-
-- `identities` - An Array of identities returned from GitHub
-
----
-
-Each element in the `identities` block consists of:
 
 - `login` - The username of the GitHub user
 - `saml_identity` - An Object containing the user's SAML data. This object will
@@ -43,8 +45,7 @@ If a user is managed by SAML, the `saml_identity` object will contain:
 
 If a user is managed by SCIM, the `scim_identity` object will contain:
 
-- `username` - The member's SCIM Username. (will be empty string if user is not
-  managed by SCIM)
-- `groups` - The member's SCIM Groups
-- `family_name` - The member's SCIM Family Name
-- `given_name` - The member's SCIM Given Name
+- `scim_username` - The member's SCIM Username. (will be empty string if user is
+  not managed by SCIM)
+- `scim_family_name` - The member's SCIM Family Name
+- `scim_given_name` - The member's SCIM Given Name
