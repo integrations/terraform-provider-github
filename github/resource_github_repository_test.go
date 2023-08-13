@@ -865,7 +865,7 @@ func TestAccGithubRepositories(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-	t.Run("updates a repositories name without error", func(t *testing.T) {
+	t.Run("create a repository with go as primary_language", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-%s"
