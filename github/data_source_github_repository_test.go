@@ -351,7 +351,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						// Not doing any checks since the file needs to be created before the language can be updated
+						// Not doing any checks since the language doesnt have time to be updated on the first apply
 						Config: config,
 					},
 					{
