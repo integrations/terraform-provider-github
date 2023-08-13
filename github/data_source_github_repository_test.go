@@ -327,22 +327,14 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 				name = "tf-acc-%s"
 				auto_init = true
 			}
-			
-			resource "github_repository_file" "test_1" {
+			resource "github_repository_file" "test" {
 				repository     = github_repository.test.name
-				file           = "test_1.go"
+				file           = "test.go"
 				content        = "package main"
 			}
 
-			# Calling the datasource directly after the file is created doesnt give it time to update the primary_language. Create a second one to give it more time (see https://github.com/integrations/terraform-provider-github/pull/1836 for reference)
-			resource "github_repository_file" "test_2" {
-				repository     = github_repository_file.test_1.repository
-				file           = "test_2.go"
-				content        = "package main"
-			}
-			
 			data "github_repository" "test" {
-				name = github_repository_file.test_2.repository
+				name = github_repository_file.test.repository
 			}
 		`, randomID)
 
@@ -359,6 +351,11 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
+						// Not doing any checks since the file needs to be created before the language can be updated
+						Config: config,
+					},
+					{
+						// Re-running the terraform will refresh the language since the go-file has been created
 						Config: config,
 						Check:  check,
 					},
