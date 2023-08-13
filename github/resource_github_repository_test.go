@@ -897,7 +897,7 @@ func TestAccGithubRepositories(t *testing.T) {
 					{
 						// Re-running the terraform will refresh the language since the go-file has been created
 						Config: config,
-						Check: check,
+						Check:  check,
 					},
 				},
 			})
