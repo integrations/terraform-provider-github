@@ -269,4 +269,114 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		})
 
 	})
+
+	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%s"
+			}
+
+			data "github_repository" "test" {
+				name = github_repository.test.name
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "primary_language",
+				"",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%s"
+				auto_init = true
+			}
+			
+			resource "github_repository_file" "test_1" {
+				repository     = github_repository.test.name
+				file           = "test_1.go"
+				content        = "package main"
+			}
+
+			# Calling the datasource directly after the file is created doesnt give it time to update the primary_language. Create a second one to give it more time (see https://github.com/integrations/terraform-provider-github/pull/1836 for reference)
+			resource "github_repository_file" "test_2" {
+				repository     = github_repository_file.test_1.repository
+				file           = "test_2.go"
+				content        = "package main"
+			}
+			
+			data "github_repository" "test" {
+				name = github_repository_file.test_2.repository
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "primary_language",
+				"Go",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }
