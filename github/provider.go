@@ -115,6 +115,7 @@ func Provider() terraform.ResourceProvider {
 			"github_branch_protection":                                              resourceGithubBranchProtection(),
 			"github_branch_protection_v3":                                           resourceGithubBranchProtectionV3(),
 			"github_codespaces_organization_secret":                                 resourceGithubCodespacesOrganizationSecret(),
+			"github_codespaces_organization_secret_repositories":                    resourceGithubCodespacesOrganizationSecretRepositories(),
 			"github_codespaces_secret":                                              resourceGithubCodespacesSecret(),
 			"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
 			"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
