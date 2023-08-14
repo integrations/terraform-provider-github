@@ -219,6 +219,7 @@ func Provider() terraform.ResourceProvider {
 			"github_team":                                                           dataSourceGithubTeam(),
 			"github_tree":                                                           dataSourceGithubTree(),
 			"github_user":                                                           dataSourceGithubUser(),
+			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 		},
