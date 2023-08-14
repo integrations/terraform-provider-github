@@ -770,6 +770,102 @@ func TestAccGithubRepositories(t *testing.T) {
 		})
 
 	})
+
+	t.Run("modify merge commit strategy without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+
+			  name                 = "tf-acc-test-modify-co-str-%[1]s"
+			  allow_merge_commit   = true
+			  merge_commit_title   = "PR_TITLE"
+			  merge_commit_message = "BLANK"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"PR_TITLE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_message",
+				"BLANK",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("modify squash merge strategy without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name                        = "tf-acc-test-modify-sq-str-%[1]s"
+			  allow_squash_merge          = true
+			  squash_merge_commit_title   = "PR_TITLE"
+			  squash_merge_commit_message = "BLANK"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "squash_merge_commit_title",
+				"PR_TITLE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "squash_merge_commit_message",
+				"BLANK",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
 func TestAccGithubRepositoryPages(t *testing.T) {
 
