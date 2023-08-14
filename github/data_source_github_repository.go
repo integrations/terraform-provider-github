@@ -110,6 +110,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"primary_language": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"archived": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -271,6 +275,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("has_downloads", repo.GetHasDownloads())
 	d.Set("full_name", repo.GetFullName())
 	d.Set("default_branch", repo.GetDefaultBranch())
+	d.Set("primary_language", repo.GetLanguage())
 	d.Set("html_url", repo.GetHTMLURL())
 	d.Set("ssh_clone_url", repo.GetSSHURL())
 	d.Set("svn_url", repo.GetSVNURL())
