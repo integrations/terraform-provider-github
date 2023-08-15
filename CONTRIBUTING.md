@@ -180,7 +180,7 @@ export TF_LOG=DEBUG
 # enable testing of organization scenarios instead of individual or anonymous
 export GITHUB_ORGANIZATION=
 
-# enable testing of individual scenarios instead of organizaiton or anonymous
+# enable testing of individual scenarios instead of organization or anonymous
 export GITHUB_OWNER=
 
 # enable testing of enterprise appliances

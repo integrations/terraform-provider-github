@@ -352,6 +352,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"primary_language": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"template": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -642,6 +646,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", repoName)
 	d.Set("description", repo.GetDescription())
+	d.Set("primary_language", repo.GetLanguage())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())
 	d.Set("visibility", repo.GetVisibility())

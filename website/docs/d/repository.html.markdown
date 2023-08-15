@@ -69,6 +69,8 @@ The following arguments are supported:
 
 * `default_branch` - The name of the default branch of the repository.
 
+* `primary_language` - The primary language used in the repository.
+
 * `archived` - Whether the repository is archived.
 
 * `pages` - The repository's GitHub Pages configuration.
