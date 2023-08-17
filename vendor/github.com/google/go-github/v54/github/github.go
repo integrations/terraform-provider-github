@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	Version = "v53.2.0"
+	Version = "v54.0.0"
 
 	defaultAPIVersion = "2022-11-28"
 	defaultBaseURL    = "https://api.github.com/"
@@ -126,9 +126,6 @@ const (
 	// https://developer.github.com/changes/2019-04-24-vulnerability-alerts/
 	mediaTypeRequiredVulnerabilityAlertsPreview = "application/vnd.github.dorian-preview+json"
 
-	// https://developer.github.com/changes/2019-06-04-automated-security-fixes/
-	mediaTypeRequiredAutomatedSecurityFixesPreview = "application/vnd.github.london-preview+json"
-
 	// https://developer.github.com/changes/2019-05-29-update-branch-api/
 	mediaTypeUpdatePullRequestBranchPreview = "application/vnd.github.lydian-preview+json"
 
@@ -179,36 +176,38 @@ type Client struct {
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services used for talking to different parts of the GitHub API.
-	Actions        *ActionsService
-	Activity       *ActivityService
-	Admin          *AdminService
-	Apps           *AppsService
-	Authorizations *AuthorizationsService
-	Billing        *BillingService
-	Checks         *ChecksService
-	CodeScanning   *CodeScanningService
-	Codespaces     *CodespacesService
-	Dependabot     *DependabotService
-	Enterprise     *EnterpriseService
-	Gists          *GistsService
-	Git            *GitService
-	Gitignores     *GitignoresService
-	Interactions   *InteractionsService
-	IssueImport    *IssueImportService
-	Issues         *IssuesService
-	Licenses       *LicensesService
-	Marketplace    *MarketplaceService
-	Migrations     *MigrationService
-	Organizations  *OrganizationsService
-	Projects       *ProjectsService
-	PullRequests   *PullRequestsService
-	Reactions      *ReactionsService
-	Repositories   *RepositoriesService
-	SCIM           *SCIMService
-	Search         *SearchService
-	SecretScanning *SecretScanningService
-	Teams          *TeamsService
-	Users          *UsersService
+	Actions            *ActionsService
+	Activity           *ActivityService
+	Admin              *AdminService
+	Apps               *AppsService
+	Authorizations     *AuthorizationsService
+	Billing            *BillingService
+	Checks             *ChecksService
+	CodeScanning       *CodeScanningService
+	Codespaces         *CodespacesService
+	Dependabot         *DependabotService
+	DependencyGraph    *DependencyGraphService
+	Enterprise         *EnterpriseService
+	Gists              *GistsService
+	Git                *GitService
+	Gitignores         *GitignoresService
+	Interactions       *InteractionsService
+	IssueImport        *IssueImportService
+	Issues             *IssuesService
+	Licenses           *LicensesService
+	Marketplace        *MarketplaceService
+	Migrations         *MigrationService
+	Organizations      *OrganizationsService
+	Projects           *ProjectsService
+	PullRequests       *PullRequestsService
+	Reactions          *ReactionsService
+	Repositories       *RepositoriesService
+	SCIM               *SCIMService
+	Search             *SearchService
+	SecretScanning     *SecretScanningService
+	SecurityAdvisories *SecurityAdvisoriesService
+	Teams              *TeamsService
+	Users              *UsersService
 }
 
 type service struct {
@@ -328,6 +327,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.CodeScanning = (*CodeScanningService)(&c.common)
 	c.Codespaces = (*CodespacesService)(&c.common)
 	c.Dependabot = (*DependabotService)(&c.common)
+	c.DependencyGraph = (*DependencyGraphService)(&c.common)
 	c.Enterprise = (*EnterpriseService)(&c.common)
 	c.Gists = (*GistsService)(&c.common)
 	c.Git = (*GitService)(&c.common)
@@ -346,6 +346,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.SCIM = (*SCIMService)(&c.common)
 	c.Search = (*SearchService)(&c.common)
 	c.SecretScanning = (*SecretScanningService)(&c.common)
+	c.SecurityAdvisories = (*SecurityAdvisoriesService)(&c.common)
 	c.Teams = (*TeamsService)(&c.common)
 	c.Users = (*UsersService)(&c.common)
 	return c
@@ -1052,7 +1053,7 @@ func (ae *AcceptedError) Is(target error) bool {
 	if !ok {
 		return false
 	}
-	return bytes.Compare(ae.Raw, v.Raw) == 0
+	return bytes.Equal(ae.Raw, v.Raw)
 }
 
 // AbuseRateLimitError occurs when GitHub returns 403 Forbidden response with the
