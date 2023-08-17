@@ -302,7 +302,7 @@ func resourceGithubRepository() *schema.Resource {
 			"topics": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Computed: true,
+				Computed:    true,
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
