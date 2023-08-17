@@ -302,6 +302,7 @@ func resourceGithubRepository() *schema.Resource {
 			"topics": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
@@ -468,7 +469,7 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	return &github.Repository{
+	repository := github.Repository{
 		Name:                github.String(d.Get("name").(string)),
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
@@ -488,10 +489,14 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		LicenseTemplate:     github.String(d.Get("license_template").(string)),
 		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
 		Archived:            github.Bool(d.Get("archived").(bool)),
-		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
 		AllowUpdateBranch:   github.Bool(d.Get("allow_update_branch").(bool)),
 		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
 	}
+	if topics, ok := d.GetOk("topics"); ok {
+		repository.Topics = expandStringList(topics.(*schema.Set).List())
+	}
+
+	return &repository
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
