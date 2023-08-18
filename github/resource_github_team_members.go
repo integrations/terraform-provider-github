@@ -205,7 +205,11 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 						}
 						Role string
 					}
-				} `graphql:"members(membership:IMMEDIATE)"`
+					PageInfo struct {
+						EndCursor   githubv4.String
+						HasNextPage bool
+					}
+				} `graphql:"members(membership:IMMEDIATE, first:100, after: $after)"`
 			} `graphql:"team(slug:$teamSlug)"`
 		} `graphql:"organization(login:$orgName)"`
 	}
@@ -213,19 +217,26 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	variables := map[string]interface{}{
 		"teamSlug": githubv4.String(teamSlug),
 		"orgName":  githubv4.String(orgName),
+		"after":    (*githubv4.String)(nil),
 	}
 
-	if err := client.Query(ctx, &q, variables); err != nil {
-		return err
-	}
-
-	teamMembersAndMaintainers := make([]interface{}, len(q.Organization.Team.Members.Edges))
-	// Add all members to the list
-	for i, member := range q.Organization.Team.Members.Edges {
-		teamMembersAndMaintainers[i] = map[string]interface{}{
-			"username": member.Node.Login,
-			"role":     strings.ToLower(member.Role),
+	var teamMembersAndMaintainers []interface{}
+	for {
+		if err := client.Query(ctx, &q, variables); err != nil {
+			return err
 		}
+
+		// Add all members to the list
+		for _, member := range q.Organization.Team.Members.Edges {
+			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]interface{}{
+				"username": member.Node.Login,
+				"role":     strings.ToLower(member.Role),
+			})
+		}
+		if !q.Organization.Team.Members.PageInfo.HasNextPage {
+			break
+		}
+		variables["after"] = githubv4.NewString(q.Organization.Team.Members.PageInfo.EndCursor)
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
