@@ -136,6 +136,7 @@ func Provider() terraform.ResourceProvider {
 			"github_release":                                                        resourceGithubRelease(),
 			"github_repository":                                                     resourceGithubRepository(),
 			"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
+			"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
 			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 			"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
 			"github_repository_deploy_key":                                          resourceGithubRepositoryDeployKey(),
