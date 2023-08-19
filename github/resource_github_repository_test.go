@@ -770,6 +770,153 @@ func TestAccGithubRepositories(t *testing.T) {
 		})
 
 	})
+
+	t.Run("modify merge commit strategy without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+
+			  name                 = "tf-acc-test-modify-co-str-%[1]s"
+			  allow_merge_commit   = true
+			  merge_commit_title   = "PR_TITLE"
+			  merge_commit_message = "BLANK"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"PR_TITLE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_message",
+				"BLANK",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("modify squash merge strategy without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name                        = "tf-acc-test-modify-sq-str-%[1]s"
+			  allow_squash_merge          = true
+			  squash_merge_commit_title   = "PR_TITLE"
+			  squash_merge_commit_message = "BLANK"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "squash_merge_commit_title",
+				"PR_TITLE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "squash_merge_commit_message",
+				"BLANK",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+	t.Run("create a repository with go as primary_language", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%s"
+				auto_init = true
+			}
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test.go"
+				content        = "package main"
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "primary_language",
+				"Go",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						// Not doing any checks since the file needs to be created before the language can be updated
+						Config: config,
+					},
+					{
+						// Re-running the terraform will refresh the language since the go-file has been created
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 }
 func TestAccGithubRepositoryPages(t *testing.T) {
 
@@ -1453,5 +1600,35 @@ func testCheckResourceAttrContains(resourceName, attributeName, substring string
 		}
 
 		return nil
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	_, err := schema.ValidateFunc(strings.Repeat("a", 101), "name")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	_, err := schema.ValidateFunc("test space", "name")
+	if len(err) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := err[0].Error()
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
 }

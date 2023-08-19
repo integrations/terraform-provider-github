@@ -194,6 +194,8 @@ The following additional attributes are exported:
 
 * `repo_id` - GitHub ID for the repository
 
+* `primary_language` - The primary language used in the repository.
+
 * `pages` - The block consisting of the repository's GitHub Pages configuration with the following additional attributes:
  * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
  * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
