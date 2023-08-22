@@ -58,6 +58,10 @@ resource "github_membership" "membership_for_user_x" {
 
 The GitHub provider offers multiple ways to authenticate with GitHub API.
 
+### GitHub CLI
+
+The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command.
+
 ### OAuth / Personal Access Token
 
 To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
