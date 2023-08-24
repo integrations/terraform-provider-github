@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -75,7 +76,10 @@ func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceD
 
 	ctx := context.Background()
 
-	client.Repositories.DisableAutomatedSecurityFixes(ctx, orgName, repoName)
+	_, err := client.Repositories.DisableAutomatedSecurityFixes(ctx, orgName, repoName)
+	if err != nil {
+		return err
+	}
 
 	return resourceGithubRepositoryDependabotSecurityUpdatesRead(d, meta)
 }
