@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -389,6 +390,175 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 					{
 						Config: configWithoutDisplayName,
 						Check:  checks["unset"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
+			testCase(t, enterprise)
+		})
+
+	})
+
+	t.Run("imports enterprise organization without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		orgName := fmt.Sprintf("tf-acc-test-import%s", randomID)
+
+		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+			  slug = "%s"
+			}
+
+			data "github_user" "current" {
+			  username = ""
+			}
+
+			resource "github_enterprise_organization" "org" {
+			  enterprise_id = data.github_enterprise.enterprise.id
+			  name          = "%s"
+			  billing_email = data.github_user.current.email
+			  admin_logins  = [
+				data.github_user.current.login
+			  ]
+			}
+			  `, testEnterprise, orgName)
+
+		check := resource.ComposeTestCheckFunc()
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:      "github_enterprise_organization.org",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateId:     fmt.Sprintf(`%s/%s`, testEnterprise, orgName),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
+			testCase(t, enterprise)
+		})
+	})
+
+	t.Run("imports enterprise organization invalid enterprise name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
+
+		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+			  slug = "%s"
+			}
+
+			data "github_user" "current" {
+			  username = ""
+			}
+
+			resource "github_enterprise_organization" "org" {
+			  enterprise_id = data.github_enterprise.enterprise.id
+			  name          = "%s"
+			  description   = "org description"
+			  billing_email = data.github_user.current.email
+			  admin_logins  = [
+				data.github_user.current.login
+			  ]
+			}
+			  `, testEnterprise, orgName)
+
+		check := resource.ComposeTestCheckFunc()
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:  "github_enterprise_organization.org",
+						ImportState:   true,
+						ImportStateId: fmt.Sprintf(`%s/%s`, randomID, orgName),
+						ExpectError:   regexp.MustCompile("Could not resolve to a Business with the URL slug of .*"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
+			testCase(t, enterprise)
+		})
+
+	})
+
+	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
+
+		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+			  slug = "%s"
+			}
+
+			data "github_user" "current" {
+			  username = ""
+			}
+
+			resource "github_enterprise_organization" "org" {
+			  enterprise_id = data.github_enterprise.enterprise.id
+			  name          = "%s"
+			  description   = "org description"
+			  billing_email = data.github_user.current.email
+			  admin_logins  = [
+				data.github_user.current.login
+			  ]
+			}
+			  `, testEnterprise, orgName)
+
+		check := resource.ComposeTestCheckFunc()
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:  "github_enterprise_organization.org",
+						ImportState:   true,
+						ImportStateId: fmt.Sprintf(`%s/%s`, testEnterprise, randomID),
+						ExpectError:   regexp.MustCompile("Could not resolve to an Organization with the login of .*"),
 					},
 				},
 			})
