@@ -15,6 +15,7 @@ This resource allows you to create and manage a GitHub enterprise organization.
 resource "github_enterprise_organization" "org" {
   enterprise_id = data.github_enterprise.enterprise.id
   name          = "some-awesome-org"
+  display_name  = "Some Awesome Org"
   description   = "Organization created with terraform"
   billing_email = "jon@winteriscoming.com"
   admin_logins  = [
@@ -28,6 +29,7 @@ resource "github_enterprise_organization" "org" {
 * `enterprise_id` - (Required) The ID of the enterprise.
 * `name` - (Required) The name of the organization.
 * `description` - (Optional) The description of the organization.
+* `display_name` - (Optional) The display name of the organization.
 * `billing_email` - (Required) The billing email address.
 * `admin_logins` - (Required) List of organization owner usernames.
 

@@ -34,6 +34,11 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 				ForceNew:    true,
 				Description: "The name of the organization.",
 			},
+			"display_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The display name of the organization.",
+			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -89,7 +94,7 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 	data.SetId(fmt.Sprintf("%s", mutate.CreateEnterpriseOrganization.Organization.ID))
 
 	//We use the V3 api to set the description of the org, because there is no mutator in the V4 API to edit the org's
-	//description
+	//description and display name
 
 	//NOTE: There is some odd behavior here when using an EMU with SSO. If the user token has been granted permission to
 	//ANY ORG in the enterprise, then this works, provided that our token has sufficient permission. If the user token
@@ -103,12 +108,14 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 	//It would be nice if there was an API available in github to enable a token for SSO.
 
 	description := data.Get("description").(string)
-	if description != "" {
+	displayName := data.Get("display_name").(string)
+	if description != "" || displayName != "" {
 		_, _, err = v3.Organizations.Edit(
 			context.Background(),
 			data.Get("name").(string),
 			&github.Organization{
 				Description: github.String(description),
+				Name:        github.String(displayName),
 			},
 		)
 		return err
@@ -123,6 +130,7 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 			Organization struct {
 				ID                       githubv4.ID
 				Name                     githubv4.String
+				Login                    githubv4.String
 				Description              githubv4.String
 				OrganizationBillingEmail githubv4.String
 				MembersWithRole          struct {
@@ -175,9 +183,16 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 		return err
 	}
 
-	err = data.Set("name", query.Node.Organization.Name)
+	err = data.Set("name", query.Node.Organization.Login)
 	if err != nil {
 		return err
+	}
+
+	if query.Node.Organization.Name != query.Node.Organization.Login {
+		err = data.Set("display_name", query.Node.Organization.Name)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = data.Set("billing_email", query.Node.Organization.OrganizationBillingEmail)
@@ -219,6 +234,23 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			orgName,
 			&github.Organization{
 				Description: github.String(data.Get("description").(string)),
+			},
+		)
+		return err
+	}
+	return nil
+}
+
+func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *github.Client) error {
+	orgName := data.Get("name").(string)
+	oldDisplayName, newDisplayName := stringChanges(data.GetChange("display_name"))
+
+	if oldDisplayName != newDisplayName {
+		_, _, err := v4.Organizations.Edit(
+			ctx,
+			orgName,
+			&github.Organization{
+				Name: github.String(data.Get("display_name").(string)),
 			},
 		)
 		return err
@@ -342,7 +374,12 @@ func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, meta 
 	v4 := meta.(*Owner).v4client
 	ctx := context.Background()
 
-	err := updateDescription(ctx, data, v3)
+	err := updateDisplayName(ctx, data, v3)
+	if err != nil {
+		return err
+	}
+
+	err = updateDescription(ctx, data, v3)
 	if err != nil {
 		return err
 	}
