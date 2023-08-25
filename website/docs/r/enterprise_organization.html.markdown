@@ -41,4 +41,8 @@ The following additional attributes are exported:
 
 ## Import
 
-Support for importing organizations is not currently supported.
+GitHub Enterprise Organization can be imported using the `slug` of the enterprise, combined with the `orgname` of the organization, separated by a `/` character.
+
+```
+$ terraform import github_enterprise_organization.org enterp/some-awesome-org
+```

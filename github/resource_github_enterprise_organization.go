@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -221,7 +220,59 @@ func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta 
 }
 
 func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return nil, errors.New("support for import is not yet implemented")
+	parts := strings.Split(data.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>/<org_name>")
+	}
+
+	v4 := meta.(*Owner).v4client
+	ctx := context.Background()
+
+	enterpriseId, err := getEnterpriseId(ctx, v4, parts[0])
+	if err != nil {
+		return nil, err
+	}
+	data.Set("enterprise_id", enterpriseId)
+
+	orgId, err := getOrganizationId(ctx, v4, parts[1])
+	if err != nil {
+		return nil, err
+	}
+	data.SetId(orgId)
+
+	err = resourceGithubEnterpriseOrganizationRead(data, meta)
+	if err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{data}, nil
+}
+
+func getEnterpriseId(ctx context.Context, v4 *githubv4.Client, enterpriseSlug string) (string, error) {
+	var query struct {
+		Enterprise struct {
+			ID githubv4.String
+		} `graphql:"enterprise(slug: $enterpriseSlug)"`
+	}
+
+	err := v4.Query(ctx, &query, map[string]interface{}{"enterpriseSlug": githubv4.String(enterpriseSlug)})
+	if err != nil {
+		return "", err
+	}
+	return string(query.Enterprise.ID), nil
+}
+
+func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string) (string, error) {
+	var query struct {
+		Organization struct {
+			Id githubv4.String
+		} `graphql:"organization(login: $orgName)"`
+	}
+
+	err := v4.Query(ctx, &query, map[string]interface{}{"orgName": githubv4.String(orgName)})
+	if err != nil {
+		return "", err
+	}
+	return string(query.Organization.Id), nil
 }
 
 func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *github.Client) error {
