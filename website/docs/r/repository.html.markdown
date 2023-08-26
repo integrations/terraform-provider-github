@@ -116,7 +116,7 @@ initial repository creation and create the target branch inside of the repositor
 
 * `topics` - (Optional) The list of topics of the repository.
 
-~> Note: This attribute is not compatible with the ``github_repository_topics`` resource. Use one of them
+~> Note: This attribute is not compatible with the ``github_repository_topics`` resource. Use one of them. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource.
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 

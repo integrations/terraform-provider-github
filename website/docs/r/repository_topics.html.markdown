@@ -10,14 +10,13 @@ description: |-
 This resource allows you to create and manage topics for repositories within your GitHub organization or personal account.
 
 ~> Note: This resource is not compatible with the `topic` attribute of the `github_repository` Use either ``github_repository_topics``
-or ``topic`` in ``github_repository``.
+or ``topic`` in ``github_repository``. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource.
 
 ## Example Usage
 
 ```hcl
-resource "github_repository" "test" {
+data "github_repository" "test" {
     name = "test"
-    auto_init = true
 }
 
 resource "github_repository_topics" "test" {
