@@ -60,7 +60,7 @@ The GitHub provider offers multiple ways to authenticate with GitHub API.
 
 ### GitHub CLI
 
-The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command.
+The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command. It is possible to specify the path to the `gh` executable in the `GH_PATH` environment variable, which is useful for when the GitHub Terraform provider can not properly determine its the path to GitHub CLI such as in the cygwin terminal.
 
 ### OAuth / Personal Access Token
 
