@@ -121,12 +121,6 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 		}
 		return err
 	}
-	if err != nil && resp.StatusCode == 304 {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("repository", repoName)
