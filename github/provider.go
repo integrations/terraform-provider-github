@@ -150,6 +150,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
 			"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
 			"github_repository_tag_protection":                                      resourceGithubRepositoryTagProtection(),
+			"github_repository_topics":                                              resourceGithubRepositoryTopics(),
 			"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),
 			"github_team":                                                           resourceGithubTeam(),
 			"github_team_members":                                                   resourceGithubTeamMembers(),

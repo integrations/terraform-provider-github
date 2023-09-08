@@ -116,6 +116,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `topics` - (Optional) The list of topics of the repository.
 
+~> Note: This attribute is not compatible with the `github_repository_topics` resource. Use one of them. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource (see [issue #1845](https://github.com/integrations/terraform-provider-github/issues/1845)).
+
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
 * `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
