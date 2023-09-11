@@ -118,7 +118,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							ConflictsWith: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"include": {
+									"inlcude": {
 										Type:        schema.TypeList,
 										Required:    true,
 										Description: "Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.",
