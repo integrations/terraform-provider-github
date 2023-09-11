@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v54/github"
@@ -105,10 +107,18 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 	}
 
 	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
-	if err != nil && resp.StatusCode == 304 {
-		return nil
-	}
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing deployment branch policy for environment %s: %s from state because it no longer exists in GitHub",
+					repoName, environmentName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
