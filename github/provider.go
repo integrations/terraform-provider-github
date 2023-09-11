@@ -3,6 +3,9 @@ package github
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -335,6 +338,14 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			token = appToken
 		}
 
+		if token == "" {
+			ghAuthToken, err := tokenFromGhCli(baseURL)
+			if err != nil {
+				return nil, fmt.Errorf("gh auth token: %w", err)
+			}
+			token = ghAuthToken
+		}
+
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
 			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
@@ -377,4 +388,31 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		return meta, nil
 	}
+}
+
+// See https://github.com/integrations/terraform-provider-github/issues/1822
+func tokenFromGhCli(baseURL string) (string, error) {
+	ghCliPath := os.Getenv("GH_PATH")
+	if ghCliPath == "" {
+		ghCliPath = "gh"
+	}
+	hostname := ""
+	if baseURL == "" {
+		hostname = "api.github.com"
+	} else {
+		parsedURL, err := url.Parse(baseURL)
+		if err != nil {
+			return "", fmt.Errorf("parse %s: %w", baseURL, err)
+		}
+		hostname = parsedURL.Host
+	}
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+	if err != nil {
+		// GH CLI is either not installed or there was no `gh auth login` command issued,
+		// which is fine. don't return the error to keep the flow going
+		return "", nil
+	}
+
+	log.Printf("[INFO] Using the token from GitHub CLI")
+	return strings.TrimSpace(string(out)), nil
 }
