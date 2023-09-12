@@ -145,7 +145,7 @@ The following provider development overrides are set in the CLI configuration:
 
 ### Developing The Provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.13+ is *required*).
+If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.19+ is *required*).
 
 You may also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`. Recent Go releases may have removed the need for this step however.
 
