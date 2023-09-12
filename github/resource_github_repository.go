@@ -524,23 +524,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	// only configure merge commit if we are in commit merge strategy
-	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
-	if ok {
-		if allowMergeCommit {
-			repoReq.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
-			repoReq.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
-		}
-	}
-
-	// only configure squash commit if we are in squash merge strategy
-	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
-	if ok {
-		if allowSquashMerge {
-			repoReq.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
-			repoReq.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
-		}
-	}
+	configureCommitStrategies(d, repoReq)
 
 	repoReq.Private = github.Bool(isPrivate)
 
@@ -729,6 +713,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 
+	configureCommitStrategies(d, repoReq)
+
 	// handle visibility updates separately from other fields
 	repoReq.Visibility = nil
 
@@ -857,6 +843,26 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
 	return err
+}
+
+func configureCommitStrategies(d *schema.ResourceData, r *github.Repository) {
+	// only configure merge commit if we are in commit merge strategy
+	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
+	if ok {
+		if allowMergeCommit {
+			r.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
+			r.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+		}
+	}
+
+	// only configure squash commit if we are in squash merge strategy
+	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
+	if ok {
+		if allowSquashMerge {
+			r.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
+			r.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
+		}
+	}
 }
 
 func expandPages(input []interface{}) *github.Pages {
