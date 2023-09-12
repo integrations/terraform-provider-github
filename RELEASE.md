@@ -1,12 +1,15 @@
 ## Release Flow
 
-Since the migration to the [Terraform registry](https://registry.terraform.io/), this repository's maintainers now have
-the ability to self-publish Terraform GitHub provider releases. This process uses GitHub Actions
-and [`goreleaser`](https://github.com/goreleaser/goreleaser) to build, sign, and upload provider binaries to a GitHub release.
+The release process uses GitHub Actions and [`goreleaser`](https://github.com/goreleaser/goreleaser) to build, sign, and upload provider binaries to a GitHub release.
 
 The release flow is as follows:
 1. Navigate to the [repository's Releases page](https://github.com/integrations/terraform-provider-github/releases) and click "Draft a new release".
 1. Create a new tag that makes sense with the project's semantic versioning.
+	1. Before releasing a major version, check the following:
+		- Read [this doc](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning#versioning-specification) for Hashicorp's major release guidance.
+		- Ensure there hasn't been a major release in the past year.
+		- Check all [major-release-tagged](https://github.com/integrations/terraform-provider-github/pulls?q=label%3AvNext) PRs and add them to the release branch as appropriate.
+		- Ensure all applicable schema changes include [schema migration functions](https://github.com/integrations/terraform-provider-github/blob/a361b158a645282a238cdefa5c40ae950556a4a7/github/migrate_github_repository.go#L20) so consumers' state is not disrupted.
 1. Auto-generate the release notes.
 1. Click "Publish release".
 1. GitHub Actions will trigger the release workflow which can be
