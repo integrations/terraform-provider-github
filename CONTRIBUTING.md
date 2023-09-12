@@ -1,27 +1,27 @@
 # Contributing
 
-Hi there! We're thrilled that you'd like to contribute to this project. Your help is essential for keeping it great.
+Hi there! We're thrilled that you'd like to contribute to this project. Your help is essential to keep it great.
 
 Contributions to this project are [released](https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license) to the public under the [project's open source license](LICENSE).
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
-Before submitting an issue or a pull request, please search the repository for existing content. Issues and PRs with multiple comments/experience reports increase the likelihood of a merged change.
+Before submitting an issue or a pull request, please search the repository for existing content. Issues and PRs with multiple comments, reactions, and experience reports increase the likelihood of a merged change.
 
 ## Submitting a pull request
 
-0. Fork and clone the repository
-0. Create a new branch: `git checkout -b my-branch-name`
-0. Make your change, add tests, and make sure the tests still pass
-0. Push to your fork and submit a pull request
-0. Pat your self on the back and wait for your pull request to be reviewed and merged.
+0. Fork and clone the repository.
+0. Create a new branch: `git switch -c my-branch-name`.
+0. Make your change, add tests, and make sure the tests still pass.
+0. Push to your fork and submit a pull request.
+0. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
-- Discuss your changes with the community in an issue.
 - Allow your pull request to receive edits by maintainers.
+- Discuss your changes with the community in an issue.
 - Write tests.
-- Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, consider submitting them as separate pull requests.
+- Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, please submit them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 
 ## Quick End-To-End Example
@@ -30,7 +30,7 @@ This section describes a typical sequence performed when developing locally. Ful
 
 ### Local Development Setup
 
-Once you have the repository cloned, there's a couple of additional steps you'll need to take. Since most of the testing is acceptance or integration testing, we need to manipulate GitHub resources in order to run it. Useful setup steps are listed below:
+Once you have the repository cloned, there's a couple of additional steps you'll need to take. Since most of the testing is acceptance or integration testing, we need to manipulate real GitHub resources in order to run it. Useful setup steps are listed below:
 
 - If you haven't already, [create a GitHub organization you can use for testing](#github-organization).
   - Optional: some may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
@@ -43,7 +43,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   export GITHUB_ORGANIZATION=<name of an organization>
   ```
 - Build the project with `make build`
-- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v   ./... -run ^TestAccGithubRepositories`. All those tests should pass.
+- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubRepositories`. All those tests should pass.
 
 ### Local Development Iteration
 
@@ -57,7 +57,7 @@ TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 ```
 
-Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests are rewritten to the latest format.
+Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests should be rewritten to the latest format.
 
 Also note that there is no build / `terraform init` / `terraform plan` sequence here.  It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
 
@@ -67,7 +67,7 @@ Println debugging can easily be used to obtain information about how code change
 
 If a full debugger is desired, VSCode may be used. In order to do so,
 
-1. create a launch.json file with this configuration:
+0. Create a launch.json file with this configuration:
 ```json
 {
 	"name": "Attach to Process",
@@ -79,15 +79,15 @@ If a full debugger is desired, VSCode may be used. In order to do so,
 ```
 Setting a `processId` of 0 allows a dropdown to select the process of the provider.
 
-2. Add a sleep call (e.g. `time.Sleep(15 * time.Second)`) in the [func providerConfigure(p *schema.Provider](https://github.com/integrations/terraform-provider-github/blob/main/github/provider.go#L176) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
+0. Add a sleep call (e.g. `time.Sleep(10 * time.Second)`) in the [`func providerConfigure(p *schema.Provider) schema.ConfigureFunc`](https://github.com/integrations/terraform-provider-github/blob/cec7e175c50bb091feecdc96ba117067c35ee351/github/provider.go#L274C1-L274C64) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
 
-2. Build the terraform provider with debug flags enabled and copy it to a bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin`.
+0. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin`.
 
-3. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#building-the-provider) section.
+0. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#building-the-provider) section.
 
-4. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
+0. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
 
-5. The debugger is now connected! During a typical terraform command, the plugin may be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
+0. The debugger is now connected! During a typical terraform command, the plugin will be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
 
 
 ## Automated And Manual Testing
