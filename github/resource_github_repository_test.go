@@ -777,8 +777,8 @@ func TestAccGithubRepositories(t *testing.T) {
 	    updatedMergeCommitTitle := "PR_TITLE"
 	    updatedMergeCommitMessage := "BLANK"
 
-		configs := map[string]string{
-		    "before": fmt.Sprintf(`
+        configs := map[string]string{
+			"before": fmt.Sprintf(`
                 resource "github_repository" "test" {
 
                   name                 = "tf-acc-test-modify-co-str-%[1]s"
@@ -797,7 +797,7 @@ func TestAccGithubRepositories(t *testing.T) {
             `, randomID, updatedMergeCommitTitle, updatedMergeCommitMessage),
 		}
 
-		checks := map[string]resource.TestCheckFunc{
+        checks := map[string]resource.TestCheckFunc{
             "before": resource.ComposeTestCheckFunc(
                 resource.TestCheckResourceAttr(
                     "github_repository.test", "merge_commit_title",
@@ -818,7 +818,7 @@ func TestAccGithubRepositories(t *testing.T) {
                     updatedMergeCommitMessage,
                 ),
             ),
-		}
+        }
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -856,8 +856,8 @@ func TestAccGithubRepositories(t *testing.T) {
 	    updatedSquashMergeCommitTitle := "COMMIT_OR_PR_TITLE"
 	    updatedSquashMergeCommitMessage := "COMMIT_MESSAGES"
 
-		configs := map[string]string{
-		    "before": fmt.Sprintf(`
+        configs := map[string]string{
+			"before": fmt.Sprintf(`
                 resource "github_repository" "test" {
                   name                        = "tf-acc-test-modify-sq-str-%[1]s"
                   allow_squash_merge          = true
@@ -873,9 +873,9 @@ func TestAccGithubRepositories(t *testing.T) {
                   squash_merge_commit_message = "%s"
                 }
             `, randomID, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage),
-		}
+        }
 
-		checks := map[string]resource.TestCheckFunc{
+        checks := map[string]resource.TestCheckFunc{
             "before": resource.ComposeTestCheckFunc(
                 resource.TestCheckResourceAttr(
                     "github_repository.test", "squash_merge_commit_title",
@@ -896,7 +896,7 @@ func TestAccGithubRepositories(t *testing.T) {
                     updatedSquashMergeCommitMessage,
                 ),
             ),
-		}
+        }
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
