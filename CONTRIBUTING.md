@@ -169,3 +169,52 @@ If you do not have an organization already that you are comfortable running test
 Make sure that your organization has a `terraform-template-module` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
 
 If you are interested in using and/or testing GitHub's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
+
+### Example .vscode/launch.json file
+
+This may come in handy when debugging both acceptance and manual testing.
+
+```json
+{
+	// for information on how to debug the provider, see the CONTRIBUTING.md file
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch test function",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			// note that the program file must be in the same package as the test to run,
+			// though it does not necessarily have to be the file that contains the test.
+			"program": "/home/kfcampbell/github/dev/terraform-provider-github/github/resource_github_team_members_test.go",
+			"args": [
+				"-test.v",
+				"-test.run",
+				"^TestAccGithubRepositoryTopics$" // ^ExactMatch$
+			],
+			"env": {
+				"GITHUB_TEST_COLLABORATOR": "kfcampbell-terraform-test-user",
+				"GITHUB_TEST_COLLABORATOR_TOKEN": "ghp_xxx",
+				"GITHUB_TEST_USER": "kfcampbell",
+				"GITHUB_TOKEN": "ghp_xxx",
+				"GITHUB_TEMPLATE_REPOSITORY": "terraform-template-module",
+				"GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID": "12345678",
+				// "GITHUB_OWNER": "kfcampbell-terraform-provider",
+				// "GITHUB_OWNER": "kfcampbell",
+				"GITHUB_ORGANIZATION": "kfcampbell-terraform-provider", // GITHUB_ORGANIZATION is required for organization integration tests
+				"TF_CLI_CONFIG_FILE": "/home/kfcampbell/github/dev/terraform-provider-github/examples/dev.tfrc",
+				"TF_ACC": "1",
+				"TF_LOG": "DEBUG",
+				"APP_INSTALLATION_ID": "12345678"
+			}
+		},
+		{
+			"name": "Attach to Process",
+			"type": "go",
+			"request": "attach",
+			"mode": "local",
+			"processId": 0
+		}
+	]
+}
+```
