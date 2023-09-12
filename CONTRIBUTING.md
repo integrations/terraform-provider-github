@@ -174,7 +174,7 @@ If you are interested in using and/or testing GitHub's [Team synchronization](ht
 
 This may come in handy when debugging both acceptance and manual testing.
 
-```json
+```yaml
 {
 	// for information on how to debug the provider, see the CONTRIBUTING.md file
 	"version": "0.2.0",
