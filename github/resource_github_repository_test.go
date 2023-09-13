@@ -772,10 +772,10 @@ func TestAccGithubRepositories(t *testing.T) {
 	})
 
 	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
-		mergeCommitTitle := "MERGE_MESSAGE"
-	    	mergeCommitMessage := "PR_BODY"
-	    	updatedMergeCommitTitle := "PR_TITLE"
-	    	updatedMergeCommitMessage := "BLANK"
+		mergeCommitTitle := "PR_TITLE"
+	    	mergeCommitMessage := "BLANK"
+	    	updatedMergeCommitTitle := "MERGE_MESSAGE"
+	    	updatedMergeCommitMessage := "PR_TITLE"
 
         	configs := map[string]string{
 			"before": fmt.Sprintf(`
