@@ -406,6 +406,18 @@ func tokenFromGhCli(baseURL string) (string, error) {
 		}
 		hostname = parsedURL.Host
 	}
+	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when 
+	// we're using the standard base path of this provider, it doesn't align 
+	// with the way `gh` CLI stores the credentials. The following doesn't work:
+	//
+	// $ gh auth token --hostname api.github.com
+	// > no oauth token
+	//
+	// ... but the following does work correctly
+	//
+	// $ gh auth token --hostname github.com
+	// > gh..<valid token>
+	hostname = strings.TrimPrefix(hostname, "api.")
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
 	if err != nil {
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
