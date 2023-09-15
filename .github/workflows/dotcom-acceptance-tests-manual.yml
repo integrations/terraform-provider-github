@@ -17,9 +17,12 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
       - name: Acceptance Tests (Anonymous)
         id: acceptance-tests-anonymous
         uses: terraformtesting/acceptance-tests@v2.2.0
@@ -45,9 +48,12 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
         uses: terraformtesting/acceptance-tests@v2.2.0
@@ -78,9 +84,12 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization
