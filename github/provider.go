@@ -406,8 +406,8 @@ func tokenFromGhCli(baseURL string) (string, error) {
 		}
 		hostname = parsedURL.Host
 	}
-	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when 
-	// we're using the standard base path of this provider, it doesn't align 
+	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when
+	// we're using the standard base path of this provider, it doesn't align
 	// with the way `gh` CLI stores the credentials. The following doesn't work:
 	//
 	// $ gh auth token --hostname api.github.com
