@@ -469,7 +469,7 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-    repository := &github.Repository{
+	repository := &github.Repository{
 		Name:                github.String(d.Get("name").(string)),
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
