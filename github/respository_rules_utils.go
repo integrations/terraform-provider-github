@@ -3,6 +3,7 @@ package github
 import (
 	"encoding/json"
 	"log"
+	"sort"
 
 	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -54,7 +55,6 @@ func expandBypassActors(input []interface{}) []*github.BypassActor {
 		}
 		bypassActors = append(bypassActors, actor)
 	}
-
 	return bypassActors
 }
 
@@ -63,7 +63,11 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 		return []interface{}{}
 	}
 
-	actorsSlice := make([]map[string]interface{}, 0)
+	sort.SliceStable(bypassActors, func(i, j int) bool {
+		return bypassActors[i].GetActorID() > bypassActors[j].GetActorID()
+	})
+
+	actorsSlice := make([]interface{}, 0)
 	for _, v := range bypassActors {
 		actorMap := make(map[string]interface{})
 
@@ -74,7 +78,7 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 		actorsSlice = append(actorsSlice, actorMap)
 	}
 
-	return []interface{}{actorsSlice}
+	return actorsSlice
 }
 
 func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
@@ -110,7 +114,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 
 	// org-only fields
 	if org {
-		// repository_name
+		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]interface{})
 			include := make([]string, 0)
@@ -135,10 +139,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 				Exclude:   exclude,
 				Protected: &protected,
 			}
-		}
-
-		// repository_id
-		if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil {
+		} else if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil && len(v) != 0 {
 			repositoryIDs := make([]int64, 0)
 
 			for _, v := range v {
@@ -174,10 +175,16 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 		repositoryNameSlice := make([]map[string]interface{}, 0)
 
 		if conditions.RepositoryName != nil {
+			var protected bool
+
+			if conditions.RepositoryName.Protected != nil {
+				protected = *conditions.RepositoryName.Protected
+			}
+
 			repositoryNameSlice = append(repositoryNameSlice, map[string]interface{}{
 				"include":   conditions.RepositoryName.Include,
 				"exclude":   conditions.RepositoryName.Exclude,
-				"protected": *conditions.RepositoryName.Protected,
+				"protected": protected,
 			})
 			conditionsMap["repository_name"] = repositoryNameSlice
 		}
@@ -351,6 +358,8 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 		case "commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern":
 			var params github.RulePatternParameters
+			var name string
+			var negate bool
 
 			err := json.Unmarshal(*v.Parameters, &params)
 			if err != nil {
@@ -358,9 +367,16 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 					v.Type, v.Parameters)
 			}
 
+			if params.Name != nil {
+				name = *params.Name
+			}
+			if params.Negate != nil {
+				negate = *params.Negate
+			}
+
 			rule := make(map[string]interface{})
-			rule["name"] = *params.Name
-			rule["negate"] = *params.Negate
+			rule["name"] = name
+			rule["negate"] = negate
 			rule["operator"] = params.Operator
 			rule["pattern"] = params.Pattern
 			rulesMap[v.Type] = []map[string]interface{}{rule}
