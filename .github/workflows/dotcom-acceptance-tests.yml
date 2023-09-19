@@ -28,6 +28,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
       - name: Acceptance Tests (Individual)
         uses: terraformtesting/acceptance-tests@v2.2.0
         with:
@@ -44,6 +47,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
       - name: Acceptance Tests (Organization)
         uses: terraformtesting/acceptance-tests@v2.2.0
         with:

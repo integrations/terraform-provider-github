@@ -203,7 +203,7 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 
 * `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
  
-* `inlcude` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
+* `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
 
 ## Attributes Reference
 
