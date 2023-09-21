@@ -61,7 +61,7 @@ resource "github_organization_ruleset" "example" {
 
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-* `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset ref name condition. (see [below for nested schema](#conditions))
+* `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`. (see [below for nested schema](#conditions))
 
 #### Rules ####
 
@@ -178,7 +178,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
