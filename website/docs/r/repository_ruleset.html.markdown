@@ -195,7 +195,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
