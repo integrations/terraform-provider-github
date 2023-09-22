@@ -338,8 +338,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			token = appToken
 		}
 
+		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+		if err != nil {
+			return nil, err
+		}
+
 		if token == "" {
-			ghAuthToken, err := tokenFromGhCli(baseURL)
+			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
 			if err != nil {
 				return nil, fmt.Errorf("gh auth token: %w", err)
 			}
@@ -359,11 +364,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
 		parallelRequests := d.Get("parallel_requests").(bool)
-		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
 
-		if err != nil {
-			return nil, err
-		}
 		if parallelRequests && isGithubDotCom {
 			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
 		}
@@ -391,13 +392,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 }
 
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGhCli(baseURL string) (string, error) {
+func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
 	}
 	hostname := ""
-	if baseURL == "" {
+	if isGithubDotCom {
 		hostname = "github.com"
 	} else {
 		parsedURL, err := url.Parse(baseURL)
