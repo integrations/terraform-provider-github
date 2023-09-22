@@ -162,6 +162,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 									"required_deployment_environments": {
 										Type:        schema.TypeList,
 										Required:    true,
+										DefaultFunc: func() (interface{}, error) { return []string{}, nil },
 										Description: "The environments that must be successfully deployed to before branches can be merged.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
