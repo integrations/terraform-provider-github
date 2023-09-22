@@ -57,7 +57,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"actor_id": {
 							Type:        schema.TypeInt,
 							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset",
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
@@ -162,6 +162,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 									"required_deployment_environments": {
 										Type:        schema.TypeList,
 										Required:    true,
+										DefaultFunc: func() (interface{}, error) { return []string{}, nil },
 										Description: "The environments that must be successfully deployed to before branches can be merged.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
