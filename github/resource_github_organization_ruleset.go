@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -43,7 +43,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
-
 			"bypass_actors": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -53,7 +52,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"actor_id": {
 							Type:        schema.TypeInt,
 							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset",
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
@@ -63,11 +62,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
-							Optional:     true,
+							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
 							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
 						},
-					}},
+					},
+				},
 			},
 			"node_id": {
 				Type:        schema.TypeString,
@@ -83,7 +83,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for a repository ruleset ref name condition.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -112,13 +112,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_id"},
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"inlcude": {
+									"include": {
 										Type:        schema.TypeList,
 										Required:    true,
 										Description: "Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.",
@@ -137,17 +138,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"protected": {
 										Type:        schema.TypeBool,
 										Optional:    true,
+										Default:     false,
 										Description: "Whether renaming of target repositories is prevented.",
 									},
 								},
 							},
 						},
 						"repository_id": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_name"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},

@@ -398,7 +398,7 @@ func tokenFromGhCli(baseURL string) (string, error) {
 	}
 	hostname := ""
 	if baseURL == "" {
-		hostname = "api.github.com"
+		hostname = "github.com"
 	} else {
 		parsedURL, err := url.Parse(baseURL)
 		if err != nil {
