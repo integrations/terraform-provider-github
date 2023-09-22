@@ -52,7 +52,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"actor_id": {
 							Type:        schema.TypeInt,
 							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset",
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
@@ -83,7 +83,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for a repository ruleset ref name condition.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -112,10 +112,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_id"},
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -144,10 +145,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							ConflictsWith: []string{"conditions.0.repository_name"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
