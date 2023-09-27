@@ -771,27 +771,54 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
-	t.Run("modify merge commit strategy without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
+	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
+		mergeCommitTitle := "PR_TITLE"
+		mergeCommitMessage := "BLANK"
+		updatedMergeCommitTitle := "MERGE_MESSAGE"
+		updatedMergeCommitMessage := "PR_TITLE"
 
-			  name                 = "tf-acc-test-modify-co-str-%[1]s"
-			  allow_merge_commit   = true
-			  merge_commit_title   = "PR_TITLE"
-			  merge_commit_message = "BLANK"
-			}
-		`, randomID)
+		configs := map[string]string{
+			"before": fmt.Sprintf(`
+                		resource "github_repository" "test" {
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "merge_commit_title",
-				"PR_TITLE",
+		                	name                 = "tf-acc-test-modify-co-str-%[1]s"
+		                  	allow_merge_commit   = true
+		                  	merge_commit_title   = "%s"
+		                  	merge_commit_message = "%s"
+		                }
+		        `, randomID, mergeCommitTitle, mergeCommitMessage),
+			"after": fmt.Sprintf(`
+		                resource "github_repository" "test" {
+		                  	name                 = "tf-acc-test-modify-co-str-%[1]s"
+		                  	allow_merge_commit   = true
+		                  	merge_commit_title   = "%s"
+		                  	merge_commit_message = "%s"
+		                }
+		        `, randomID, updatedMergeCommitTitle, updatedMergeCommitMessage),
+		}
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "merge_commit_title",
+					mergeCommitTitle,
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "merge_commit_message",
+					mergeCommitMessage,
+				),
 			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "merge_commit_message",
-				"BLANK",
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "merge_commit_title",
+					updatedMergeCommitTitle,
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "merge_commit_message",
+					updatedMergeCommitMessage,
+				),
 			),
-		)
+		}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -799,8 +826,12 @@ func TestAccGithubRepositories(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  check,
+						Config: configs["before"],
+						Check:  checks["before"],
+					},
+					{
+						Config: configs["after"],
+						Check:  checks["after"],
 					},
 				},
 			})
@@ -819,26 +850,53 @@ func TestAccGithubRepositories(t *testing.T) {
 		})
 	})
 
-	t.Run("modify squash merge strategy without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name                        = "tf-acc-test-modify-sq-str-%[1]s"
-			  allow_squash_merge          = true
-			  squash_merge_commit_title   = "PR_TITLE"
-			  squash_merge_commit_message = "BLANK"
-			}
-		`, randomID)
+	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
+		squashMergeCommitTitle := "PR_TITLE"
+		squashMergeCommitMessage := "PR_BODY"
+		updatedSquashMergeCommitTitle := "COMMIT_OR_PR_TITLE"
+		updatedSquashMergeCommitMessage := "COMMIT_MESSAGES"
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "squash_merge_commit_title",
-				"PR_TITLE",
+		configs := map[string]string{
+			"before": fmt.Sprintf(`
+	                	resource "github_repository" "test" {
+	                  		name                        = "tf-acc-test-modify-sq-str-%[1]s"
+	                  		allow_squash_merge          = true
+	                  		squash_merge_commit_title   = "%s"
+	                  		squash_merge_commit_message = "%s"
+	                	}
+	            	`, randomID, squashMergeCommitTitle, squashMergeCommitMessage),
+			"after": fmt.Sprintf(`
+	                	resource "github_repository" "test" {
+	                  		name                        = "tf-acc-test-modify-sq-str-%[1]s"
+	                  		allow_squash_merge          = true
+	                  		squash_merge_commit_title   = "%s"
+	                  		squash_merge_commit_message = "%s"
+	                	}
+	            	`, randomID, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage),
+		}
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "squash_merge_commit_title",
+					squashMergeCommitTitle,
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "squash_merge_commit_message",
+					squashMergeCommitMessage,
+				),
 			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "squash_merge_commit_message",
-				"BLANK",
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "squash_merge_commit_title",
+					updatedSquashMergeCommitTitle,
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "squash_merge_commit_message",
+					updatedSquashMergeCommitMessage,
+				),
 			),
-		)
+		}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -846,8 +904,12 @@ func TestAccGithubRepositories(t *testing.T) {
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
-						Check:  check,
+						Config: configs["before"],
+						Check:  checks["before"],
+					},
+					{
+						Config: configs["after"],
+						Check:  checks["after"],
 					},
 				},
 			})
@@ -865,6 +927,7 @@ func TestAccGithubRepositories(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
 	t.Run("create a repository with go as primary_language", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
