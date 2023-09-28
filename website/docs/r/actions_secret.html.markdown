@@ -45,10 +45,21 @@ The following arguments are supported:
 
 * `repository`      - (Required) Name of the repository
 * `secret_name`     - (Required) Name of the secret
-* `encrypted_value` - (Optional) Encrypted value of the secret using the Github public key in Base64 format.
+* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
 * `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
 
 ## Attributes Reference
 
 * `created_at`      - Date of actions_secret creation.
 * `updated_at`      - Date of actions_secret update.
+
+## Import
+
+This resource can be imported using an ID made up of the `repository` and `secret_name`:
+
+```
+$ terraform import github_actions_secret.example_secret repository/secret_name
+```
+
+NOTE: the implementation is limited in that it won't fetch the value of the
+`plaintext_value` or `encrypted_value` fields when importing. You may need to ignore changes for these as a workaround.

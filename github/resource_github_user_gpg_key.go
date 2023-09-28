@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -18,13 +18,15 @@ func resourceGithubUserGpgKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Your public GPG key, generated in ASCII-armored format.",
 			},
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The key ID of the GPG key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -40,7 +42,6 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 	pubKey := d.Get("armored_public_key").(string)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating user GPG key:\n%s", pubKey)
 	key, _, err := client.Users.CreateGPGKey(ctx, pubKey)
 	if err != nil {
 		return err
@@ -63,7 +64,6 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading user GPG key: %s", d.Id())
 	key, _, err := client.Users.GetGPGKey(ctx, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -71,7 +71,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing user GPG key %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing user GPG key %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -94,7 +94,6 @@ func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) er
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting user GPG key: %s", d.Id())
 	_, err = client.Users.DeleteGPGKey(ctx, id)
 
 	return err

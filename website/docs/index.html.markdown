@@ -23,7 +23,7 @@ terraform {
   required_providers {
     github = {
       source  = "integrations/github"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -37,12 +37,14 @@ resource "github_membership" "membership_for_user_x" {
 }
 ```
 
+- You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `integrations/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
+
 Terraform 0.12 and earlier:
 
 ```terraform
 # Configure the GitHub Provider
 provider "github" {
-  version = "~> 4.0"
+  version = "~> 5.0"
 }
 
 # Add a user to the organization
@@ -55,6 +57,10 @@ resource "github_membership" "membership_for_user_x" {
 ## Authentication
 
 The GitHub provider offers multiple ways to authenticate with GitHub API.
+
+### GitHub CLI
+
+The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command. It is possible to specify the path to the `gh` executable in the `GH_PATH` environment variable, which is useful for when the GitHub Terraform provider can not properly determine its the path to GitHub CLI such as in the cygwin terminal.
 
 ### OAuth / Personal Access Token
 
@@ -108,6 +114,8 @@ The following arguments are supported in the `provider` block:
   * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
 
 * `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Defaults to 1000ms or 1 second if not provided.
+
+* `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms.
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 

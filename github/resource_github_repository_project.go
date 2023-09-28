@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -22,7 +22,7 @@ func resourceGithubRepositoryProject() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
-					return nil, fmt.Errorf("Invalid ID specified. Supplied ID must be written as <repository>/<project_id>")
+					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<project_id>")
 				}
 				d.Set("repository", parts[0])
 				d.SetId(parts[1])
@@ -32,21 +32,25 @@ func resourceGithubRepositoryProject() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the project.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository of the project.",
 			},
 			"body": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The body of the project.",
 			},
 			"url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "URL of the project",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -70,7 +74,6 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository project: %s (%s/%s)", name, owner, repoName)
 	project, _, err := client.Repositories.CreateProject(ctx,
 		owner, repoName, &options)
 	if err != nil {
@@ -94,7 +97,6 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading repository project: %s", d.Id())
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -102,7 +104,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing repository project %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository project %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -137,7 +139,6 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Updating repository project: %s", d.Id())
 	_, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
 	if err != nil {
 		return err
@@ -155,7 +156,6 @@ func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interfac
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting repository project: %s", d.Id())
 	_, err = client.Projects.DeleteProject(ctx, projectID)
 	return err
 }

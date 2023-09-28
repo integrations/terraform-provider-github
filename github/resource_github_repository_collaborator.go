@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -28,18 +28,20 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
+				Description:      "The user to add to the repository as a collaborator.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub repository",
 			},
 			"permission": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Default:      "push",
-				ValidateFunc: validateValueFunc([]string{"pull", "triage", "push", "maintain", "admin"}),
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     "push",
+				Description: "The permission of the outside collaborator for the repository. Must be one of 'pull', 'push', 'maintain', 'triage' or 'admin' or the name of an existing custom repository role within the organization for organization-owned repositories. Must be 'push' for personal repositories. Defaults to 'push'.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if d.Get("permission_diff_suppression").(bool) {
 						if new == "triage" || new == "maintain" {
@@ -50,13 +52,15 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				},
 			},
 			"permission_diff_suppression": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Suppress plan diffs for triage and maintain. Defaults to 'false'.",
 			},
 			"invitation_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "ID of the invitation to be used in 'github_user_invitation_accepter'",
 			},
 		},
 	}
@@ -70,8 +74,6 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
-	log.Printf("[DEBUG] Creating repository collaborator: %s (%s/%s)",
-		username, owner, repoName)
 	_, _, err := client.Repositories.AddCollaborator(ctx,
 		owner,
 		repoName,
@@ -106,7 +108,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				// this short circuits the rest of the code because if the
 				// repo is 404, no reason to try to list existing collaborators
-				log.Printf("[WARN] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
 					owner, repoName, username)
 				d.SetId("")
 				return nil
@@ -116,12 +118,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 	if invitation != nil {
 		username = invitation.GetInvitee().GetLogin()
-		log.Printf("[DEBUG] Found invitation for %q", username)
 
-		permissionName, err := getInvitationPermission(invitation)
-		if err != nil {
-			return err
-		}
+		permissionName := getPermission(invitation.GetPermissions())
 
 		d.Set("repository", repoName)
 		d.Set("username", username)
@@ -141,19 +139,12 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 		if err != nil {
 			return err
 		}
-		log.Printf("[DEBUG] Found %d collaborators, checking if any matches %q", len(collaborators), username)
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
-				log.Printf("[DEBUG] Matching collaborator found for %q", username)
-				permissionName, err := getRepoPermission(c.GetPermissions())
-				if err != nil {
-					return err
-				}
-
 				d.Set("repository", repoName)
 				d.Set("username", c.GetLogin())
-				d.Set("permission", permissionName)
+				d.Set("permission", getPermission(c.GetRoleName()))
 				return nil
 			}
 		}
@@ -165,7 +156,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	}
 
 	// The user is neither invited nor a collaborator
-	log.Printf("[WARN] Removing repository collaborator %s (%s/%s) from state because it no longer exists in GitHub",
+	log.Printf("[INFO] Removing repository collaborator %s (%s/%s) from state because it no longer exists in GitHub",
 		username, owner, repoName)
 	d.SetId("")
 
@@ -194,8 +185,6 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 		return err
 	}
 
-	log.Printf("[DEBUG] Deleting repository collaborator: %s (%s/%s)",
-		username, owner, repoName)
 	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoName, username)
 	return err
 }

@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/shurcooL/githubv4"
-	"log"
 	"reflect"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubUsers() *schema.Resource {
@@ -23,6 +23,13 @@ func dataSourceGithubUsers() *schema.Resource {
 				Required: true,
 			},
 			"logins": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed: true,
+			},
+			"emails": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -55,6 +62,7 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 		UserFragment struct {
 			Id    string
 			Login string
+			Email string
 		}
 	)
 	var fields []reflect.StructField
@@ -69,7 +77,6 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
 	if len(usernames) > 0 {
-		log.Printf("[INFO] Refreshing GitHub Users: %s", strings.Join(usernames, ", "))
 		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		client := meta.(*Owner).v4client
 		err := client.Query(ctx, query.Addr().Interface(), variables)
@@ -78,12 +85,13 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	var logins, nodeIDs, unknownLogins []string
+	var logins, emails, nodeIDs, unknownLogins []string
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
 		user := query.FieldByName(label).Interface().(UserFragment)
 		if user.Login != "" {
 			logins = append(logins, user.Login)
+			emails = append(emails, user.Email)
 			nodeIDs = append(nodeIDs, user.Id)
 		} else {
 			unknownLogins = append(unknownLogins, username)
@@ -92,6 +100,7 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(buildChecksumID(usernames))
 	d.Set("logins", logins)
+	d.Set("emails", emails)
 	d.Set("node_ids", nodeIDs)
 	d.Set("unknown_logins", unknownLogins)
 

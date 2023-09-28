@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -47,12 +47,11 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error 
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
 
-	log.Printf("[DEBUG] Reading GitHub branch reference %s/%s (%s)", orgName, repoName, branchRefName)
 	ref, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, branchRefName)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("Error reading GitHub branch reference %s/%s (%s): %s", orgName, repoName, branchRefName, err)
+				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
 				d.SetId("")
 				return nil
 			}

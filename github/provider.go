@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
+	"os"
+	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +58,18 @@ func Provider() terraform.ResourceProvider {
 				Default:     1000,
 				Description: descriptions["write_delay_ms"],
 			},
+			"read_delay_ms": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: descriptions["read_delay_ms"],
+			},
+			"parallel_requests": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["parallel_requests"],
+			},
 			"app_auth": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -82,67 +98,141 @@ func Provider() terraform.ResourceProvider {
 						},
 					},
 				},
-				ConflictsWith: []string{"token"},
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"github_actions_environment_secret":               resourceGithubActionsEnvironmentSecret(),
-			"github_actions_organization_secret":              resourceGithubActionsOrganizationSecret(),
-			"github_actions_organization_secret_repositories": resourceGithubActionsOrganizationSecretRepositories(),
-			"github_actions_organization_permissions":         resourceGithubActionsOrganizationPermissions(),
-			"github_actions_runner_group":                     resourceGithubActionsRunnerGroup(),
-			"github_actions_secret":                           resourceGithubActionsSecret(),
-			"github_app_installation_repository":              resourceGithubAppInstallationRepository(),
-			"github_branch":                                   resourceGithubBranch(),
-			"github_branch_protection":                        resourceGithubBranchProtection(),
-			"github_branch_protection_v3":                     resourceGithubBranchProtectionV3(),
-			"github_issue_label":                              resourceGithubIssueLabel(),
-			"github_membership":                               resourceGithubMembership(),
-			"github_organization_block":                       resourceOrganizationBlock(),
-			"github_organization_project":                     resourceGithubOrganizationProject(),
-			"github_organization_webhook":                     resourceGithubOrganizationWebhook(),
-			"github_project_card":                             resourceGithubProjectCard(),
-			"github_project_column":                           resourceGithubProjectColumn(),
-			"github_repository_autolink_reference":            resourceGithubRepositoryAutolinkReference(),
-			"github_repository_collaborator":                  resourceGithubRepositoryCollaborator(),
-			"github_repository_deploy_key":                    resourceGithubRepositoryDeployKey(),
-			"github_repository_environment":                   resourceGithubRepositoryEnvironment(),
-			"github_repository_file":                          resourceGithubRepositoryFile(),
-			"github_repository_milestone":                     resourceGithubRepositoryMilestone(),
-			"github_repository_project":                       resourceGithubRepositoryProject(),
-			"github_repository_pull_request":                  resourceGithubRepositoryPullRequest(),
-			"github_repository_webhook":                       resourceGithubRepositoryWebhook(),
-			"github_repository":                               resourceGithubRepository(),
-			"github_team_membership":                          resourceGithubTeamMembership(),
-			"github_team_repository":                          resourceGithubTeamRepository(),
-			"github_team_sync_group_mapping":                  resourceGithubTeamSyncGroupMapping(),
-			"github_team":                                     resourceGithubTeam(),
-			"github_user_gpg_key":                             resourceGithubUserGpgKey(),
-			"github_user_invitation_accepter":                 resourceGithubUserInvitationAccepter(),
-			"github_user_ssh_key":                             resourceGithubUserSshKey(),
-			"github_branch_default":                           resourceGithubBranchDefault(),
+			"github_actions_environment_secret":                                     resourceGithubActionsEnvironmentSecret(),
+			"github_actions_environment_variable":                                   resourceGithubActionsEnvironmentVariable(),
+			"github_actions_organization_oidc_subject_claim_customization_template": resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
+			"github_actions_organization_permissions":                               resourceGithubActionsOrganizationPermissions(),
+			"github_actions_organization_secret":                                    resourceGithubActionsOrganizationSecret(),
+			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
+			"github_actions_organization_secret_repositories":                       resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
+			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
+			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
+			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+			"github_actions_secret":                                                 resourceGithubActionsSecret(),
+			"github_actions_variable":                                               resourceGithubActionsVariable(),
+			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
+			"github_app_installation_repository":                                    resourceGithubAppInstallationRepository(),
+			"github_branch":                                                         resourceGithubBranch(),
+			"github_branch_default":                                                 resourceGithubBranchDefault(),
+			"github_branch_protection":                                              resourceGithubBranchProtection(),
+			"github_branch_protection_v3":                                           resourceGithubBranchProtectionV3(),
+			"github_codespaces_organization_secret":                                 resourceGithubCodespacesOrganizationSecret(),
+			"github_codespaces_organization_secret_repositories":                    resourceGithubCodespacesOrganizationSecretRepositories(),
+			"github_codespaces_secret":                                              resourceGithubCodespacesSecret(),
+			"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
+			"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
+			"github_dependabot_organization_secret_repositories":                    resourceGithubDependabotOrganizationSecretRepositories(),
+			"github_dependabot_secret":                                              resourceGithubDependabotSecret(),
+			"github_emu_group_mapping":                                              resourceGithubEMUGroupMapping(),
+			"github_issue":                                                          resourceGithubIssue(),
+			"github_issue_label":                                                    resourceGithubIssueLabel(),
+			"github_membership":                                                     resourceGithubMembership(),
+			"github_organization_block":                                             resourceOrganizationBlock(),
+			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
+			"github_organization_project":                                           resourceGithubOrganizationProject(),
+			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
+			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
+			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
+			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
+			"github_project_card":                                                   resourceGithubProjectCard(),
+			"github_project_column":                                                 resourceGithubProjectColumn(),
+			"github_release":                                                        resourceGithubRelease(),
+			"github_repository":                                                     resourceGithubRepository(),
+			"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
+			"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
+			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
+			"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
+			"github_repository_deploy_key":                                          resourceGithubRepositoryDeployKey(),
+			"github_repository_deployment_branch_policy":                            resourceGithubRepositoryDeploymentBranchPolicy(),
+			"github_repository_environment":                                         resourceGithubRepositoryEnvironment(),
+			"github_repository_environment_deployment_policy":                       resourceGithubRepositoryEnvironmentDeploymentPolicy(),
+			"github_repository_file":                                                resourceGithubRepositoryFile(),
+			"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
+			"github_repository_project":                                             resourceGithubRepositoryProject(),
+			"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
+			"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
+			"github_repository_tag_protection":                                      resourceGithubRepositoryTagProtection(),
+			"github_repository_topics":                                              resourceGithubRepositoryTopics(),
+			"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),
+			"github_team":                                                           resourceGithubTeam(),
+			"github_team_members":                                                   resourceGithubTeamMembers(),
+			"github_team_membership":                                                resourceGithubTeamMembership(),
+			"github_team_repository":                                                resourceGithubTeamRepository(),
+			"github_team_settings":                                                  resourceGithubTeamSettings(),
+			"github_team_sync_group_mapping":                                        resourceGithubTeamSyncGroupMapping(),
+			"github_user_gpg_key":                                                   resourceGithubUserGpgKey(),
+			"github_user_invitation_accepter":                                       resourceGithubUserInvitationAccepter(),
+			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
+			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"github_actions_public_key":            dataSourceGithubActionsPublicKey(),
-			"github_branch":                        dataSourceGithubBranch(),
-			"github_collaborators":                 dataSourceGithubCollaborators(),
-			"github_ip_ranges":                     dataSourceGithubIpRanges(),
-			"github_membership":                    dataSourceGithubMembership(),
-			"github_organization":                  dataSourceGithubOrganization(),
-			"github_organization_team_sync_groups": dataSourceGithubOrganizationTeamSyncGroups(),
-			"github_organization_teams":            dataSourceGithubOrganizationTeams(),
-			"github_release":                       dataSourceGithubRelease(),
-			"github_repositories":                  dataSourceGithubRepositories(),
-			"github_repository":                    dataSourceGithubRepository(),
-			"github_repository_file":               dataSourceGithubRepositoryFile(),
-			"github_repository_milestone":          dataSourceGithubRepositoryMilestone(),
-			"github_repository_pull_request":       dataSourceGithubRepositoryPullRequest(),
-			"github_repository_pull_requests":      dataSourceGithubRepositoryPullRequests(),
-			"github_team":                          dataSourceGithubTeam(),
-			"github_user":                          dataSourceGithubUser(),
-			"github_users":                         dataSourceGithubUsers(),
+			"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
+			"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
+			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
+			"github_actions_organization_public_key":                                dataSourceGithubActionsOrganizationPublicKey(),
+			"github_actions_organization_registration_token":                        dataSourceGithubActionsOrganizationRegistrationToken(),
+			"github_actions_organization_secrets":                                   dataSourceGithubActionsOrganizationSecrets(),
+			"github_actions_organization_variables":                                 dataSourceGithubActionsOrganizationVariables(),
+			"github_actions_public_key":                                             dataSourceGithubActionsPublicKey(),
+			"github_actions_registration_token":                                     dataSourceGithubActionsRegistrationToken(),
+			"github_actions_repository_oidc_subject_claim_customization_template":   dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
+			"github_actions_secrets":                                                dataSourceGithubActionsSecrets(),
+			"github_actions_variables":                                              dataSourceGithubActionsVariables(),
+			"github_app":                                                            dataSourceGithubApp(),
+			"github_app_token":                                                      dataSourceGithubAppToken(),
+			"github_branch":                                                         dataSourceGithubBranch(),
+			"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
+			"github_collaborators":                                                  dataSourceGithubCollaborators(),
+			"github_codespaces_organization_public_key":                             dataSourceGithubCodespacesOrganizationPublicKey(),
+			"github_codespaces_organization_secrets":                                dataSourceGithubCodespacesOrganizationSecrets(),
+			"github_codespaces_public_key":                                          dataSourceGithubCodespacesPublicKey(),
+			"github_codespaces_secrets":                                             dataSourceGithubCodespacesSecrets(),
+			"github_codespaces_user_public_key":                                     dataSourceGithubCodespacesUserPublicKey(),
+			"github_codespaces_user_secrets":                                        dataSourceGithubCodespacesUserSecrets(),
+			"github_dependabot_organization_public_key":                             dataSourceGithubDependabotOrganizationPublicKey(),
+			"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
+			"github_dependabot_public_key":                                          dataSourceGithubDependabotPublicKey(),
+			"github_dependabot_secrets":                                             dataSourceGithubDependabotSecrets(),
+			"github_external_groups":                                                dataSourceGithubExternalGroups(),
+			"github_ip_ranges":                                                      dataSourceGithubIpRanges(),
+			"github_issue_labels":                                                   dataSourceGithubIssueLabels(),
+			"github_membership":                                                     dataSourceGithubMembership(),
+			"github_organization":                                                   dataSourceGithubOrganization(),
+			"github_organization_custom_role":                                       dataSourceGithubOrganizationCustomRole(),
+			"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
+			"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
+			"github_organization_team_sync_groups":                                  dataSourceGithubOrganizationTeamSyncGroups(),
+			"github_organization_teams":                                             dataSourceGithubOrganizationTeams(),
+			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
+			"github_ref":                                                            dataSourceGithubRef(),
+			"github_release":                                                        dataSourceGithubRelease(),
+			"github_repositories":                                                   dataSourceGithubRepositories(),
+			"github_repository":                                                     dataSourceGithubRepository(),
+			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
+			"github_repository_branches":                                            dataSourceGithubRepositoryBranches(),
+			"github_repository_environments":                                        dataSourceGithubRepositoryEnvironments(),
+			"github_repository_deploy_keys":                                         dataSourceGithubRepositoryDeployKeys(),
+			"github_repository_deployment_branch_policies":                          dataSourceGithubRepositoryDeploymentBranchPolicies(),
+			"github_repository_file":                                                dataSourceGithubRepositoryFile(),
+			"github_repository_milestone":                                           dataSourceGithubRepositoryMilestone(),
+			"github_repository_pull_request":                                        dataSourceGithubRepositoryPullRequest(),
+			"github_repository_pull_requests":                                       dataSourceGithubRepositoryPullRequests(),
+			"github_repository_teams":                                               dataSourceGithubRepositoryTeams(),
+			"github_repository_webhooks":                                            dataSourceGithubRepositoryWebhooks(),
+			"github_rest_api":                                                       dataSourceGithubRestApi(),
+			"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
+			"github_team":                                                           dataSourceGithubTeam(),
+			"github_tree":                                                           dataSourceGithubTree(),
+			"github_user":                                                           dataSourceGithubUser(),
+			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
+			"github_users":                                                          dataSourceGithubUsers(),
+			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 		},
 	}
 
@@ -175,6 +265,13 @@ func init() {
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
 		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
 			"Defaults to 1000ms or 1s if not set.",
+		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
+			"Defaults to 0ms if not set.",
+		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
+			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
+			"Although, it is not possible to enable this setting on github.com " +
+			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
+			"Defaults to false if not set",
 	}
 }
 
@@ -203,7 +300,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[DEBUG] Selecting organization attribute as owner: %s", org)
+			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
 			owner = org
 		}
 
@@ -249,7 +346,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			}
 
 			token = appToken
-
 			if owner == "" {
 				ctx := context.Background()
 
@@ -296,12 +392,46 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			}
 		}
 
+		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+		if err != nil {
+			return nil, err
+		}
+
+		if token == "" {
+			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
+			if err != nil {
+				return nil, fmt.Errorf("gh auth token: %w", err)
+			}
+			token = ghAuthToken
+		}
+
+		writeDelay := d.Get("write_delay_ms").(int)
+		if writeDelay <= 0 {
+			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
+		}
+		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
+
+		readDelay := d.Get("read_delay_ms").(int)
+		if readDelay < 0 {
+			return nil, fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")
+		}
+		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
+
+		parallelRequests := d.Get("parallel_requests").(bool)
+
+		if parallelRequests && isGithubDotCom {
+			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
+		}
+		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+
 		config := Config{
-			Token:      token,
-			BaseURL:    baseURL,
-			Insecure:   insecure,
-			Owner:      owner,
-			WriteDelay: time.Duration(writeDelay) * time.Millisecond,
+			Token:            token,
+			BaseURL:          baseURL,
+			Insecure:         insecure,
+			Owner:            owner,
+			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
+			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
+			ParallelRequests: parallelRequests,
 		}
 
 		meta, err := config.Meta()
@@ -313,4 +443,31 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		return meta, nil
 	}
+}
+
+// See https://github.com/integrations/terraform-provider-github/issues/1822
+func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+	ghCliPath := os.Getenv("GH_PATH")
+	if ghCliPath == "" {
+		ghCliPath = "gh"
+	}
+	hostname := ""
+	if isGithubDotCom {
+		hostname = "github.com"
+	} else {
+		parsedURL, err := url.Parse(baseURL)
+		if err != nil {
+			return "", fmt.Errorf("parse %s: %w", baseURL, err)
+		}
+		hostname = parsedURL.Host
+	}
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+	if err != nil {
+		// GH CLI is either not installed or there was no `gh auth login` command issued,
+		// which is fine. don't return the error to keep the flow going
+		return "", nil
+	}
+
+	log.Printf("[INFO] Using the token from GitHub CLI")
+	return strings.TrimSpace(string(out)), nil
 }

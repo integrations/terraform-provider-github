@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -26,26 +26,31 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the team.",
 			},
 			"group": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "An Array of GitHub Identity Provider Groups (or empty []).",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The ID of the IdP group.",
 						},
 						"group_name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the IdP group.",
 						},
 						"group_description": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The description of the IdP group.",
 						},
 					},
 				},
@@ -70,7 +75,6 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Creating team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
@@ -96,7 +100,6 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team-sync group mapping (Team slug: %s)", slug)
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -104,7 +107,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team_sync_group mapping for %s/%s from state because it no longer exists in Github",
+				log.Printf("[INFO] Removing team_sync_group mapping for %s/%s from state because it no longer exists in GitHub",
 					orgName, slug)
 				d.SetId("")
 				return nil
@@ -138,7 +141,6 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
-	log.Printf("[DEBUG] Updating team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
 		return err
@@ -161,9 +163,7 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	groups := make([]*github.IDPGroup, 0)
 	emptyGroupList := github.IDPGroupList{Groups: groups}
 
-	log.Printf("[DEBUG] Deleting team-sync group mapping (Team slug: %s)", slug)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
-
 	return err
 }
 
@@ -185,7 +185,7 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}
 
 // expandTeamSyncGroups creates an IDPGroupList with an array of IdP groups
 // defined in the *schema.ResourceData to be later used to create or update
-// IdP group connections in Github; if the "group" key is not present,
+// IdP group connections in GitHub; if the "group" key is not present,
 // an empty array must be set in the IDPGroupList per API endpoint specs:
 // https://developer.github.com/v3/teams/team_sync/#create-or-update-idp-group-connections
 func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {

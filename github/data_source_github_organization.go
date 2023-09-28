@@ -1,11 +1,11 @@
 package github
 
 import (
-	"log"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganization() *schema.Resource {
@@ -16,6 +16,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"orgname": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"node_id": {
 				Type:     schema.TypeString,
@@ -46,6 +50,89 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.",
+			},
+			"users": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+			},
+			"default_repository_permission": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"members_can_create_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"two_factor_requirement_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_allowed_repository_creation_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"members_can_create_public_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_private_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_internal_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_public_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_private_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_fork_private_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"web_commit_signoff_required": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"advanced_security_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependabot_alerts_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependabot_security_updates_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependency_graph_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"secret_scanning_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"secret_scanning_push_protection_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 		},
 	}
@@ -53,27 +140,31 @@ func dataSourceGithubOrganization() *schema.Resource {
 
 func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
-	log.Printf("[INFO] Refreshing GitHub Organization: %s", name)
 
-	client := meta.(*Owner).v3client
+	client4 := meta.(*Owner).v4client
+	client3 := meta.(*Owner).v3client
 	ctx := meta.(*Owner).StopContext
 
-	organization, _, err := client.Organizations.Get(ctx, name)
+	organization, _, err := client3.Organizations.Get(ctx, name)
 	if err != nil {
 		return err
 	}
 
-	plan := organization.GetPlan()
+	var planName string
+
+	if plan := organization.GetPlan(); plan != nil {
+		planName = plan.GetName()
+	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
 	var repoList []string
 	var allRepos []*github.Repository
 
 	for {
-		repos, resp, err := client.Repositories.ListByOrg(ctx, name, opts)
+		repos, resp, err := client3.Repositories.ListByOrg(ctx, name, opts)
 		if err != nil {
 			return err
 		}
@@ -89,37 +180,78 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		repoList = append(repoList, allRepos[index].GetFullName())
 	}
 
-	membershipOpts := &github.ListMembersOptions{
-		ListOptions: github.ListOptions{PerPage: 10, Page: 1},
+	var query struct {
+		Organization struct {
+			MembersWithRole struct {
+				Edges []struct {
+					Role githubv4.String
+					Node struct {
+						Id    githubv4.String
+						Login githubv4.String
+						Email githubv4.String
+					}
+				}
+				PageInfo struct {
+					EndCursor   githubv4.String
+					HasNextPage bool
+				}
+			} `graphql:"membersWithRole(first: 100, after: $after)"`
+		} `graphql:"organization(login: $login)"`
 	}
-
-	var memberList []string
-	var allMembers []*github.User
-
+	variables := map[string]interface{}{
+		"login": githubv4.String(name),
+		"after": (*githubv4.String)(nil),
+	}
+	var members []string
+	var users []map[string]string
 	for {
-		members, resp, err := client.Organizations.ListMembers(ctx, name, membershipOpts)
+		err := client4.Query(ctx, &query, variables)
 		if err != nil {
 			return err
 		}
-		allMembers = append(allMembers, members...)
-
-		membershipOpts.Page = resp.NextPage
-
-		if resp.NextPage == 0 {
+		for _, edge := range query.Organization.MembersWithRole.Edges {
+			members = append(members, string(edge.Node.Login))
+			users = append(users, map[string]string{
+				"id":    string(edge.Node.Id),
+				"login": string(edge.Node.Login),
+				"email": string(edge.Node.Email),
+				"role":  string(edge.Role),
+			})
+		}
+		if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 			break
 		}
-	}
-	for index := range allMembers {
-		memberList = append(memberList, *allMembers[index].Login)
+		variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
 	d.Set("login", organization.GetLogin())
 	d.Set("name", organization.GetName())
+	d.Set("orgname", name)
+	d.Set("node_id", organization.GetNodeID())
 	d.Set("description", organization.GetDescription())
-	d.Set("plan", plan.Name)
+	d.Set("plan", planName)
 	d.Set("repositories", repoList)
-	d.Set("members", memberList)
+	d.Set("members", members)
+	d.Set("users", users)
+	d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
+	d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
+	d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
+	d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
+	d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
+	d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+	d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
+	d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+	d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
+	d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
+	d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
+	d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
+	d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
+	d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
+	d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
+	d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
+	d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
+	d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 
 	return nil
 }

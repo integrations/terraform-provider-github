@@ -18,11 +18,11 @@ data "github_users" "example" {
 }
 
 output "valid_users" {
-  value = "${data.github_user.example.logins}"
+  value = "${data.github_users.example.logins}"
 }
 
 output "invalid_users" {
-  value = "${data.github_user.example.unknown_logins}"
+  value = "${data.github_users.example.unknown_logins}"
 }
 ```
 
@@ -34,4 +34,5 @@ output "invalid_users" {
 
  * `node_ids` - list of Node IDs of users that could be found.
  * `logins` - list of logins of users that could be found.
+ * `emails` - list of the user's publicly visible profile email (will be empty string in case if user decided not to show it).
  * `unknown_logins` - list of logins without matching user.

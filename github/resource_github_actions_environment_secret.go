@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
+	"net/url"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -19,19 +20,22 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the repository.",
 			},
 			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the environment.",
 			},
 			"secret_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "Name of the secret.",
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
@@ -39,6 +43,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				Sensitive:     true,
+				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				ConflictsWith: []string{"plaintext_value"},
 				ValidateFunc:  validation.StringIsBase64,
 			},
@@ -47,15 +52,18 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				Sensitive:     true,
+				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_environment_secret' creation.",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_environment_secret' update.",
 			},
 		},
 	}
@@ -68,6 +76,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
+	escapedEnvName := url.PathEscape(envName)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
@@ -77,7 +86,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 		return err
 	}
 
-	keyId, publicKey, err := getEnvironmentPublicKeyDetails(repo.GetID(), envName, meta)
+	keyId, publicKey, err := getEnvironmentPublicKeyDetails(repo.GetID(), escapedEnvName, meta)
 	if err != nil {
 		return err
 	}
@@ -117,17 +126,18 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
+	escapedEnvName := url.PathEscape(envName)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return err
 	}
 
-	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), envName, secretName)
+	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing environment secret %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -156,7 +166,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The environment secret %s has been externally updated in GitHub", d.Id())
+		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
 		d.Set("updated_at", secret.UpdatedAt.String())
@@ -174,12 +184,13 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta i
 	if err != nil {
 		return err
 	}
+	escapedEnvName := url.PathEscape(envName)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Deleting environment secret: %s", d.Id())
-	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), envName, secretName)
+	log.Printf("[INFO] Deleting environment secret: %s", d.Id())
+	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 
 	return err
 }

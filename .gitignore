@@ -14,6 +14,7 @@ website/node_modules
 .vagrant/
 *.backup
 ./*.tfstate
+**/*.terraform.lock.hcl
 .terraform/
 *.log
 *.bak
@@ -25,9 +26,13 @@ website/node_modules
 *.iml
 *.tfvars
 .vscode/
-
+testdata/
 website/vendor
+terraform-provider-github
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+
+# do not commit secrets
+.env

@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -28,17 +27,20 @@ func dataSourceGithubMembership() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"state": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	username := d.Get("username").(string)
-	log.Printf("[INFO] Refreshing GitHub membership: %s", username)
 
 	client := meta.(*Owner).v3client
-
 	orgName := meta.(*Owner).name
+
 	if configuredOrg := d.Get("organization").(string); configuredOrg != "" {
 		orgName = configuredOrg
 	}
@@ -57,5 +59,6 @@ func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("username", membership.GetUser().GetLogin())
 	d.Set("role", membership.GetRole())
 	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("state", membership.GetState())
 	return nil
 }

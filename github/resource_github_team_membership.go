@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -18,26 +18,41 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				if err != nil {
+					return nil, err
+				}
+
+				teamId, err := getTeamID(teamIdString, meta)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateTeamIDFunc,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub team id or the GitHub team slug.",
 			},
 			"username": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
+				Description:      "The user to add to the team.",
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "member",
+				Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
@@ -53,16 +68,15 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	orgId := meta.(*Owner).id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	ctx := context.Background()
 
 	username := d.Get("username").(string)
 	role := d.Get("role").(string)
 
-	log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
 	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 		orgId,
 		teamId,
@@ -88,9 +102,9 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 
 	// We intentionally set these early to allow reconciliation
@@ -104,7 +118,6 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	log.Printf("[DEBUG] Reading team membership: %s/%s", teamIdString, username)
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
@@ -113,7 +126,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing team membership %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing team membership %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -132,14 +145,13 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamId, err := getTeamID(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	username := d.Get("username").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
 	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 
 	return err

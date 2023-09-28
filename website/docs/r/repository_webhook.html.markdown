@@ -18,13 +18,11 @@ resource "github_repository" "repo" {
   description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
-  private = false
+  visibility   = "public"
 }
 
 resource "github_repository_webhook" "foo" {
   repository = github_repository.repo.name
-
-  name = "web"
 
   configuration {
     url          = "https://google.de/"
@@ -49,8 +47,6 @@ The following arguments are supported:
 * `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
 
 * `active` - (Optional) Indicate if the webhook should receive events. Defaults to `true`.
-
-* `name` - (Optional) The type of the webhook. `web` is the default and the only option.
 
 ### configuration
 

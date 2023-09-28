@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 )
@@ -16,18 +17,23 @@ func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsSecretCreateOrUpdate,
 		Read:   resourceGithubActionsSecretRead,
-		Update: resourceGithubActionsSecretCreateOrUpdate,
 		Delete: resourceGithubActionsSecretDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceGithubActionsSecretImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of the repository.",
 			},
 			"secret_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Description:  "Name of the secret.",
 				ValidateFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
@@ -36,6 +42,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"plaintext_value"},
+				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -43,14 +50,17 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"encrypted_value"},
+				Description:   "Plaintext value of the secret to be encrypted.",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_secret' creation.",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_secret' update.",
 			},
 		},
 	}
@@ -111,7 +121,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
 				d.SetId("")
 				return nil
@@ -140,7 +150,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
+		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
 		d.Set("updated_at", secret.UpdatedAt.String())
@@ -159,10 +169,42 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
 	_, err = client.Actions.DeleteRepoSecret(ctx, orgName, repoName, secretName)
 
 	return err
+}
+
+func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	ctx := context.Background()
+
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<secret_name>")
+	}
+
+	d.SetId(buildTwoPartID(parts[0], parts[1]))
+
+	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	if err != nil {
+		return nil, err
+	}
+
+	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Set("repository", repoName)
+	d.Set("secret_name", secretName)
+
+	// encrypted_value or plaintext_value can not be imported
+
+	d.Set("created_at", secret.CreatedAt.String())
+	d.Set("updated_at", secret.UpdatedAt.String())
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {

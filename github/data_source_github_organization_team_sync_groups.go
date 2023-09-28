@@ -3,9 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -39,8 +38,6 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 }
 
 func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
-	log.Print("[INFO] Refreshing GitHub Organization Team-Sync Groups")
-
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -56,7 +53,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 
 		result, err := flattenGithubIDPGroupList(idpGroupList)
 		if err != nil {
-			return fmt.Errorf("unable to flatten IdP Groups in Github Organization(Org: %q) : %+v", orgName, err)
+			return fmt.Errorf("unable to flatten IdP Groups in GitHub Organization(Org: %q) : %+v", orgName, err)
 		}
 
 		groups = append(groups, result...)

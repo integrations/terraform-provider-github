@@ -7,12 +7,13 @@ import (
 	"testing"
 )
 
-var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
-var isEnterprise string = os.Getenv("ENTERPRISE_ACCOUNT")
-var testOrganization string = testOrganizationFunc()
-var testOwner string = os.Getenv("GITHUB_OWNER")
-var testToken string = os.Getenv("GITHUB_TOKEN")
-var testBaseURLGHES string = os.Getenv("GHES_BASE_URL")
+var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
+var testEnterprise = os.Getenv("ENTERPRISE_SLUG")
+var testOrganization = testOrganizationFunc()
+var testOwner = os.Getenv("GITHUB_OWNER")
+var testToken = os.Getenv("GITHUB_TOKEN")
+var testBaseURLGHES = os.Getenv("GHES_BASE_URL")
 
 func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TOKEN"); v == "" {
@@ -49,6 +50,13 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN environment variable should be empty")
 		}
+	case enterprise:
+		if os.Getenv("GITHUB_TOKEN") == "" {
+			t.Log("GITHUB_TOKEN environment variable should be set")
+		} else {
+			return
+		}
+
 	case individual:
 		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_OWNER") != "" {
 			return
@@ -75,7 +83,7 @@ func testAccCheckOrganization() error {
 	if owner == "" {
 		organization := os.Getenv("GITHUB_ORGANIZATION")
 		if organization == "" {
-			return fmt.Errorf("Neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
+			return fmt.Errorf("neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
 		}
 		owner = organization
 	}
@@ -91,18 +99,18 @@ func testAccCheckOrganization() error {
 		return err
 	}
 	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("GITHUB_OWNER %q is a user, not an organization", meta.(*Owner).name)
+		return fmt.Errorf("configured owner %q is a user, not an organization", meta.(*Owner).name)
 	}
 	return nil
 }
 
 func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		log.Printf("[DEBUG] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
 		return organization, nil
 	}
 	owner := os.Getenv("GITHUB_OWNER")
-	log.Printf("[DEBUG] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
 	return owner, nil
 }
 
@@ -125,3 +133,4 @@ func testOwnerFunc() string {
 const anonymous = "anonymous"
 const individual = "individual"
 const organization = "organization"
+const enterprise = "enterprise"

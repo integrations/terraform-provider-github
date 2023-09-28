@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -24,6 +24,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
 
 	rn := "github_team_membership.test_team_membership"
+	rns := "github_team_membership.test_team_membership_slug"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -36,6 +37,8 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &membership),
 					testAccCheckGithubTeamMembershipRoleState(rn, "member", &membership),
+					testAccCheckGithubTeamMembershipExists(rns, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rns, "member", &membership),
 				),
 			},
 			{
@@ -43,10 +46,17 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &membership),
 					testAccCheckGithubTeamMembershipRoleState(rn, "maintainer", &membership),
+					testAccCheckGithubTeamMembershipExists(rns, &membership),
+					testAccCheckGithubTeamMembershipRoleState(rns, "maintainer", &membership),
 				),
 			},
 			{
 				ResourceName:      rn,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      rns,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -124,7 +134,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			orgId, teamId, username)
 		if err == nil {
 			if membership != nil {
-				return fmt.Errorf("Team membership still exists")
+				return fmt.Errorf("team membership still exists")
 			}
 		}
 		if resp.StatusCode != 404 {
@@ -139,11 +149,11 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team membership ID is set")
+			return fmt.Errorf("no team membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -172,11 +182,11 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not Found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No team membership ID is set")
+			return fmt.Errorf("no team membership ID is set")
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
@@ -200,11 +210,11 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		actualRole := teamMembership.GetRole()
 
 		if resourceRole != expected {
-			return fmt.Errorf("Team membership role %v in resource does match expected state of %v", resourceRole, expected)
+			return fmt.Errorf("team membership role %v in resource does match expected state of %v", resourceRole, expected)
 		}
 
 		if resourceRole != actualRole {
-			return fmt.Errorf("Team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
+			return fmt.Errorf("team membership role %v in resource does match actual state of %v", resourceRole, actualRole)
 		}
 		return nil
 	}
@@ -222,12 +232,23 @@ resource "github_team" "test_team" {
   description = "Terraform acc test group"
 }
 
+resource "github_team" "test_team_slug" {
+  name        = "tf-acc-test-team-membership-%s-slug"
+  description = "Terraform acc test group"
+}
+
 resource "github_team_membership" "test_team_membership" {
   team_id  = "${github_team.test_team.id}"
   username = "%s"
   role     = "%s"
 }
-`, username, randString, username, role)
+
+resource "github_team_membership" "test_team_membership_slug" {
+  team_id  = "${github_team.test_team_slug.slug}"
+  username = "%s"
+  role     = "%s"
+}
+`, username, randString, randString, username, role, username, role)
 }
 
 func testAccGithubTeamMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {

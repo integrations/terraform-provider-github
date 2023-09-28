@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v55/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -51,9 +52,9 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Server", "GitHub.com")
 
-		bodyBytes, err := ioutil.ReadAll(r.Body)
+		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("[ERROR] %s", err)
+			log.Printf("[DEBUG] Error: %s", err)
 		}
 		log.Printf("[DEBUG] Mock server received %s request to %q; headers:\n%s\nrequest body: %q\n",
 			r.Method, r.RequestURI, r.Header, string(bodyBytes))
@@ -76,22 +77,22 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		}
 
 		if r.RequestURI != tc.ExpectedUri {
-			log.Printf("[ERROR] Expected URI: %q, given: %q", tc.ExpectedUri, r.RequestURI)
+			log.Printf("[DEBUG] Error: expected URI: %q, given: %q", tc.ExpectedUri, r.RequestURI)
 			w.WriteHeader(400)
 			return
 		}
 		if !headersMatch(r.Header, tc.ExpectedHeaders) {
-			log.Printf("[ERROR] Expected headers: %q, given: %q", tc.ExpectedHeaders, r.Header)
+			log.Printf("[DEBUG] Error: expected headers: %q, given: %q", tc.ExpectedHeaders, r.Header)
 			w.WriteHeader(400)
 			return
 		}
 		if tc.ExpectedMethod != "" && r.Method != tc.ExpectedMethod {
-			log.Printf("[ERROR] Expected method: %q, given: %q", tc.ExpectedMethod, r.Method)
+			log.Printf("[DEBUG] Error: expected method: %q, given: %q", tc.ExpectedMethod, r.Method)
 			w.WriteHeader(400)
 			return
 		}
 		if len(tc.ExpectedBody) > 0 && string(bodyBytes) != string(tc.ExpectedBody) {
-			log.Printf("[ERROR] Expected body: %q, given: %q",
+			log.Printf("[DEBUG] Error: expected body: %q, given: %q",
 				string(tc.ExpectedBody), string(bodyBytes))
 			w.WriteHeader(400)
 			return
@@ -270,6 +271,76 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	if ghErr.Message != expectedMessage {
 		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
 	}
+}
+func TestRateLimitTransport_smart_lock(t *testing.T) {
+	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(true)
+			rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
+	t.Run("With parallelRequests true it should not unlock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(false)
+			rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
+	t.Run("With parallelRequests false with a lock present it should get stuck waiting", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(false))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(true)
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+			t.Fatalf("Expected get stuck waiting but it acquired the lock successfully")
+		case <-time.After(100 * time.Millisecond):
+		}
+	})
+
+	t.Run("With parallelRequests false and a lock present it should be able to unlock the rate limit transport", func(t *testing.T) {
+		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(false))
+
+		isSuccess := make(chan bool)
+		go func() {
+			rlt.m.Lock()
+			rlt.smartLock(false)
+			rlt.m.Lock()
+			defer rlt.m.Unlock()
+			isSuccess <- true
+		}()
+		select {
+		case <-isSuccess:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
+		}
+	})
+
 }
 
 type mockResponse struct {

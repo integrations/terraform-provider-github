@@ -53,6 +53,12 @@ GitHub Branch can be imported using an ID made up of `repository:branch`, e.g.
 $ terraform import github_branch.terraform terraform:main
 ```
 
+Importing github branch into an instance object (when using a for each block to manage multiple branches)
+
+```
+$ terraform import github_branch.terraform["terraform"] terraform:main
+```
+
 Optionally, a source branch may be specified using an ID of `repository:branch:source_branch`.
 This is useful for importing branches that do not branch directly off main.
 
