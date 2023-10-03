@@ -469,7 +469,7 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	return &github.Repository{
+	repository := &github.Repository{
 		Name:                github.String(d.Get("name").(string)),
 		Description:         github.String(d.Get("description").(string)),
 		Homepage:            github.String(d.Get("homepage_url").(string)),
@@ -493,6 +493,26 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowUpdateBranch:   github.Bool(d.Get("allow_update_branch").(bool)),
 		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
 	}
+
+	// only configure merge commit if we are in commit merge strategy
+	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
+	if ok {
+		if allowMergeCommit {
+			repository.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
+			repository.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+		}
+	}
+
+	// only configure squash commit if we are in squash merge strategy
+	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
+	if ok {
+		if allowSquashMerge {
+			repository.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
+			repository.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
+		}
+	}
+
+	return repository
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
@@ -521,24 +541,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	if ok {
 		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
-		}
-	}
-
-	// only configure merge commit if we are in commit merge strategy
-	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
-	if ok {
-		if allowMergeCommit {
-			repoReq.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
-			repoReq.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
-		}
-	}
-
-	// only configure squash commit if we are in squash merge strategy
-	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
-	if ok {
-		if allowSquashMerge {
-			repoReq.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
-			repoReq.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
 		}
 	}
 
