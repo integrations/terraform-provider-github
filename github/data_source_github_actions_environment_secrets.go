@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/google/go-github/v55/github"
 
@@ -59,7 +60,8 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 	owner := meta.(*Owner).name
 	var repoName string
 
-	env := d.Get("environment").(string)
+	envName := d.Get("environment").(string)
+	escapedEnvName := url.PathEscape(envName)
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
@@ -88,7 +90,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Actions.ListEnvSecrets(context.TODO(), int(repo.GetID()), env, &options)
+		secrets, resp, err := client.Actions.ListEnvSecrets(context.TODO(), int(repo.GetID()), escapedEnvName, &options)
 		if err != nil {
 			return err
 		}
@@ -106,7 +108,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 		options.Page = resp.NextPage
 	}
 
-	d.SetId(buildTwoPartID(repoName, env))
+	d.SetId(buildTwoPartID(repoName, envName))
 	d.Set("secrets", all_secrets)
 
 	return nil
