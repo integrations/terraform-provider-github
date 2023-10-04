@@ -11,6 +11,7 @@ on:
       - opened
 jobs:
   respond-to-issue:
+    if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - name: Determine issue or PR number
@@ -18,7 +19,7 @@ jobs:
         run: echo "NUMBER=${{ github.event.issue.number || github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
 
       - name: Respond to issue or PR
-        uses: peter-evans/create-or-update-comment@1f6c51492b7d8e91122ece56e2eb7ed38df14079
+        uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ steps.extract.outputs.NUMBER }}
           body: >
