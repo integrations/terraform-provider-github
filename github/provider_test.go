@@ -71,6 +71,28 @@ func TestAccProviderConfigure(t *testing.T) {
 
 	})
 
+	t.Run("can be configured to run with an individual accoun without token", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+                                provider "github" {
+                                        owner = "%s"
+                                }`,
+			testOwnerFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, anonymous) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
+
 	t.Run("can be configured to run insecurely", func(t *testing.T) {
 
 		config := fmt.Sprintf(`

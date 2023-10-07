@@ -152,17 +152,12 @@ func (c *Config) Meta() (interface{}, error) {
 	owner.v4client = v4client
 	owner.v3client = v3client
 
-	if c.Anonymous() {
-		log.Printf("[INFO] No token present; configuring anonymous owner.")
-		return &owner, nil
-	} else {
-		_, err = c.ConfigureOwner(&owner)
-		if err != nil {
-			return &owner, err
-		}
-		log.Printf("[INFO] Token present; configuring authenticated owner: %s", owner.name)
-		return &owner, nil
+	_, err = c.ConfigureOwner(&owner)
+	if err != nil {
+		return &owner, err
 	}
+	log.Printf("[INFO] Configuring owner: %s", owner.name)
+	return &owner, nil
 }
 
 type previewHeaderInjectorTransport struct {
