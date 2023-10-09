@@ -52,7 +52,7 @@ resource "github_branch_protection" "example" {
     # you can have more than one type of restriction (teams + users). If you use
     # more than one type, you must use node_ids of each user and each team.
     # github_team.example.node_id
-    # github_team.example-2.node_id
+    # github_user.example-2.node_id
   ]
 
   force_push_bypassers = [
