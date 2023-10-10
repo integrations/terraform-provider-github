@@ -226,7 +226,6 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		SHA:      &sha,
 		URL:      &apiUrl,
 	})
-
 	repoCommit := &github.RepositoryCommit{
 		SHA: &sha,
 		Committer: &github.User{
