@@ -111,7 +111,8 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
 	d.Set("file", file)
 
-	// If the repo is a directory, then there is nothing to do.
+	// If the repo is a directory, then there is nothing else we can include in
+	// the schema.
 	if dc != nil {
 		return nil
 	}
