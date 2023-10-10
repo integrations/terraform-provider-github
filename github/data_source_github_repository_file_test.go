@@ -430,7 +430,7 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		},
 	})
 
-	t.Run("extract nothing if the path is for a directory", func(t *testing.T) {
+	t.Run("extract only non-file data if the path is for a directory", func(t *testing.T) {
 		// test setup
 		repositoryFullName := fmt.Sprintf("%s/%s", org, repo)
 
