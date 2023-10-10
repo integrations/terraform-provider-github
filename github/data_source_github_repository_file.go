@@ -107,6 +107,10 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	d.Set("repository", repo)
+	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	d.Set("file", file)
+
 	// If the repo is a directory, then there is nothing to do.
 	if dc != nil {
 		return nil
@@ -117,10 +121,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
 	d.Set("content", content)
-	d.Set("repository", repo)
-	d.Set("file", file)
 	d.Set("sha", fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())

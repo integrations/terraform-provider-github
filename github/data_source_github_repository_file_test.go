@@ -435,6 +435,9 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		// test setup
 		repositoryFullName := fmt.Sprintf("%s/%s", org, repo)
 
+		expectedID := fmt.Sprintf("%s/%s", repo, fileName)
+		expectedRepo := "test-repo"
+
 		ts := githubApiMock([]*mockResponse{
 			{
 				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
@@ -470,8 +473,6 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"file":       fileName,
 			"branch":     branch,
 			"commit_sha": sha,
-			"content":    "",
-			"id":         "",
 		})
 
 		// actual call
@@ -479,7 +480,9 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 
 		// assertions
 		assert.Nil(t, err)
+		assert.Equal(t, expectedRepo, schema.Get("repository"))
+		assert.Equal(t, expectedID, schema.Get("id"))
 		assert.Equal(t, "", schema.Get("content"))
-		assert.Equal(t, "", schema.Get("id"))
+		assert.Equal(t, nil, schema.Get("sha"))
 	})
 }
