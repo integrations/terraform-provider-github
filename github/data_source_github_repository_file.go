@@ -95,7 +95,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		opts.Ref = branch.(string)
 	}
 
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
@@ -105,6 +105,11 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 			}
 		}
 		return err
+	}
+
+	// If the repo is a directory, then there is nothing to do.
+	if dc != nil {
+		return nil
 	}
 
 	content, err := fc.GetContent()
