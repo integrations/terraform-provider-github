@@ -129,6 +129,7 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 				return nil
 			}
 		}
+		return err
 	}
 
 	d.Set("repository", repoName)
