@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -129,6 +129,7 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 				return nil
 			}
 		}
+		return err
 	}
 
 	d.Set("repository", repoName)

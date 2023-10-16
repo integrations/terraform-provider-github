@@ -87,13 +87,13 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
-* `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title.
+* `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title. Applicable only if `allow_squash_merge` is `true`.
 
-* `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message.
+* `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message. Applicable only if `allow_squash_merge` is `true`.
 
-* `merge_commit_title` - Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title.
+* `merge_commit_title` - Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title. Applicable only if `allow_merge_commit` is `true`.
 
-* `merge_commit_message` - Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message.
+* `merge_commit_message` - Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message. Applicable only if `allow_merge_commit` is `true`.
 
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
@@ -118,6 +118,8 @@ initial repository creation and create the target branch inside of the repositor
 * `security_and_analysis` - (Optional) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. See [Security and Analysis Configuration](#security-and-analysis-configuration) below for details.
 
 * `topics` - (Optional) The list of topics of the repository.
+
+~> Note: This attribute is not compatible with the `github_repository_topics` resource. Use one of them. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource (see [issue #1845](https://github.com/integrations/terraform-provider-github/issues/1845)).
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
@@ -196,6 +198,8 @@ The following additional attributes are exported:
 * `node_id` - GraphQL global node id for use with v4 API
 
 * `repo_id` - GitHub ID for the repository
+
+* `primary_language` - The primary language used in the repository.
 
 * `pages` - The block consisting of the repository's GitHub Pages configuration with the following additional attributes:
  * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.

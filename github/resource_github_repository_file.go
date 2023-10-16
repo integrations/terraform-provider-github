@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -238,7 +238,10 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			return err
+			log.Printf("[INFO] Removing repository path %s/%s/%s from state because the branch no longer exists in GitHub",
+				owner, repo, file)
+			d.SetId("")
+			return nil
 		}
 		opts.Ref = branch.(string)
 	}

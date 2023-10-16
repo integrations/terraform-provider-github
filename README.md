@@ -5,12 +5,12 @@ Terraform Provider GitHub
 
 <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
 
-This project is used to read and write to/from GitHub (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
+This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
 
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.10.x
--	[Go](https://golang.org/doc/install) 1.17.x (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.19.x (to build the provider plugin)
 
 ## Usage
 
@@ -26,4 +26,4 @@ This project uses [Milestones](https://github.com/integrations/terraform-provide
 
 ## Support
 
-This is a community-supported project.  GitHub Support is not responsible for maintenance. Please engage with the community via Issues for support.
+This is a community-supported project. GitHub's SDK team triages issues and PRs each Monday and Friday. Please engage with the community via Issues for support, and PRs are always welcome!

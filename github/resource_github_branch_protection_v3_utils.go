@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -269,15 +269,13 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			for _, c := range checks {
 
 				// Expect a string of "context:app_id", allowing for the absence of "app_id"
-				parts := strings.SplitN(c, ":", 2)
+				index := strings.LastIndex(c, ":")
 				var cContext, cAppId string
-				switch len(parts) {
-				case 1:
-					cContext, cAppId = parts[0], ""
-				case 2:
-					cContext, cAppId = parts[0], parts[1]
-				default:
-					return nil, fmt.Errorf("Could not parse check '%s'. Expected `context:app_id` or `context`", c)
+				if index <= 0 {
+					// If there is no ":" or it's in the first position, there is no app_id.
+					cContext, cAppId = c, ""
+				} else {
+					cContext, cAppId = c[:index], c[index+1:]
 				}
 
 				var rscCheck *github.RequiredStatusCheck

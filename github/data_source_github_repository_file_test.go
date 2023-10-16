@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -419,5 +419,69 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			testCase(t, organization)
 		})
 
+	})
+
+	repoContentDirectoryRespBody := marshal(t, []github.RepositoryContent{
+		{
+			Encoding: &enc,
+			Content:  &b64FileContent,
+			SHA:      &sha,
+			URL:      &apiUrl,
+		},
+	})
+
+	t.Run("extract only non-file data if the path is for a directory", func(t *testing.T) {
+		// test setup
+		repositoryFullName := fmt.Sprintf("%s/%s", org, repo)
+
+		expectedID := fmt.Sprintf("%s/%s", repo, fileName)
+		expectedRepo := "test-repo"
+
+		ts := githubApiMock([]*mockResponse{
+			{
+				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
+				ResponseBody: repoContentDirectoryRespBody,
+				StatusCode:   http.StatusOK,
+			},
+		})
+		defer ts.Close()
+
+		httpCl := http.DefaultClient
+		httpCl.Transport = http.DefaultTransport
+
+		client := github.NewClient(httpCl)
+		u, _ := url.Parse(ts.URL + "/")
+		client.BaseURL = u
+
+		meta := &Owner{
+			name:     owner,
+			v3client: client,
+		}
+
+		testSchema := map[string]*schema.Schema{
+			"repository": {Type: schema.TypeString},
+			"file":       {Type: schema.TypeString},
+			"branch":     {Type: schema.TypeString},
+			"commit_sha": {Type: schema.TypeString},
+			"content":    {Type: schema.TypeString},
+			"id":         {Type: schema.TypeString},
+		}
+
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+			"repository": repositoryFullName,
+			"file":       fileName,
+			"branch":     branch,
+			"commit_sha": sha,
+		})
+
+		// actual call
+		err := dataSourceGithubRepositoryFileRead(schema, meta)
+
+		// assertions
+		assert.Nil(t, err)
+		assert.Equal(t, expectedRepo, schema.Get("repository"))
+		assert.Equal(t, expectedID, schema.Get("id"))
+		assert.Equal(t, "", schema.Get("content"))
+		assert.Equal(t, nil, schema.Get("sha"))
 	})
 }
