@@ -36,5 +36,5 @@ The following arguments are supported:
 This resource can be imported using the name of the GitHub repository:
 
 ```
-$ terraform import github_actions_repository_access_level.test <github_repository_name>
+$ terraform import github_actions_repository_access_level.test my-repository
 ```
