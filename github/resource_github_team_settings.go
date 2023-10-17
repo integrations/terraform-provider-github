@@ -84,7 +84,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
 						// TODO: The underlying graphql call is using memberIds. Might be better UX to use usernames, or add both as an option...
-						"excluded_team_member_ids": {
+						"excluded_team_member_node_ids": {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "A list of users to exclude from the PR review process",
@@ -182,7 +182,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 			}
 
 			exclusionList := make([]string, 0)
-			for _, v := range settings["excluded_team_member_ids"].(*schema.Set).List() {
+			for _, v := range settings["excluded_team_member_node_ids"].(*schema.Set).List() {
 				if v != nil {
 					exclusionList = append(exclusionList, v.(string))
 				}
