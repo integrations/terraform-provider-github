@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 
+	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
-	"github.com/golangci/golangci-lint/pkg/sliceutil"
 )
 
 type FileReader struct {
@@ -45,6 +47,11 @@ func (r *FileReader) Read() error {
 
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
+
+		// Assume YAML if the file has no extension.
+		if filepath.Ext(configFile) == "" {
+			viper.SetConfigType("yaml")
+		}
 	} else {
 		r.setupConfigFileSearch()
 	}
@@ -66,13 +73,33 @@ func (r *FileReader) parseConfig() error {
 		return nil
 	}
 
-	usedConfigFile, err := fsutils.ShortestRelPath(usedConfigFile, "")
-	if err != nil {
-		r.log.Warnf("Can't pretty print config file path: %s", err)
-	}
-	r.log.Infof("Used config file %s", usedConfigFile)
+	if usedConfigFile == os.Stdin.Name() {
+		usedConfigFile = ""
+		r.log.Infof("Reading config file stdin")
+	} else {
+		var err error
+		usedConfigFile, err = fsutils.ShortestRelPath(usedConfigFile, "")
+		if err != nil {
+			r.log.Warnf("Can't pretty print config file path: %v", err)
+		}
 
-	if err := viper.Unmarshal(r.cfg); err != nil {
+		r.log.Infof("Used config file %s", usedConfigFile)
+	}
+
+	usedConfigDir, err := filepath.Abs(filepath.Dir(usedConfigFile))
+	if err != nil {
+		return errors.New("can't get config directory")
+	}
+	r.cfg.cfgDir = usedConfigDir
+
+	if err := viper.Unmarshal(r.cfg, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		// Default hooks (https://github.com/spf13/viper/blob/518241257478c557633ab36e474dfcaeb9a3c623/viper.go#L135-L138).
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+
+		// Needed for forbidigo.
+		mapstructure.TextUnmarshallerHookFunc(),
+	))); err != nil {
 		return fmt.Errorf("can't unmarshal config by viper: %s", err)
 	}
 
@@ -82,7 +109,7 @@ func (r *FileReader) parseConfig() error {
 
 	if r.cfg.InternalTest { // just for testing purposes: to detect config file usage
 		fmt.Fprintln(logutils.StdOut, "test")
-		os.Exit(0)
+		os.Exit(exitcodes.Success)
 	}
 
 	return nil
@@ -184,7 +211,7 @@ func (r *FileReader) setupConfigFileSearch() {
 	// find home directory for global config
 	if home, err := homedir.Dir(); err != nil {
 		r.log.Warnf("Can't get user's home directory: %s", err.Error())
-	} else if !sliceutil.Contains(configSearchPaths, home) {
+	} else if !slices.Contains(configSearchPaths, home) {
 		configSearchPaths = append(configSearchPaths, home)
 	}
 
@@ -205,7 +232,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile := cfg.Run.Config
 	if cfg.Run.NoConfig && configFile != "" {
-		return "", fmt.Errorf("can't combine option --config and --no-config")
+		return "", errors.New("can't combine option --config and --no-config")
 	}
 
 	if cfg.Run.NoConfig {
@@ -214,7 +241,7 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
-		return "", fmt.Errorf("failed to expand configuration path")
+		return "", errors.New("failed to expand configuration path")
 	}
 
 	return configFile, nil
