@@ -269,7 +269,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 					},
 					{
 						Config: config2,
-						Check: check,
+						Check:  check,
 					},
 				},
 			})
