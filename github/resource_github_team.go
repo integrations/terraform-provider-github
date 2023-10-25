@@ -219,6 +219,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("parent_team_read_slug", parent.Slug)
 	} else {
 		d.Set("parent_team_id", "")
+		d.Set("parent_team_read_id", "")
+		d.Set("parent_team_read_slug", "")
 	}
 	d.Set("ldap_dn", team.GetLDAPDN())
 	d.Set("slug", team.GetSlug())
@@ -236,6 +238,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -248,6 +251,9 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 		editedTeam.ParentTeamID = &teamId
+		removeParentTeam = false
+	} else {
+		removeParentTeam = true
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -256,7 +262,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
+	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
 	if err != nil {
 		return err
 	}
