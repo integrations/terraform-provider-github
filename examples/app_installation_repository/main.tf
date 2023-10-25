@@ -3,7 +3,7 @@ resource "github_repository" "app_installation_example" {
   description = "A repository to install an application in."
 }
 
-resource "github_app_installation_repository" "test"{
-    repository      = github_repository.app_installation_example.name
-    installation_id = var.installation_id
+resource "github_app_installation_repository" "test" {
+  repository      = github_repository.app_installation_example.name
+  installation_id = var.installation_id
 }
