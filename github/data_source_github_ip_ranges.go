@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -10,6 +11,10 @@ import (
 func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubIpRangesRead,
+
+		Timeouts: &schema.ResourceTimeout{
+			Read: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"hooks": {
