@@ -283,7 +283,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 					// If we have a valid app_id, include it in the RSC
 					rscAppId, err := strconv.Atoi(cAppId)
 					if err != nil {
-						return nil, fmt.Errorf("Could not parse %v as valid app_id", cAppId)
+						return nil, fmt.Errorf("could not parse %v as valid app_id", cAppId)
 					}
 					rscAppId64 := int64(rscAppId)
 					rscCheck = &github.RequiredStatusCheck{Context: cContext, AppID: &rscAppId64}
