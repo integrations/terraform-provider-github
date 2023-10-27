@@ -242,13 +242,17 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 				repository = github_repository.test.name
 				permission = "admin"
 			}
+		`, randomID)
+
+		config2 := config + `
 			data "github_team" "test" {
 				slug = github_team.test.slug
 			}
-		`, randomID)
+		`
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
+			resource.TestCheckResourceAttr("github_repository.test", "name", "tf-acc-test"),
 			resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "github_team_repository.test", "permission"),
@@ -261,6 +265,10 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
+						Check:  resource.ComposeAggregateTestCheckFunc(),
+					},
+					{
+						Config: config2,
 						Check:  check,
 					},
 				},

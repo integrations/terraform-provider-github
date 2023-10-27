@@ -239,7 +239,13 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	// Required deployments rule
 	if !org {
 		if v, ok := rulesMap["required_deployments"].([]interface{}); ok && len(v) != 0 {
-			requiredDeploymentsMap := v[0].(map[string]interface{})
+			requiredDeploymentsMap := make(map[string]interface{})
+			// If the rule's block is present but has an empty environments list
+			if v[0] == nil {
+				requiredDeploymentsMap["required_deployment_environments"] = make([]interface{}, 0)
+			} else {
+				requiredDeploymentsMap = v[0].(map[string]interface{})
+			}
 			envs := make([]string, 0)
 			for _, v := range requiredDeploymentsMap["required_deployment_environments"].([]interface{}) {
 				envs = append(envs, v.(string))
