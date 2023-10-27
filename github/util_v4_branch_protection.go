@@ -24,6 +24,7 @@ type ActorUser struct {
 
 type DismissalActorTypes struct {
 	Actor struct {
+		App  Actor     `graphql:"... on App"`
 		Team Actor     `graphql:"... on Team"`
 		User ActorUser `graphql:"... on User"`
 	}
@@ -340,7 +341,7 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 	for _, a := range actors {
 		IsID := false
 		for _, v := range data.ReviewDismissalActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
 				dismissalActors = append(dismissalActors, v)
 				IsID = true
 				break
@@ -353,6 +354,10 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 			}
 			if a.Actor.User.Login != "" {
 				dismissalActors = append(dismissalActors, "/"+string(a.Actor.User.Login))
+				continue
+			}
+			if a.Actor.App != (Actor{}) {
+				dismissalActors = append(dismissalActors, a.Actor.App.ID.(string))
 			}
 		}
 	}
@@ -561,7 +566,7 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 		}
 	}
 
-	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'.", pattern)
+	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'", pattern)
 }
 
 func getActorIds(data []string, meta interface{}) ([]string, error) {

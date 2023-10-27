@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -93,7 +93,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		uv3.Path = uv3.Path + "api/v3/"
 	}
 
-	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
+	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,9 @@ package github
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -115,6 +118,7 @@ func Provider() terraform.ResourceProvider {
 			"github_branch_protection":                                              resourceGithubBranchProtection(),
 			"github_branch_protection_v3":                                           resourceGithubBranchProtectionV3(),
 			"github_codespaces_organization_secret":                                 resourceGithubCodespacesOrganizationSecret(),
+			"github_codespaces_organization_secret_repositories":                    resourceGithubCodespacesOrganizationSecretRepositories(),
 			"github_codespaces_secret":                                              resourceGithubCodespacesSecret(),
 			"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
 			"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
@@ -128,6 +132,7 @@ func Provider() terraform.ResourceProvider {
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
 			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
+			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
 			"github_project_card":                                                   resourceGithubProjectCard(),
@@ -135,6 +140,7 @@ func Provider() terraform.ResourceProvider {
 			"github_release":                                                        resourceGithubRelease(),
 			"github_repository":                                                     resourceGithubRepository(),
 			"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
+			"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
 			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 			"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
 			"github_repository_deploy_key":                                          resourceGithubRepositoryDeployKey(),
@@ -145,7 +151,9 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
 			"github_repository_project":                                             resourceGithubRepositoryProject(),
 			"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
+			"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
 			"github_repository_tag_protection":                                      resourceGithubRepositoryTagProtection(),
+			"github_repository_topics":                                              resourceGithubRepositoryTopics(),
 			"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),
 			"github_team":                                                           resourceGithubTeam(),
 			"github_team_members":                                                   resourceGithubTeamMembers(),
@@ -218,6 +226,7 @@ func Provider() terraform.ResourceProvider {
 			"github_team":                                                           dataSourceGithubTeam(),
 			"github_tree":                                                           dataSourceGithubTree(),
 			"github_user":                                                           dataSourceGithubUser(),
+			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 		},
@@ -329,6 +338,19 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			token = appToken
 		}
 
+		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+		if err != nil {
+			return nil, err
+		}
+
+		if token == "" {
+			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
+			if err != nil {
+				return nil, fmt.Errorf("gh auth token: %w", err)
+			}
+			token = ghAuthToken
+		}
+
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
 			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
@@ -342,11 +364,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
 		parallelRequests := d.Get("parallel_requests").(bool)
-		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
 
-		if err != nil {
-			return nil, err
-		}
 		if parallelRequests && isGithubDotCom {
 			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
 		}
@@ -371,4 +389,43 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		return meta, nil
 	}
+}
+
+// See https://github.com/integrations/terraform-provider-github/issues/1822
+func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+	ghCliPath := os.Getenv("GH_PATH")
+	if ghCliPath == "" {
+		ghCliPath = "gh"
+	}
+	hostname := ""
+	if isGithubDotCom {
+		hostname = "github.com"
+	} else {
+		parsedURL, err := url.Parse(baseURL)
+		if err != nil {
+			return "", fmt.Errorf("parse %s: %w", baseURL, err)
+		}
+		hostname = parsedURL.Host
+	}
+	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when
+	// we're using the standard base path of this provider, it doesn't align
+	// with the way `gh` CLI stores the credentials. The following doesn't work:
+	//
+	// $ gh auth token --hostname api.github.com
+	// > no oauth token
+	//
+	// ... but the following does work correctly
+	//
+	// $ gh auth token --hostname github.com
+	// > gh..<valid token>
+	hostname = strings.TrimPrefix(hostname, "api.")
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+	if err != nil {
+		// GH CLI is either not installed or there was no `gh auth login` command issued,
+		// which is fine. don't return the error to keep the flow going
+		return "", nil
+	}
+
+	log.Printf("[INFO] Using the token from GitHub CLI")
+	return strings.TrimSpace(string(out)), nil
 }

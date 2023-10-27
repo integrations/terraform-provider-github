@@ -3,8 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/url"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v55/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -63,7 +64,8 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 	owner := meta.(*Owner).name
 	var repoName string
 
-	env := d.Get("environment").(string)
+	envName := d.Get("environment").(string)
+	escapedEnvName := url.PathEscape(envName)
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
@@ -92,7 +94,7 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListEnvVariables(context.TODO(), int(repo.GetID()), env, &options)
+		variables, resp, err := client.Actions.ListEnvVariables(context.TODO(), int(repo.GetID()), escapedEnvName, &options)
 		if err != nil {
 			return err
 		}
@@ -111,7 +113,7 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 		options.Page = resp.NextPage
 	}
 
-	d.SetId(buildTwoPartID(repoName, env))
+	d.SetId(buildTwoPartID(repoName, envName))
 	d.Set("variables", all_variables)
 
 	return nil

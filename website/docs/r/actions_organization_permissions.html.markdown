@@ -56,8 +56,8 @@ The `enabled_repositories_config` block supports the following:
 
 ## Import
 
-This resource can be imported using the ID of the GitHub organization:
+This resource can be imported using the name of the GitHub organization:
 
 ```
-$ terraform import github_actions_organization_permissions.test <github_organization_name>
+$ terraform import github_actions_organization_permissions.test github_organization_name
 ```
