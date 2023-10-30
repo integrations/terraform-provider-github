@@ -301,6 +301,16 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			  auto_init = true
 			}
 
+			resource "github_team" "test" {
+				name = "tf-acc-test-%[1]s"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "admin"
+			}
+
 			resource "github_branch_protection_v3" "test" {
 
 			  repository  = github_repository.test.name
@@ -309,17 +319,18 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			  required_pull_request_reviews {
 				  dismiss_stale_reviews      = true
 				  require_code_owner_reviews = true
-				  dismissal_users			= ["a"]
-				  dismissal_teams			= ["b"]
-				  dismissal_apps			= ["c"]
 				  required_approving_review_count = 1
+				  dismissal_users = ["a"]
+				  dismissal_teams = ["b"]
+				  dismissal_apps = ["c"]
 				  bypass_pull_request_allowances {
 					  users = ["d"]
-					  teams = ["e"]
-					  apps  = ["f"]
+					  teams = [github_team.test.slug]
+					  apps = ["e"]
 				  }
 			  }
 
+			  depends_on = [github_team_repository.test]
 			}
 	`, randomID)
 
@@ -337,22 +348,25 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 				"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users", "a",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams", "b",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps", "c",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.users", "d",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.teams", "e",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.apps", "f",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
 			),
 		)
 
