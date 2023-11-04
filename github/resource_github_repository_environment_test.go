@@ -29,6 +29,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 				repository 	= github_repository.test.name
 				environment	= "environment/test"
 				can_admins_bypass = false
+				wait_timer = 10000
 				reviewers {
 					users = [data.github_user.current.id]
 				}
@@ -43,10 +44,8 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment/test"),
 			resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
+			resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
 		)
-
-		// wait_timer is purposely not includes in the config or tests.
-		// due to the way the tests work they fail with wait_timers set, even though terraform works correctly.
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{

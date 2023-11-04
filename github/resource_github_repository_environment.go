@@ -140,11 +140,15 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	d.Set("repository", repoName)
 	d.Set("environment", envName)
+	d.Set("wait_timer", nil)
 	d.Set("can_admins_bypass", env.CanAdminsBypass)
 
 	for _, pr := range env.ProtectionRules {
+		switch *pr.Type {
+		case "wait_timer":
+			d.Set("wait_timer", pr.WaitTimer)
 
-		if *pr.Type == "required_reviewers" {
+		case "required_reviewers":
 			teams := make([]int64, 0)
 			users := make([]int64, 0)
 
@@ -166,12 +170,6 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					"users": users,
 				},
 			})
-		}
-
-		d.Set("wait_timer", nil)
-
-		if *pr.Type == "wait_timer" {
-			d.Set("wait_timer", pr.WaitTimer)
 		}
 	}
 
