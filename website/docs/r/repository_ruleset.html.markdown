@@ -173,7 +173,7 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
-#### required_status_checks.required_check ####
+#### rules.required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
