@@ -59,6 +59,10 @@ func TestAccGithubRepositories(t *testing.T) {
 				"github_repository.test", "merge_commit_title",
 				"MERGE_MESSAGE",
 			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "web_commit_signoff_required",
+				"true",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
