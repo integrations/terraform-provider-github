@@ -172,6 +172,8 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
 		})
+	} else {
+		d.Set("deployment_branch_policy", []interface{}{})
 	}
 
 	return nil
