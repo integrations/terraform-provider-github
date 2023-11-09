@@ -162,7 +162,7 @@ func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
-		var users, teams []interface{}
+		var users, teams, apps []interface{}
 		restrictions := rprr.GetDismissalRestrictions()
 
 		if restrictions != nil {
@@ -178,6 +178,12 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 					teams = append(teams, *t.Slug)
 				}
 			}
+			apps = make([]interface{}, 0, len(restrictions.Apps))
+			for _, t := range restrictions.Apps {
+				if t.Slug != nil {
+					apps = append(apps, *t.Slug)
+				}
+			}
 		}
 
 		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
@@ -187,6 +193,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
 				"dismissal_users":                 schema.NewSet(schema.HashString, users),
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
+				"dismissal_apps":                  schema.NewSet(schema.HashString, apps),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 				"bypass_pull_request_allowances":  bpra,
@@ -328,6 +335,11 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			teams := expandNestedSet(m, "dismissal_teams")
 			if len(teams) > 0 {
 				drr.Teams = &teams
+			}
+
+			apps := expandNestedSet(m, "dismissal_apps")
+			if len(apps) > 0 {
+				drr.Apps = &apps
 			}
 
 			bpra, err := expandBypassPullRequestAllowances(m)
