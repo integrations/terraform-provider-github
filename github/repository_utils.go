@@ -55,12 +55,27 @@ func getFileCommit(client *github.Client, owner, repo, file, branch string) (*gi
 			continue
 		}
 
-		rc, _, err := client.Repositories.GetCommit(ctx, owner, repo, sha, nil)
-		if err != nil {
-			return nil, err
+		opts := &github.ListOptions{}
+		allFiles := []*github.CommitFile{}
+		var rc *github.RepositoryCommit
+		var resp *github.Response
+		var err error
+		for {
+			rc, resp, err = client.Repositories.GetCommit(ctx, owner, repo, sha, opts)
+			if err != nil {
+				return nil, err
+			}
+
+			allFiles = append(allFiles, rc.Files...)
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			opts.Page = resp.NextPage
 		}
 
-		for _, f := range rc.Files {
+		for _, f := range allFiles {
 			if f.GetFilename() == file && f.GetStatus() != "removed" {
 				return rc, nil
 			}
