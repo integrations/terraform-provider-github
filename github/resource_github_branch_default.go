@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 
 	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -34,6 +36,10 @@ func resourceGithubBranchDefault() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Indicate if it should rename the branch rather than use an existing branch. Defaults to 'false'.",
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -79,9 +85,23 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) e
 	repoName := d.Id()
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if !d.IsNewResource() {
+		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	}
 
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing repository %s/%s from state because it no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -90,6 +110,7 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
+	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("branch", *repository.DefaultBranch)
 	d.Set("repository", *repository.Name)
 	return nil
