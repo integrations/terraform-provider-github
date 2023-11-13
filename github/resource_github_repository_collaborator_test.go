@@ -79,7 +79,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 			resource "github_repository_collaborator" "test_repo_collaborator_2" {
 				repository = "%s/${github_repository.test.name}"
-				username   = "parthpatel9216"
+				username   = "<username>"
 				permission = "triage"
 			}
 		`, randomID, orgName)
