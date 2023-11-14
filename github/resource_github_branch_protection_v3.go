@@ -128,6 +128,12 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
 							ValidateFunc: validation.IntBetween(0, 6),
 						},
+						"require_last_push_approval": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Require that The most recent push must be approved by someone other than the last pusher.",
+						},
 						"bypass_pull_request_allowances": {
 							Type:     schema.TypeList,
 							Optional: true,
