@@ -44,6 +44,8 @@ The following arguments are supported:
 
 * `wait_timer` - (Optional) Amount of time to delay a job after the job is initially triggered.
 
+* `can_admins_bypass` - (Optional) Can repository admins bypass the environment protections.  Defaults to `true`.
+
 ### Reviewers
 
 The `reviewers` block supports the following:
