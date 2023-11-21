@@ -49,7 +49,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository
 
-~> Note: The owner of the repository can be passed as part fo the repository name  e.g. `owner-org-name/repo-name`. If owner is not supplied as part of the repository name, can also be supplied by setting the environment variable `GITHUB_OWNER`.
+~> Note: The owner of the repository can be passed as part of the repository name  e.g. `owner-org-name/repo-name`. If owner is not supplied as part of the repository name, it may also be supplied by setting the environment variable `GITHUB_OWNER`.
 
 * `username` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
