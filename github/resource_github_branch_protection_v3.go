@@ -132,7 +132,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
-							Description: "Require that The most recent push must be approved by someone other than the last pusher.",
+							Description: "Require that the most recent push must be approved by someone other than the last pusher.",
 						},
 						"bypass_pull_request_allowances": {
 							Type:     schema.TypeList,
