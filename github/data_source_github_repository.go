@@ -393,7 +393,6 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("git_clone_url", repo.GetGitURL())
 	d.Set("http_clone_url", repo.GetCloneURL())
 	d.Set("archived", repo.GetArchived())
-	d.Set("repositorylicense", repo.GetLicense())
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
