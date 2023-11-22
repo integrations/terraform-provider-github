@@ -118,6 +118,117 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"repositorylicense": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"path": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"license": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"spdx_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"html_url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"featured": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"description": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"implementation": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"permissions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"conditions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"limitations": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"body": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"sha": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"size": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"html_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"git_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"download_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"content": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"encoding": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -282,6 +393,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("git_clone_url", repo.GetGitURL())
 	d.Set("http_clone_url", repo.GetCloneURL())
 	d.Set("archived", repo.GetArchived())
+	d.Set("repositorylicense", repo.GetLicense())
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
@@ -296,6 +408,18 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		}
 	} else {
 		d.Set("pages", flattenPages(nil))
+	}
+
+	if repo.License != nil {
+		repositorylicense, _, err := client.Repositories.License(context.TODO(), owner, repoName)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("repositorylicense", flattenRepositoryLicense(repositorylicense)); err != nil {
+			return fmt.Errorf("error setting repositorylicense: %w", err)
+		}
+	} else {
+		d.Set("repositorylicense", flattenRepositoryLicense(nil))
 	}
 
 	if repo.TemplateRepository != nil {
