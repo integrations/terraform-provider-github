@@ -94,6 +94,8 @@ The following arguments are supported:
 
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
+* `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
+
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
 
 * `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.

@@ -33,6 +33,12 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 				ForceNew:    true,
 				Description: "The name of the environment.",
 			},
+			"can_admins_bypass": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Can Admins bypass deployment protections",
+			},
 			"wait_timer": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -134,6 +140,8 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	d.Set("repository", repoName)
 	d.Set("environment", envName)
+	d.Set("wait_timer", nil)
+	d.Set("can_admins_bypass", env.CanAdminsBypass)
 
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
@@ -222,6 +230,8 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	if v, ok := d.GetOk("wait_timer"); ok {
 		data.WaitTimer = github.Int(v.(int))
 	}
+
+	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
