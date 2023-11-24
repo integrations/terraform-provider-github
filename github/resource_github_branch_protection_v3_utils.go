@@ -351,7 +351,8 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
-			*rprr.RequireLastPushApproval = m["require_last_push_approval"].(bool)
+			requireLastPushApproval := m["require_last_push_approval"].(bool)
+			rprr.RequireLastPushApproval = &requireLastPushApproval
 			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 
