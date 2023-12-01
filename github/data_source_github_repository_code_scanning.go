@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -64,7 +63,7 @@ func dataSourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta int
 		timeString = config.UpdatedAt.String()
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/code-scanning/default-setup", owner, repository))
+	d.SetId(buildTwoPartID(owner, repository))
 	d.Set("languages", config.Languages)
 	d.Set("query_suite", config.GetQuerySuite())
 	d.Set("state", config.GetState())

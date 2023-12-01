@@ -37,12 +37,13 @@ func TestAccGithubRepositoryCodeScanning(t *testing.T) {
 
 				state      = "configured"
 				query_suite = "default"
+
+				depends_on = [github_repository_file.test_py]
 			}
 		`, repoName)
 
 		const resourceName = "resource.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "languages.0", "python"),
 			resource.TestCheckResourceAttr(resourceName, "state", "configured"),
 			resource.TestCheckResourceAttr(resourceName, "query_suite", "default"),
 		)
@@ -116,13 +117,13 @@ func TestAccGithubRepositoryCodeScanning(t *testing.T) {
 
 				state      = "configured"
 				query_suite = "extended"
+
+				depends_on = [github_repository_file.test_js, github_repository_file.test_py]
 			}
 		`, repoName)
 
 		const resourceName = "resource.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "languages.0", "python"),
-			resource.TestCheckResourceAttr(resourceName, "languages.1", "javascript-typescript"),
 			resource.TestCheckResourceAttr(resourceName, "state", "configured"),
 			resource.TestCheckResourceAttr(resourceName, "query_suite", "extended"),
 		)

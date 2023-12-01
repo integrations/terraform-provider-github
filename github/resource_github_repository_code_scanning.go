@@ -2,11 +2,25 @@ package github
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"io"
 
 	"github.com/google/go-github/v55/github"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
+
+const (
+	codeQLWorkflowRunFailure  = "codeql setup workflow failed for repository"
+	codeQLWorkflowRunInFlight = "codeql setup for repository still in progress"
+)
+
+type DefaultSetupConfigurationResponse struct {
+	RunId  int64  `json:"run_id"`
+	RunUrl string `json:"run_url"`
+}
 
 func resourceGithubRepositoryCodeScanning() *schema.Resource {
 	return &schema.Resource{
@@ -53,6 +67,11 @@ func resourceGithubRepositoryCodeScanning() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"wait": {
+				Type:     schema.TypeBool,
+				Default:  true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -66,13 +85,34 @@ func resourceGithubRepositoryCodeScanningCreate(d *schema.ResourceData, meta int
 	createUpdateOpts := createUpdateCodeScanning(d, meta)
 	ctx := context.Background()
 
-	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
+	_, response, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
 		owner,
 		repoName,
 		&createUpdateOpts,
 	)
 	if err != nil {
 		return err
+	}
+
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	responseData := &DefaultSetupConfigurationResponse{}
+	if err = json.Unmarshal(body, responseData); err != nil {
+		return err
+	}
+
+	wait := d.Get("wait")
+
+	if wait.(bool) {
+		err = resource.Retry(d.Timeout(schema.TimeoutCreate),
+			waitForCodeQLActionCompleteFunc(ctx, client, d.Id(), responseData.RunId))
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId(buildTwoPartID(owner, repoName))
@@ -162,4 +202,29 @@ func createUpdateCodeScanning(d *schema.ResourceData, meta interface{}) github.U
 	data.State = d.Get("state").(string)
 
 	return data
+}
+
+func waitForCodeQLActionCompleteFunc(ctx context.Context, client *github.Client, resourceId string, runId int64) resource.RetryFunc {
+	return func() *resource.RetryError {
+		owner, repoName, err := parseTwoPartID(resourceId, "owner", "repository")
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		workflowRun, _, err := client.Actions.GetWorkflowRunByID(ctx, owner, repoName, runId)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		switch *workflowRun.Status {
+		case "success":
+			return nil
+		case "failure", "timed out", "cancelled":
+			return resource.NonRetryableError(errors.New(codeQLWorkflowRunFailure))
+		case "queued", "in progress", "waiting":
+			return resource.RetryableError(errors.New(codeQLWorkflowRunInFlight))
+		}
+
+		return nil
+	}
 }
