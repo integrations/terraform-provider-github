@@ -9,23 +9,37 @@ import (
 )
 
 func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
+
+	randomId := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	t.Run("manages the code scanning setup for a repository", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-code-scanning-%s", acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "%s"
+				name      = "tf-acc-test-cs-%s"
 				auto_init = true
+			}
+
+			resource "github_repository_file" "test_py" {
+				repository          = github_repository.test.name
+				branch              = "main"
+				file                = "main.py"
+				content             = <<-EOT
+				if __name__ == "__main__":
+    				print ("This is a test")
+				EOT
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
+				overwrite_on_create = true
 			}
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
 				owner      = "terraformgithubprovidertests"
 
-				state      = "configured"
+				state       = "configured"
 				query_suite = "default"
-				languages  = ["python"]
 			}
-		`, repoName)
+		`, randomId)
 
 		config2 := config + `
 			data "github_repository_code_scanning" "test" {
@@ -72,11 +86,39 @@ func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
 	})
 
 	t.Run("manages the code scanning setup for a repository with multiple languages", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-code-scanning-%s", acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "%s"
+				name      = "tf-acc-test-cs-%s"
 				auto_init = true
+			}
+
+			resource "github_repository_file" "test_py" {
+				repository          = github_repository.test.name
+				branch              = "main"
+				file                = "main.py"
+				content             = <<-EOT
+				if __name__ == "__main__":
+    				print ("This is a test")
+				EOT
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
+				overwrite_on_create = true
+			}
+
+			resource "github_repository_file" "test_js" {
+				repository          = github_repository.test.name
+				branch              = "main"
+				file                = "main.js"
+				content             = <<-EOT
+				function main() {
+					console.log("This is a test");
+				  }
+				EOT
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
+				overwrite_on_create = true
 			}
 
 			resource "github_repository_code_scanning" "test" {
@@ -85,9 +127,8 @@ func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
 
 				state      = "configured"
 				query_suite = "extended"
-				languages  = ["python", "javascript", "ruby"]
 			}
-		`, repoName)
+		`, randomId)
 
 		config2 := config + `
 			data "github_repository_code_scanning" "test" {
@@ -99,8 +140,7 @@ func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
 		const resourceName = "data.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(resourceName, "languages.0", "python"),
-			resource.TestCheckResourceAttr(resourceName, "languages.1", "javascript"),
-			resource.TestCheckResourceAttr(resourceName, "languages.2", "ruby"),
+			resource.TestCheckResourceAttr(resourceName, "languages.1", "javascript-typescript"),
 			resource.TestCheckResourceAttr(resourceName, "state", "configured"),
 			resource.TestCheckResourceAttr(resourceName, "query_suite", "extended"),
 		)

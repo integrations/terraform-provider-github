@@ -66,8 +66,8 @@ func dataSourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta int
 
 	d.SetId(fmt.Sprintf("%s/%s/code-scanning/default-setup", owner, repository))
 	d.Set("languages", config.Languages)
-	d.Set("query_suite", config.QuerySuite)
-	d.Set("state", config.State)
+	d.Set("query_suite", config.GetQuerySuite())
+	d.Set("state", config.GetState())
 	d.Set("updated_at", timeString)
 
 	return nil
