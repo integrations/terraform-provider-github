@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -19,7 +18,6 @@ func resourceGithubRepositoryCodeScanning() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -32,7 +30,7 @@ func resourceGithubRepositoryCodeScanning() *schema.Resource {
 			},
 			"languages": {
 				Type:     schema.TypeList,
-				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"query_suite": {
@@ -112,12 +110,18 @@ func resourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	timeString := ""
+
+	if config.UpdatedAt != nil {
+		timeString = config.UpdatedAt.String()
+	}
+
 	d.Set("repository", repoName)
 	d.Set("owner", owner)
-	d.Set("state", config.State)
-	d.Set("query_suite", config.QuerySuite)
+	d.Set("state", config.GetState())
+	d.Set("query_suite", config.GetQuerySuite())
 	d.Set("languages", config.Languages)
-	d.Set("updated_at", config.UpdatedAt.String())
+	d.Set("updated_at", timeString)
 
 	return nil
 }
@@ -149,15 +153,6 @@ func resourceGithubRepositoryCodeScanningUpdate(d *schema.ResourceData, meta int
 
 func createUpdateCodeScanning(d *schema.ResourceData, meta interface{}) github.UpdateDefaultSetupConfigurationOptions {
 	data := github.UpdateDefaultSetupConfigurationOptions{}
-
-	var languages []string
-	if v, ok := d.GetOk("languages"); ok {
-		for _, lang := range v.([]interface{}) {
-			languages = append(languages, fmt.Sprintf("%s", lang))
-		}
-
-		data.Languages = languages
-	}
 
 	if v, ok := d.GetOk("query_suite"); ok {
 		querySuite := v.(string)
