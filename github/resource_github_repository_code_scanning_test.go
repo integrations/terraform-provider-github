@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -9,6 +10,11 @@ import (
 )
 
 func TestAccGithubRepositoryCodeScanning(t *testing.T) {
+	owner := os.Getenv("GITHUB_ORGANIZATION")
+	if owner == "" {
+		t.FailNow()
+	}
+
 	t.Run("enables the code scanning setup for a repository", func(t *testing.T) {
 		repoName := fmt.Sprintf("tf-acc-test-code-scanning-%s", acctest.RandString(5))
 		config := fmt.Sprintf(`
@@ -33,14 +39,14 @@ func TestAccGithubRepositoryCodeScanning(t *testing.T) {
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "terraformgithubprovidertests"
+				owner      = "%s"
 
 				state      = "configured"
 				query_suite = "default"
 
-				depends_on = [github_repository_file.test_py]
+				depends_on = ["github_repository_file.test_py"]
 			}
-		`, repoName)
+		`, repoName, owner)
 
 		const resourceName = "resource.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
@@ -113,14 +119,14 @@ func TestAccGithubRepositoryCodeScanning(t *testing.T) {
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "terraformgithubprovidertests"
+				owner      = "%s"
 
 				state      = "configured"
 				query_suite = "extended"
 
-				depends_on = [github_repository_file.test_js, github_repository_file.test_py]
+				depends_on = ["github_repository_file.test_js", "github_repository_file.test_py"]
 			}
-		`, repoName)
+		`, repoName, owner)
 
 		const resourceName = "resource.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
@@ -164,12 +170,12 @@ func TestAccGithubRepositoryCodeScanning(t *testing.T) {
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "terraformgithubprovidertests"
+				owner      = "%s"
 
 				state      = "not-configured"
 				query_suite = "extended"
 			}
-		`, repoName)
+		`, repoName, owner)
 
 		const resourceName = "resource.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
