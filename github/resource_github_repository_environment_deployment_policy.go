@@ -33,7 +33,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				ForceNew:    true,
 				Description: "The name of the environment.",
 			},
-			"branch_pattern": {
+			"pattern": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    false,
@@ -51,11 +51,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
+	pattern := d.Get("pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 
 	createData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+		Name: github.String(pattern),
 		Type: github.String("branch"),
 	}
 
@@ -99,7 +99,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 		return err
 	}
 
-	d.Set("branch_pattern", branchPolicy.GetName())
+	d.Set("pattern", branchPolicy.GetName())
 	return nil
 }
 
@@ -110,7 +110,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
+	pattern := d.Get("pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
@@ -123,7 +123,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	}
 
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+		Name: github.String(pattern),
 		Type: nil,
 	}
 
