@@ -60,7 +60,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{Name: &name})
+	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{Name: &name, Type: nil})
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	environmentName := d.Get("environment_name").(string)
 	name := d.Get("name").(string)
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name})
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.String("branch")})
 	if err != nil {
 		return err
 	}

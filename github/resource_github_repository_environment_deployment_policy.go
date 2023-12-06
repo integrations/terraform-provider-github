@@ -56,6 +56,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 
 	createData := github.DeploymentBranchPolicyRequest{
 		Name: github.String(branchPattern),
+		Type: github.String("branch"),
 	}
 
 	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
@@ -123,6 +124,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 
 	updateData := github.DeploymentBranchPolicyRequest{
 		Name: github.String(branchPattern),
+		Type: nil,
 	}
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
