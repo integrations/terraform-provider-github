@@ -37,6 +37,7 @@ resource "github_repository_environment_deployment_policy" "test" {
   repository 	   = github_repository.test.name
   environment	   = github_repository_environment.test.environment
   pattern          = "releases/*"
+  type             = "branch"
 }
 ```
 
@@ -48,7 +49,9 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the environment.
 
-* `pattern` - (Required) The name pattern that branches must match in order to deploy to the environment.
+* `pattern` - (Required) The name pattern that branches/tags must match in order to deploy to the environment.
+
+* `type` - (Required) The type of `pattern`. Either `"branch"` or `"tag"`.
 
 
 ## Import
