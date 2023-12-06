@@ -36,7 +36,7 @@ resource "github_repository_environment" "test" {
 resource "github_repository_environment_deployment_policy" "test" {
   repository 	   = github_repository.test.name
   environment	   = github_repository_environment.test.environment
-  branch_pattern = "releases/*"
+  pattern          = "releases/*"
 }
 ```
 
@@ -48,7 +48,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the environment.
 
-* `branch_pattern` - (Required) The name pattern that branches must match in order to deploy to the environment.
+* `pattern` - (Required) The name pattern that branches must match in order to deploy to the environment.
 
 
 ## Import
