@@ -41,6 +41,11 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Optional:    true,
 				Description: "A short description of the label.",
 			},
+			"org": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Org ID of an organization for the repository to create this label in, instead of an individual's repository",
+			},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -66,7 +71,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	var orgName string
+	if d.Get("org").(string) == "" {
+		orgName = meta.(*Owner).name
+	} else {
+		orgName = d.Get("org").(string)
+	}
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
