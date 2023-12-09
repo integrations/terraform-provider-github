@@ -84,26 +84,20 @@ func TestAccGithubIssueLabel(t *testing.T) {
 
 func TestAccGithubIssueLabelOrg(t *testing.T) {
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	// run test cases
 	t.Run("creates and updates labels without error", func(t *testing.T) {
 		// make a config
 		description := "test org label"
 		config := fmt.Sprintf(`
-
-	resource "github_repository" "test" {
-		name = "tf-acc-test-%s"
-		auto_init = true
-	}
-
 	resource "github_issue_label" "test" {
-		repository  = github_repository.test.id
+		repository  = "%s"
 		name        = "foo"
 		color       = "000000"
 		description = "%s"
 		org         = "%s"	
 	}
-`, randomID, description, os.Getenv("GITHUB_ORGANIZATION"))
+`, os.Getenv("GITHUB_TEMPLATE_REPOSITORY"), description, os.Getenv("GITHUB_ORGANIZATION"))
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
