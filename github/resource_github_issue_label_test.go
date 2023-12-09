@@ -84,20 +84,41 @@ func TestAccGithubIssueLabel(t *testing.T) {
 
 func TestAccGithubIssueLabelOrg(t *testing.T) {
 
-	// randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	// run test cases
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
 	t.Run("creates and updates labels without error", func(t *testing.T) {
+		description := "label_description_org"
+		updatedDescription := "updated_label_description_org"
 		// make a config
-		description := "test org label"
 		config := fmt.Sprintf(`
-	resource "github_issue_label" "test" {
-		repository  = "%s"
-		name        = "foo"
-		color       = "000000"
-		description = "%s"
-		org         = "%s"	
-	}
-`, os.Getenv("GITHUB_TEMPLATE_REPOSITORY"), description, os.Getenv("GITHUB_ORGANIZATION"))
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+				auto_init = true
+			}
+
+			resource "github_issue_label" "test" {
+				repository  = github_repository.test.id
+				name        = "foo"
+				color       = "000000"
+				description = "%s"
+				org         = "%s"	
+			}
+	`, randomID, description, os.Getenv("GITHUB_ORGANIZATION"))
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_issue_label.test", "description",
+					description,
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_issue_label.test", "description",
+					updatedDescription,
+				),
+			),
+		}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -106,7 +127,13 @@ func TestAccGithubIssueLabelOrg(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						// Check: resource.TestCheckResourceAttr("github_issue_label")
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							description,
+							updatedDescription, 1),
+						Check: checks["after"],
 					},
 				},
 			})
@@ -123,7 +150,5 @@ func TestAccGithubIssueLabelOrg(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
