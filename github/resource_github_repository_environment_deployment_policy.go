@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -38,13 +37,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    false,
-				Description: "The name pattern that branches/tags must match in order to deploy to the environment.",
-			},
-			"type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    false,
-				Description: "The type of `pattern`. Either `\"branch\"` or `\"tag\"`.",
+				Description: "The name pattern that branches must match in order to deploy to the environment.",
 			},
 		},
 	}
@@ -59,16 +52,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 	pattern := d.Get("pattern").(string)
-	patternType := d.Get("type").(string)
 	escapedEnvName := url.PathEscape(envName)
-
-	if patternType != "branch" && patternType != "tag" {
-		return fmt.Errorf("type must be either %q or %q, not %q", "branch", "tag", patternType)
-	}
 
 	createData := github.DeploymentBranchPolicyRequest{
 		Name: github.String(pattern),
-		Type: github.String(patternType),
+		Type: github.String("branch"),
 	}
 
 	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
@@ -112,7 +100,6 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 	}
 
 	d.Set("pattern", branchPolicy.GetName())
-	d.Set("type", branchPolicy.GetType())
 	return nil
 }
 
@@ -125,7 +112,6 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	envName := d.Get("environment").(string)
 	pattern := d.Get("pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
-
 	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
 		return err
