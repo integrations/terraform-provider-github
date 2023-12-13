@@ -27,7 +27,6 @@ type DeploymentBranchPolicyResponse struct {
 // DeploymentBranchPolicyRequest represents a deployment branch policy request.
 type DeploymentBranchPolicyRequest struct {
 	Name *string `json:"name,omitempty"`
-	Type *string `json:"type,omitempty"`
 }
 
 // ListDeploymentBranchPolicies lists the deployment branch policies for an environment.
