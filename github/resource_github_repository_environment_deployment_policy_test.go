@@ -38,9 +38,9 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 			}
 
 			resource "github_repository_environment_deployment_policy" "test" {
-				repository 	= github_repository.test.name
-				environment	= github_repository_environment.test.environment
-				pattern 		= "releases/*"
+				repository 	   = github_repository.test.name
+				environment	   = github_repository_environment.test.environment
+				branch_pattern = "releases/*"
 			}
 
 		`, randomID)
@@ -55,7 +55,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 				"environment/test",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_environment_deployment_policy.test", "pattern",
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
 				"releases/*",
 			),
 		)
