@@ -408,7 +408,7 @@ EOT
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"data.github_repository.test.repositorylicense[0].license[0]", "spdx_id",
+				"data.github_repository.test", "repositorylicense.0.license.0.spdx_id",
 				"MIT",
 			),
 		)
@@ -419,11 +419,6 @@ EOT
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						// Not doing any checks since the language doesnt have time to be updated on the first apply
-						Config: config,
-					},
-					{
-						// Re-running the terraform will refresh the language since the go-file has been created
 						Config: config,
 						Check:  check,
 					},
