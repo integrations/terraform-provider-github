@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -34,10 +35,18 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				Description: "The name of the environment.",
 			},
 			"branch_pattern": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    false,
-				Description: "The name pattern that branches must match in order to deploy to the environment.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				ConflictsWith: []string{"tag_pattern"},
+				Description:   "The name pattern that branches must match in order to deploy to the environment.",
+			},
+			"tag_pattern": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				ConflictsWith: []string{"branch_pattern"},
+				Description:   "The name pattern that tags must match in order to deploy to the environment.",
 			},
 		},
 	}
@@ -51,11 +60,21 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 
-	createData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+	var createData github.DeploymentBranchPolicyRequest
+	if v, ok := d.GetOk("branch_pattern"); ok {
+		createData = github.DeploymentBranchPolicyRequest{
+			Name: github.String(v.(string)),
+			Type: github.String("branch"),
+		}
+	} else if v, ok := d.GetOk("tag_pattern"); ok {
+		createData = github.DeploymentBranchPolicyRequest{
+			Name: github.String(v.(string)),
+			Type: github.String("tag"),
+		}
+	} else {
+		return fmt.Errorf("exactly one of %q and %q must be specified", "branch_pattern", "tag_pattern")
 	}
 
 	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
