@@ -5670,6 +5670,14 @@ func (d *DeploymentBranchPolicyRequest) GetName() string {
 	return *d.Name
 }
 
+// GetType returns the Type field if it's non-nil, zero value otherwise.
+func (d *DeploymentBranchPolicyRequest) GetType() string {
+	if d == nil || d.Type == nil {
+		return ""
+	}
+	return *d.Type
+}
+
 // GetTotalCount returns the TotalCount field if it's non-nil, zero value otherwise.
 func (d *DeploymentBranchPolicyResponse) GetTotalCount() int {
 	if d == nil || d.TotalCount == nil {
