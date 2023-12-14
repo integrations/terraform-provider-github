@@ -37,7 +37,7 @@ resource "github_repository_environment" "test" {
 
 resource "github_repository_environment_deployment_policy" "test" {
   repository     = github_repository.test.name
-  environmen     = github_repository_environment.test.environment
+  environment    = github_repository_environment.test.environment
   branch_pattern = "releases/*"
 }
 ```
