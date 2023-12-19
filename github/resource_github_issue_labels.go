@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v55/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
