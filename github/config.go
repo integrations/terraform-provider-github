@@ -107,6 +107,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
+		if c.Anonymous() {
+			return owner, nil
+		}
 		// Discover authenticated user
 		user, _, err := owner.v3client.Users.Get(ctx, "")
 		if err != nil {
