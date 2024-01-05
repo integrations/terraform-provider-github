@@ -163,7 +163,7 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	if err != nil {
 		return err
 	}
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
