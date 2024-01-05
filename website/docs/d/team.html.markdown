@@ -20,7 +20,7 @@ data "github_team" "example" {
 ## Argument Reference
 
 * `slug` - (Required) The team slug.
-* `membership_type` - (Optional) Type of membershp to be requested to fill the list of members. Can be either "all" or "immediate". Default: "all"
+* `membership_type` - (Optional) Type of membership to be requested to fill the list of members. Can be either "all" or "immediate". Default: "all"
 * `summary_only` - (Optional) Exclude the members and repositories of the team from the returned result. Defaults to `false`.
 * `results_per_page` - (Optional) Set the number of results per graphql query. Reducing this number can alleviate timeout errors. Accepts a value between 0 - 100. Defaults to `100`.
 
