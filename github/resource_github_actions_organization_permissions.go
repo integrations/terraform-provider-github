@@ -147,7 +147,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
-	_, _, err = client.Organizations.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.EditActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
 			AllowedActions:      &allowedActions,
@@ -162,7 +162,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		if err != nil {
 			return err
 		}
-		_, _, err = client.Organizations.EditActionsAllowed(ctx,
+		_, _, err = client.Actions.EditActionsAllowed(ctx,
 			orgName,
 			*actionsAllowedData)
 		if err != nil {
@@ -196,13 +196,13 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		return err
 	}
 
-	actionsPermissions, _, err := client.Organizations.GetActionsPermissions(ctx, d.Id())
+	actionsPermissions, _, err := client.Actions.GetActionsPermissions(ctx, d.Id())
 	if err != nil {
 		return err
 	}
 
 	if actionsPermissions.GetAllowedActions() == "selected" {
-		actionsAllowed, _, err := client.Organizations.GetActionsAllowed(ctx, d.Id())
+		actionsAllowed, _, err := client.Actions.GetActionsAllowed(ctx, d.Id())
 		if err != nil {
 			return err
 		}
@@ -270,7 +270,7 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	}
 
 	// This will nullify any allowedActions elements
-	_, _, err = client.Organizations.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.EditActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
 			AllowedActions:      github.String("all"),

@@ -1598,7 +1598,7 @@ func testSweepRepositories(region string) error {
 
 	client := meta.(*Owner).v3client
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
+	repos, _, err := client.Repositories.ListByUser(context.TODO(), meta.(*Owner).name, nil)
 	if err != nil {
 		return err
 	}
