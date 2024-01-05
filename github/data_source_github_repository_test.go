@@ -408,7 +408,7 @@ EOT
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"data.github_repository.test", "repositorylicense.0.license.0.spdx_id",
+				"data.github_repository.test", "repository_license.0.license.0.spdx_id",
 				"MIT",
 			),
 		)

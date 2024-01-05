@@ -93,11 +93,11 @@ The following arguments are supported:
 
 * `repo_id` - GitHub ID for the repository
 
-* `repositorylicense` - An Array of GitHub repository licenses. Each `repositorylicense` block consists of the fields documented below.
+* `repository_license` - An Array of GitHub repository licenses. Each `repository_license` block consists of the fields documented below.
 
 ___
 
-The `repositorylicense` block consists of:
+The `repository_license` block consists of:
 
 * `content` - Content of the license file, encoded by encoding scheme mentioned below.
 * `download_url` - The URL to download the raw content of the license file.

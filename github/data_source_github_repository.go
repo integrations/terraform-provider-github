@@ -118,7 +118,7 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"repositorylicense": {
+			"repository_license": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -410,15 +410,15 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if repo.License != nil {
-		repositorylicense, _, err := client.Repositories.License(context.TODO(), owner, repoName)
+		repository_license, _, err := client.Repositories.License(context.TODO(), owner, repoName)
 		if err != nil {
 			return err
 		}
-		if err := d.Set("repositorylicense", flattenRepositoryLicense(repositorylicense)); err != nil {
-			return fmt.Errorf("error setting repositorylicense: %w", err)
+		if err := d.Set("repository_license", flattenRepositoryLicense(repository_license)); err != nil {
+			return fmt.Errorf("error setting repository_license: %w", err)
 		}
 	} else {
-		d.Set("repositorylicense", flattenRepositoryLicense(nil))
+		d.Set("repository_license", flattenRepositoryLicense(nil))
 	}
 
 	if repo.TemplateRepository != nil {
