@@ -25,7 +25,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 			resource "github_repository_environment" "test" {
 			  repository       = github_repository.test.name
-			  environment      = "environment/test"
+			  environment      = "environment / test"
 			}
 
 			resource "github_actions_environment_variable" "variable" {
@@ -103,7 +103,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 				resource "github_repository_environment" "test" {
 					repository       = github_repository.test.name
-					environment      = "environment/test"
+					environment      = "environment / test"
 				}
 
 				resource "github_actions_environment_variable" "variable" {
@@ -143,7 +143,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 	t.Run("imports environment variables without error", func(t *testing.T) {
 		value := "my_variable_value"
-		envName := "environment/test"
+		envName := "environment / test"
 		varName := "test_variable"
 
 		config := fmt.Sprintf(`
