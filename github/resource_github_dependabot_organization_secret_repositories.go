@@ -55,7 +55,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *sch
 
 	ids := selectedRepositories.(*schema.Set).List()
 	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, id.(int64))
+		selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
 	}
 
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)
