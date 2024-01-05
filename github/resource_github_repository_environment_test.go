@@ -27,7 +27,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 
 			resource "github_repository_environment" "test" {
 				repository 	= github_repository.test.name
-				environment	= "environment/test"
+				environment	= "environment / test"
 				can_admins_bypass = false
 				wait_timer = 10000
 				reviewers {
@@ -42,7 +42,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 		`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment/test"),
+			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment / test"),
 			resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
 			resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
 		)
