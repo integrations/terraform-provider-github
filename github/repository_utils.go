@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 )
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(client *github.Client, owner, repo, branch string) error {
 	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(repo, branch))
-	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, true)
+	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
