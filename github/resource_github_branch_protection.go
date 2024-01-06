@@ -13,7 +13,7 @@ import (
 
 func resourceGithubBranchProtection() *schema.Resource {
 	return &schema.Resource{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 
 		Schema: map[string]*schema.Schema{
 			// Input
@@ -182,6 +182,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:    resourceGithubBranchProtectionV0().CoreConfigSchema().ImpliedType(),
 				Upgrade: resourceGithubBranchProtectionUpgradeV0,
 				Version: 0,
+			},
+			{
+				Type:    resourceGithubBranchProtectionV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubBranchProtectionUpgradeV1,
+				Version: 1,
 			},
 		},
 	}

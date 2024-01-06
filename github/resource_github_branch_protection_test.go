@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"testing"
 
@@ -897,5 +898,31 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 			return "", fmt.Errorf("repository %s does not have a node_id in terraform state", repo.Primary.ID)
 		}
 		return fmt.Sprintf("%s:%s", repoID, pattern), nil
+	}
+}
+
+func testGithubBranchProtectionStateDataV1() map[string]interface{} {
+	return map[string]interface{}{
+		"blocks_creations":  true,
+		"push_restrictions": [...]string{"/example-user"},
+	}
+}
+
+func testGithubBranchProtectionStateDataV2() map[string]interface{} {
+	v1 := testGithubBranchProtectionStateDataV1()
+	return map[string]interface{}{
+		"restrict_pushes": v1,
+	}
+}
+
+func TestAccGithubBranchProtectionV4StateUpgradeV1(t *testing.T) {
+	expected := testGithubBranchProtectionStateDataV2()
+	actual, err := resourceGithubBranchProtectionUpgradeV1(testGithubBranchProtectionStateDataV1(), nil)
+	if err != nil {
+		t.Fatalf("error migrating state: %s", err)
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
 	}
 }
