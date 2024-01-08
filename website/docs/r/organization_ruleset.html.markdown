@@ -67,7 +67,6 @@ resource "github_organization_ruleset" "example" {
 
 The `rules` block supports the following:
 
-
 * `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#rules.branch_name_pattern))
 
 * `commit_author_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.commit_author_email_pattern))
@@ -90,6 +89,8 @@ The `rules` block supports the following:
 
 * `required_status_checks` - (Optional) (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#rules.required_status_checks))
 
+* `required_workflows` - (Optional) (Block List, Max: 1) Define which Actions workflows must pass before changes can be merged into a branch matching the rule. Multiple workflows can be specified. (see [below for nested schema](#rules.required_workflows))
+
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
@@ -104,7 +105,6 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-
 #### rules.commit_author_email_pattern ####
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
@@ -114,7 +114,6 @@ The `rules` block supports the following:
 * `name` - (Optional) (String) How this rule will appear to users.
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
-
 
 #### rules.commit_message_pattern ####
 
@@ -126,7 +125,6 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-
 #### rules.committer_email_pattern ####
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
@@ -136,7 +134,6 @@ The `rules` block supports the following:
 * `name` - (Optional) (String) How this rule will appear to users.
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
-
 
 #### rules.pull_request ####
 
@@ -162,7 +159,17 @@ The `rules` block supports the following:
 
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
 
+#### rules.required_workflows ####
 
+* `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
+
+#### rules.required_workflows.required_workflow ####
+
+* `repository_id` - (Required) (Number) The ID of the repository. Names, full names and repository URLs are not supported.
+
+* `path` - (Required) (String) The path to the YAML definition file of the workflow.
+
+* `ref` - (Optional) (String) The optional ref from which to fetch the workflow. Defaults to `master`.
 
 #### rules.tag_name_pattern ####
 
@@ -174,8 +181,6 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-
-
 #### bypass_actors ####
 
 * `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
@@ -185,6 +190,7 @@ The `rules` block supports the following:
 * `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
 
 ~>Note: at the time of writing this, the following actor types correspond to the following actor IDs:
+
 * `OrganizationAdmin` -> `1`
 * `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
   * `maintain` -> `2`
@@ -208,20 +214,18 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 #### conditions.repository_name ####
 
 * `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
- 
+
 * `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-
 * `etag` (String)
 
 * `node_id` (String) GraphQL global node id for use with v4 API.
 
 * `ruleset_id` (Number) GitHub ID for the ruleset.
-
 
 ## Import
 
