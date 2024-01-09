@@ -75,11 +75,13 @@ provider "github" {
 ### GitHub App Installation
 
 To authenticate using a GitHub App installation, ensure that arguments in the `app_auth` block or the `GITHUB_APP_XXX` environment variables are set.
+The `owner` parameter required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
 
 ```terraform
 provider "github" {
+  owner = var.github_organization
   app_auth {
     id              = var.app_id              # or `GITHUB_APP_ID`
     installation_id = var.app_installation_id # or `GITHUB_APP_INSTALLATION_ID`
@@ -92,6 +94,7 @@ provider "github" {
 
 ```terraform
 provider "github" {
+  owner = var.github_organization
   app_auth {} # When using `GITHUB_APP_XXX` environment variables
 }
 ```
@@ -104,7 +107,7 @@ The following arguments are supported in the `provider` block:
 
 * `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise. It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable. The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/`
 
-* `owner` - (Optional) This is the target GitHub organization or individual user account to manage. For example, `torvalds` and `github` are valid owners. It is optional to provide this value and it can also be sourced from the `GITHUB_OWNER` environment variable. When not provided and a `token` is available, the individual user account owning the `token` will be used. When not provided and no `token` is available, the provider may not function correctly.
+* `owner` - (Optional) This is the target GitHub organization or individual user account to manage. For example, `torvalds` and `github` are valid owners. It is optional to provide this value and it can also be sourced from the `GITHUB_OWNER` environment variable. When not provided and a `token` is available, the individual user account owning the `token` will be used. When not provided and no `token` is available, the provider may not function correctly. It is required in case of GitHub App Installation.
 
 * `organization` - (Deprecated) This behaves the same as `owner`, which should be used instead. This value can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
 

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -97,7 +97,7 @@ func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
@@ -118,7 +118,7 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
@@ -213,7 +213,7 @@ func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta inte
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	if err != nil {
 		return err
 	}
