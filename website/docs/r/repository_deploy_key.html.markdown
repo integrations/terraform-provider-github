@@ -21,7 +21,7 @@ Further documentation on GitHub repository deploy keys:
 ## Example Usage
 
 ```hcl
-# Generate an ssh key
+# Generate an ssh key using provider "hashicorp/tls"
 resource "tls_private_key" "example_repository_deploy_key" {
   algorithm = "ED25519"
 }
