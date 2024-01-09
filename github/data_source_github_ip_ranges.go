@@ -32,11 +32,11 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-                        "packages": {
-                                Type:     schema.TypeList,
-                                Computed: true,
-                                Elem:     &schema.Schema{Type: schema.TypeString},
-                        },
+			"packages": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -77,11 +77,11 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-                        "packages_ipv4": {
-                                Type:     schema.TypeList,
-                                Computed: true,
-                                Elem:     &schema.Schema{Type: schema.TypeString},
-                        },
+			"packages_ipv4": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"pages_ipv4": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -122,11 +122,11 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-                        "packages_ipv6": {
-                                Type:     schema.TypeList,
-                                Computed: true,
-                                Elem:     &schema.Schema{Type: schema.TypeString},
-                        },
+			"packages_ipv6": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"pages_ipv6": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -169,10 +169,10 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-        cidrPackagesIpv4, cidrPackagesIpv6, err := splitIpv4Ipv6Cidrs(&api.Packages)
-        if err != nil {
-                return err
-        }
+	cidrPackagesIpv4, cidrPackagesIpv6, err := splitIpv4Ipv6Cidrs(&api.Packages)
+	if err != nil {
+		return err
+	}
 
 	cidrPagesIpv4, cidrPagesIpv6, err := splitIpv4Ipv6Cidrs(&api.Pages)
 	if err != nil {
@@ -217,11 +217,11 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("git_ipv4", cidrGitIpv4)
 		d.Set("git_ipv6", cidrGitIpv6)
 	}
-        if len(api.Packages) > 0 {
-                d.Set("packages", api.Packages)
-                d.Set("packages_ipv4", cidrPackagesIpv4)
-                d.Set("packages_ipv6", cidrPackagesIpv6)
-        }
+	if len(api.Packages) > 0 {
+		d.Set("packages", api.Packages)
+		d.Set("packages_ipv4", cidrPackagesIpv4)
+		d.Set("packages_ipv6", cidrPackagesIpv6)
+	}
 	if len(api.Pages) > 0 {
 		d.Set("pages", api.Pages)
 		d.Set("pages_ipv4", cidrPagesIpv4)
