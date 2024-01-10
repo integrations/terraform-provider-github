@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -114,6 +114,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
+		if c.Anonymous() {
+			return owner, nil
+		}
 		// Discover authenticated user
 		user, _, err := owner.v3client.Users.Get(ctx, "")
 		if err != nil {

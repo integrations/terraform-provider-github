@@ -206,7 +206,7 @@ The `rules` block supports the following:
 * `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
   * `maintain` -> `2`
   * `write` -> `4`
-  * `admiin` -> `5`
+  * `admin` -> `5`
 
 
 #### conditions ####

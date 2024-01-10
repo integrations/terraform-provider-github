@@ -21,7 +21,7 @@ func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
 
 			resource "github_repository_environment" "test" {
 				repository       = github_repository.test.name
-				environment      = "environment/test"
+				environment      = "environment / test"
 			  }
 
 			resource "github_actions_environment_secret" "test" {
