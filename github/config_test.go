@@ -76,7 +76,7 @@ func TestAccConfigMeta(t *testing.T) {
 
 		ctx := context.Background()
 		client := meta.(*Owner).v3client
-		_, _, err = client.APIMeta(ctx)
+		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
