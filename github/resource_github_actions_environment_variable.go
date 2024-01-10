@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -163,7 +163,7 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	if err != nil {
 		return err
 	}
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {

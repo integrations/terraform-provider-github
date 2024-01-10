@@ -162,4 +162,29 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 
 	})
+
+	t.Run("can be configured with max retries", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			provider "github" {
+				token = "%s"
+				owner = "%s"
+				max_retries = 3
+			}`,
+			testToken, testOwnerFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
+
 }

@@ -1,5 +1,12 @@
 provider "github" {
-  version      = "2.8.0"
-  organization = var.organization
-  token        = var.github_token
+  owner = var.organization
+  token = var.github_token
+}
+
+terraform {
+  required_providers {
+    github = {
+      source = "integrations/github"
+    }
+  }
 }

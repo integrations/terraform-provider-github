@@ -25,20 +25,20 @@ func TestAccGithubRepositories(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 
-			  name         = "tf-acc-test-create-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
-			  has_discussions      = true
-			  has_issues           = true
-			  has_wiki             = true
-			  has_downloads        = true
-			  allow_merge_commit   = true
-			  allow_squash_merge   = false
-			  allow_rebase_merge   = false
-			  allow_auto_merge     = true
-			  merge_commit_title   = "MERGE_MESSAGE"
-			  merge_commit_message = "PR_TITLE"
-			  auto_init            = false
-
+				name                        = "tf-acc-test-create-%[1]s"
+				description                 = "Terraform acceptance tests %[1]s"
+				has_discussions             = true
+				has_issues                  = true
+				has_wiki                    = true
+				has_downloads               = true
+				allow_merge_commit          = true
+				allow_squash_merge          = false
+				allow_rebase_merge          = false
+				allow_auto_merge            = true
+				merge_commit_title          = "MERGE_MESSAGE"
+				merge_commit_message        = "PR_TITLE"
+				auto_init                   = false
+				web_commit_signoff_required = true
 			}
 		`, randomID)
 
@@ -58,6 +58,10 @@ func TestAccGithubRepositories(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "merge_commit_title",
 				"MERGE_MESSAGE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "web_commit_signoff_required",
+				"true",
 			),
 		)
 
@@ -1594,7 +1598,7 @@ func testSweepRepositories(region string) error {
 
 	client := meta.(*Owner).v3client
 
-	repos, _, err := client.Repositories.List(context.TODO(), meta.(*Owner).name, nil)
+	repos, _, err := client.Repositories.ListByUser(context.TODO(), meta.(*Owner).name, nil)
 	if err != nil {
 		return err
 	}

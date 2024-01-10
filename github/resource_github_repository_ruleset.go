@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -162,7 +162,6 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 									"required_deployment_environments": {
 										Type:        schema.TypeList,
 										Required:    true,
-										DefaultFunc: func() (interface{}, error) { return []string{}, nil },
 										Description: "The environments that must be successfully deployed to before branches can be merged.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
