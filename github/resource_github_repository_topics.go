@@ -2,8 +2,11 @@ package github
 
 import (
 	"context"
+	"log"
+	"net/http"
 	"regexp"
 
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -68,6 +71,17 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}
 
 	topics, _, err := client.Repositories.ListAllTopics(ctx, owner, repoName)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
