@@ -30,6 +30,26 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
 			},
+			"retryable_errors": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeInt},
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					defaultErrors := []int{500, 502, 503, 504}
+					errorInterfaces := make([]interface{}, len(defaultErrors))
+					for i, v := range defaultErrors {
+						errorInterfaces[i] = v
+					}
+					return errorInterfaces, nil
+				},
+				Description: descriptions["retryable_errors"],
+			},
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     3,
+				Description: descriptions["max_retries"],
+			},
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -60,6 +80,12 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Default:     0,
 				Description: descriptions["read_delay_ms"],
+			},
+			"retry_delay_ms": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1000,
+				Description: descriptions["retry_delay_ms"],
 			},
 			"parallel_requests": {
 				Type:        schema.TypeBool,
@@ -265,11 +291,17 @@ func init() {
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
 			"Defaults to 0ms if not set.",
+		"retry_delay_ms": "Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. " +
+			"Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
 		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
 			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
 			"Although, it is not possible to enable this setting on github.com " +
 			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
 			"Defaults to false if not set",
+		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
+			"Defaults to [500, 502, 503, 504]",
+		"max_retries": "Number of times to retry a request after receiving an error status code" +
+			"Defaults to 3",
 	}
 }
 
@@ -365,6 +397,31 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
+		retryDelay := d.Get("read_delay_ms").(int)
+		if retryDelay < 0 {
+			return nil, fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms")
+		}
+		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
+
+		maxRetries := d.Get("max_retries").(int)
+		if maxRetries < 0 {
+			return nil, fmt.Errorf("max_retries must be greater than or equal to 0")
+		}
+		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
+		retryableErrors := make(map[int]bool)
+		if maxRetries > 0 {
+			reParam := d.Get("retryable_errors").([]interface{})
+			if len(reParam) == 0 {
+				retryableErrors = getDefaultRetriableErrors()
+			} else {
+				for _, status := range reParam {
+					retryableErrors[status.(int)] = true
+				}
+			}
+
+			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
+		}
+
 		parallelRequests := d.Get("parallel_requests").(bool)
 
 		if parallelRequests && isGithubDotCom {
@@ -379,6 +436,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			Owner:            owner,
 			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
 			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
+			RetryDelay:       time.Duration(retryDelay) * time.Millisecond,
+			RetryableErrors:  retryableErrors,
+			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
 		}
 
