@@ -366,7 +366,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_restrictions.#", "0",
+				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "0",
 			),
 		)
 
@@ -416,7 +416,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 			  pattern       = "main"
 
 			  restrict_pushes {
-				push_restrictions = [
+				push_allowances = [
 					data.github_user.test.node_id,
 				]
 			  }
@@ -431,7 +431,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_restrictions.#", "1",
+				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "1",
 			),
 		)
 
@@ -478,7 +478,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 			  pattern       = "main"
 
 			  restrict_pushes {
-				push_restrictions = [
+				push_allowances = [
 					"%s",
 				]
 			  }
@@ -493,7 +493,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_restrictions.#", "1",
+				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "1",
 			),
 		)
 
@@ -556,7 +556,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "false",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_restrictions.#", "0",
+				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "0",
 			),
 		)
 
@@ -909,9 +909,12 @@ func testGithubBranchProtectionStateDataV1() map[string]interface{} {
 }
 
 func testGithubBranchProtectionStateDataV2() map[string]interface{} {
-	v1 := testGithubBranchProtectionStateDataV1()
+	restrictions := map[string]interface{}{
+		"blocks_creations": true,
+		"push_allowances":  [...]string{"/example-user"},
+	}
 	return map[string]interface{}{
-		"restrict_pushes": v1,
+		"restrict_pushes": restrictions,
 	}
 }
 

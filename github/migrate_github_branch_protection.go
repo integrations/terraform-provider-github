@@ -69,8 +69,8 @@ func resourceGithubBranchProtectionUpgradeV1(rawState map[string]interface{}, me
 
 	if v, ok := rawState["push_restrictions"]; ok {
 		rawState["restrict_pushes"] = map[string]interface{}{
-			"blocks_creations":  blocksCreations,
-			"push_restrictions": v,
+			"blocks_creations": blocksCreations,
+			"push_allowances":  v,
 		}
 	}
 

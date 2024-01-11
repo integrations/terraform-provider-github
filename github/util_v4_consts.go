@@ -10,7 +10,7 @@ const (
 	PROTECTION_LOCK_BRANCH                      = "lock_branch"
 	PROTECTION_PATTERN                          = "pattern"
 	PROTECTION_PULL_REQUESTS_BYPASSERS          = "pull_request_bypassers"
-	PROTECTION_PUSH_ALLOWANCES                  = "push_restrictions"
+	PROTECTION_PUSH_ALLOWANCES                  = "push_allowances"
 	PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT  = "required_approving_review_count"
 	PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS   = "contexts"
 	PROTECTION_REQUIRES_APPROVING_REVIEWS       = "required_pull_request_reviews"

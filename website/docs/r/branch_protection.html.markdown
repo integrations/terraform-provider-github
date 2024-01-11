@@ -11,7 +11,7 @@ Protects a GitHub branch.
 
 This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users, teams, and apps, can also be configured.
 
-Note: for the `push_restrictions` a given user or team must have specific write access to the repository. If specific write access not provided, github will reject the given actor, which will be the cause of terraform drift.
+Note: for the `push_allowances` a given user or team must have specific write access to the repository. If specific write access not provided, github will reject the given actor, which will be the cause of terraform drift.
 
 ## Example Usage
 
@@ -46,7 +46,7 @@ resource "github_branch_protection" "example" {
   }
 
   restrict_pushes {
-    push_restrictions = [
+    push_allowances = [
       data.github_user.example.node_id,
       "/exampleuser",
       "exampleorganization/exampleteam",
@@ -135,7 +135,7 @@ For workflows that use reusable workflows, the pattern is `<initial_workflow.job
 `restrict_pushes` supports the following arguments:
 
 * `blocks_creations` - (Optional) Boolean, setting this to `false` allows people, teams, or apps to create new branches matching this rule. Defaults to `true`.
-* `push_restrictions` - (Optional) A list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
+* `push_allowances` - (Optional) A list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 
 ## Import
 
