@@ -130,7 +130,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 }
 
 // Meta returns the meta parameter that is passed into subsequent resources
-// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
+// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 func (c *Config) Meta() (interface{}, error) {
 
 	var client *http.Client

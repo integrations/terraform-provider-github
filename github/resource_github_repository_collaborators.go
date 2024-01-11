@@ -80,7 +80,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		CustomizeDiff: customdiff.Sequence(
 			// If there was a new user added to the list of collaborators,
 			// it's possible a new invitation id will be created in GitHub.
-			customdiff.ComputedIf("invitation_ids", func(d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("user")
 			}),
 		),

@@ -342,13 +342,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 
 		if token == "" {
 			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
 			if err != nil {
-				return nil, fmt.Errorf("gh auth token: %w", err)
+				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
 			}
 			token = ghAuthToken
 		}
