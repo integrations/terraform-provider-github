@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -53,14 +53,16 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		for _, c := range rsc.Contexts {
 			// Parse into contexts
 			contexts = append(contexts, c)
-			checks = append(contexts, c)
 		}
 
 		// Flatten checks
 		for _, chk := range rsc.Checks {
-			// Parse into contexts
-			contexts = append(contexts, chk.Context)
-			checks = append(contexts, fmt.Sprintf("%s:%d", chk.Context, chk.AppID))
+			// Parse into checks
+			if chk.AppID != nil {
+				checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
+			} else {
+				checks = append(checks, chk.Context)
+			}
 		}
 
 		return d.Set("required_status_checks", []interface{}{
@@ -160,7 +162,7 @@ func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
-		var users, teams []interface{}
+		var users, teams, apps []interface{}
 		restrictions := rprr.GetDismissalRestrictions()
 
 		if restrictions != nil {
@@ -176,6 +178,12 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 					teams = append(teams, *t.Slug)
 				}
 			}
+			apps = make([]interface{}, 0, len(restrictions.Apps))
+			for _, t := range restrictions.Apps {
+				if t.Slug != nil {
+					apps = append(apps, *t.Slug)
+				}
+			}
 		}
 
 		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
@@ -185,6 +193,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
 				"dismissal_users":                 schema.NewSet(schema.HashString, users),
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
+				"dismissal_apps":                  schema.NewSet(schema.HashString, apps),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 				"bypass_pull_request_allowances":  bpra,
@@ -267,15 +276,13 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			for _, c := range checks {
 
 				// Expect a string of "context:app_id", allowing for the absence of "app_id"
-				parts := strings.SplitN(c, ":", 2)
+				index := strings.LastIndex(c, ":")
 				var cContext, cAppId string
-				switch len(parts) {
-				case 1:
-					cContext, cAppId = parts[0], ""
-				case 2:
-					cContext, cAppId = parts[0], parts[1]
-				default:
-					return nil, fmt.Errorf("Could not parse check '%s'. Expected `context:app_id` or `context`", c)
+				if index <= 0 {
+					// If there is no ":" or it's in the first position, there is no app_id.
+					cContext, cAppId = c, ""
+				} else {
+					cContext, cAppId = c[:index], c[index+1:]
 				}
 
 				var rscCheck *github.RequiredStatusCheck
@@ -283,7 +290,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 					// If we have a valid app_id, include it in the RSC
 					rscAppId, err := strconv.Atoi(cAppId)
 					if err != nil {
-						return nil, fmt.Errorf("Could not parse %v as valid app_id", cAppId)
+						return nil, fmt.Errorf("could not parse %v as valid app_id", cAppId)
 					}
 					rscAppId64 := int64(rscAppId)
 					rscCheck = &github.RequiredStatusCheck{Context: cContext, AppID: &rscAppId64}
@@ -328,6 +335,11 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			teams := expandNestedSet(m, "dismissal_teams")
 			if len(teams) > 0 {
 				drr.Teams = &teams
+			}
+
+			apps := expandNestedSet(m, "dismissal_apps")
+			if len(apps) > 0 {
+				drr.Apps = &apps
 			}
 
 			bpra, err := expandBypassPullRequestAllowances(m)

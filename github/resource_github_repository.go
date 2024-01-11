@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -34,10 +34,11 @@ func resourceGithubRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100)),
-				Description:      "The name of the repository.",
+				Type:     schema.TypeString,
+				Required: true,
+				// ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100)),
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"),
+				Description:  "The name of the repository.",
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -206,6 +207,12 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Automatically delete head branch after a pull request is merged. Defaults to 'false'.",
 			},
+			"web_commit_signoff_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Require contributors to sign off on web-based commits. Defaults to 'false'.",
+			},
 			"auto_init": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -304,6 +311,7 @@ func resourceGithubRepository() *schema.Resource {
 			"topics": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
@@ -351,6 +359,10 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 			},
 			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"primary_language": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -466,7 +478,7 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	return &github.Repository{
+	repository := &github.Repository{
 		Name:                     github.String(d.Get("name").(string)),
 		Description:              github.String(d.Get("description").(string)),
 		Homepage:                 github.String(d.Get("homepage_url").(string)),
@@ -481,11 +493,8 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
-		SquashMergeCommitTitle:   github.String(d.Get("squash_merge_commit_title").(string)),
-		SquashMergeCommitMessage: github.String(d.Get("squash_merge_commit_message").(string)),
-		MergeCommitTitle:         github.String(d.Get("merge_commit_title").(string)),
-		MergeCommitMessage:       github.String(d.Get("merge_commit_message").(string)),
 		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
+		WebCommitSignoffRequired: github.Bool(d.Get("web_commit_signoff_required").(bool)),
 		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
 		LicenseTemplate:          github.String(d.Get("license_template").(string)),
 		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
@@ -494,6 +503,26 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
 	}
+
+	// only configure merge commit if we are in commit merge strategy
+	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
+	if ok {
+		if allowMergeCommit {
+			repository.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
+			repository.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+		}
+	}
+
+	// only configure squash commit if we are in squash merge strategy
+	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
+	if ok {
+		if allowSquashMerge {
+			repository.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
+			repository.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
+		}
+	}
+
+	return repository
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
@@ -627,108 +656,44 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("name", repoName); err != nil {
-		return err
-	}
-	if err = d.Set("description", repo.GetDescription()); err != nil {
-		return err
-	}
-	if err = d.Set("homepage_url", repo.GetHomepage()); err != nil {
-		return err
-	}
-	if err = d.Set("private", repo.GetPrivate()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", repo.GetVisibility()); err != nil {
-		return err
-	}
-	if err = d.Set("has_issues", repo.GetHasIssues()); err != nil {
-		return err
-	}
-	if err = d.Set("has_discussions", repo.GetHasDiscussions()); err != nil {
-		return err
-	}
-	if err = d.Set("has_projects", repo.GetHasProjects()); err != nil {
-		return err
-	}
-	if err = d.Set("has_wiki", repo.GetHasWiki()); err != nil {
-		return err
-	}
-	if err = d.Set("is_template", repo.GetIsTemplate()); err != nil {
-		return err
-	}
-	if err = d.Set("has_downloads", repo.GetHasDownloads()); err != nil {
-		return err
-	}
-	if err = d.Set("full_name", repo.GetFullName()); err != nil {
-		return err
-	}
-	if err = d.Set("default_branch", repo.GetDefaultBranch()); err != nil {
-		return err
-	}
-	if err = d.Set("html_url", repo.GetHTMLURL()); err != nil {
-		return err
-	}
-	if err = d.Set("ssh_clone_url", repo.GetSSHURL()); err != nil {
-		return err
-	}
-	if err = d.Set("svn_url", repo.GetSVNURL()); err != nil {
-		return err
-	}
-	if err = d.Set("git_clone_url", repo.GetGitURL()); err != nil {
-		return err
-	}
-	if err = d.Set("http_clone_url", repo.GetCloneURL()); err != nil {
-		return err
-	}
-	if err = d.Set("archived", repo.GetArchived()); err != nil {
-		return err
-	}
-	if err = d.Set("topics", flattenStringList(repo.Topics)); err != nil {
-		return err
-	}
-	if err = d.Set("node_id", repo.GetNodeID()); err != nil {
-		return err
-	}
-	if err = d.Set("repo_id", repo.GetID()); err != nil {
-		return err
-	}
-	if err = d.Set("allow_update_branch", repo.GetAllowUpdateBranch()); err != nil {
-		return err
-	}
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("name", repoName)
+	d.Set("description", repo.GetDescription())
+	d.Set("primary_language", repo.GetLanguage())
+	d.Set("homepage_url", repo.GetHomepage())
+	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
+	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
+	d.Set("has_projects", repo.GetHasProjects())
+	d.Set("has_wiki", repo.GetHasWiki())
+	d.Set("is_template", repo.GetIsTemplate())
+	d.Set("full_name", repo.GetFullName())
+	d.Set("default_branch", repo.GetDefaultBranch())
+	d.Set("html_url", repo.GetHTMLURL())
+	d.Set("ssh_clone_url", repo.GetSSHURL())
+	d.Set("svn_url", repo.GetSVNURL())
+	d.Set("git_clone_url", repo.GetGitURL())
+	d.Set("http_clone_url", repo.GetCloneURL())
+	d.Set("archived", repo.GetArchived())
+	d.Set("topics", flattenStringList(repo.Topics))
+	d.Set("node_id", repo.GetNodeID())
+	d.Set("repo_id", repo.GetID())
 
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
-		if err = d.Set("allow_auto_merge", repo.GetAllowAutoMerge()); err != nil {
-			return err
-		}
-		if err = d.Set("allow_merge_commit", repo.GetAllowMergeCommit()); err != nil {
-			return err
-		}
-		if err = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge()); err != nil {
-			return err
-		}
-		if err = d.Set("allow_squash_merge", repo.GetAllowSquashMerge()); err != nil {
-			return err
-		}
-		if err = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge()); err != nil {
-			return err
-		}
-		if err = d.Set("merge_commit_message", repo.GetMergeCommitMessage()); err != nil {
-			return err
-		}
-		if err = d.Set("merge_commit_title", repo.GetMergeCommitTitle()); err != nil {
-			return err
-		}
-		if err = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage()); err != nil {
-			return err
-		}
-		if err = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle()); err != nil {
-			return err
-		}
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
+		d.Set("has_downloads", repo.GetHasDownloads())
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
 
 	if repo.GetHasPages() {
@@ -1002,6 +967,42 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap["html_url"] = pages.GetHTMLURL()
 
 	return []interface{}{pagesMap}
+}
+
+func flattenRepositoryLicense(repositorylicense *github.RepositoryLicense) []interface{} {
+	if repositorylicense == nil {
+		return []interface{}{}
+	}
+
+	licenseMap := make(map[string]interface{})
+	licenseMap["key"] = repositorylicense.GetLicense().GetKey()
+	licenseMap["name"] = repositorylicense.GetLicense().GetName()
+	licenseMap["url"] = repositorylicense.GetLicense().GetURL()
+	licenseMap["spdx_id"] = repositorylicense.GetLicense().GetSPDXID()
+	licenseMap["html_url"] = repositorylicense.GetLicense().GetHTMLURL()
+	licenseMap["featured"] = repositorylicense.GetLicense().GetFeatured()
+	licenseMap["description"] = repositorylicense.GetLicense().GetDescription()
+	licenseMap["implementation"] = repositorylicense.GetLicense().GetImplementation()
+	licenseMap["permissions"] = repositorylicense.GetLicense().GetPermissions()
+	licenseMap["conditions"] = repositorylicense.GetLicense().GetConditions()
+	licenseMap["limitations"] = repositorylicense.GetLicense().GetLimitations()
+	licenseMap["body"] = repositorylicense.GetLicense().GetBody()
+
+	repositorylicenseMap := make(map[string]interface{})
+	repositorylicenseMap["license"] = []interface{}{licenseMap}
+	repositorylicenseMap["name"] = repositorylicense.GetName()
+	repositorylicenseMap["path"] = repositorylicense.GetPath()
+	repositorylicenseMap["sha"] = repositorylicense.GetSHA()
+	repositorylicenseMap["size"] = repositorylicense.GetSize()
+	repositorylicenseMap["url"] = repositorylicense.GetURL()
+	repositorylicenseMap["html_url"] = repositorylicense.GetHTMLURL()
+	repositorylicenseMap["git_url"] = repositorylicense.GetGitURL()
+	repositorylicenseMap["download_url"] = repositorylicense.GetDownloadURL()
+	repositorylicenseMap["type"] = repositorylicense.GetType()
+	repositorylicenseMap["content"] = repositorylicense.GetContent()
+	repositorylicenseMap["encoding"] = repositorylicense.GetEncoding()
+
+	return []interface{}{repositorylicenseMap}
 }
 
 func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis) []interface{} {

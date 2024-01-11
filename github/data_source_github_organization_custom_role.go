@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

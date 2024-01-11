@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -95,7 +95,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		opts.Ref = branch.(string)
 	}
 
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
@@ -107,24 +107,23 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	d.Set("repository", repo)
+	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	d.Set("file", file)
+
+	// If the repo is a directory, then there is nothing else we can include in
+	// the schema.
+	if dc != nil {
+		return nil
+	}
+
 	content, err := fc.GetContent()
 	if err != nil {
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	if err = d.Set("content", content); err != nil {
-		return err
-	}
-	if err = d.Set("repository", repo); err != nil {
-		return err
-	}
-	if err = d.Set("file", file); err != nil {
-		return err
-	}
-	if err = d.Set("sha", fc.GetSHA()); err != nil {
-		return err
-	}
+	d.Set("content", content)
+	d.Set("sha", fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {

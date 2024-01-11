@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -110,9 +110,124 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"primary_language": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"archived": {
 				Type:     schema.TypeBool,
 				Computed: true,
+			},
+			"repository_license": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"path": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"license": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"spdx_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"html_url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"featured": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"description": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"implementation": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"permissions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"conditions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"limitations": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"body": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"sha": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"size": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"html_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"git_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"download_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"content": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"encoding": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"pages": {
 				Type:     schema.TypeList,
@@ -249,126 +364,37 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(repoName)
 
-	err = d.Set("name", repo.GetName())
-	if err != nil {
-		return err
-	}
-	err = d.Set("description", repo.GetDescription())
-	if err != nil {
-		return err
-	}
-	err = d.Set("homepage_url", repo.GetHomepage())
-	if err != nil {
-		return err
-	}
-	err = d.Set("private", repo.GetPrivate())
-	if err != nil {
-		return err
-	}
-	err = d.Set("visibility", repo.GetVisibility())
-	if err != nil {
-		return err
-	}
-	err = d.Set("has_issues", repo.GetHasIssues())
-	if err != nil {
-		return err
-	}
-	err = d.Set("has_discussions", repo.GetHasDiscussions())
-	if err != nil {
-		return err
-	}
-	err = d.Set("has_wiki", repo.GetHasWiki())
-	if err != nil {
-		return err
-	}
-	err = d.Set("is_template", repo.GetIsTemplate())
-	if err != nil {
-		return err
-	}
-	err = d.Set("fork", repo.GetFork())
-	if err != nil {
-		return err
-	}
-	err = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-	if err != nil {
-		return err
-	}
-	err = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-	if err != nil {
-		return err
-	}
-	err = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-	if err != nil {
-		return err
-	}
-	err = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-	if err != nil {
-		return err
-	}
-	err = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-	if err != nil {
-		return err
-	}
-	err = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-	if err != nil {
-		return err
-	}
-	err = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-	if err != nil {
-		return err
-	}
-	err = d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-	if err != nil {
-		return err
-	}
-	err = d.Set("has_downloads", repo.GetHasDownloads())
-	if err != nil {
-		return err
-	}
-	err = d.Set("full_name", repo.GetFullName())
-	if err != nil {
-		return err
-	}
-	err = d.Set("default_branch", repo.GetDefaultBranch())
-	if err != nil {
-		return err
-	}
-	err = d.Set("html_url", repo.GetHTMLURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("ssh_clone_url", repo.GetSSHURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("svn_url", repo.GetSVNURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("git_clone_url", repo.GetGitURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("http_clone_url", repo.GetCloneURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("archived", repo.GetArchived())
-	if err != nil {
-		return err
-	}
-	err = d.Set("node_id", repo.GetNodeID())
-	if err != nil {
-		return err
-	}
-	err = d.Set("repo_id", repo.GetID())
-	if err != nil {
-		return err
-	}
-	err = d.Set("has_projects", repo.GetHasProjects())
-	if err != nil {
-		return err
-	}
+	d.Set("name", repo.GetName())
+	d.Set("description", repo.GetDescription())
+	d.Set("homepage_url", repo.GetHomepage())
+	d.Set("private", repo.GetPrivate())
+	d.Set("visibility", repo.GetVisibility())
+	d.Set("has_issues", repo.GetHasIssues())
+	d.Set("has_discussions", repo.GetHasDiscussions())
+	d.Set("has_wiki", repo.GetHasWiki())
+	d.Set("is_template", repo.GetIsTemplate())
+	d.Set("fork", repo.GetFork())
+	d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+	d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+	d.Set("has_downloads", repo.GetHasDownloads())
+	d.Set("full_name", repo.GetFullName())
+	d.Set("default_branch", repo.GetDefaultBranch())
+	d.Set("primary_language", repo.GetLanguage())
+	d.Set("html_url", repo.GetHTMLURL())
+	d.Set("ssh_clone_url", repo.GetSSHURL())
+	d.Set("svn_url", repo.GetSVNURL())
+	d.Set("git_clone_url", repo.GetGitURL())
+	d.Set("http_clone_url", repo.GetCloneURL())
+	d.Set("archived", repo.GetArchived())
+	d.Set("node_id", repo.GetNodeID())
+	d.Set("repo_id", repo.GetID())
+	d.Set("has_projects", repo.GetHasProjects())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
@@ -383,6 +409,18 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 		if err != nil {
 			return err
 		}
+	}
+
+	if repo.License != nil {
+		repository_license, _, err := client.Repositories.License(context.TODO(), owner, repoName)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("repository_license", flattenRepositoryLicense(repository_license)); err != nil {
+			return fmt.Errorf("error setting repository_license: %w", err)
+		}
+	} else {
+		d.Set("repository_license", flattenRepositoryLicense(nil))
 	}
 
 	if repo.TemplateRepository != nil {

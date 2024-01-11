@@ -58,7 +58,7 @@ The following arguments are supported:
 This resource can be imported using an ID made up of the `repository` and `secret_name`:
 
 ```
-$ terraform import github_actions_secret.example_secret <repository>/<secret_name>
+$ terraform import github_actions_secret.example_secret repository/secret_name
 ```
 
 NOTE: the implementation is limited in that it won't fetch the value of the

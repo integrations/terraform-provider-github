@@ -3,7 +3,7 @@ package github
 import (
 	"strconv"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -61,6 +61,78 @@ func dataSourceGithubOrganization() *schema.Resource {
 						Type: schema.TypeString,
 					},
 				},
+			},
+			"default_repository_permission": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"members_can_create_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"two_factor_requirement_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_allowed_repository_creation_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"members_can_create_public_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_private_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_internal_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_public_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_create_private_pages": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_fork_private_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"web_commit_signoff_required": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"advanced_security_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependabot_alerts_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependabot_security_updates_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dependency_graph_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"secret_scanning_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"secret_scanning_push_protection_enabled_for_new_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 		},
 	}
@@ -153,42 +225,33 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
-	err = d.Set("login", organization.GetLogin())
-	if err != nil {
-		return err
-	}
-	err = d.Set("name", organization.GetName())
-	if err != nil {
-		return err
-	}
-	err = d.Set("orgname", name)
-	if err != nil {
-		return err
-	}
-	err = d.Set("node_id", organization.GetNodeID())
-	if err != nil {
-		return err
-	}
-	err = d.Set("description", organization.GetDescription())
-	if err != nil {
-		return err
-	}
-	err = d.Set("plan", planName)
-	if err != nil {
-		return err
-	}
-	err = d.Set("repositories", repoList)
-	if err != nil {
-		return err
-	}
-	err = d.Set("members", members)
-	if err != nil {
-		return err
-	}
-	err = d.Set("users", users)
-	if err != nil {
-		return err
-	}
+	d.Set("login", organization.GetLogin())
+	d.Set("name", organization.GetName())
+	d.Set("orgname", name)
+	d.Set("node_id", organization.GetNodeID())
+	d.Set("description", organization.GetDescription())
+	d.Set("plan", planName)
+	d.Set("repositories", repoList)
+	d.Set("members", members)
+	d.Set("users", users)
+	d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
+	d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
+	d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
+	d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
+	d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
+	d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+	d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
+	d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+	d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
+	d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
+	d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
+	d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
+	d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
+	d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
+	d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
+	d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
+	d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
+	d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 
 	return nil
 }

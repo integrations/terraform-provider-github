@@ -2,14 +2,13 @@ package github
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -94,7 +93,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		uv3.Path = uv3.Path + "api/v3/"
 	}
 
-	v3client, err := github.NewEnterpriseClient(uv3.String(), "", client)
+	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +107,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
+		if c.Anonymous() {
+			return owner, nil
+		}
 		// Discover authenticated user
 		user, _, err := owner.v3client.Users.Get(ctx, "")
 		if err != nil {
@@ -153,17 +155,11 @@ func (c *Config) Meta() (interface{}, error) {
 	owner.v3client = v3client
 	owner.StopContext = context.Background()
 
-	if c.Anonymous() {
-		log.Printf("[INFO] No token present; configuring anonymous owner.")
-		return &owner, nil
-	} else {
-		_, err = c.ConfigureOwner(&owner)
-		if err != nil {
-			return &owner, err
-		}
-		log.Printf("[INFO] Token present; configuring authenticated owner: %s", owner.name)
-		return &owner, nil
+	_, err = c.ConfigureOwner(&owner)
+	if err != nil {
+		return &owner, err
 	}
+	return &owner, nil
 }
 
 type previewHeaderInjectorTransport struct {
