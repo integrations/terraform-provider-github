@@ -42,7 +42,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 				Sensitive:        true,
 				ConflictsWith:    []string{"plaintext_value"},
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64),
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,

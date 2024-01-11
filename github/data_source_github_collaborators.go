@@ -28,7 +28,7 @@ func dataSourceGithubCollaborators() *schema.Resource {
 					"all",
 					"direct",
 					"outside",
-				}, false)),
+				}, false), "affiliation"),
 				Optional: true,
 				Default:  "all",
 			},

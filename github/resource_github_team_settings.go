@@ -59,7 +59,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 								}
 
 								return we, errs
-							}),
+							}, "algorithm"),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
@@ -75,7 +75,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 									errs = append(errs, errors.New("review request delegation reviewer count must be a positive number"))
 								}
 								return we, errs
-							}),
+							}, "member_count"),
 						},
 						"notify": {
 							Type:        schema.TypeBool,

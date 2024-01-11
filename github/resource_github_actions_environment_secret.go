@@ -45,7 +45,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Sensitive:        true,
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				ConflictsWith:    []string{"plaintext_value"},
-				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64),
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,

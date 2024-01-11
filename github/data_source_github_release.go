@@ -32,7 +32,7 @@ func dataSourceGithubRelease() *schema.Resource {
 					"latest",
 					"id",
 					"tag",
-				}, false)),
+				}, false), "retrieve_by"),
 			},
 			"release_tag": {
 				Type:     schema.TypeString,
