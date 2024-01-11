@@ -3,6 +3,8 @@ package github
 import (
 	"testing"
 	"unicode"
+
+	"github.com/hashicorp/go-cty/cty"
 )
 
 func TestAccValidateTeamIDFunc(t *testing.T) {
@@ -58,9 +60,7 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 	validationFunc := validateValueFunc([]string{"valid_one", "valid_two"})
 
 	for _, tc := range cases {
-		// TODO(kfcampbell): what are the ramifications of passing nil in here?
-		// used to be "test_arg" as a string
-		diags := validationFunc(tc.Value, nil)
+		diags := validationFunc(tc.Value, cty.Path{cty.GetAttrStep{Name: "test_arg"}})
 
 		if len(diags) != tc.ErrCount {
 			t.Fatalf("Expected 1 validation error")
@@ -146,9 +146,7 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 
 	for _, tc := range cases {
 		var name interface{} = tc.Name
-		// TODO(kfcampbell): what are the ramifications of passign in nil here?
-		// used to be the empty string ""
-		diags := validateSecretNameFunc(name, nil)
+		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
 
 		if tc.Error != (len(diags) != 0) {
 			if tc.Error {
