@@ -16,7 +16,7 @@ func resourceGithubIssueLabels() *schema.Resource {
 		Update: resourceGithubIssueLabelsCreateOrUpdate,
 		Delete: resourceGithubIssueLabelsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
