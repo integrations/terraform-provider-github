@@ -399,13 +399,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
-			return nil, fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms")
+			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
 		}
 		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
-			return nil, fmt.Errorf("max_retries must be greater than or equal to 0")
+			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
 		}
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
 		retryableErrors := make(map[int]bool)

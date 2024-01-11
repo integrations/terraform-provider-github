@@ -59,7 +59,7 @@ func wrapErrors(errs []error) diag.Diagnostics {
 // the old code until all uses of schema.SchemaValidateFunc are gone
 func toDiagFunc(oldFunc schema.SchemaValidateFunc) schema.SchemaValidateDiagFunc { //nolint:staticcheck
 	return func(i interface{}, path cty.Path) diag.Diagnostics {
-		// TODO(kfcampbell): what are the ramifications of ignoring the path here?
+		// TODO(kfcampbell): what are the ramifications of a hard-coded path here?
 		warnings, errors := oldFunc(i, "hard-coded-path")
 		var diags diag.Diagnostics
 
