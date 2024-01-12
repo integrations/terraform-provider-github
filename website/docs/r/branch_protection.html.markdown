@@ -135,7 +135,7 @@ For workflows that use reusable workflows, the pattern is `<initial_workflow.job
 `restrict_pushes` supports the following arguments:
 
 * `blocks_creations` - (Optional) Boolean, setting this to `false` allows people, teams, or apps to create new branches matching this rule. Defaults to `true`.
-* `push_allowances` - (Optional) A list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
+* `push_allowances` - (Optional) A list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams. Organization administrators, repository administrators, and users with the Maintain role on the repository can always push when all other requirements have passed.
 
 ## Import
 
