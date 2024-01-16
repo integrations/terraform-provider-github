@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,8 +18,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-cty/cty"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/internal/addrs"
@@ -284,7 +287,7 @@ func (s *State) Validate() error {
 	s.Lock()
 	defer s.Unlock()
 
-	var result error
+	var result []error
 
 	// !!!! FOR DEVELOPERS !!!!
 	//
@@ -306,7 +309,7 @@ func (s *State) Validate() error {
 
 			key := strings.Join(ms.Path, ".")
 			if _, ok := found[key]; ok {
-				result = multierror.Append(result, fmt.Errorf(
+				result = append(result, fmt.Errorf(
 					strings.TrimSpace(stateValidateErrMultiModule), key))
 				continue
 			}
@@ -315,7 +318,7 @@ func (s *State) Validate() error {
 		}
 	}
 
-	return result
+	return errors.Join(result...)
 }
 
 // Remove removes the item in the state at the given address, returning
@@ -366,11 +369,11 @@ func (s *State) Remove(addr ...string) error {
 
 		switch v := r.Value.(type) {
 		case *ModuleState:
-			s.removeModule(path, v)
+			s.removeModule(v)
 		case *ResourceState:
 			s.removeResource(path, v)
 		case *InstanceState:
-			s.removeInstance(path, r.Parent.Value.(*ResourceState), v)
+			s.removeInstance(r.Parent.Value.(*ResourceState), v)
 		default:
 			return fmt.Errorf("unknown type to delete: %T", r.Value)
 		}
@@ -384,7 +387,7 @@ func (s *State) Remove(addr ...string) error {
 	return nil
 }
 
-func (s *State) removeModule(path []string, v *ModuleState) {
+func (s *State) removeModule(v *ModuleState) {
 	for i, m := range s.Modules {
 		if m == v {
 			s.Modules, s.Modules[len(s.Modules)-1] = append(s.Modules[:i], s.Modules[i+1:]...), nil
@@ -412,7 +415,7 @@ func (s *State) removeResource(path []string, v *ResourceState) {
 	}
 }
 
-func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
+func (s *State) removeInstance(r *ResourceState, v *InstanceState) {
 	// Go through the resource and find the instance that matches this
 	// (if any) and remove it.
 
@@ -420,20 +423,6 @@ func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState
 	if r.Primary == v {
 		r.Primary = nil
 		return
-	}
-
-	// Check lists
-	lists := [][]*InstanceState{r.Deposed}
-	for _, is := range lists {
-		for i, instance := range is {
-			if instance == v {
-				// Found it, remove it
-				is, is[len(is)-1] = append(is[:i], is[i+1:]...), nil
-
-				// Done
-				return
-			}
-		}
 	}
 }
 
@@ -562,12 +551,12 @@ func (s *State) DeepCopy() *State {
 		return nil
 	}
 
-	copy, err := copystructure.Config{Lock: true}.Copy(s)
+	copiedState, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
 
-	return copy.(*State)
+	return copiedState.(*State)
 }
 
 func (s *State) Init() {
@@ -1023,7 +1012,7 @@ func (m *ModuleState) String() string {
 		}
 
 		if len(rs.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			buf.WriteString("\n  Dependencies:\n")
 			for _, dep := range rs.Dependencies {
 				buf.WriteString(fmt.Sprintf("    %s\n", dep))
 			}
@@ -1159,7 +1148,6 @@ func parseResourceStateKey(k string) (*ResourceStateKey, error) {
 //
 // Extra is just extra data that a provider can return that we store
 // for later, but is not exposed in any way to the user.
-//
 type ResourceState struct {
 	// This is filled in and managed by Terraform, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
@@ -1237,31 +1225,7 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 	}
 
 	// States must be equal
-	if !s.Primary.Equal(other.Primary) {
-		return false
-	}
-
-	return true
-}
-
-// Taint marks a resource as tainted.
-func (s *ResourceState) Taint() {
-	s.Lock()
-	defer s.Unlock()
-
-	if s.Primary != nil {
-		s.Primary.Tainted = true
-	}
-}
-
-// Untaint unmarks a resource as tainted.
-func (s *ResourceState) Untaint() {
-	s.Lock()
-	defer s.Unlock()
-
-	if s.Primary != nil {
-		s.Primary.Tainted = false
-	}
+	return s.Primary.Equal(other.Primary)
 }
 
 func (s *ResourceState) init() {
@@ -1342,6 +1306,10 @@ type InstanceState struct {
 	Meta map[string]interface{} `json:"meta"`
 
 	ProviderMeta cty.Value
+
+	RawConfig cty.Value
+	RawState  cty.Value
+	RawPlan   cty.Value
 
 	// Tainted is used to mark a resource for recreation.
 	Tainted bool `json:"tainted"`
@@ -1426,12 +1394,12 @@ func (s *InstanceState) Set(from *InstanceState) {
 }
 
 func (s *InstanceState) DeepCopy() *InstanceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(s)
+	copiedState, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
 
-	return copy.(*InstanceState)
+	return copiedState.(*InstanceState)
 }
 
 func (s *InstanceState) Empty() bool {

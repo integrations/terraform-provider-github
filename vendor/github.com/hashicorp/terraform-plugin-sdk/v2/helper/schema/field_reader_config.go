@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package schema
 
 import (
@@ -100,7 +103,7 @@ func (r *ConfigFieldReader) readField(
 	case TypeBool, TypeFloat, TypeInt, TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
-		return readListField(&nestedConfigFieldReader{r}, address, schema)
+		return readListField(&nestedConfigFieldReader{r}, address)
 	case TypeMap:
 		return r.readMap(k, schema)
 	case TypeSet:
@@ -203,7 +206,7 @@ func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, 
 
 	err := mapValuesToPrimitive(k, result, schema)
 	if err != nil {
-		return FieldReadResult{}, nil
+		return FieldReadResult{}, nil //nolint:nilerr // Leave legacy flatmap handling
 	}
 
 	var value interface{}
@@ -258,7 +261,7 @@ func (r *ConfigFieldReader) readSet(
 	// Create the set that will be our result
 	set := schema.ZeroValue().(*Set)
 
-	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
+	raw, err := readListField(&nestedConfigFieldReader{r}, address)
 	if err != nil {
 		return FieldReadResult{}, err
 	}
@@ -300,7 +303,7 @@ func (r *ConfigFieldReader) hasComputedSubKeys(key string, schema *Schema) bool 
 
 	switch t := schema.Elem.(type) {
 	case *Resource:
-		for k, schema := range t.Schema {
+		for k, schema := range t.SchemaMap() {
 			if r.Config.IsComputed(prefix + k) {
 				return true
 			}

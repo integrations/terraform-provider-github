@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package schema
 
 import (
@@ -24,7 +27,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return r.readPrimitive(address, schema)
 	case TypeList:
-		return readListField(r, address, schema)
+		return readListField(r, address)
 	case TypeMap:
 		return r.readMap(k, schema)
 	case TypeSet:
@@ -63,7 +66,7 @@ func (r *MapFieldReader) readMap(k string, schema *Schema) (FieldReadResult, err
 
 	err := mapValuesToPrimitive(k, result, schema)
 	if err != nil {
-		return FieldReadResult{}, nil
+		return FieldReadResult{}, nil //nolint:nilerr // Leave legacy flatmap handling
 	}
 
 	var resultVal interface{}
@@ -159,11 +162,8 @@ func (r *MapFieldReader) readSet(
 		// "ports.1", but the "state" map might have those plus "ports.2".
 		// We don't want "ports.2"
 		countActual[idx] = struct{}{}
-		if len(countActual) >= countExpected {
-			return false
-		}
 
-		return true
+		return len(countActual) < countExpected
 	})
 	if !completed && err != nil {
 		return FieldReadResult{}, err

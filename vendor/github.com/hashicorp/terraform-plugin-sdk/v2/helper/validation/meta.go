@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package validation
 
 import (
@@ -42,6 +45,18 @@ func All(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
 	}
 }
 
+// AllDiag returns a SchemaValidateDiagFunc which tests if the provided value
+// passes all provided SchemaValidateDiagFunc
+func AllDiag(validators ...schema.SchemaValidateDiagFunc) schema.SchemaValidateDiagFunc {
+	return func(i interface{}, k cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+		for _, validator := range validators {
+			diags = append(diags, validator(i, k)...)
+		}
+		return diags
+	}
+}
+
 // Any returns a SchemaValidateFunc which tests if the provided value
 // passes any of the provided SchemaValidateFunc
 func Any(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
@@ -60,14 +75,43 @@ func Any(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
 	}
 }
 
+// AnyDiag returns a SchemaValidateDiagFunc which tests if the provided value
+// passes any of the provided SchemaValidateDiagFunc
+func AnyDiag(validators ...schema.SchemaValidateDiagFunc) schema.SchemaValidateDiagFunc {
+	return func(i interface{}, k cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+		for _, validator := range validators {
+			validatorDiags := validator(i, k)
+			if len(validatorDiags) == 0 {
+				return diag.Diagnostics{}
+			}
+			diags = append(diags, validatorDiags...)
+		}
+		return diags
+	}
+}
+
 // ToDiagFunc is a wrapper for legacy schema.SchemaValidateFunc
 // converting it to schema.SchemaValidateDiagFunc
 func ToDiagFunc(validator schema.SchemaValidateFunc) schema.SchemaValidateDiagFunc {
 	return func(i interface{}, p cty.Path) diag.Diagnostics {
 		var diags diag.Diagnostics
 
-		attr := p[len(p)-1].(cty.GetAttrStep)
-		ws, es := validator(i, attr.Name)
+		// A practitioner-friendly key for any SchemaValidateFunc output.
+		// Generally this should be the last attribute name on the path.
+		// If not found for some unexpected reason, an empty string is fine
+		// as the diagnostic will have the full attribute path anyways.
+		var key string
+
+		// Reverse search for last cty.GetAttrStep
+		for i := len(p) - 1; i >= 0; i-- {
+			if pathStep, ok := p[i].(cty.GetAttrStep); ok {
+				key = pathStep.Name
+				break
+			}
+		}
+
+		ws, es := validator(i, key)
 
 		for _, w := range ws {
 			diags = append(diags, diag.Diagnostic{

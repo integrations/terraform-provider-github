@@ -1,10 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfprotov5
 
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
+
+// ResourceMetadata describes metadata for a managed resource in the GetMetadata
+// RPC.
+type ResourceMetadata struct {
+	// TypeName is the name of the managed resource.
+	TypeName string
+}
 
 // ResourceServer is an interface containing the methods a resource
 // implementation needs to fill.
@@ -98,6 +108,9 @@ type UpgradeResourceStateResponse struct {
 	//
 	// The state should be represented as a tftypes.Object, with each
 	// attribute and nested block getting its own key and value.
+	//
+	// Terraform CLI 0.12 through 0.14 require the Msgpack field to be
+	// populated or an EOF error will be returned.
 	UpgradedState *DynamicValue
 
 	// Diagnostics report errors or warnings related to upgrading the
@@ -125,6 +138,9 @@ type ReadResourceRequest struct {
 	// Private is any provider-defined private state stored with the
 	// resource. It is used for keeping state with the resource that is not
 	// meant to be included when calculating diffs.
+	//
+	// To ensure private state data is preserved, copy any necessary data to
+	// the ReadResourceResponse type Private field.
 	Private []byte
 
 	// ProviderMeta supplies the provider metadata configuration for the
@@ -212,6 +228,9 @@ type PlanResourceChangeRequest struct {
 	// PriorPrivate is any provider-defined private state stored with the
 	// resource. It is used for keeping state with the resource that is not
 	// meant to be included when calculating diffs.
+	//
+	// To ensure private state data is preserved, copy any necessary data to
+	// the PlanResourceChangeResponse type PlannedPrivate field.
 	PriorPrivate []byte
 
 	// ProviderMeta supplies the provider metadata configuration for the
@@ -280,6 +299,10 @@ type PlanResourceChangeResponse struct {
 	// like sent with requests for this resource. This state will be
 	// associated with the resource, but will not be considered when
 	// calculating diffs.
+	//
+	// This private state data will be sent in the ApplyResourceChange RPC, in
+	// relation to the types of this package, the ApplyResourceChangeRequest
+	// type PlannedPrivate field.
 	PlannedPrivate []byte
 
 	// Diagnostics report errors or warnings related to determining the
@@ -341,6 +364,13 @@ type ApplyResourceChangeRequest struct {
 	// PlannedPrivate is any provider-defined private state stored with the
 	// resource. It is used for keeping state with the resource that is not
 	// meant to be included when calculating diffs.
+	//
+	// This private state data is sourced from the PlanResourceChange RPC, in
+	// relation to the types in this package, the PlanResourceChangeResponse
+	// type PlannedPrivate field.
+	//
+	// To ensure private state data is preserved, copy any necessary data to
+	// the ApplyResourceChangeResponse type Private field.
 	PlannedPrivate []byte
 
 	// ProviderMeta supplies the provider metadata configuration for the
