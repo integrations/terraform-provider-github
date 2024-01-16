@@ -54,12 +54,19 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
+					}
+
+					required_workflows {
+						required_workflow {
+							path          = "path/to/workflow.yaml"
+							repository_id = 1234
+						}
 					}
 
 					branch_name_pattern {
@@ -197,11 +204,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
 					}
 
