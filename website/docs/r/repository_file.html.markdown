@@ -53,7 +53,7 @@ The following arguments are supported:
 
 * `commit_message` - (Optional) Commit message when adding or updating the managed file.
 
-* `overwrite_on_create` - (Optional) Enable overwriting existing files
+* `overwrite_on_create` - (Optional) Enable overwriting existing files. If set to `true` it will overwrite an existing file with the same name. If set to `false` it will fail if there is an existing file with the same name.
 
 ## Attributes Reference
 
