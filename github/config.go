@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -40,7 +40,7 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
-	client.Transport = logging.NewTransport("GitHub", client.Transport)
+	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
@@ -137,7 +137,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 }
 
 // Meta returns the meta parameter that is passed into subsequent resources
-// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
+// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 func (c *Config) Meta() (interface{}, error) {
 
 	var client *http.Client
@@ -160,6 +160,7 @@ func (c *Config) Meta() (interface{}, error) {
 	var owner Owner
 	owner.v4client = v4client
 	owner.v3client = v3client
+	owner.StopContext = context.Background()
 
 	_, err = c.ConfigureOwner(&owner)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
@@ -64,7 +64,10 @@ func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, me
 	}
 
 	d.SetId(repoName)
-	d.Set("autolink_references", results)
+	err := d.Set("autolink_references", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

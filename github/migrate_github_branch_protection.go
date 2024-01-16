@@ -1,6 +1,10 @@
 package github
 
-import "github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func resourceGithubBranchProtectionV0() *schema.Resource {
 	return &schema.Resource{
@@ -19,7 +23,7 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV0(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	repoName := rawState["repository"].(string)
 	repoID, err := getRepositoryID(repoName, meta)
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRelease() *schema.Resource {
@@ -213,7 +213,9 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	d.Set("repository", *repository.Name)
+	if err = d.Set("repository", *repository.Name); err != nil {
+		return []*schema.ResourceData{d}, err
+	}
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, *repository.Name, releaseID)
 	if release == nil || err != nil {
@@ -226,23 +228,23 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 
 func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) {
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
-	d.Set("release_id", release.GetID())
-	d.Set("node_id", release.GetNodeID())
-	d.Set("repository", repository)
-	d.Set("tag_name", release.GetTagName())
-	d.Set("target_commitish", release.GetTargetCommitish())
-	d.Set("name", release.GetName())
-	d.Set("body", release.GetBody())
-	d.Set("draft", release.GetDraft())
-	d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
-	d.Set("prerelease", release.GetPrerelease())
-	d.Set("discussion_category_name", release.GetDiscussionCategoryName())
-	d.Set("created_at", release.GetCreatedAt())
-	d.Set("published_at", release.GetPublishedAt())
-	d.Set("url", release.GetURL())
-	d.Set("html_url", release.GetHTMLURL())
-	d.Set("assets_url", release.GetAssetsURL())
-	d.Set("upload_url", release.GetUploadURL())
-	d.Set("zipball_url", release.GetZipballURL())
-	d.Set("tarball_url", release.GetTarballURL())
+	_ = d.Set("release_id", release.GetID())
+	_ = d.Set("node_id", release.GetNodeID())
+	_ = d.Set("repository", repository)
+	_ = d.Set("tag_name", release.GetTagName())
+	_ = d.Set("target_commitish", release.GetTargetCommitish())
+	_ = d.Set("name", release.GetName())
+	_ = d.Set("body", release.GetBody())
+	_ = d.Set("draft", release.GetDraft())
+	_ = d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
+	_ = d.Set("prerelease", release.GetPrerelease())
+	_ = d.Set("discussion_category_name", release.GetDiscussionCategoryName())
+	_ = d.Set("created_at", release.GetCreatedAt())
+	_ = d.Set("published_at", release.GetPublishedAt())
+	_ = d.Set("url", release.GetURL())
+	_ = d.Set("html_url", release.GetHTMLURL())
+	_ = d.Set("assets_url", release.GetAssetsURL())
+	_ = d.Set("upload_url", release.GetUploadURL())
+	_ = d.Set("zipball_url", release.GetZipballURL())
+	_ = d.Set("tarball_url", release.GetTarballURL())
 }

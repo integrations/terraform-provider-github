@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationWebhooks() *schema.Resource {
@@ -70,7 +70,10 @@ func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta inter
 	}
 
 	d.SetId(owner)
-	d.Set("webhooks", results)
+	err := d.Set("webhooks", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

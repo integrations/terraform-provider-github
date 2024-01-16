@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -83,11 +83,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      1,
-							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateFunc: validation.IntBetween(0, 6),
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Default:          1,
+							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
+							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT),
 						},
 						PROTECTION_REQUIRES_CODE_OWNER_REVIEWS: {
 							Type:        schema.TypeBool,
@@ -468,7 +468,9 @@ func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface
 	if err != nil {
 		return nil, err
 	}
-	d.Set("repository_id", repoID)
+	if err = d.Set("repository_id", repoID); err != nil {
+		return nil, err
+	}
 
 	id, err := getBranchProtectionID(repoID, pattern, meta)
 	if err != nil {

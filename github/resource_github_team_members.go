@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -46,11 +46,11 @@ func resourceGithubTeamMembers() *schema.Resource {
 							Description:      "The user to add to the team.",
 						},
 						"role": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "member",
-							Description:  "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
-							ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "member",
+							Description:      "The role of the user within the team. Must be one of 'member' or 'maintainer'.",
+							ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 						},
 					},
 				},
@@ -190,7 +190,9 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
-	d.Set("team_id", teamIdString)
+	if err := d.Set("team_id", teamIdString); err != nil {
+		return err
+	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
