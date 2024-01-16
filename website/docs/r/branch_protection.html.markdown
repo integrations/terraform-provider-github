@@ -111,6 +111,11 @@ The following arguments are supported:
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 
+~> Note: This attribute can contain multiple string patterns.
+If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) is defaulted to.
+For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation]("https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy") for more information.
+For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
+
 ### Required Pull Request Reviews
 
 `required_pull_request_reviews` supports the following arguments:
