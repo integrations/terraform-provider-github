@@ -131,6 +131,7 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":                                                     resourceGithubMembership(),
 			"github_organization_block":                                             resourceOrganizationBlock(),
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
+			"github_organization_custom_properties":                                 resourceGithubOrganizationCustomProperties(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
 			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
