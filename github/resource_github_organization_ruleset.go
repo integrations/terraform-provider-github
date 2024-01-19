@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -417,6 +417,42 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "The pattern to match with.",
+									},
+								},
+							},
+						},
+						"required_workflows": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_workflow": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Actions workflows that are required. Several can be defined.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"repository_id": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "The repository in which the workflow is defined.",
+												},
+												"path": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The path to the workflow YAML definition file.",
+												},
+												"ref": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Default:     "master",
+													Description: "The ref (branch or tag) of the workflow file to use.",
+												},
+											},
+										},
 									},
 								},
 							},

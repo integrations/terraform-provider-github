@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -329,6 +329,37 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
+	}
+
+	// Required workflows to pass before merging rule
+	if v, ok := rulesMap["required_workflows"].([]interface{}); ok && len(v) != 0 {
+		requiredWorkflowsMap := v[0].(map[string]interface{})
+		requiredWorkflows := make([]*github.RuleRequiredWorkflow, 0)
+
+		if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
+
+			requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
+			for _, workflowMap := range requiredWorkflowsSet.List() {
+				workflow := workflowMap.(map[string]interface{})
+
+				// Get all parameters
+				repositoryID := github.Int64(int64(workflow["repository_id"].(int)))
+				ref := github.String(workflow["ref"].(string))
+
+				params := &github.RuleRequiredWorkflow{
+					RepositoryID: repositoryID,
+					Path:         workflow["path"].(string),
+					Ref:          ref,
+				}
+
+				requiredWorkflows = append(requiredWorkflows, params)
+			}
+		}
+
+		params := &github.RequiredWorkflowsRuleParameters{
+			RequiredWorkflows: requiredWorkflows,
+		}
+		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
 
 	return rulesSlice
