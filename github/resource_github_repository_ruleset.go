@@ -49,9 +49,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "The actors that can bypass the rules in this ruleset.",
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
