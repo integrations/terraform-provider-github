@@ -60,7 +60,7 @@ func resourceGithubBranchProtectionV1() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV1(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	var blocksCreations bool = false
 
 	if v, ok := rawState["blocks_creations"]; ok {
