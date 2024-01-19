@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v57/github"
 )
 
 func TestEtagTransport(t *testing.T) {

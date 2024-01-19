@@ -3,8 +3,10 @@ package github
 import (
 	"encoding/json"
 	"log"
+	"reflect"
+	"sort"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -54,7 +56,6 @@ func expandBypassActors(input []interface{}) []*github.BypassActor {
 		}
 		bypassActors = append(bypassActors, actor)
 	}
-
 	return bypassActors
 }
 
@@ -63,7 +64,7 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 		return []interface{}{}
 	}
 
-	actorsSlice := make([]map[string]interface{}, 0)
+	actorsSlice := make([]interface{}, 0)
 	for _, v := range bypassActors {
 		actorMap := make(map[string]interface{})
 
@@ -74,7 +75,7 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 		actorsSlice = append(actorsSlice, actorMap)
 	}
 
-	return []interface{}{actorsSlice}
+	return actorsSlice
 }
 
 func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
@@ -110,7 +111,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 
 	// org-only fields
 	if org {
-		// repository_name
+		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]interface{})
 			include := make([]string, 0)
@@ -135,10 +136,7 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 				Exclude:   exclude,
 				Protected: &protected,
 			}
-		}
-
-		// repository_id
-		if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil {
+		} else if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil && len(v) != 0 {
 			repositoryIDs := make([]int64, 0)
 
 			for _, v := range v {
@@ -174,10 +172,16 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 		repositoryNameSlice := make([]map[string]interface{}, 0)
 
 		if conditions.RepositoryName != nil {
+			var protected bool
+
+			if conditions.RepositoryName.Protected != nil {
+				protected = *conditions.RepositoryName.Protected
+			}
+
 			repositoryNameSlice = append(repositoryNameSlice, map[string]interface{}{
 				"include":   conditions.RepositoryName.Include,
 				"exclude":   conditions.RepositoryName.Exclude,
-				"protected": *conditions.RepositoryName.Protected,
+				"protected": protected,
 			})
 			conditionsMap["repository_name"] = repositoryNameSlice
 		}
@@ -232,7 +236,13 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	// Required deployments rule
 	if !org {
 		if v, ok := rulesMap["required_deployments"].([]interface{}); ok && len(v) != 0 {
-			requiredDeploymentsMap := v[0].(map[string]interface{})
+			requiredDeploymentsMap := make(map[string]interface{})
+			// If the rule's block is present but has an empty environments list
+			if v[0] == nil {
+				requiredDeploymentsMap["required_deployment_environments"] = make([]interface{}, 0)
+			} else {
+				requiredDeploymentsMap = v[0].(map[string]interface{})
+			}
 			envs := make([]string, 0)
 			for _, v := range requiredDeploymentsMap["required_deployment_environments"].([]interface{}) {
 				envs = append(envs, v.(string))
@@ -321,6 +331,37 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
 
+	// Required workflows to pass before merging rule
+	if v, ok := rulesMap["required_workflows"].([]interface{}); ok && len(v) != 0 {
+		requiredWorkflowsMap := v[0].(map[string]interface{})
+		requiredWorkflows := make([]*github.RuleRequiredWorkflow, 0)
+
+		if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
+
+			requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
+			for _, workflowMap := range requiredWorkflowsSet.List() {
+				workflow := workflowMap.(map[string]interface{})
+
+				// Get all parameters
+				repositoryID := github.Int64(int64(workflow["repository_id"].(int)))
+				ref := github.String(workflow["ref"].(string))
+
+				params := &github.RuleRequiredWorkflow{
+					RepositoryID: repositoryID,
+					Path:         workflow["path"].(string),
+					Ref:          ref,
+				}
+
+				requiredWorkflows = append(requiredWorkflows, params)
+			}
+		}
+
+		params := &github.RequiredWorkflowsRuleParameters{
+			RequiredWorkflows: requiredWorkflows,
+		}
+		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
+	}
+
 	return rulesSlice
 }
 
@@ -351,6 +392,8 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 		case "commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern":
 			var params github.RulePatternParameters
+			var name string
+			var negate bool
 
 			err := json.Unmarshal(*v.Parameters, &params)
 			if err != nil {
@@ -358,9 +401,16 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 					v.Type, v.Parameters)
 			}
 
+			if params.Name != nil {
+				name = *params.Name
+			}
+			if params.Negate != nil {
+				negate = *params.Negate
+			}
+
 			rule := make(map[string]interface{})
-			rule["name"] = *params.Name
-			rule["negate"] = *params.Negate
+			rule["name"] = name
+			rule["negate"] = negate
 			rule["operator"] = params.Operator
 			rule["pattern"] = params.Pattern
 			rulesMap[v.Type] = []map[string]interface{}{rule}
@@ -426,4 +476,25 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 	}
 
 	return []interface{}{rulesMap}
+}
+
+func bypassActorsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	// If the length has changed, no need to suppress
+	if k == "bypass_actors.#" {
+		return old == new
+	}
+
+	// Get change to bypass actors
+	o, n := d.GetChange("bypass_actors")
+	oldBypassActors := o.([]interface{})
+	newBypassActors := n.([]interface{})
+
+	sort.SliceStable(oldBypassActors, func(i, j int) bool {
+		return oldBypassActors[i].(map[string]interface{})["actor_id"].(int) > oldBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+	sort.SliceStable(newBypassActors, func(i, j int) bool {
+		return newBypassActors[i].(map[string]interface{})["actor_id"].(int) > newBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+
+	return reflect.DeepEqual(oldBypassActors, newBypassActors)
 }

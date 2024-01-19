@@ -173,7 +173,7 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
-#### required_status_checks.required_check ####
+#### rules.required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
@@ -195,11 +195,18 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
 * `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
+
+~> Note: at the time of writing this, the following actor types correspond to the following actor IDs:
+* `OrganizationAdmin` -> `1`
+* `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
+  * `maintain` -> `2`
+  * `write` -> `4`
+  * `admin` -> `5`
 
 
 #### conditions ####

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -108,6 +108,12 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "The list of team slugs with dismissal access. Always use slug of the team, not its name. Each team already has to have access to the repository.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+						"dismissal_apps": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of apps slugs with dismissal access. Always use slug of the app, not its name. Each app already has to have access to the repository.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"require_code_owner_reviews": {

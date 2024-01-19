@@ -11,6 +11,8 @@ Protects a GitHub branch.
 
 This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users, teams, and apps, can also be configured.
 
+Note: for the `push_restrictions` a given user or team must have specific write access to the repository. If specific write access not provided, github will reject the given actor, which will be the cause of terraform drift.
+
 ## Example Usage
 
 ```hcl
@@ -47,16 +49,19 @@ resource "github_branch_protection" "example" {
     data.github_user.example.node_id,
     "/exampleuser",
     "exampleorganization/exampleteam",
-    # limited to a list of one type of restriction (user, team, app)
+    # you can have more than one type of restriction (teams + users). If you use
+    # more than one type, you must use node_ids of each user and each team.
     # github_team.example.node_id
+    # github_user.example-2.node_id
   ]
 
   force_push_bypassers = [
     data.github_user.example.node_id,
     "/exampleuser",
     "exampleorganization/exampleteam",
-    # limited to a list of one type of restriction (user, team, app)
+    # you can have more than one type of restriction (teams + users)
     # github_team.example.node_id
+    # github_team.example-2.node_id
   ]
 
 }
@@ -105,6 +110,11 @@ The following arguments are supported:
 
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
+
+~> Note: This attribute can contain multiple string patterns.
+If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) is defaulted to.
+For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation]("https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy") for more information.
+For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
 
 ### Required Pull Request Reviews
 
