@@ -920,7 +920,7 @@ func testGithubBranchProtectionStateDataV2() map[string]interface{} {
 
 func TestAccGithubBranchProtectionV4StateUpgradeV1(t *testing.T) {
 	expected := testGithubBranchProtectionStateDataV2()
-	actual, err := resourceGithubBranchProtectionUpgradeV1(testGithubBranchProtectionStateDataV1(), nil)
+	actual, err := resourceGithubBranchProtectionUpgradeV1(nil, testGithubBranchProtectionStateDataV1(), nil)
 	if err != nil {
 		t.Fatalf("error migrating state: %s", err)
 	}
