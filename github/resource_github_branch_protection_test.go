@@ -345,18 +345,14 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 			  auto_init = true
 			}
 
-			data "github_user" "test" {
-			  username = "%s"
-			}
-
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.name
+			  repository_id = github_repository.test.node_id
 			  pattern       = "main"
 
 			  restrict_pushes {}
 			}
-	`, randomID, testOwnerFunc())
+	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -412,7 +408,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.name
+			  repository_id = github_repository.test.node_id
 			  pattern       = "main"
 
 			  restrict_pushes {
@@ -474,7 +470,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.name
+			  repository_id = github_repository.test.node_id
 			  pattern       = "main"
 
 			  restrict_pushes {
@@ -533,20 +529,16 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 			  auto_init = true
 			}
 
-			data "github_user" "test" {
-			  username = "%s"
-			}
-
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.name
+			  repository_id = github_repository.test.node_id
 			  pattern       = "main"
 
 			  restrict_pushes {
 				blocks_creations = false
 			  }
 			}
-	`, randomID, testOwnerFunc())
+	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -602,7 +594,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 			resource "github_branch_protection" "test" {
 
-			  repository_id = github_repository.test.name
+			  repository_id = github_repository.test.node_id
 			  pattern       = "main"
 
 			  allows_deletions    = true
