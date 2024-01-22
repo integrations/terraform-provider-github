@@ -21,12 +21,17 @@ Further documentation on GitHub repository deploy keys:
 ## Example Usage
 
 ```hcl
-# Add a deploy key
+# Generate an ssh key using provider "hashicorp/tls"
+resource "tls_private_key" "example_repository_deploy_key" {
+  algorithm = "ED25519"
+}
+
+# Add the ssh key as a deploy key
 resource "github_repository_deploy_key" "example_repository_deploy_key" {
   title      = "Repository test key"
   repository = "test-repo"
-  key        = "ssh-rsa AAA..."
-  read_only  = "false"
+  key        = tls_private_key.example_repository_deploy_key.public_key_openssh
+  read_only  = true
 }
 ```
 
