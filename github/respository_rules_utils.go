@@ -3,6 +3,7 @@ package github
 import (
 	"encoding/json"
 	"log"
+	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v57/github"
@@ -62,10 +63,6 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 	if bypassActors == nil {
 		return []interface{}{}
 	}
-
-	sort.SliceStable(bypassActors, func(i, j int) bool {
-		return bypassActors[i].GetActorID() > bypassActors[j].GetActorID()
-	})
 
 	actorsSlice := make([]interface{}, 0)
 	for _, v := range bypassActors {
@@ -479,4 +476,25 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 	}
 
 	return []interface{}{rulesMap}
+}
+
+func bypassActorsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	// If the length has changed, no need to suppress
+	if k == "bypass_actors.#" {
+		return old == new
+	}
+
+	// Get change to bypass actors
+	o, n := d.GetChange("bypass_actors")
+	oldBypassActors := o.([]interface{})
+	newBypassActors := n.([]interface{})
+
+	sort.SliceStable(oldBypassActors, func(i, j int) bool {
+		return oldBypassActors[i].(map[string]interface{})["actor_id"].(int) > oldBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+	sort.SliceStable(newBypassActors, func(i, j int) bool {
+		return newBypassActors[i].(map[string]interface{})["actor_id"].(int) > newBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+
+	return reflect.DeepEqual(oldBypassActors, newBypassActors)
 }

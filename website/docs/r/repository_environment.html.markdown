@@ -17,18 +17,19 @@ data "github_user" "current" {
 }
 
 resource "github_repository" "example" {
-  name         = "A Repository Project"
-  description  = "My awesome codebase"
+  name        = "A Repository Project"
+  description = "My awesome codebase"
 }
 
 resource "github_repository_environment" "example" {
-  environment  = "example"
-  repository   = github_repository.example.name
+  environment         = "example"
+  repository          = github_repository.example.name
+  prevent_self_review = true
   reviewers {
     users = [data.github_user.current.id]
   }
   deployment_branch_policy {
-    protected_branches 		 = true
+    protected_branches     = true
     custom_branch_policies = false
   }
 }
@@ -45,6 +46,8 @@ The following arguments are supported:
 * `wait_timer` - (Optional) Amount of time to delay a job after the job is initially triggered.
 
 * `can_admins_bypass` - (Optional) Can repository admins bypass the environment protections.  Defaults to `true`.
+
+* `prevent_self_review` - (Optional) Whether or not a user who created the job is prevented from approving their own job. Defaults to `false`.
 
 ### Reviewers
 
