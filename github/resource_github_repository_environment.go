@@ -39,6 +39,12 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 				Default:     true,
 				Description: "Can Admins bypass deployment protections",
 			},
+			"prevent_self_review": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Prevent users from approving workflows runs that they triggered.",
+			},
 			"wait_timer": {
 				Type:             schema.TypeInt,
 				Optional:         true,
@@ -174,6 +180,10 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 			}); err != nil {
 				return err
 			}
+
+			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -238,6 +248,8 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	}
 
 	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
+
+	data.PreventSelfReview = github.Bool(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
