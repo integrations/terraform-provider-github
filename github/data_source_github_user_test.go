@@ -19,7 +19,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		`, testOwnerFunc())
 
 		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_user.test", "name"),
+			resource.TestCheckResourceAttrSet("data.github_user.test", "login"),
 			resource.TestCheckResourceAttrSet("data.github_user.test", "id"),
 		)
 

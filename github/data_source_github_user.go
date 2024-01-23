@@ -181,13 +181,13 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	if err = d.Set("following", user.GetFollowing()); err != nil {
 		return err
 	}
-	if err = d.Set("created_at", user.GetCreatedAt()); err != nil {
+	if err = d.Set("created_at", user.GetCreatedAt().String()); err != nil {
 		return err
 	}
-	if err = d.Set("updated_at", user.GetUpdatedAt()); err != nil {
+	if err = d.Set("updated_at", user.GetUpdatedAt().String()); err != nil {
 		return err
 	}
-	if err = d.Set("suspended_at", user.GetSuspendedAt()); err != nil {
+	if err = d.Set("suspended_at", user.GetSuspendedAt().String()); err != nil {
 		return err
 	}
 	if err = d.Set("node_id", user.GetNodeID()); err != nil {
