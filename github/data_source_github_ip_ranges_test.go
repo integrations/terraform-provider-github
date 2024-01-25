@@ -17,6 +17,7 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "api.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "web.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "packages.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions.#"),
