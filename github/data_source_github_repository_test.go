@@ -140,6 +140,12 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"data.github_repository.test", "fork", "false",
 			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "allow_update_branch", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "delete_branch_on_merge", "true",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
