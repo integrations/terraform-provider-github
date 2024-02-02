@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -25,11 +26,11 @@ func dataSourceGithubRestApi() *schema.Resource {
 				Computed: true,
 			},
 			"headers": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"body": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -51,6 +52,16 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 
 	resp, _ := client.Do(ctx, req, &body)
 
+	h, err := json.Marshal(resp.Header)
+	if err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
 	d.SetId(resp.Header.Get("x-github-request-id"))
 	if err = d.Set("code", resp.StatusCode); err != nil {
 		return err
@@ -58,12 +69,11 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 	if err = d.Set("status", resp.Status); err != nil {
 		return err
 	}
-	if err = d.Set("headers", resp.Header); err != nil {
+	if err = d.Set("headers", string(h)); err != nil {
 		return err
 	}
-	if err = d.Set("body", body); err != nil {
+	if err = d.Set("body", string(b)); err != nil {
 		return err
 	}
-
 	return nil
 }
