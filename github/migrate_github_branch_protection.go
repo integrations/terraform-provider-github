@@ -42,3 +42,40 @@ func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[str
 
 	return rawState, nil
 }
+
+func resourceGithubBranchProtectionV1() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"push_restrictions": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"blocks_creations": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+		},
+	}
+}
+
+func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	var blocksCreations bool = false
+
+	if v, ok := rawState["blocks_creations"]; ok {
+		blocksCreations = v.(bool)
+	}
+
+	if v, ok := rawState["push_restrictions"]; ok {
+		rawState["restrict_pushes"] = []interface{}{map[string]interface{}{
+			"blocks_creations": blocksCreations,
+			"push_allowances":  v,
+		}}
+	}
+
+	delete(rawState, "blocks_creations")
+	delete(rawState, "push_restrictions")
+
+	return rawState, nil
+}
