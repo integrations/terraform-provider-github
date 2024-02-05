@@ -45,6 +45,12 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				ForceNew:    true,
 				Description: "The repository of the webhook.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration. If neither are given, this field defaults to the authenticated user.",
+			},
 			"events": {
 				Type:        schema.TypeSet,
 				Required:    true,
@@ -104,7 +110,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
@@ -132,7 +138,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -161,6 +167,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	d.Set("url", hook.GetURL())
 	d.Set("active", hook.GetActive())
 	d.Set("events", hook.Events)
+	d.Set("owner", owner)
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
@@ -184,7 +191,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -204,7 +211,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -224,4 +231,12 @@ func insecureSslStringToBool(config map[string]interface{}) map[string]interface
 	}
 
 	return config
+}
+
+func calculateOwner(d *schema.ResourceData, meta interface{}) string {
+	if value, ok := d.GetOk("owner"); ok {
+		return value.(string)
+	}
+
+	return meta.(*Owner).name
 }

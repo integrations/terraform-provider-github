@@ -42,6 +42,10 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the webhook.
 
+* `owner` - (Optional) The GitHub organization or user the repository is owned by.
+  Defaults to the owner/organization specified in the provider configuration.
+  If neither are given, this field defaults to the authenticated user. 
+
 * `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
 
 * `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
