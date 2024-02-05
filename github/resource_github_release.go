@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v57/github"
@@ -162,6 +163,13 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing release ID %d for repository %s from state, because it no longer exists on GitHub", releaseID, repository)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 	transformResponseToResourceData(d, release, repository)
