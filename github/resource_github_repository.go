@@ -41,6 +41,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration. If neither are given, this field defaults to the authenticated user.",
 			},
 			"description": {
@@ -413,14 +414,6 @@ func resourceGithubRepository() *schema.Resource {
 		},
 		CustomizeDiff: customDiffFunction,
 	}
-}
-
-func calculateOwner(d *schema.ResourceData, meta interface{}) string {
-	if value, ok := d.GetOk("owner"); ok {
-		return value.(string)
-	}
-
-	return meta.(*Owner).name
 }
 
 func calculateVisibility(d *schema.ResourceData) string {

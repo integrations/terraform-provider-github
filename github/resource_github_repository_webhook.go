@@ -21,11 +21,17 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id>")
+				if len(parts) != 2 && len(parts) != 3 {
+					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id> or <owner>/<repository>/<webhook_id>")
 				}
-				d.Set("repository", parts[0])
-				d.SetId(parts[1])
+
+				if len(parts) == 3 {
+					d.Set("owner", parts[0])
+					d.Set("repository", parts[1])
+				} else {
+					d.Set("repository", parts[0])
+				}
+				d.SetId(parts[len(parts)-1])
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -49,6 +55,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration. If neither are given, this field defaults to the authenticated user.",
 			},
 			"events": {
@@ -231,12 +238,4 @@ func insecureSslStringToBool(config map[string]interface{}) map[string]interface
 	}
 
 	return config
-}
-
-func calculateOwner(d *schema.ResourceData, meta interface{}) string {
-	if value, ok := d.GetOk("owner"); ok {
-		return value.(string)
-	}
-
-	return meta.(*Owner).name
 }

@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -14,17 +13,16 @@ import (
 func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	var webhookOwner string = os.Getenv("GITHUB_WEBHOOK_ORGANIZATION")
 
-	if webhookOwner == "" {
-		t.Fatal("err: webhook owner must be set for this test with GITHUB_WEBHOOK_ORGANIZATION")
+	if resourceOwner == "" {
+		t.Fatal("err: webhook owner must be set for this test with GITHUB_RESOURCE_OWNER")
 	}
 
 	githubProvider := Provider()
 	githubProvider.Configure(&terraform.ResourceConfig{})
 	var providerOwner string = githubProvider.(*schema.Provider).Meta().(*Owner).name
-	if webhookOwner == providerOwner {
-		t.Fatalf("err: webhook owner %s was the same as provider owner %s; they must be different for this test (hint: use GITHUB_WEBHOOK_ORGANIZATION to set the webhook owner)", webhookOwner, providerOwner)
+	if resourceOwner == providerOwner {
+		t.Fatalf("err: webhook owner %s was the same as provider owner %s; they must be different for this test (hint: use GITHUB_RESOURCE_OWNER to set the webhook owner)", resourceOwner, providerOwner)
 	}
 
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
@@ -52,12 +50,13 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				resource "github_repository" "test" {
 					name         = "test-%[1]s"
 					description  = "Terraform acceptance tests"
+					owner        = "%[2]s"
 				}
 
 				resource "github_repository_webhook" "test" {
 					depends_on = ["github_repository.test"]
 					repository = "test-%[1]s"
-					owner      = %[2]s
+					owner      = "%[2]s"
 
 					configuration {
 						url          = "https://google.de/webhook"
@@ -65,11 +64,9 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 						insecure_ssl = true
 					}
 
-					
-
 					events = ["pull_request"]
 				}
-			`, randomID, webhookOwner),
+			`, randomID, resourceOwner),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -89,7 +86,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 					"github_repository_webhook.test", "events.#", "1",
 				),
 				resource.TestCheckResourceAttr(
-					"github_repository_webhook.test", "owner", webhookOwner,
+					"github_repository_webhook.test", "owner", resourceOwner,
 				),
 			),
 		}
@@ -126,40 +123,70 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "test-%[1]s"
-				description  = "Terraform acceptance tests"
-			}
-
-			resource "github_repository_webhook" "test" {
-				depends_on = ["github_repository.test"]
-				repository = "test-%[1]s"
-				configuration {
-					url          = "https://google.de/webhook"
-					content_type = "json"
-					insecure_ssl = true
+		configs := map[string]string{
+			"default": fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name         = "test-%[1]s"
+					description  = "Terraform acceptance tests"
 				}
-				events = ["pull_request"]
-			}
-			`, randomID)
+
+				resource "github_repository_webhook" "test" {
+					depends_on = ["github_repository.test"]
+					repository = "test-%[1]s"
+
+					configuration {
+						url          = "https://google.de/webhook"
+						content_type = "json"
+						insecure_ssl = true
+					}
+
+					events = ["pull_request"]
+				}
+			`, randomID),
+			"withOwner": fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name         = "test-%[1]s"
+					description  = "Terraform acceptance tests"
+					owner        = "%[2]s"
+				}
+
+				resource "github_repository_webhook" "test" {
+					depends_on = ["github_repository.test"]
+					repository = "test-%[1]s"
+					owner      = "%[2]s"
+
+					configuration {
+						url          = "https://google.de/webhook"
+						content_type = "json"
+						insecure_ssl = true
+					}
+
+					events = ["pull_request"]
+				}
+			`, randomID, resourceOwner),
+		}
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
+		importStateIdPrefixes := map[string]string{
+			"default":   fmt.Sprintf("test-%s/", randomID),
+			"withOwner": fmt.Sprintf("%s/test-%s/", resourceOwner, randomID),
+		}
+
+		testCase := func(t *testing.T, mode string, caseName string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: config,
+						Config: configs[caseName],
 						Check:  check,
 					},
 					{
 						ResourceName:        "github_repository_webhook.test",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+						ImportStateIdPrefix: importStateIdPrefixes[caseName],
 					},
 				},
 			})
@@ -170,13 +197,16 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			testCase(t, individual, "default")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			testCase(t, organization, "default")
 		})
 
+		t.Run("with a resource-specific owner", func(t *testing.T) {
+			testCase(t, enterprise, "withOwner")
+		})
 	})
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
@@ -221,6 +251,49 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				  events = ["pull_request"]
 				}
 			`, randomID),
+			"beforeWithOwner": fmt.Sprintf(`
+				resource "github_repository" "test" {
+				  name         = "test-%[1]s"
+				  description  = "Terraform acceptance tests"
+					owner        = "%[2]s"
+				}
+
+				resource "github_repository_webhook" "test" {
+				  depends_on = ["github_repository.test"]
+				  repository = "test-%[1]s"
+					owner      = "%[2]s"
+
+				  configuration {
+				    url          = "https://google.de/webhook"
+				    content_type = "json"
+				    insecure_ssl = true
+				  }
+
+				  events = ["pull_request"]
+				}
+			`, randomID, resourceOwner),
+			"afterWithOwner": fmt.Sprintf(`
+				resource "github_repository" "test" {
+				  name         = "test-%[1]s"
+				  description  = "Terraform acceptance tests"
+					owner        = "%[2]s"
+				}
+
+				resource "github_repository_webhook" "test" {
+				  depends_on = ["github_repository.test"]
+				  repository = "test-%[1]s"
+					owner      = "%[2]s"
+
+				  configuration {
+				    secret       = "secret"
+				    url          = "https://google.de/webhook"
+				    content_type = "json"
+				    insecure_ssl = true
+				  }
+
+				  events = ["pull_request"]
+				}
+			`, randomID, resourceOwner),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -230,20 +303,36 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			"after": resource.TestCheckResourceAttr(
 				"github_repository_webhook.test", "configuration.0.secret", "secret",
 			),
+			"beforeWithOwner": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_webhook.test", "events.#", "1",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_webhook.test", "owner", resourceOwner,
+				),
+			),
+			"afterWithOwner": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_webhook.test", "configuration.0.secret", "secret",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_webhook.test", "owner", resourceOwner,
+				),
+			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
+		testCase := func(t *testing.T, mode string, beforeCaseName string, afterCaseName string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
 					{
-						Config: configs["before"],
-						Check:  checks["before"],
+						Config: configs[beforeCaseName],
+						Check:  checks[beforeCaseName],
 					},
 					{
-						Config: configs["after"],
-						Check:  checks["after"],
+						Config: configs[afterCaseName],
+						Check:  checks[afterCaseName],
 					},
 				},
 			})
@@ -254,11 +343,15 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			testCase(t, individual, "before", "after")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			testCase(t, organization, "before", "after")
+		})
+
+		t.Run("with a resource-specific owner", func(t *testing.T) {
+			testCase(t, enterprise, "beforeWithOwner", "afterWithOwner")
 		})
 	})
 }
