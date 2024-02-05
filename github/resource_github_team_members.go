@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v57/github"
@@ -23,7 +24,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 		Update: resourceGithubTeamMembersUpdate,
 		Delete: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubTeamImport,
+			State: resourceGithubTeamMembersImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -271,4 +272,15 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
+}
+
+func resourceGithubTeamMembersImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	teamId, err := getTeamID(d.Id(), meta)
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(strconv.FormatInt(teamId, 10))
+
+	return []*schema.ResourceData{d}, nil
 }
