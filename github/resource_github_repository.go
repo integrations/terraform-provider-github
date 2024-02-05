@@ -37,6 +37,12 @@ func resourceGithubRepository() *schema.Resource {
 				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"),
 				Description:  "The name of the repository.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration. If neither are given, this field defaults to the authenticated user.",
+			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -409,6 +415,14 @@ func resourceGithubRepository() *schema.Resource {
 	}
 }
 
+func calculateOwner(d *schema.ResourceData, meta interface{}) string {
+	if value, ok := d.GetOk("owner"); ok {
+		return value.(string)
+	}
+
+	return meta.(*Owner).name
+}
+
 func calculateVisibility(d *schema.ResourceData) string {
 
 	if value, ok := d.GetOk("visibility"); ok {
@@ -530,7 +544,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 
 	repoName := repoReq.GetName()
 	ctx := context.Background()
@@ -589,7 +603,9 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		// Create without a repository template
 		var repo *github.Repository
 		var err error
-		if meta.(*Owner).IsOrganization {
+
+		_, explicitOwnerOk := d.GetOk("owner")
+		if meta.(*Owner).IsOrganization || explicitOwnerOk {
 			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
 		} else {
 			// Create repository within authenticated user's account
@@ -623,7 +639,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Id()
 
 	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
@@ -655,6 +671,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", repoName)
+	d.Set("owner", repo.GetOwner().GetLogin())
 	d.Set("description", repo.GetDescription())
 	d.Set("primary_language", repo.GetLanguage())
 	d.Set("homepage_url", repo.GetHomepage())
@@ -751,9 +768,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	repoName := d.Id()
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return err
@@ -847,7 +863,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	repoName := d.Id()
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
