@@ -19,7 +19,11 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 	}
 
 	githubProvider := Provider()
-	githubProvider.Configure(&terraform.ResourceConfig{})
+	err := githubProvider.Configure(&terraform.ResourceConfig{})
+	if err != nil {
+		t.Fatalf("err: encountered error while configuring provider: %s", err)
+	}
+
 	var providerOwner string = githubProvider.(*schema.Provider).Meta().(*Owner).name
 	if resourceOwner == providerOwner {
 		t.Fatalf("err: webhook owner %s was the same as provider owner %s; they must be different for this test (hint: use GITHUB_RESOURCE_OWNER to set the webhook owner)", resourceOwner, providerOwner)
