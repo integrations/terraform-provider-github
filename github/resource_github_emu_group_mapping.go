@@ -98,7 +98,7 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return err
 	}
-	if err = d.Set("group", group); err != nil {
+	if err = d.Set("group_id", int(*group.GroupID)); err != nil {
 		return err
 	}
 	return nil
