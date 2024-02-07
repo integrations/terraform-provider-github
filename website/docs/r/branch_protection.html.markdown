@@ -100,7 +100,7 @@ The following arguments are supported:
 * `push_restrictions` - (Optional) The list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 * `force_push_bypassers` - (Optional) The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
 * `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
-* `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
+* `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch to everyone. Set it to `false` if you specify `force_push_bypassers`.
 * `blocks_creations` - (Optional) Boolean, setting this to `true` to block creating the branch.
 * `lock_branch` - (Optional) Boolean, Setting this to `true` will make the branch read-only and preventing any pushes to it. Defaults to `false`
 
