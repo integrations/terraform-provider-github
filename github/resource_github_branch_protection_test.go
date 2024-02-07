@@ -623,6 +623,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  name      = "tf-acc-test-%s"
 			  auto_init = true
 			}
+
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
 			}
@@ -637,7 +638,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  repository_id  = github_repository.test.node_id
 			  pattern        = "main"
 
-				force_push_bypassers = [
+			  force_push_bypassers = [
 					"%s/${github_team.test.slug}"
 				]
 			}
