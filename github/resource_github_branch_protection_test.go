@@ -639,8 +639,8 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  pattern        = "main"
 
 			  force_push_bypassers = [
-					"%s/${github_team.test.slug}"
-				]
+				  "%s/${github_team.test.slug}"
+	]
 			}
 
 	`, randomID, randomID, testOrganization)
