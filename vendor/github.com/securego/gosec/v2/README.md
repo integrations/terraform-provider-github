@@ -1,7 +1,7 @@
 
 # gosec - Golang Security Checker
 
-Inspects source code for security problems by scanning the Go AST.
+Inspects source code for security problems by scanning the Go AST and SSA code representation.
 
 <img src="https://securego.io/img/gosec.png" width="320">
 
@@ -21,7 +21,7 @@ You may obtain a copy of the License [here](http://www.apache.org/licenses/LICEN
 [![Docs](https://readthedocs.org/projects/docs/badge/?version=latest)](https://securego.io/)
 [![Downloads](https://img.shields.io/github/downloads/securego/gosec/total.svg)](https://github.com/securego/gosec/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/securego/gosec.svg)](https://hub.docker.com/r/securego/gosec/tags)
-[![Slack](http://securego.herokuapp.com/badge.svg)](http://securego.herokuapp.com)
+[![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](http://securego.slack.com)
 
 ## Install
 
@@ -68,7 +68,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
@@ -98,7 +98,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
@@ -157,7 +157,7 @@ directory you can supply `./...` as the input argument.
 - G304: File path provided as taint input
 - G305: File traversal when extracting zip/tar archive
 - G306: Poor file permissions used when writing to a new file
-- G307: Deferring a method which returns an error
+- G307: Poor file permissions used when creating a file with os.Create
 - G401: Detect the usage of DES, RC4, MD5 or SHA1
 - G402: Look for bad TLS connection settings
 - G403: Ensure minimum RSA key length of 2048 bits
@@ -168,10 +168,12 @@ directory you can supply `./...` as the input argument.
 - G504: Import blocklist: net/http/cgi
 - G505: Import blocklist: crypto/sha1
 - G601: Implicit memory aliasing of items from a range statement
+- G602: Slice access out of bounds
 
 ### Retired rules
 
 - G105: Audit the use of math/big.Int.Exp - [CVE is fixed](https://github.com/golang/go/issues/15184)
+- G307: Deferring a method which returns an error - causing more inconvenience than fixing a security issue, despite the details from this [blog post](https://www.joeshaw.org/dont-defer-close-on-writable-files/)
 
 ### Selecting rules
 
@@ -188,7 +190,7 @@ $ gosec -exclude=G303 ./...
 
 ### CWE Mapping
 
-Every issue detected by `gosec` is mapped to a [CWE (Common Weakness Enumeration)](http://cwe.mitre.org/data/index.html) which describes in more generic terms the vulnerability. The exact mapping can be found  [here](https://github.com/securego/gosec/blob/master/issue.go#L50).
+Every issue detected by `gosec` is mapped to a [CWE (Common Weakness Enumeration)](http://cwe.mitre.org/data/index.html) which describes in more generic terms the vulnerability. The exact mapping can be found  [here](https://github.com/securego/gosec/blob/master/issue/issue.go#L50).
 
 ### Configuration
 
@@ -272,31 +274,33 @@ gosec -exclude-generated ./...
 
 ### Annotating code
 
-As with all automated detection tools, there will be cases of false positives. In cases where gosec reports a failure that has been manually verified as being safe,
+As with all automated detection tools, there will be cases of false positives.
+In cases where gosec reports a failure that has been manually verified as being safe,
 it is possible to annotate the code with a comment that starts with `#nosec`.
+
 The `#nosec` comment should have the format `#nosec [RuleList] [-- Justification]`.
 
-The annotation causes gosec to stop processing any further nodes within the
-AST so can apply to a whole block or more granularly to a single expression.
+The `#nosec` comment needs to be placed on the line where the warning is reported.
 
 ```go
+func main() {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // #nosec G402
+		},
+	}
 
-import "md5" //#nosec
-
-
-func main(){
-
-    /* #nosec */
-    if x > y {
-        h := md5.New() // this will also be ignored
-    }
-
+	client := &http.Client{Transport: tr}
+	_, err := client.Get("https://golang.org/")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
-
 ```
 
-When a specific false positive has been identified and verified as safe, you may wish to suppress only that single rule (or a specific set of rules)
-within a section of code, while continuing to scan for other problems. To do this, you can list the rule(s) to be suppressed within
+When a specific false positive has been identified and verified as safe, you may
+wish to suppress only that single rule (or a specific set of rules) within a section of code,
+while continuing to scan for other problems. To do this, you can list the rule(s) to be suppressed within
 the `#nosec` annotation, e.g: `/* #nosec G401 */` or `//#nosec G201 G202 G203`
 
 You could put the description or justification text for the annotation. The
