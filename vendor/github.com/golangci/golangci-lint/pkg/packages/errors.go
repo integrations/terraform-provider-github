@@ -1,15 +1,13 @@
 package packages
 
 import (
+	"errors"
 	"fmt"
 	"go/token"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
-//nolint:gomnd
 func ParseErrorPosition(pos string) (*token.Position, error) {
 	// file:line(<optional>:colon)
 	parts := strings.Split(pos, ":")
@@ -20,14 +18,14 @@ func ParseErrorPosition(pos string) (*token.Position, error) {
 	file := parts[0]
 	line, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf("can't parse line number %q: %s", parts[1], err)
+		return nil, fmt.Errorf("can't parse line number %q: %w", parts[1], err)
 	}
 
 	var column int
 	if len(parts) == 3 { // no column
 		column, err = strconv.Atoi(parts[2])
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse column from %q", parts[2])
+			return nil, fmt.Errorf("failed to parse column from %q: %w", parts[2], err)
 		}
 	}
 

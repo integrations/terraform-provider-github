@@ -5,8 +5,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 )
@@ -14,27 +16,32 @@ import (
 func (e *Executor) initConfig() {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Config",
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 0 {
-				e.log.Fatalf("Usage: golangci-lint config")
-			}
-			if err := cmd.Help(); err != nil {
-				e.log.Fatalf("Can't run help: %s", err)
-			}
+		Short: "Config file information",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return cmd.Help()
 		},
 	}
 	e.rootCmd.AddCommand(cmd)
 
 	pathCmd := &cobra.Command{
-		Use:   "path",
-		Short: "Print used config path",
-		Run:   e.executePathCmd,
+		Use:               "path",
+		Short:             "Print used config path",
+		Args:              cobra.NoArgs,
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Run:               e.executePathCmd,
 	}
-	e.initRunConfiguration(pathCmd) // allow --config
+
+	fs := pathCmd.Flags()
+	fs.SortFlags = false // sort them as they are defined here
+
+	initConfigFileFlagSet(fs, &e.cfg.Run)
+
 	cmd.AddCommand(pathCmd)
 }
 
+// getUsedConfig returns the resolved path to the golangci config file, or the empty string
+// if no configuration could be found.
 func (e *Executor) getUsedConfig() string {
 	usedConfigFile := viper.ConfigFileUsed()
 	if usedConfigFile == "" {
@@ -50,11 +57,7 @@ func (e *Executor) getUsedConfig() string {
 	return prettyUsedConfigFile
 }
 
-func (e *Executor) executePathCmd(_ *cobra.Command, args []string) {
-	if len(args) != 0 {
-		e.log.Fatalf("Usage: golangci-lint config path")
-	}
-
+func (e *Executor) executePathCmd(_ *cobra.Command, _ []string) {
 	usedConfigFile := e.getUsedConfig()
 	if usedConfigFile == "" {
 		e.log.Warnf("No config file detected")
@@ -62,5 +65,9 @@ func (e *Executor) executePathCmd(_ *cobra.Command, args []string) {
 	}
 
 	fmt.Println(usedConfigFile)
-	os.Exit(0)
+}
+
+func initConfigFileFlagSet(fs *pflag.FlagSet, cfg *config.Run) {
+	fs.StringVarP(&cfg.Config, "config", "c", "", wh("Read config from file path `PATH`"))
+	fs.BoolVar(&cfg.NoConfig, "no-config", false, wh("Don't read config file"))
 }

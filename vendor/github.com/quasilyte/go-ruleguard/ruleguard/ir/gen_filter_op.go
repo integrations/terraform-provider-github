@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -55,6 +55,7 @@ func main() {
 		{name: "VarNodeIs", comment: "m[$Value].Node.Is($Args[0])", valueType: "string", flags: flagHasVar},
 		{name: "VarObjectIs", comment: "m[$Value].Object.Is($Args[0])", valueType: "string", flags: flagHasVar},
 		{name: "VarObjectIsGlobal", comment: "m[$Value].Object.IsGlobal()", valueType: "string", flags: flagHasVar},
+		{name: "VarObjectIsVariadicParam", comment: "m[$Value].Object.IsVariadicParam()", valueType: "string", flags: flagHasVar},
 		{name: "VarTypeIs", comment: "m[$Value].Type.Is($Args[0])", valueType: "string", flags: flagHasVar},
 		{name: "VarTypeIdenticalTo", comment: "m[$Value].Type.IdenticalTo($Args[0])", valueType: "string", flags: flagHasVar},
 		{name: "VarTypeUnderlyingIs", comment: "m[$Value].Type.Underlying().Is($Args[0])", valueType: "string", flags: flagHasVar},
@@ -141,7 +142,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := ioutil.WriteFile("filter_op.gen.go", pretty, 0644); err != nil {
+	if err := os.WriteFile("filter_op.gen.go", pretty, 0644); err != nil {
 		panic(err)
 	}
 }
