@@ -210,8 +210,20 @@ The following additional attributes are exported:
 
 ## Import
 
+Repositories can be imported in two different ways. If the `owner` attribute is being set, the second format is recommended.
+
+### With Name
+
 Repositories can be imported using the `name`, e.g.
 
 ```
 $ terraform import github_repository.terraform terraform
+```
+
+### With Owner and Name
+
+Repositories can also be imported using the `owner` and the `name` of the repository, separated by a `/` character, e.g.
+
+```
+$ terraform import github_repository.terraform foo-org/terraform
 ```

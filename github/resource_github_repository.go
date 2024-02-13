@@ -23,6 +23,15 @@ func resourceGithubRepository() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				d.Set("auto_init", false)
+				parts := strings.Split(d.Id(), "/")
+				if len(parts) != 1 || len(parts) != 2 {
+					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository> or <owner>/<repository>")
+				}
+
+				if len(parts) == 2 {
+					d.Set("owner", parts[0])
+					d.SetId(parts[1])
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
