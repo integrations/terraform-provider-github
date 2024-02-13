@@ -3,6 +3,7 @@ module github.com/integrations/terraform-provider-github/v5
 go 1.17
 
 require (
+	github.com/ProtonMail/gopenpgp/v2 v2.7.4
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint v1.41.1
 	github.com/google/go-github/v57 v57.0.0
@@ -28,6 +29,8 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
+	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
@@ -45,6 +48,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20220630083739-93517212f375 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/daixiang0/gci v0.2.9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denis-tingajkin/go-header v0.4.2 // indirect
