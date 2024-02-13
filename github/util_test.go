@@ -6,7 +6,9 @@ import (
 	"unicode"
 )
 
-var resourceOwner string = os.Getenv("GITHUB_RESOURCE_OWNER")
+func resourceOwner() string {
+	return os.Getenv("GITHUB_RESOURCE_OWNER")
+}
 
 func TestAccValidateTeamIDFunc(t *testing.T) {
 	// warnings, errors := validateTeamIDFunc(interface{"1234567"})

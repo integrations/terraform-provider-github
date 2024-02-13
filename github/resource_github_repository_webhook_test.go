@@ -14,10 +14,6 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	if resourceOwner == "" {
-		t.Fatal("err: webhook owner must be set for this test with GITHUB_RESOURCE_OWNER")
-	}
-
 	githubProvider := Provider()
 	err := githubProvider.Configure(&terraform.ResourceConfig{})
 	if err != nil {
@@ -25,9 +21,6 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 	}
 
 	var providerOwner string = githubProvider.(*schema.Provider).Meta().(*Owner).name
-	if resourceOwner == providerOwner {
-		t.Fatalf("err: webhook owner %s was the same as provider owner %s; they must be different for this test (hint: use GITHUB_RESOURCE_OWNER to set the webhook owner)", resourceOwner, providerOwner)
-	}
 
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
 		configs := map[string]string{
@@ -70,7 +63,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 					events = ["pull_request"]
 				}
-			`, randomID, resourceOwner),
+			`, randomID, providerOwner),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -90,7 +83,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 					"github_repository_webhook.test", "events.#", "1",
 				),
 				resource.TestCheckResourceAttr(
-					"github_repository_webhook.test", "owner", resourceOwner,
+					"github_repository_webhook.test", "owner", providerOwner,
 				),
 			),
 		}
@@ -121,7 +114,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		})
 
 		t.Run("with a resource-specific owner", func(t *testing.T) {
-			testCase(t, enterprise, "withOwner")
+			testCase(t, organization, "withOwner")
 		})
 	})
 
@@ -167,14 +160,14 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 					events = ["pull_request"]
 				}
-			`, randomID, resourceOwner),
+			`, randomID, providerOwner),
 		}
 
 		check := resource.ComposeTestCheckFunc()
 
 		importStateIdPrefixes := map[string]string{
 			"default":   fmt.Sprintf("test-%s/", randomID),
-			"withOwner": fmt.Sprintf("%s/test-%s/", resourceOwner, randomID),
+			"withOwner": fmt.Sprintf("%s/test-%s/", providerOwner, randomID),
 		}
 
 		testCase := func(t *testing.T, mode string, caseName string) {
@@ -209,7 +202,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		})
 
 		t.Run("with a resource-specific owner", func(t *testing.T) {
-			testCase(t, enterprise, "withOwner")
+			testCase(t, organization, "withOwner")
 		})
 	})
 
@@ -275,7 +268,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID, resourceOwner),
+			`, randomID, providerOwner),
 			"afterWithOwner": fmt.Sprintf(`
 				resource "github_repository" "test" {
 				  name         = "test-%[1]s"
@@ -297,7 +290,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID, resourceOwner),
+			`, randomID, providerOwner),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -312,7 +305,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 					"github_repository_webhook.test", "events.#", "1",
 				),
 				resource.TestCheckResourceAttr(
-					"github_repository_webhook.test", "owner", resourceOwner,
+					"github_repository_webhook.test", "owner", providerOwner,
 				),
 			),
 			"afterWithOwner": resource.ComposeTestCheckFunc(
@@ -320,7 +313,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 					"github_repository_webhook.test", "configuration.0.secret", "secret",
 				),
 				resource.TestCheckResourceAttr(
-					"github_repository_webhook.test", "owner", resourceOwner,
+					"github_repository_webhook.test", "owner", providerOwner,
 				),
 			),
 		}
@@ -355,7 +348,67 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		})
 
 		t.Run("with a resource-specific owner", func(t *testing.T) {
-			testCase(t, enterprise, "beforeWithOwner", "afterWithOwner")
+			testCase(t, organization, "beforeWithOwner", "afterWithOwner")
+		})
+	})
+
+	t.Run("creates repository webhooks with unique owner without error", func(t *testing.T) {
+		testResourceOwner := resourceOwner()
+		config := fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name         = "test-%[1]s"
+					description  = "Terraform acceptance tests"
+					owner        = "%[2]s"
+				}
+
+				resource "github_repository_webhook" "test" {
+					depends_on = ["github_repository.test"]
+					repository = "test-%[1]s"
+					owner      = "%[2]s"
+
+					configuration {
+						url          = "https://google.de/webhook"
+						content_type = "json"
+						insecure_ssl = true
+					}
+
+					events = ["pull_request"]
+				}
+			`, randomID, testResourceOwner)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_webhook.test", "active", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_webhook.test", "events.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_webhook.test", "owner", testResourceOwner,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with a unique resource-specific owner", func(t *testing.T) {
+			if testResourceOwner == "" {
+				t.Skipf("Skipping %s which requires GITHUB_RESOURCE_OWNER to be set to a non-empty value", t.Name())
+			}
+			if testResourceOwner == providerOwner {
+				t.Fatalf("err: webhook owner %[1]s was the same as provider owner %[2]s; they must be different for this test (hint: set GITHUB_RESOURCE_OWNER to be different than provider owner '%[2]s', or set the provider owner to something different)", testResourceOwner, providerOwner)
+			}
+			testCase(t, enterprise)
 		})
 	})
 }

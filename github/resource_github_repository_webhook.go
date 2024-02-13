@@ -163,10 +163,21 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository webhook %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
+				// This webhook could still exist if our token didn't have
+				// permissions to get the hook. We list all hooks and capture
+				// the error, just to be sure. If we get no error from listing
+				// hooks, then we know 1) we have access to hooks, 2) this
+				// hook doesn't exist, and 3) we should remove it from state.
+				listHooksOptions := &github.ListOptions{
+					PerPage: 1,
+				}
+				_, _, listHooksErr := client.Repositories.ListHooks(ctx, owner, repoName, listHooksOptions)
+				if _, listHooksOk := listHooksErr.(*github.ErrorResponse); listHooksOk {
+					log.Printf("[INFO] Removing repository webhook %s from state because it no longer exists in GitHub",
+						d.Id())
+					d.SetId("")
+					return nil
+				}
 			}
 		}
 		return err
