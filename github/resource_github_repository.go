@@ -24,7 +24,7 @@ func resourceGithubRepository() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				d.Set("auto_init", false)
 				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 1 || len(parts) != 2 {
+				if len(parts) != 1 && len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository> or <owner>/<repository>")
 				}
 

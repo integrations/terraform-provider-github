@@ -20,6 +20,14 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
+	githubProvider := Provider()
+	err := githubProvider.Configure(&terraform.ResourceConfig{})
+	if err != nil {
+		t.Fatalf("err: encountered error while configuring provider: %s", err)
+	}
+
+	var providerOwner string = githubProvider.(*schema.Provider).Meta().(*Owner).name
+
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
@@ -984,6 +992,127 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
+	t.Run("creates and updates repositories with owner without error", func(t *testing.T) {
+		testResourceOwner := resourceOwner()
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+
+				name                        = "tf-acc-test-create-%[1]s"
+				description                 = "Terraform acceptance tests %[1]s"
+				has_discussions             = true
+				has_issues                  = true
+				has_wiki                    = true
+				has_downloads               = true
+				allow_merge_commit          = true
+				allow_squash_merge          = false
+				allow_rebase_merge          = false
+				allow_auto_merge            = true
+				merge_commit_title          = "MERGE_MESSAGE"
+				merge_commit_message        = "PR_TITLE"
+				auto_init                   = false
+				web_commit_signoff_required = true
+				owner                       = "%[2]s"
+			}
+		`, randomID, testResourceOwner)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_issues",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_discussions",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "allow_auto_merge",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "merge_commit_title",
+				"MERGE_MESSAGE",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "web_commit_signoff_required",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "owner",
+				testResourceOwner,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with a unique resource-specific owner", func(t *testing.T) {
+			if testResourceOwner == "" {
+				t.Skipf("Skipping %s which requires GITHUB_RESOURCE_OWNER to be set to a non-empty value", t.Name())
+			}
+			if testResourceOwner == providerOwner {
+				t.Fatalf("err: repository owner %[1]s was the same as provider owner %[2]s; they must be different for this test (hint: set GITHUB_RESOURCE_OWNER to be different than provider owner '%[2]s', or set the provider owner to something different)", testResourceOwner, providerOwner)
+			}
+			testCase(t, enterprise)
+		})
+	})
+
+	t.Run("imports repositories with specific owner without error", func(t *testing.T) {
+		testResourceOwner := resourceOwner()
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name         = "tf-acc-test-import-%[1]s"
+			  description  = "Terraform acceptance tests %[1]s"
+				auto_init 	 = false
+				owner        = "%[2]s"
+			}
+		`, randomID, testResourceOwner)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet("github_repository.test", "name"),
+			resource.TestCheckResourceAttr("github_repository.test", "owner", testResourceOwner),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:        "github_repository.test",
+						ImportState:         true,
+						ImportStateVerify:   true,
+						ImportStateIdPrefix: fmt.Sprintf("%s/", testResourceOwner),
+					},
+				},
+			})
+		}
+
+		t.Run("with a unique resource-specific owner", func(t *testing.T) {
+			if testResourceOwner == "" {
+				t.Skipf("Skipping %s which requires GITHUB_RESOURCE_OWNER to be set to a non-empty value", t.Name())
+			}
+			if testResourceOwner == providerOwner {
+				t.Fatalf("err: repository owner %[1]s was the same as provider owner %[2]s; they must be different for this test (hint: set GITHUB_RESOURCE_OWNER to be different than provider owner '%[2]s', or set the provider owner to something different)", testResourceOwner, providerOwner)
+			}
+			testCase(t, enterprise)
+		})
+	})
 }
 func TestAccGithubRepositoryPages(t *testing.T) {
 
