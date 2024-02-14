@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -971,8 +972,10 @@ func TestAccGithubRepositories(t *testing.T) {
 					},
 					{
 						// Re-running the terraform will refresh the language since the go-file has been created
-						Config: config,
-						Check:  check,
+						// Sleep for 10 seconds to allow GitHub enough time to calculate the primary language
+						PreConfig: func() { time.Sleep(10 * time.Second) },
+						Config:    config,
+						Check:     check,
 					},
 				},
 			})
