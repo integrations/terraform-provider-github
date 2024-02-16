@@ -700,6 +700,65 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 	})
 
+	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			resource "github_team" "test" {
+				name = "tf-acc-test-%s"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "admin"
+			}
+
+			resource "github_branch_protection" "test" {
+			  repository_id  = github_repository.test.node_id
+			  pattern        = "main"
+
+			  force_push_bypassers = [
+				  "%s/${github_team.test.slug}"
+	]
+			}
+
+	`, randomID, randomID, testOrganization)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "force_push_bypassers.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "allows_force_pushes", "false",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		// This test only works with an organization account
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("configures empty list of force push bypassers", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
