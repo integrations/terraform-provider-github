@@ -141,7 +141,7 @@ github.com/chavacava/garif
 ## explicit
 github.com/client9/misspell
 github.com/client9/misspell/cmd/misspell
-# github.com/cloudflare/circl v1.3.3
+# github.com/cloudflare/circl v1.3.7
 ## explicit; go 1.19
 github.com/cloudflare/circl/dh/x25519
 github.com/cloudflare/circl/dh/x448
