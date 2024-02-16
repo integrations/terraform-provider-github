@@ -701,6 +701,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 
