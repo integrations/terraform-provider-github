@@ -6,14 +6,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubBranchProtection() *schema.Resource {
 	return &schema.Resource{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 
 		Schema: map[string]*schema.Schema{
 			// Input
@@ -39,12 +39,6 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Setting this to 'true' to allow force pushes on the branch.",
-			},
-			PROTECTION_BLOCKS_CREATIONS: {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Setting this to 'true' to block creating the branch.",
 			},
 			PROTECTION_IS_ADMIN_ENFORCED: {
 				Type:        schema.TypeBool,
@@ -83,11 +77,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      1,
-							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateFunc: validation.IntBetween(0, 6),
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Default:          1,
+							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
+							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT),
 						},
 						PROTECTION_REQUIRES_CODE_OWNER_REVIEWS: {
 							Type:        schema.TypeBool,
@@ -104,7 +98,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional:    true,
 							Description: "Restrict pull request review dismissals.",
 						},
-						PROTECTION_RESTRICTS_REVIEW_DISMISSERS: {
+						PROTECTION_REVIEW_DISMISSAL_ALLOWANCES: {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "The list of actor Names/IDs with dismissal access. If not empty, 'restrict_dismissals' is ignored. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
@@ -116,7 +110,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Description: "The list of actor Names/IDs that are allowed to bypass pull request requirements. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
-						PROTECTION_REQUIRES_LAST_PUSH_APPROVAL: {
+						PROTECTION_REQUIRE_LAST_PUSH_APPROVAL: {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
@@ -146,10 +140,25 @@ func resourceGithubBranchProtection() *schema.Resource {
 				},
 			},
 			PROTECTION_RESTRICTS_PUSHES: {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "The list of actor Names/IDs that may push to the branch. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Restrict who can push to matching branches.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						PROTECTION_BLOCKS_CREATIONS: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Restrict pushes that create matching branches.",
+						},
+						PROTECTION_PUSH_ALLOWANCES: {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of actor Names/IDs that may push to the branch. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 			PROTECTION_FORCE_PUSHES_BYPASSERS: {
 				Type:        schema.TypeSet,
@@ -173,6 +182,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:    resourceGithubBranchProtectionV0().CoreConfigSchema().ImpliedType(),
 				Upgrade: resourceGithubBranchProtectionUpgradeV0,
 				Version: 0,
+			},
+			{
+				Type:    resourceGithubBranchProtectionV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubBranchProtectionUpgradeV1,
+				Version: 1,
 			},
 		},
 	}
@@ -265,7 +279,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	variables := map[string]interface{}{
 		"id": d.Id(),
 	}
-
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Query(ctx, &query, variables)
@@ -278,7 +291,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 		return err
 	}
-
 	protection := query.Node.Node
 
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
@@ -294,11 +306,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
-	}
-
-	err = d.Set(PROTECTION_BLOCKS_CREATIONS, protection.BlocksCreations)
-	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_BLOCKS_CREATIONS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
@@ -348,11 +355,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err = d.Set(PROTECTION_FORCE_PUSHES_BYPASSERS, forcePushBypassers)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_FORCE_PUSHES_BYPASSERS, protection.Repository.Name, protection.Pattern, d.Id())
-	}
-
-	err = d.Set(PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.RequireLastPushApproval)
-	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LAST_PUSH_APPROVAL, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_LOCK_BRANCH, protection.LockBranch)
@@ -468,7 +470,9 @@ func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface
 	if err != nil {
 		return nil, err
 	}
-	d.Set("repository_id", repoID)
+	if err = d.Set("repository_id", repoID); err != nil {
+		return nil, err
+	}
 
 	id, err := getBranchProtectionID(repoID, pattern, meta)
 	if err != nil {

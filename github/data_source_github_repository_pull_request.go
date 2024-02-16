@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryPullRequest() *schema.Resource {
@@ -108,41 +108,73 @@ func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta inte
 	}
 
 	if head := pullRequest.GetHead(); head != nil {
-		d.Set("head_ref", head.GetRef())
-		d.Set("head_sha", head.GetSHA())
+		if err = d.Set("head_ref", head.GetRef()); err != nil {
+			return err
+		}
+		if err = d.Set("head_sha", head.GetSHA()); err != nil {
+			return err
+		}
 
 		if headRepo := head.Repo; headRepo != nil {
-			d.Set("head_repository", headRepo.GetName())
+			if err = d.Set("head_repository", headRepo.GetName()); err != nil {
+				return err
+			}
 		}
 
 		if headUser := head.User; headUser != nil {
-			d.Set("head_owner", headUser.GetLogin())
+			if err = d.Set("head_owner", headUser.GetLogin()); err != nil {
+				return err
+			}
 		}
 	}
 
 	if base := pullRequest.GetBase(); base != nil {
-		d.Set("base_ref", base.GetRef())
-		d.Set("base_sha", base.GetSHA())
+		if err = d.Set("base_ref", base.GetRef()); err != nil {
+			return err
+		}
+		if err = d.Set("base_sha", base.GetSHA()); err != nil {
+			return err
+		}
 	}
 
-	d.Set("body", pullRequest.GetBody())
-	d.Set("draft", pullRequest.GetDraft())
-	d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify())
-	d.Set("number", pullRequest.GetNumber())
-	d.Set("opened_at", pullRequest.GetCreatedAt().Unix())
-	d.Set("state", pullRequest.GetState())
-	d.Set("title", pullRequest.GetTitle())
-	d.Set("updated_at", pullRequest.GetUpdatedAt().Unix())
+	if err = d.Set("body", pullRequest.GetBody()); err != nil {
+		return err
+	}
+	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
+		return err
+	}
+	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
+		return err
+	}
+	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
+		return err
+	}
+	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
+		return err
+	}
+	if err = d.Set("state", pullRequest.GetState()); err != nil {
+		return err
+	}
+	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
+		return err
+	}
 
 	if user := pullRequest.GetUser(); user != nil {
-		d.Set("opened_by", user.GetLogin())
+		if err = d.Set("opened_by", user.GetLogin()); err != nil {
+			return err
+		}
 	}
 
 	labels := []string{}
 	for _, label := range pullRequest.Labels {
 		labels = append(labels, label.GetName())
 	}
-	d.Set("labels", labels)
+	if err = d.Set("labels", labels); err != nil {
+		return err
+	}
 
 	d.SetId(buildThreePartID(owner, repository, strconv.Itoa(number)))
 

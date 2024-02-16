@@ -1,14 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfjson
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/hashicorp/go-version"
 )
 
-// PlanFormatVersion is the version of the JSON plan format that is
-// supported by this package.
-const PlanFormatVersion = "0.1"
+// PlanFormatVersionConstraints defines the versions of the JSON plan format
+// that are supported by this package.
+var PlanFormatVersionConstraints = ">= 0.1, < 2.0"
 
 // ResourceMode is a string representation of the resource type found
 // in certain fields in the plan.
@@ -40,6 +45,10 @@ type Plan struct {
 	// this plan.
 	PlannedValues *StateValues `json:"planned_values,omitempty"`
 
+	// The change operations for resources and data sources within this plan
+	// resulting from resource drift.
+	ResourceDrift []*ResourceChange `json:"resource_drift,omitempty"`
+
 	// The change operations for resources and data sources within this
 	// plan.
 	ResourceChanges []*ResourceChange `json:"resource_changes,omitempty"`
@@ -53,6 +62,27 @@ type Plan struct {
 
 	// The Terraform configuration used to make the plan.
 	Config *Config `json:"configuration,omitempty"`
+
+	// RelevantAttributes represents any resource instances and their
+	// attributes which may have contributed to the planned changes
+	RelevantAttributes []ResourceAttribute `json:"relevant_attributes,omitempty"`
+
+	// Checks contains the results of any conditional checks executed, or
+	// planned to be executed, during this plan.
+	Checks []CheckResultStatic `json:"checks,omitempty"`
+
+	// Timestamp contains the static timestamp that Terraform considers to be
+	// the time this plan executed, in UTC.
+	Timestamp string `json:"timestamp,omitempty"`
+}
+
+// ResourceAttribute describes a full path to a resource attribute
+type ResourceAttribute struct {
+	// Resource describes resource instance address (e.g. null_resource.foo)
+	Resource string `json:"resource"`
+	// Attribute describes the attribute path using a lossy representation
+	// of cty.Path. (e.g. ["id"] or ["objects", 0, "val"]).
+	Attribute []json.RawMessage `json:"attribute"`
 }
 
 // Validate checks to ensure that the plan is present, and the
@@ -66,11 +96,31 @@ func (p *Plan) Validate() error {
 		return errors.New("unexpected plan input, format version is missing")
 	}
 
-	if PlanFormatVersion != p.FormatVersion {
-		return fmt.Errorf("unsupported plan format version: expected %q, got %q", PlanFormatVersion, p.FormatVersion)
+	constraint, err := version.NewConstraint(PlanFormatVersionConstraints)
+	if err != nil {
+		return fmt.Errorf("invalid version constraint: %w", err)
+	}
+
+	version, err := version.NewVersion(p.FormatVersion)
+	if err != nil {
+		return fmt.Errorf("invalid format version %q: %w", p.FormatVersion, err)
+	}
+
+	if !constraint.Check(version) {
+		return fmt.Errorf("unsupported plan format version: %q does not satisfy %q",
+			version, constraint)
 	}
 
 	return nil
+}
+
+func isStringInSlice(slice []string, s string) bool {
+	for _, el := range slice {
+		if el == s {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Plan) UnmarshalJSON(b []byte) error {
@@ -93,6 +143,10 @@ func (p *Plan) UnmarshalJSON(b []byte) error {
 type ResourceChange struct {
 	// The absolute resource address.
 	Address string `json:"address,omitempty"`
+
+	// The absolute address that this resource instance had
+	// at the conclusion of a previous plan.
+	PreviousAddress string `json:"previous_address,omitempty"`
 
 	// The module portion of the above address. Omitted if the instance
 	// is in the root module.
@@ -158,6 +212,28 @@ type Change struct {
 	// display of sensitive values in user interfaces.
 	BeforeSensitive interface{} `json:"before_sensitive,omitempty"`
 	AfterSensitive  interface{} `json:"after_sensitive,omitempty"`
+
+	// Importing contains the import metadata about this operation. If importing
+	// is present (ie. not null) then the change is an import operation in
+	// addition to anything mentioned in the actions field. The actual contents
+	// of the Importing struct is subject to change, so downstream consumers
+	// should treat any values in here as strictly optional.
+	Importing *Importing `json:"importing,omitempty"`
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning as a string.
+	//
+	// If this is populated, then Importing should also be populated but this
+	// might change in the future. However, not all Importing changes will
+	// contain generated config.
+	GeneratedConfig string `json:"generated_config,omitempty"`
+}
+
+// Importing is a nested object for the resource import metadata.
+type Importing struct {
+	// The original ID of this resource used to target it as part of planned
+	// import operation.
+	ID string `json:"id,omitempty"`
 }
 
 // PlanVariable is a top-level variable in the Terraform plan.

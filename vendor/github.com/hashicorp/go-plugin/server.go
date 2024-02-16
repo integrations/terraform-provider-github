@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package plugin
 
 import (
@@ -8,17 +11,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/signal"
+	"os/user"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin/internal/grpcmux"
 	"google.golang.org/grpc"
 )
 
@@ -130,6 +133,13 @@ type ServeTestConfig struct {
 	// and SyncStdio functionality is fairly rare, so we default to the simple
 	// scenario.
 	SyncStdio bool
+}
+
+func unixSocketConfigFromEnv() UnixSocketConfig {
+	return UnixSocketConfig{
+		Group:     os.Getenv(EnvUnixSocketGroup),
+		socketDir: os.Getenv(EnvUnixSocketDir),
+	}
 }
 
 // protocolVersion determines the protocol version and plugin set to be used by
@@ -260,9 +270,6 @@ func Serve(opts *ServeConfig) {
 	// start with default version in the handshake config
 	protoVersion, protoType, pluginSet := protocolVersion(opts)
 
-	// Logging goes to the original stderr
-	log.SetOutput(os.Stderr)
-
 	logger := opts.Logger
 	if logger == nil {
 		// internal logger to os.Stderr
@@ -274,7 +281,7 @@ func Serve(opts *ServeConfig) {
 	}
 
 	// Register a listener so we can accept a connection
-	listener, err := serverListener()
+	listener, err := serverListener(unixSocketConfigFromEnv())
 	if err != nil {
 		logger.Error("plugin init error", "error", err)
 		return
@@ -308,13 +315,13 @@ func Serve(opts *ServeConfig) {
 
 		certPEM, keyPEM, err := generateCert()
 		if err != nil {
-			logger.Error("failed to generate client certificate", "error", err)
+			logger.Error("failed to generate server certificate", "error", err)
 			panic(err)
 		}
 
 		cert, err := tls.X509KeyPair(certPEM, keyPEM)
 		if err != nil {
-			logger.Error("failed to parse client certificate", "error", err)
+			logger.Error("failed to parse server certificate", "error", err)
 			panic(err)
 		}
 
@@ -323,6 +330,8 @@ func Serve(opts *ServeConfig) {
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    clientCertPool,
 			MinVersion:   tls.VersionTLS12,
+			RootCAs:      clientCertPool,
+			ServerName:   "localhost",
 		}
 
 		// We send back the raw leaf cert data for the client rather than the
@@ -379,6 +388,12 @@ func Serve(opts *ServeConfig) {
 		}
 
 	case ProtocolGRPC:
+		var muxer *grpcmux.GRPCServerMuxer
+		if multiplex, _ := strconv.ParseBool(os.Getenv(envMultiplexGRPC)); multiplex {
+			muxer = grpcmux.NewGRPCServerMuxer(logger, listener)
+			listener = muxer
+		}
+
 		// Create the gRPC server
 		server = &GRPCServer{
 			Plugins: pluginSet,
@@ -388,6 +403,7 @@ func Serve(opts *ServeConfig) {
 			Stderr:  stderr_r,
 			DoneCh:  doneCh,
 			logger:  logger,
+			muxer:   muxer,
 		}
 
 	default:
@@ -406,23 +422,38 @@ func Serve(opts *ServeConfig) {
 	// bring it up. In test mode, we don't do this because clients will
 	// attach via a reattach config.
 	if opts.Test == nil {
-		fmt.Printf("%d|%d|%s|%s|%s|%s\n",
+		const grpcBrokerMultiplexingSupported = true
+		protocolLine := fmt.Sprintf("%d|%d|%s|%s|%s|%s",
 			CoreProtocolVersion,
 			protoVersion,
 			listener.Addr().Network(),
 			listener.Addr().String(),
 			protoType,
 			serverCert)
+
+		// Old clients will error with new plugins if we blindly append the
+		// seventh segment for gRPC broker multiplexing support, because old
+		// client code uses strings.SplitN(line, "|", 6), which means a seventh
+		// segment will get appended to the sixth segment as "sixthpart|true".
+		//
+		// If the environment variable is set, we assume the client is new enough
+		// to handle a seventh segment, as it should now use
+		// strings.Split(line, "|") and always handle each segment individually.
+		if os.Getenv(envMultiplexGRPC) != "" {
+			protocolLine += fmt.Sprintf("|%v", grpcBrokerMultiplexingSupported)
+		}
+		fmt.Printf("%s\n", protocolLine)
 		os.Stdout.Sync()
 	} else if ch := opts.Test.ReattachConfigCh; ch != nil {
 		// Send back the reattach config that can be used. This isn't
 		// quite ready if they connect immediately but the client should
 		// retry a few times.
 		ch <- &ReattachConfig{
-			Protocol: protoType,
-			Addr:     listener.Addr(),
-			Pid:      os.Getpid(),
-			Test:     true,
+			Protocol:        protoType,
+			ProtocolVersion: protoVersion,
+			Addr:            listener.Addr(),
+			Pid:             os.Getpid(),
+			Test:            true,
 		}
 	}
 
@@ -494,12 +525,12 @@ func Serve(opts *ServeConfig) {
 	}
 }
 
-func serverListener() (net.Listener, error) {
+func serverListener(unixSocketCfg UnixSocketConfig) (net.Listener, error) {
 	if runtime.GOOS == "windows" {
 		return serverListener_tcp()
 	}
 
-	return serverListener_unix()
+	return serverListener_unix(unixSocketCfg)
 }
 
 func serverListener_tcp() (net.Listener, error) {
@@ -544,8 +575,8 @@ func serverListener_tcp() (net.Listener, error) {
 	return nil, errors.New("Couldn't bind plugin TCP listener")
 }
 
-func serverListener_unix() (net.Listener, error) {
-	tf, err := ioutil.TempFile("", "plugin")
+func serverListener_unix(unixSocketCfg UnixSocketConfig) (net.Listener, error) {
+	tf, err := os.CreateTemp(unixSocketCfg.socketDir, "plugin")
 	if err != nil {
 		return nil, err
 	}
@@ -565,20 +596,62 @@ func serverListener_unix() (net.Listener, error) {
 		return nil, err
 	}
 
+	// By default, unix sockets are only writable by the owner. Set up a custom
+	// group owner and group write permissions if configured.
+	if unixSocketCfg.Group != "" {
+		err = setGroupWritable(path, unixSocketCfg.Group, 0o660)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Wrap the listener in rmListener so that the Unix domain socket file
 	// is removed on close.
-	return &rmListener{
-		Listener: l,
-		Path:     path,
-	}, nil
+	return newDeleteFileListener(l, path), nil
+}
+
+func setGroupWritable(path, groupString string, mode os.FileMode) error {
+	groupID, err := strconv.Atoi(groupString)
+	if err != nil {
+		group, err := user.LookupGroup(groupString)
+		if err != nil {
+			return fmt.Errorf("failed to find gid from %q: %w", groupString, err)
+		}
+		groupID, err = strconv.Atoi(group.Gid)
+		if err != nil {
+			return fmt.Errorf("failed to parse %q group's gid as an integer: %w", groupString, err)
+		}
+	}
+
+	err = os.Chown(path, -1, groupID)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(path, mode)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // rmListener is an implementation of net.Listener that forwards most
-// calls to the listener but also removes a file as part of the close. We
-// use this to cleanup the unix domain socket on close.
+// calls to the listener but also calls an additional close function. We
+// use this to cleanup the unix domain socket on close, as well as clean
+// up multiplexed listeners.
 type rmListener struct {
 	net.Listener
-	Path string
+	close func() error
+}
+
+func newDeleteFileListener(ln net.Listener, path string) *rmListener {
+	return &rmListener{
+		Listener: ln,
+		close: func() error {
+			return os.Remove(path)
+		},
+	}
 }
 
 func (l *rmListener) Close() error {
@@ -588,5 +661,5 @@ func (l *rmListener) Close() error {
 	}
 
 	// Remove the file
-	return os.Remove(l.Path)
+	return l.close()
 }

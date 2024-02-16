@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestGithubRepositoryRulesets(t *testing.T) {
@@ -64,11 +64,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
 					}
 
@@ -313,11 +313,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
 					}
 
