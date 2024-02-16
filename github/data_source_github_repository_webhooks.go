@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryWebhooks() *schema.Resource {
@@ -77,8 +77,12 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
-	d.Set("repository", repository)
-	d.Set("webhooks", results)
+	if err := d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err := d.Set("webhooks", results); err != nil {
+		return err
+	}
 
 	return nil
 }

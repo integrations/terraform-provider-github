@@ -1,26 +1,28 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
+	ctx := context.Background()
+
 	githubProvider := Provider()
-	err := githubProvider.Configure(&terraform.ResourceConfig{})
-	if err != nil {
-		t.Fatalf("err: encountered error while configuring provider: %s", err)
+	diag := githubProvider.Configure(ctx, &terraform.ResourceConfig{})
+	if diag.HasError() {
+		t.Fatal("err: encountered error while configuring provider")
 	}
 
-	var providerOwner string = githubProvider.(*schema.Provider).Meta().(*Owner).name
+	var providerOwner string = githubProvider.Meta().(*Owner).name
 
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
 		configs := map[string]string{
