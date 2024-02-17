@@ -50,7 +50,10 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	resp, _ := client.Do(ctx, req, &body)
+	resp, err := client.Do(ctx, req, &body)
+	if err != nil && resp.StatusCode != 404 {
+		return err
+	}
 
 	h, err := json.Marshal(resp.Header)
 	if err != nil {
