@@ -193,6 +193,7 @@ func Provider() *schema.Provider {
 			"github_user_invitation_accepter":                                       resourceGithubUserInvitationAccepter(),
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
+			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
