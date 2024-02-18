@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRestApiDataSource(t *testing.T) {
@@ -30,6 +30,11 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 			resource.TestMatchResourceAttr(
 				"data.github_rest_api.test", "code", regexp.MustCompile("200"),
 			),
+			resource.TestMatchResourceAttr(
+				"data.github_rest_api.test", "status", regexp.MustCompile("200 OK"),
+			),
+			resource.TestCheckResourceAttrSet("data.github_rest_api.test", "body"),
+			resource.TestCheckResourceAttrSet("data.github_rest_api.test", "headers"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -76,6 +81,11 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 			resource.TestMatchResourceAttr(
 				"data.github_rest_api.test", "code", regexp.MustCompile("404"),
 			),
+			resource.TestMatchResourceAttr(
+				"data.github_rest_api.test", "status", regexp.MustCompile("404 Not Found"),
+			),
+			resource.TestCheckResourceAttrSet("data.github_rest_api.test", "body"),
+			resource.TestCheckResourceAttrSet("data.github_rest_api.test", "headers"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

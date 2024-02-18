@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/kulti/thelper/pkg/analyzer"
+	"golang.org/x/exp/maps"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
@@ -13,49 +14,67 @@ import (
 func NewThelper(cfg *config.ThelperSettings) *goanalysis.Linter {
 	a := analyzer.NewAnalyzer()
 
-	cfgMap := map[string]map[string]interface{}{}
+	opts := map[string]struct{}{
+		"t_name":  {},
+		"t_begin": {},
+		"t_first": {},
+
+		"f_name":  {},
+		"f_begin": {},
+		"f_first": {},
+
+		"b_name":  {},
+		"b_begin": {},
+		"b_first": {},
+
+		"tb_name":  {},
+		"tb_begin": {},
+		"tb_first": {},
+	}
+
 	if cfg != nil {
-		var opts []string
+		applyTHelperOptions(cfg.Test, "t_", opts)
+		applyTHelperOptions(cfg.Fuzz, "f_", opts)
+		applyTHelperOptions(cfg.Benchmark, "b_", opts)
+		applyTHelperOptions(cfg.TB, "tb_", opts)
+	}
 
-		if cfg.Test.Name {
-			opts = append(opts, "t_name")
-		}
-		if cfg.Test.Begin {
-			opts = append(opts, "t_begin")
-		}
-		if cfg.Test.First {
-			opts = append(opts, "t_first")
-		}
+	if len(opts) == 0 {
+		linterLogger.Fatalf("thelper: at least one option must be enabled")
+	}
 
-		if cfg.Benchmark.Name {
-			opts = append(opts, "b_name")
-		}
-		if cfg.Benchmark.Begin {
-			opts = append(opts, "b_begin")
-		}
-		if cfg.Benchmark.First {
-			opts = append(opts, "b_first")
-		}
+	args := maps.Keys(opts)
 
-		if cfg.TB.Name {
-			opts = append(opts, "tb_name")
-		}
-		if cfg.TB.Begin {
-			opts = append(opts, "tb_begin")
-		}
-		if cfg.TB.First {
-			opts = append(opts, "tb_first")
-		}
-
-		cfgMap[a.Name] = map[string]interface{}{
-			"checks": strings.Join(opts, ","),
-		}
+	cfgMap := map[string]map[string]any{
+		a.Name: {
+			"checks": strings.Join(args, ","),
+		},
 	}
 
 	return goanalysis.NewLinter(
-		"thelper",
-		"thelper detects golang test helpers without t.Helper() call and checks the consistency of test helpers",
+		a.Name,
+		a.Doc,
 		[]*analysis.Analyzer{a},
 		cfgMap,
 	).WithLoadMode(goanalysis.LoadModeTypesInfo)
+}
+
+func applyTHelperOptions(o config.ThelperOptions, prefix string, opts map[string]struct{}) {
+	if o.Name != nil {
+		if !*o.Name {
+			delete(opts, prefix+"name")
+		}
+	}
+
+	if o.Begin != nil {
+		if !*o.Begin {
+			delete(opts, prefix+"begin")
+		}
+	}
+
+	if o.First != nil {
+		if !*o.First {
+			delete(opts, prefix+"first")
+		}
+	}
 }
