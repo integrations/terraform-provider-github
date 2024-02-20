@@ -117,7 +117,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 		return err
 	}
 
-	d.Set("branch_pattern", branchPolicy.GetName())
+	if branchPolicy.GetType() == "branch" {
+		d.Set("branch_pattern", branchPolicy.GetName())
+	} else {
+		d.Set("tag_pattern", branchPolicy.GetName())
+	}
 	return nil
 }
 
