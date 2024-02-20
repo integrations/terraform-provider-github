@@ -133,6 +133,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 	branchPattern := d.Get("branch_pattern").(string)
+	tagPattern := d.Get("tag_pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
@@ -144,8 +145,13 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 		return err
 	}
 
+	pattern := branchPattern
+	if branchPattern == "" {
+		pattern = tagPattern
+	}
+
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+		Name: github.String(pattern),
 	}
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
