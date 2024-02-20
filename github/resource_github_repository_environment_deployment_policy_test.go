@@ -459,6 +459,290 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagUpdate(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchToTagUpdate(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("recreates deployment policy when pattern type changes from branch to tag", func(t *testing.T) {
+		var deploymentPolicyId string
+
+		config1 := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				wait_timer	= 10000
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+				branch_pattern = "release/*"
+			}
+
+		`, randomID)
+
+		check1 := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "repository",
+				fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "environment",
+				"environment/test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
+				"release/*",
+			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "tag_pattern",
+			),
+			testDeploymentPolicyId("github_repository_environment_deployment_policy.test", &deploymentPolicyId),
+		)
+
+		config2 := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				wait_timer	= 10000
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+				tag_pattern = "v*"
+			}
+
+		`, randomID)
+
+		check2 := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "repository",
+				fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "environment",
+				"environment/test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "tag_pattern",
+				"v*",
+			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
+			),
+			testNewDeploymentPolicyId(
+				"github_repository_environment_deployment_policy.test",
+				&deploymentPolicyId,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config1,
+						Check:  check1,
+					},
+					{
+						Config: config2,
+						Check:  check2,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+}
+
+func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("recreates deployment policy when pattern type changes from tag to branch", func(t *testing.T) {
+		var deploymentPolicyId string
+
+		config1 := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				wait_timer	= 10000
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+				tag_pattern = "v*"
+			}
+
+		`, randomID)
+
+		check1 := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "repository",
+				fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "environment",
+				"environment/test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "tag_pattern",
+				"v*",
+			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
+			),
+			testDeploymentPolicyId("github_repository_environment_deployment_policy.test", &deploymentPolicyId),
+		)
+
+		config2 := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				wait_timer	= 10000
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+				branch_pattern = "release/*"
+			}
+
+		`, randomID)
+
+		check2 := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "repository",
+				fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "environment",
+				"environment/test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
+				"release/*",
+			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "tag_pattern",
+			),
+			testNewDeploymentPolicyId(
+				"github_repository_environment_deployment_policy.test",
+				&deploymentPolicyId,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config1,
+						Check:  check1,
+					},
+					{
+						Config: config2,
+						Check:  check2,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+}
+
 func testDeploymentPolicyId(resourceName string, id *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -489,6 +773,25 @@ func testSameDeploymentPolicyId(resourceName string, id *string) resource.TestCh
 
 		if rs.Primary.ID != *id {
 			return fmt.Errorf("New resource does not match old resource id: %s, %s", rs.Primary.ID, *id)
+		}
+
+		return nil
+	}
+}
+
+func testNewDeploymentPolicyId(resourceName string, id *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Resource ID is not set")
+		}
+
+		if rs.Primary.ID == *id {
+			return fmt.Errorf("New resource matches old resource id: %s", rs.Primary.ID)
 		}
 
 		return nil

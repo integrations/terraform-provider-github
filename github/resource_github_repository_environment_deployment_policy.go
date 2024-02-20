@@ -49,6 +49,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				Description:   "The name pattern that tags must match in order to deploy to the environment.",
 			},
 		},
+		CustomizeDiff: customDeploymentPolicyDiffFunction,
 	}
 
 }
@@ -180,6 +181,35 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.Resourc
 	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	oldBranchPattern, newBranchPattern := diff.GetChange("branch_pattern")
+
+	if oldBranchPattern != "" && newBranchPattern == "" {
+		if err := diff.ForceNew("branch_pattern"); err != nil {
+			return err
+		}
+	}
+	if oldBranchPattern == "" && newBranchPattern != "" {
+		if err := diff.ForceNew("branch_pattern"); err != nil {
+			return err
+		}
+	}
+
+	oldTagPattern, newTagPattern := diff.GetChange("tag_pattern")
+	if oldTagPattern != "" && newTagPattern == "" {
+		if err := diff.ForceNew("tag_pattern"); err != nil {
+			return err
+		}
+	}
+	if oldTagPattern == "" && newTagPattern != "" {
+		if err := diff.ForceNew("tag_pattern"); err != nil {
+			return err
+		}
 	}
 
 	return nil
