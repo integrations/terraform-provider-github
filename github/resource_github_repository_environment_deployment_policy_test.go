@@ -58,6 +58,9 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
 				"github_repository_environment_deployment_policy.test", "branch_pattern",
 				"releases/*",
 			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "tag_pattern",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -137,6 +140,9 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTag(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_environment_deployment_policy.test", "tag_pattern",
 				"v*",
+			),
+			resource.TestCheckNoResourceAttr(
+				"github_repository_environment_deployment_policy.test", "branch_pattern",
 			),
 		)
 
