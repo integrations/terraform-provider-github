@@ -60,7 +60,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData
 		return err
 	}
 
-	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.String("branch")})
+	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{Name: &name})
 	if err != nil {
 		return err
 	}
