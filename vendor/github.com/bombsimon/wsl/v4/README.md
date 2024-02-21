@@ -19,15 +19,19 @@ make something configurable!
 ## Installation
 
 ```sh
-go install github.com/bombsimon/wsl/v4/cmd...@master
+# Latest release
+go install github.com/bombsimon/wsl/v4/cmd/wsl
+
+# Main branch
+go install github.com/bombsimon/wsl/v4/cmd/wsl@master
 ```
 
 ## Usage
 
 > **Note**: This linter provides a fixer that can fix most issues with the
-`--fix` flag. However, currently `golangci-lint` [does not support suggested
-fixes](https://github.com/golangci/golangci-lint/issues/1779) so the `--fix`
-flag in `golangci-lint` will **not** work.
+> `--fix` flag. However, currently `golangci-lint` [does not support suggested
+> fixes](https://github.com/golangci/golangci-lint/issues/1779) so the `--fix`
+> flag in `golangci-lint` will **not** work.
 
 `wsl` uses the [analysis](https://pkg.go.dev/golang.org/x/tools/go/analysis)
 package meaning it will operate on package level with the default analysis flags
