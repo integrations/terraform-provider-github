@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRestApi() *schema.Resource {
@@ -63,10 +63,17 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId(resp.Header.Get("x-github-request-id"))
-	d.Set("code", resp.StatusCode)
-	d.Set("status", resp.Status)
-	d.Set("headers", string(h))
-	d.Set("body", string(b))
-
+	if err = d.Set("code", resp.StatusCode); err != nil {
+		return err
+	}
+	if err = d.Set("status", resp.Status); err != nil {
+		return err
+	}
+	if err = d.Set("headers", string(h)); err != nil {
+		return err
+	}
+	if err = d.Set("body", string(b)); err != nil {
+		return err
+	}
 	return nil
 }

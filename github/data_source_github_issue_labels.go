@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubIssueLabels() *schema.Resource {
@@ -77,7 +77,10 @@ func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) e
 		opts.Page = resp.NextPage
 	}
 
-	d.Set("labels", allLabels)
+	err := d.Set("labels", allLabels)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

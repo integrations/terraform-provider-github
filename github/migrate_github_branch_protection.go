@@ -1,6 +1,10 @@
 package github
 
-import "github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func resourceGithubBranchProtectionV0() *schema.Resource {
 	return &schema.Resource{
@@ -19,7 +23,7 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV0(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	repoName := rawState["repository"].(string)
 	repoID, err := getRepositoryID(repoName, meta)
 	if err != nil {
@@ -35,6 +39,43 @@ func resourceGithubBranchProtectionUpgradeV0(rawState map[string]interface{}, me
 	rawState["id"] = protectionRuleID
 	rawState[REPOSITORY_ID] = repoID
 	rawState[PROTECTION_PATTERN] = branch
+
+	return rawState, nil
+}
+
+func resourceGithubBranchProtectionV1() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"push_restrictions": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"blocks_creations": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+		},
+	}
+}
+
+func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	var blocksCreations bool = false
+
+	if v, ok := rawState["blocks_creations"]; ok {
+		blocksCreations = v.(bool)
+	}
+
+	if v, ok := rawState["push_restrictions"]; ok {
+		rawState["restrict_pushes"] = []interface{}{map[string]interface{}{
+			"blocks_creations": blocksCreations,
+			"push_allowances":  v,
+		}}
+	}
+
+	delete(rawState, "blocks_creations")
+	delete(rawState, "push_restrictions")
 
 	return rawState, nil
 }

@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
@@ -16,14 +16,14 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 		Update: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
 		Delete: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The name of the repository.",
-				ValidateFunc: validation.StringLenBetween(1, 100),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The name of the repository.",
+				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
 			},
 			"use_default": {
 				Type:        schema.TypeBool,
@@ -98,9 +98,15 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 		return err
 	}
 
-	d.Set("repository", repository)
-	d.Set("use_default", template.UseDefault)
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err = d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err = d.Set("use_default", template.UseDefault); err != nil {
+		return err
+	}
+	if err = d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
+		return err
+	}
 
 	return nil
 }

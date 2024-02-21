@@ -3,13 +3,14 @@ package golinters
 import (
 	"fmt"
 	"go/token"
-	"io/ioutil"
+	"io"
 	"log"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/securego/gosec/v2"
+	"github.com/securego/gosec/v2/issue"
 	"github.com/securego/gosec/v2/rules"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
@@ -26,83 +27,38 @@ func NewGosec(settings *config.GoSecSettings) *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
 
-	gasConfig := gosec.NewConfig()
-
 	var filters []rules.RuleFilter
+	conf := gosec.NewConfig()
 	if settings != nil {
 		filters = gosecRuleFilters(settings.Includes, settings.Excludes)
-
-		for k, v := range settings.Config {
-			// Uses ToUpper because the parsing of the map's key change the key to lowercase.
-			// The value is not impacted by that: the case is respected.
-			gasConfig.Set(strings.ToUpper(k), v)
-		}
+		conf = toGosecConfig(settings)
 	}
 
-	ruleDefinitions := rules.Generate(filters...)
+	logger := log.New(io.Discard, "", 0)
 
-	logger := log.New(ioutil.Discard, "", 0)
+	ruleDefinitions := rules.Generate(false, filters...)
 
 	analyzer := &analysis.Analyzer{
 		Name: gosecName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
+		Run:  goanalysis.DummyRun,
 	}
+
 	return goanalysis.NewLinter(
 		gosecName,
 		"Inspects source code for security problems",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
-		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			gosecAnalyzer := gosec.NewAnalyzer(gasConfig, true, logger)
-			gosecAnalyzer.LoadRules(ruleDefinitions.Builders())
+		analyzer.Run = func(pass *analysis.Pass) (any, error) {
+			// The `gosecAnalyzer` is here because of concurrency issue.
+			gosecAnalyzer := gosec.NewAnalyzer(conf, true, settings.ExcludeGenerated, false, settings.Concurrency, logger)
+			gosecAnalyzer.LoadRules(ruleDefinitions.RulesInfo())
 
-			pkg := &packages.Package{
-				Fset:      pass.Fset,
-				Syntax:    pass.Files,
-				Types:     pass.Pkg,
-				TypesInfo: pass.TypesInfo,
-			}
-			gosecAnalyzer.Check(pkg)
-			issues, _, _ := gosecAnalyzer.Report()
-			if len(issues) == 0 {
-				return nil, nil
-			}
-
-			res := make([]goanalysis.Issue, 0, len(issues))
-			for _, i := range issues {
-				text := fmt.Sprintf("%s: %s", i.RuleID, i.What) // TODO: use severity and confidence
-				var r *result.Range
-				line, err := strconv.Atoi(i.Line)
-				if err != nil {
-					r = &result.Range{}
-					if n, rerr := fmt.Sscanf(i.Line, "%d-%d", &r.From, &r.To); rerr != nil || n != 2 {
-						lintCtx.Log.Warnf("Can't convert gosec line number %q of %v to int: %s", i.Line, i, err)
-						continue
-					}
-					line = r.From
-				}
-
-				column, err := strconv.Atoi(i.Col)
-				if err != nil {
-					lintCtx.Log.Warnf("Can't convert gosec column number %q of %v to int: %s", i.Col, i, err)
-					continue
-				}
-
-				res = append(res, goanalysis.NewIssue(&result.Issue{
-					Pos: token.Position{
-						Filename: i.File,
-						Line:     line,
-						Column:   column,
-					},
-					Text:       text,
-					LineRange:  r,
-					FromLinter: gosecName,
-				}, pass))
-			}
+			issues := runGoSec(lintCtx, pass, settings, gosecAnalyzer)
 
 			mu.Lock()
-			resIssues = append(resIssues, res...)
+			resIssues = append(resIssues, issues...)
 			mu.Unlock()
 
 			return nil, nil
@@ -110,6 +66,99 @@ func NewGosec(settings *config.GoSecSettings) *goanalysis.Linter {
 	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
 		return resIssues
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
+}
+
+func runGoSec(lintCtx *linter.Context, pass *analysis.Pass, settings *config.GoSecSettings, analyzer *gosec.Analyzer) []goanalysis.Issue {
+	pkg := &packages.Package{
+		Fset:      pass.Fset,
+		Syntax:    pass.Files,
+		Types:     pass.Pkg,
+		TypesInfo: pass.TypesInfo,
+	}
+
+	analyzer.CheckRules(pkg)
+
+	secIssues, _, _ := analyzer.Report()
+	if len(secIssues) == 0 {
+		return nil
+	}
+
+	severity, err := convertToScore(settings.Severity)
+	if err != nil {
+		lintCtx.Log.Warnf("The provided severity %v", err)
+	}
+
+	confidence, err := convertToScore(settings.Confidence)
+	if err != nil {
+		lintCtx.Log.Warnf("The provided confidence %v", err)
+	}
+
+	secIssues = filterIssues(secIssues, severity, confidence)
+
+	issues := make([]goanalysis.Issue, 0, len(secIssues))
+	for _, i := range secIssues {
+		text := fmt.Sprintf("%s: %s", i.RuleID, i.What) // TODO: use severity and confidence
+
+		var r *result.Range
+
+		line, err := strconv.Atoi(i.Line)
+		if err != nil {
+			r = &result.Range{}
+			if n, rerr := fmt.Sscanf(i.Line, "%d-%d", &r.From, &r.To); rerr != nil || n != 2 {
+				lintCtx.Log.Warnf("Can't convert gosec line number %q of %v to int: %s", i.Line, i, err)
+				continue
+			}
+			line = r.From
+		}
+
+		column, err := strconv.Atoi(i.Col)
+		if err != nil {
+			lintCtx.Log.Warnf("Can't convert gosec column number %q of %v to int: %s", i.Col, i, err)
+			continue
+		}
+
+		issues = append(issues, goanalysis.NewIssue(&result.Issue{
+			Pos: token.Position{
+				Filename: i.File,
+				Line:     line,
+				Column:   column,
+			},
+			Text:       text,
+			LineRange:  r,
+			FromLinter: gosecName,
+		}, pass))
+	}
+
+	return issues
+}
+
+func toGosecConfig(settings *config.GoSecSettings) gosec.Config {
+	conf := gosec.NewConfig()
+
+	for k, v := range settings.Config {
+		if k == gosec.Globals {
+			convertGosecGlobals(v, conf)
+			continue
+		}
+
+		// Uses ToUpper because the parsing of the map's key change the key to lowercase.
+		// The value is not impacted by that: the case is respected.
+		conf.Set(strings.ToUpper(k), v)
+	}
+
+	return conf
+}
+
+// based on https://github.com/securego/gosec/blob/47bfd4eb6fc7395940933388550b547538b4c946/config.go#L52-L62
+func convertGosecGlobals(globalOptionFromConfig any, conf gosec.Config) {
+	globalOptionMap, ok := globalOptionFromConfig.(map[string]any)
+	if !ok {
+		return
+	}
+
+	for k, v := range globalOptionMap {
+		conf.SetGlobal(gosec.GlobalOption(k), fmt.Sprintf("%v", v))
+	}
 }
 
 // based on https://github.com/securego/gosec/blob/569328eade2ccbad4ce2d0f21ee158ab5356a5cf/cmd/gosec/main.go#L170-L188
@@ -125,4 +174,32 @@ func gosecRuleFilters(includes, excludes []string) []rules.RuleFilter {
 	}
 
 	return filters
+}
+
+// code borrowed from https://github.com/securego/gosec/blob/69213955dacfd560562e780f723486ef1ca6d486/cmd/gosec/main.go#L250-L262
+func convertToScore(str string) (issue.Score, error) {
+	str = strings.ToLower(str)
+	switch str {
+	case "", "low":
+		return issue.Low, nil
+	case "medium":
+		return issue.Medium, nil
+	case "high":
+		return issue.High, nil
+	default:
+		return issue.Low, fmt.Errorf("'%s' is invalid, use low instead. Valid options: low, medium, high", str)
+	}
+}
+
+// code borrowed from https://github.com/securego/gosec/blob/69213955dacfd560562e780f723486ef1ca6d486/cmd/gosec/main.go#L264-L276
+func filterIssues(issues []*issue.Issue, severity, confidence issue.Score) []*issue.Issue {
+	res := make([]*issue.Issue, 0)
+
+	for _, i := range issues {
+		if i.Severity >= severity && i.Confidence >= confidence {
+			res = append(res, i)
+		}
+	}
+
+	return res
 }

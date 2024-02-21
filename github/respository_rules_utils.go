@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {

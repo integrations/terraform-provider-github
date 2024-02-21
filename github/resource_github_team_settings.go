@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -48,7 +48,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:    true,
 							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
 							Default:     "ROUND_ROBIN",
-							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
 								algorithm, ok := v.(string)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
@@ -59,14 +59,14 @@ func resourceGithubTeamSettings() *schema.Resource {
 								}
 
 								return we, errs
-							},
+							}, "algorithm"),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateFunc: func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
 								count, ok := v.(int)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}
@@ -75,7 +75,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 									errs = append(errs, errors.New("review request delegation reviewer count must be a positive number"))
 								}
 								return we, errs
-							},
+							}, "member_count"),
 						},
 						"notify": {
 							Type:        schema.TypeBool,
@@ -107,8 +107,12 @@ func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 	d.SetId(nodeId)
-	d.Set("team_slug", slug)
-	d.Set("team_uid", nodeId)
+	if err = d.Set("team_slug", slug); err != nil {
+		return err
+	}
+	if err = d.Set("team_uid", nodeId); err != nil {
+		return err
+	}
 	return resourceGithubTeamSettingsUpdate(d, meta)
 
 }
@@ -140,9 +144,13 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
-		d.Set("review_request_delegation", []interface{}{reviewRequestDelegation})
+		if err = d.Set("review_request_delegation", []interface{}{reviewRequestDelegation}); err != nil {
+			return err
+		}
 	} else {
-		d.Set("review_request_delegation", []interface{}{})
+		if err = d.Set("review_request_delegation", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -204,10 +212,16 @@ func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return nil, err
 	}
-	d.Set("team_id", d.Id())
+	if err = d.Set("team_id", d.Id()); err != nil {
+		return nil, err
+	}
 	d.SetId(nodeId)
-	d.Set("team_slug", slug)
-	d.Set("team_uid", nodeId)
+	if err = d.Set("team_slug", slug); err != nil {
+		return nil, err
+	}
+	if err = d.Set("team_uid", nodeId); err != nil {
+		return nil, err
+	}
 	return []*schema.ResourceData{d}, resourceGithubTeamSettingsRead(d, meta)
 }
 

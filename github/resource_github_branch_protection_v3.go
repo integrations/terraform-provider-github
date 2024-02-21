@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubBranchProtectionV3() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 		Update: resourceGithubBranchProtectionV3Update,
 		Delete: resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -122,11 +122,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description: "Require an approved review in pull requests including files with a designated code owner.",
 						},
 						"required_approving_review_count": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      1,
-							Description:  "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateFunc: validation.IntBetween(0, 6),
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Default:          1,
+							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
+							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), "required_approving_review_count"),
 						},
 						"bypass_pull_request_allowances": {
 							Type:     schema.TypeList,
@@ -290,12 +290,22 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("branch", branch)
-	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("branch", branch); err != nil {
+		return err
+	}
+	if err = d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled); err != nil {
+		return err
+	}
 	if rcr := githubProtection.GetRequiredConversationResolution(); rcr != nil {
-		d.Set("require_conversation_resolution", rcr.Enabled)
+		if err = d.Set("require_conversation_resolution", rcr.Enabled); err != nil {
+			return err
+		}
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {

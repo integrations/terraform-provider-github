@@ -11,12 +11,13 @@ package goanalysis
 
 import (
 	"encoding/gob"
+	"fmt"
 	"go/token"
 	"runtime"
 	"sort"
 	"sync"
 
-	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
 
@@ -28,17 +29,17 @@ import (
 )
 
 var (
-	debugf = logutils.Debug("goanalysis")
+	debugf = logutils.Debug(logutils.DebugKeyGoAnalysis)
 
-	analyzeDebugf     = logutils.Debug("goanalysis/analyze")
-	isMemoryDebug     = logutils.HaveDebugTag("goanalysis/memory")
-	issuesCacheDebugf = logutils.Debug("goanalysis/issues/cache")
+	analyzeDebugf     = logutils.Debug(logutils.DebugKeyGoAnalysisAnalyze)
+	isMemoryDebug     = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisMemory)
+	issuesCacheDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisIssuesCache)
 
-	factsDebugf        = logutils.Debug("goanalysis/facts")
-	factsCacheDebugf   = logutils.Debug("goanalysis/facts/cache")
-	factsInheritDebugf = logutils.Debug("goanalysis/facts/inherit")
-	factsExportDebugf  = logutils.Debug("goanalysis/facts")
-	isFactsExportDebug = logutils.HaveDebugTag("goanalysis/facts/export")
+	factsDebugf        = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
+	factsCacheDebugf   = logutils.Debug(logutils.DebugKeyGoAnalysisFactsCache)
+	factsInheritDebugf = logutils.Debug(logutils.DebugKeyGoAnalysisFactsInherit)
+	factsExportDebugf  = logutils.Debug(logutils.DebugKeyGoAnalysisFacts)
+	isFactsExportDebug = logutils.HaveDebugTag(logutils.DebugKeyGoAnalysisFactsExport)
 )
 
 type Diagnostic struct {
@@ -159,10 +160,7 @@ func (r *runner) buildActionFactDeps(act *action, a *analysis.Analyzer, pkg *pac
 	act.objectFacts = make(map[objectFactKey]analysis.Fact)
 	act.packageFacts = make(map[packageFactKey]analysis.Fact)
 
-	paths := make([]string, 0, len(pkg.Imports))
-	for path := range pkg.Imports {
-		paths = append(paths, path)
-	}
+	paths := maps.Keys(pkg.Imports)
 	sort.Strings(paths) // for determinism
 	for _, path := range paths {
 		dep := r.makeAction(a, pkg.Imports[path], initialPkgs, actions, actAlloc)
@@ -185,7 +183,7 @@ func (r *runner) prepareAnalysis(pkgs []*packages.Package,
 	// and analysis-to-analysis (horizontal) dependencies.
 
 	// This place is memory-intensive: e.g. Istio project has 120k total actions.
-	// Therefore optimize it carefully.
+	// Therefore, optimize it carefully.
 	markedActions := make(map[actKey]struct{}, len(analyzers)*len(pkgs))
 	for _, a := range analyzers {
 		for _, pkg := range pkgs {
@@ -212,10 +210,7 @@ func (r *runner) prepareAnalysis(pkgs []*packages.Package,
 		}
 	}
 
-	allActions := make([]*action, 0, len(actions))
-	for _, act := range actions {
-		allActions = append(allActions, act)
-	}
+	allActions := maps.Values(actions)
 
 	debugf("Built %d actions", len(actions))
 
@@ -311,7 +306,7 @@ func extractDiagnostics(roots []*action) (retDiags []Diagnostic, retErrors []err
 			if pe, ok := act.err.(*errorutil.PanicError); ok {
 				panic(pe)
 			}
-			retErrors = append(retErrors, errors.Wrap(act.err, act.a.Name))
+			retErrors = append(retErrors, fmt.Errorf("%s: %w", act.a.Name, act.err))
 			return
 		}
 

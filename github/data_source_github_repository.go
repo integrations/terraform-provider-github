@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepository() *schema.Resource {
@@ -305,7 +305,6 @@ func dataSourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
@@ -406,7 +405,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("error setting pages: %w", err)
 		}
 	} else {
-		d.Set("pages", flattenPages(nil))
+		err = d.Set("pages", flattenPages(nil))
+		if err != nil {
+			return err
+		}
 	}
 
 	if repo.License != nil {
@@ -422,14 +424,20 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		err = d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
 		})
+		if err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		err = d.Set("template", []interface{}{})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))

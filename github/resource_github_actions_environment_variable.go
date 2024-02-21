@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
@@ -17,7 +17,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 		Update: resourceGithubActionsEnvironmentVariableUpdate,
 		Delete: resourceGithubActionsEnvironmentVariableDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -33,11 +33,11 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 				Description: "Name of the environment.",
 			},
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,

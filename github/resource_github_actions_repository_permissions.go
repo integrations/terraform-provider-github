@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryPermissions() *schema.Resource {
@@ -17,15 +17,15 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 		Update: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
 		Delete: resourceGithubActionsRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"allowed_actions": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateFunc: validation.StringInSlice([]string{"all", "local_only", "selected"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -61,10 +61,10 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Description: "Should GitHub actions be enabled on this repository.",
 			},
 			"repository": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The GitHub repository.",
-				ValidateFunc: validation.StringLenBetween(1, 100),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The GitHub repository.",
+				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
 			},
 		},
 	}
@@ -174,21 +174,31 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			d.Set("allowed_actions_config", []interface{}{
+			if err = d.Set("allowed_actions_config", []interface{}{
 				map[string]interface{}{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
 				},
-			})
+			}); err != nil {
+				return err
+			}
 		}
 	} else {
-		d.Set("allowed_actions_config", []interface{}{})
+		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
-	d.Set("allowed_actions", actionsPermissions.GetAllowedActions())
-	d.Set("enabled", actionsPermissions.GetEnabled())
-	d.Set("repository", repoName)
+	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
+		return err
+	}
+	if err = d.Set("enabled", actionsPermissions.GetEnabled()); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
 
 	return nil
 }

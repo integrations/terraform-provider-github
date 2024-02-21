@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-github/v57/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsVariables() *schema.Resource {
@@ -101,7 +101,10 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(repoName)
-	d.Set("variables", all_variables)
+	err := d.Set("variables", all_variables)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

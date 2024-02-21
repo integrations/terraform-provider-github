@@ -1,7 +1,10 @@
 package golinters
 
 import (
+	"slices"
+
 	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/analysis/passes/appends"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
 	"golang.org/x/tools/go/analysis/passes/assign"
 	"golang.org/x/tools/go/analysis/passes/atomic"
@@ -14,6 +17,8 @@ import (
 	"golang.org/x/tools/go/analysis/passes/copylock"
 	_ "golang.org/x/tools/go/analysis/passes/ctrlflow" // unused, internal analyzer
 	"golang.org/x/tools/go/analysis/passes/deepequalerrors"
+	"golang.org/x/tools/go/analysis/passes/defers"
+	"golang.org/x/tools/go/analysis/passes/directive"
 	"golang.org/x/tools/go/analysis/passes/errorsas"
 	"golang.org/x/tools/go/analysis/passes/fieldalignment"
 	"golang.org/x/tools/go/analysis/passes/findcall"
@@ -31,12 +36,14 @@ import (
 	"golang.org/x/tools/go/analysis/passes/shadow"
 	"golang.org/x/tools/go/analysis/passes/shift"
 	"golang.org/x/tools/go/analysis/passes/sigchanyzer"
+	"golang.org/x/tools/go/analysis/passes/slog"
 	"golang.org/x/tools/go/analysis/passes/sortslice"
 	"golang.org/x/tools/go/analysis/passes/stdmethods"
 	"golang.org/x/tools/go/analysis/passes/stringintconv"
 	"golang.org/x/tools/go/analysis/passes/structtag"
 	"golang.org/x/tools/go/analysis/passes/testinggoroutine"
 	"golang.org/x/tools/go/analysis/passes/tests"
+	"golang.org/x/tools/go/analysis/passes/timeformat"
 	"golang.org/x/tools/go/analysis/passes/unmarshal"
 	"golang.org/x/tools/go/analysis/passes/unreachable"
 	"golang.org/x/tools/go/analysis/passes/unsafeptr"
@@ -49,6 +56,7 @@ import (
 
 var (
 	allAnalyzers = []*analysis.Analyzer{
+		appends.Analyzer,
 		asmdecl.Analyzer,
 		assign.Analyzer,
 		atomic.Analyzer,
@@ -59,6 +67,8 @@ var (
 		composite.Analyzer,
 		copylock.Analyzer,
 		deepequalerrors.Analyzer,
+		defers.Analyzer,
+		directive.Analyzer,
 		errorsas.Analyzer,
 		fieldalignment.Analyzer,
 		findcall.Analyzer,
@@ -74,12 +84,14 @@ var (
 		shadow.Analyzer,
 		shift.Analyzer,
 		sigchanyzer.Analyzer,
+		slog.Analyzer,
 		sortslice.Analyzer,
 		stdmethods.Analyzer,
 		stringintconv.Analyzer,
 		structtag.Analyzer,
 		testinggoroutine.Analyzer,
 		tests.Analyzer,
+		timeformat.Analyzer,
 		unmarshal.Analyzer,
 		unreachable.Analyzer,
 		unsafeptr.Analyzer,
@@ -87,8 +99,9 @@ var (
 		unusedwrite.Analyzer,
 	}
 
-	// https://github.com/golang/go/blob/879db69ce2de814bc3203c39b45617ba51cc5366/src/cmd/vet/main.go#L40-L68
+	// https://github.com/golang/go/blob/b56645a87b28840a180d64077877cb46570b4176/src/cmd/vet/main.go#L49-L81
 	defaultAnalyzers = []*analysis.Analyzer{
+		appends.Analyzer,
 		asmdecl.Analyzer,
 		assign.Analyzer,
 		atomic.Analyzer,
@@ -97,6 +110,8 @@ var (
 		cgocall.Analyzer,
 		composite.Analyzer,
 		copylock.Analyzer,
+		defers.Analyzer,
+		directive.Analyzer,
 		errorsas.Analyzer,
 		framepointer.Analyzer,
 		httpresponse.Analyzer,
@@ -107,11 +122,13 @@ var (
 		printf.Analyzer,
 		shift.Analyzer,
 		sigchanyzer.Analyzer,
+		slog.Analyzer,
 		stdmethods.Analyzer,
 		stringintconv.Analyzer,
 		structtag.Analyzer,
 		testinggoroutine.Analyzer,
 		tests.Analyzer,
+		timeformat.Analyzer,
 		unmarshal.Analyzer,
 		unreachable.Analyzer,
 		unsafeptr.Analyzer,
@@ -119,50 +136,34 @@ var (
 	}
 )
 
-func isAnalyzerEnabled(name string, cfg *config.GovetSettings, defaultAnalyzers []*analysis.Analyzer) bool {
-	if cfg.EnableAll {
-		for _, n := range cfg.Disable {
-			if n == name {
-				return false
-			}
-		}
-		return true
+func NewGovet(settings *config.GovetSettings) *goanalysis.Linter {
+	var conf map[string]map[string]any
+	if settings != nil {
+		conf = settings.Settings
 	}
-	// Raw for loops should be OK on small slice lengths.
-	for _, n := range cfg.Enable {
-		if n == name {
-			return true
-		}
-	}
-	for _, n := range cfg.Disable {
-		if n == name {
-			return false
-		}
-	}
-	if cfg.DisableAll {
-		return false
-	}
-	for _, a := range defaultAnalyzers {
-		if a.Name == name {
-			return true
-		}
-	}
-	return false
+
+	return goanalysis.NewLinter(
+		"govet",
+		"Vet examines Go source code and reports suspicious constructs, "+
+			"such as Printf calls whose arguments do not align with the format string",
+		analyzersFromConfig(settings),
+		conf,
+	).WithLoadMode(goanalysis.LoadModeTypesInfo)
 }
 
-func analyzersFromConfig(cfg *config.GovetSettings) []*analysis.Analyzer {
-	if cfg == nil {
+func analyzersFromConfig(settings *config.GovetSettings) []*analysis.Analyzer {
+	if settings == nil {
 		return defaultAnalyzers
 	}
 
-	if cfg.CheckShadowing {
+	if settings.CheckShadowing {
 		// Keeping for backward compatibility.
-		cfg.Enable = append(cfg.Enable, shadow.Analyzer.Name)
+		settings.Enable = append(settings.Enable, shadow.Analyzer.Name)
 	}
 
 	var enabledAnalyzers []*analysis.Analyzer
 	for _, a := range allAnalyzers {
-		if isAnalyzerEnabled(a.Name, cfg, defaultAnalyzers) {
+		if isAnalyzerEnabled(a.Name, settings, defaultAnalyzers) {
 			enabledAnalyzers = append(enabledAnalyzers, a)
 		}
 	}
@@ -170,16 +171,26 @@ func analyzersFromConfig(cfg *config.GovetSettings) []*analysis.Analyzer {
 	return enabledAnalyzers
 }
 
-func NewGovet(cfg *config.GovetSettings) *goanalysis.Linter {
-	var settings map[string]map[string]interface{}
-	if cfg != nil {
-		settings = cfg.Settings
+func isAnalyzerEnabled(name string, cfg *config.GovetSettings, defaultAnalyzers []*analysis.Analyzer) bool {
+	// TODO(ldez) remove loopclosure when go1.23
+	if name == loopclosure.Analyzer.Name && config.IsGreaterThanOrEqualGo122(cfg.Go) {
+		return false
 	}
-	return goanalysis.NewLinter(
-		"govet",
-		"Vet examines Go source code and reports suspicious constructs, "+
-			"such as Printf calls whose arguments do not align with the format string",
-		analyzersFromConfig(cfg),
-		settings,
-	).WithLoadMode(goanalysis.LoadModeTypesInfo)
+
+	switch {
+	case cfg.EnableAll:
+		return !slices.Contains(cfg.Disable, name)
+
+	case slices.Contains(cfg.Enable, name):
+		return true
+
+	case slices.Contains(cfg.Disable, name):
+		return false
+
+	case cfg.DisableAll:
+		return false
+
+	default:
+		return slices.ContainsFunc(defaultAnalyzers, func(a *analysis.Analyzer) bool { return a.Name == name })
+	}
 }

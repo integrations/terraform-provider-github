@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubUser() *schema.Resource {
@@ -133,26 +133,66 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.FormatInt(user.GetID(), 10))
-	d.Set("login", user.GetLogin())
-	d.Set("avatar_url", user.GetAvatarURL())
-	d.Set("gravatar_id", user.GetGravatarID())
-	d.Set("site_admin", user.GetSiteAdmin())
-	d.Set("company", user.GetCompany())
-	d.Set("blog", user.GetBlog())
-	d.Set("location", user.GetLocation())
-	d.Set("name", user.GetName())
-	d.Set("email", user.GetEmail())
-	d.Set("bio", user.GetBio())
-	d.Set("gpg_keys", gpgKeys)
-	d.Set("ssh_keys", sshKeys)
-	d.Set("public_repos", user.GetPublicRepos())
-	d.Set("public_gists", user.GetPublicGists())
-	d.Set("followers", user.GetFollowers())
-	d.Set("following", user.GetFollowing())
-	d.Set("created_at", user.GetCreatedAt())
-	d.Set("updated_at", user.GetUpdatedAt())
-	d.Set("suspended_at", user.GetSuspendedAt())
-	d.Set("node_id", user.GetNodeID())
+	if err = d.Set("login", user.GetLogin()); err != nil {
+		return err
+	}
+	if err = d.Set("avatar_url", user.GetAvatarURL()); err != nil {
+		return err
+	}
+	if err = d.Set("gravatar_id", user.GetGravatarID()); err != nil {
+		return err
+	}
+	if err = d.Set("site_admin", user.GetSiteAdmin()); err != nil {
+		return err
+	}
+	if err = d.Set("company", user.GetCompany()); err != nil {
+		return err
+	}
+	if err = d.Set("blog", user.GetBlog()); err != nil {
+		return err
+	}
+	if err = d.Set("location", user.GetLocation()); err != nil {
+		return err
+	}
+	if err = d.Set("name", user.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("email", user.GetEmail()); err != nil {
+		return err
+	}
+	if err = d.Set("bio", user.GetBio()); err != nil {
+		return err
+	}
+	if err = d.Set("gpg_keys", gpgKeys); err != nil {
+		return err
+	}
+	if err = d.Set("ssh_keys", sshKeys); err != nil {
+		return err
+	}
+	if err = d.Set("public_repos", user.GetPublicRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("public_gists", user.GetPublicGists()); err != nil {
+		return err
+	}
+	if err = d.Set("followers", user.GetFollowers()); err != nil {
+		return err
+	}
+	if err = d.Set("following", user.GetFollowing()); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", user.GetCreatedAt().String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", user.GetUpdatedAt().String()); err != nil {
+		return err
+	}
+	if err = d.Set("suspended_at", user.GetSuspendedAt().String()); err != nil {
+		return err
+	}
+	if err = d.Set("node_id", user.GetNodeID()); err != nil {
+		return err
+	}
 
 	return nil
 }

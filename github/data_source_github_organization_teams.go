@@ -1,8 +1,8 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -22,10 +22,10 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Default:  false,
 			},
 			"results_per_page": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(0, 100),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
 			},
 			"teams": {
 				Type:     schema.TypeList,
@@ -117,7 +117,10 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(string(query.Organization.ID))
-	d.Set("teams", teams)
+	err = d.Set("teams", teams)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

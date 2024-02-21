@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
@@ -40,8 +40,14 @@ func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(publicKey.GetKeyID())
-	d.Set("key_id", publicKey.GetKeyID())
-	d.Set("key", publicKey.GetKey())
+	err = d.Set("key_id", publicKey.GetKeyID())
+	if err != nil {
+		return err
+	}
+	err = d.Set("key", publicKey.GetKey())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubAutomatedSecurityFixes(t *testing.T) {
@@ -18,15 +18,15 @@ func TestAccGithubAutomatedSecurityFixes(t *testing.T) {
 		enabled := "enabled = false"
 		updatedEnabled := "enabled = true"
 		config := fmt.Sprintf(`
-	
+
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				visibility = "private"
 			  	auto_init = true
 				vulnerability_alerts   = true
 			}
-	
-	
+
+
 			resource "github_repository_dependabot_security_updates" "test" {
 			  repository  = github_repository.test.id
 			  %s
@@ -86,15 +86,15 @@ func TestAccGithubAutomatedSecurityFixes(t *testing.T) {
 		updatedEnabled := "enabled = false"
 
 		config := fmt.Sprintf(`
-	
+
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				visibility = "private"
 			  	auto_init = true
 				vulnerability_alerts   = true
 			}
-	
-	
+
+
 			resource "github_repository_dependabot_security_updates" "test" {
 			  repository  = github_repository.test.id
 			  %s

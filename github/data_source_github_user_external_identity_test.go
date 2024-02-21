@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubUserExternalIdentity(t *testing.T) {
@@ -14,7 +14,7 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 	t.Run("queries without error", func(t *testing.T) {
 		config := `
 		data "github_user_external_identity" "test" {
-			
+
 
 		}`
 

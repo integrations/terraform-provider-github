@@ -1,8 +1,8 @@
 package printers
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/fatih/color"
@@ -13,31 +13,34 @@ import (
 
 type Text struct {
 	printIssuedLine bool
-	useColors       bool
 	printLinterName bool
+	useColors       bool
 
 	log logutils.Log
+	w   io.Writer
 }
 
-func NewText(printIssuedLine, useColors, printLinterName bool, log logutils.Log) *Text {
+func NewText(printIssuedLine, useColors, printLinterName bool, log logutils.Log, w io.Writer) *Text {
 	return &Text{
 		printIssuedLine: printIssuedLine,
-		useColors:       useColors,
 		printLinterName: printLinterName,
+		useColors:       useColors,
 		log:             log,
+		w:               w,
 	}
 }
 
-func (p Text) SprintfColored(ca color.Attribute, format string, args ...interface{}) string {
+func (p *Text) SprintfColored(ca color.Attribute, format string, args ...any) string {
+	c := color.New(ca)
+
 	if !p.useColors {
-		return fmt.Sprintf(format, args...)
+		c.DisableColor()
 	}
 
-	c := color.New(ca)
 	return c.Sprintf(format, args...)
 }
 
-func (p *Text) Print(ctx context.Context, issues []result.Issue) error {
+func (p *Text) Print(issues []result.Issue) error {
 	for i := range issues {
 		p.printIssue(&issues[i])
 
@@ -52,7 +55,7 @@ func (p *Text) Print(ctx context.Context, issues []result.Issue) error {
 	return nil
 }
 
-func (p Text) printIssue(i *result.Issue) {
+func (p *Text) printIssue(i *result.Issue) {
 	text := p.SprintfColored(color.FgRed, "%s", strings.TrimSpace(i.Text))
 	if p.printLinterName {
 		text += fmt.Sprintf(" (%s)", i.FromLinter)
@@ -61,16 +64,16 @@ func (p Text) printIssue(i *result.Issue) {
 	if i.Pos.Column != 0 {
 		pos += fmt.Sprintf(":%d", i.Pos.Column)
 	}
-	fmt.Fprintf(logutils.StdOut, "%s: %s\n", pos, text)
+	fmt.Fprintf(p.w, "%s: %s\n", pos, text)
 }
 
-func (p Text) printSourceCode(i *result.Issue) {
+func (p *Text) printSourceCode(i *result.Issue) {
 	for _, line := range i.SourceLines {
-		fmt.Fprintln(logutils.StdOut, line)
+		fmt.Fprintln(p.w, line)
 	}
 }
 
-func (p Text) printUnderLinePointer(i *result.Issue) {
+func (p *Text) printUnderLinePointer(i *result.Issue) {
 	// if column == 0 it means column is unknown (e.g. for gosec)
 	if len(i.SourceLines) != 1 || i.Pos.Column == 0 {
 		return
@@ -87,5 +90,5 @@ func (p Text) printUnderLinePointer(i *result.Issue) {
 		}
 	}
 
-	fmt.Fprintf(logutils.StdOut, "%s%s\n", string(prefixRunes), p.SprintfColored(color.FgYellow, "^"))
+	fmt.Fprintf(p.w, "%s%s\n", string(prefixRunes), p.SprintfColored(color.FgYellow, "^"))
 }

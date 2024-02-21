@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryTagProtection() *schema.Resource {
@@ -23,8 +23,12 @@ func resourceGithubRepositoryTagProtection() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<tag_protection_id>")
 				}
-				d.Set("repository", parts[0])
-				d.Set("tag_protection_id", parts[1])
+				if err := d.Set("repository", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("tag_protection_id", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},
@@ -96,7 +100,9 @@ func resourceGithubRepositoryTagProtectionRead(d *schema.ResourceData, meta inte
 	}
 	for _, tag := range tag_protection {
 		if tag.GetID() == id {
-			d.Set("pattern", tag.GetPattern())
+			if err = d.Set("pattern", tag.GetPattern()); err != nil {
+				return err
+			}
 		}
 	}
 

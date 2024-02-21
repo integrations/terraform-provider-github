@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -144,10 +144,6 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 		data.AllowsForcePushes = v.(bool)
 	}
 
-	if v, ok := d.GetOk(PROTECTION_BLOCKS_CREATIONS); ok {
-		data.BlocksCreations = v.(bool)
-	}
-
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {
 		data.IsAdminEnforced = v.(bool)
 	}
@@ -190,7 +186,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSALS]; ok {
 				data.RestrictsReviewDismissals = v.(bool)
 			}
-			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
+			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
 				for _, v := range vL {
@@ -211,7 +207,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 				}
 			}
-			if v, ok := m[PROTECTION_REQUIRES_LAST_PUSH_APPROVAL]; ok {
+			if v, ok := m[PROTECTION_REQUIRE_LAST_PUSH_APPROVAL]; ok {
 				data.RequireLastPushApproval = v.(bool)
 			}
 		}
@@ -239,14 +235,32 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		pushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			pushActorIDs = append(pushActorIDs, v.(string))
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
-		if len(pushActorIDs) > 0 {
-			data.PushActorIDs = pushActorIDs
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
 			data.RestrictsPushes = true
+
+			m := v.(map[string]interface{})
+			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
+				data.BlocksCreations = v.(bool)
+			}
+			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
+				pushActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					pushActorIDs = append(pushActorIDs, v.(string))
+				}
+				if len(pushActorIDs) > 0 {
+					data.PushActorIDs = pushActorIDs
+				}
+			}
 		}
 	}
 
@@ -283,7 +297,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}
 			}
 
 			m := v.(map[string]interface{})
-			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
+			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
 				for _, v := range vL {
@@ -308,14 +322,32 @@ func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		pushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			pushActorIDs = append(pushActorIDs, v.(string))
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
-		if len(pushActorIDs) > 0 {
-			data.PushActorIDs = pushActorIDs
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
 			data.RestrictsPushes = true
+
+			m := v.(map[string]interface{})
+			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
+				data.BlocksCreations = v.(bool)
+			}
+			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
+				pushActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					pushActorIDs = append(pushActorIDs, v.(string))
+				}
+				if len(pushActorIDs) > 0 {
+					data.PushActorIDs = pushActorIDs
+				}
+			}
 		}
 	}
 
@@ -474,9 +506,9 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 			PROTECTION_REQUIRES_CODE_OWNER_REVIEWS:     protection.RequiresCodeOwnerReviews,
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
-			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
+			PROTECTION_REVIEW_DISMISSAL_ALLOWANCES:     dismissalActors,
 			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
-			PROTECTION_REQUIRES_LAST_PUSH_APPROVAL:     protection.RequireLastPushApproval,
+			PROTECTION_REQUIRE_LAST_PUSH_APPROVAL:      protection.RequireLastPushApproval,
 		},
 	}
 
@@ -498,14 +530,22 @@ func setStatusChecks(protection BranchProtectionRule) interface{} {
 	return statusChecks
 }
 
-func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
+func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
 	if !protection.RestrictsPushes {
 		return nil
 	}
+
 	pushAllowances := protection.PushAllowances.Nodes
 	pushActors := setPushActorIDs(pushAllowances, data, meta)
 
-	return pushActors
+	restrictsPushes := []interface{}{
+		map[string]interface{}{
+			PROTECTION_BLOCKS_CREATIONS: protection.BlocksCreations,
+			PROTECTION_PUSH_ALLOWANCES:  pushActors,
+		},
+	}
+
+	return restrictsPushes
 }
 
 func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {

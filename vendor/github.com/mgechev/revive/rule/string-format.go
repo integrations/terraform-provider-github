@@ -38,7 +38,7 @@ func (*StringFormatRule) Name() string {
 // ParseArgumentsTest is a public wrapper around w.parseArguments used for testing. Returns the error message provided to panic, or nil if no error was encountered
 func (StringFormatRule) ParseArgumentsTest(arguments lint.Arguments) *string {
 	w := lintStringFormatRule{}
-	c := make(chan interface{})
+	c := make(chan any)
 	// Parse the arguments in a goroutine, defer a recover() call, return the error encountered (or nil if there was no error)
 	go func() {
 		defer func() {
@@ -68,6 +68,7 @@ type stringFormatSubrule struct {
 	parent       *lintStringFormatRule
 	scope        stringFormatSubruleScope
 	regexp       *regexp.Regexp
+	negated      bool
 	errorMessage string
 }
 
@@ -89,18 +90,19 @@ var parseStringFormatScope = regexp.MustCompile(
 
 func (w *lintStringFormatRule) parseArguments(arguments lint.Arguments) {
 	for i, argument := range arguments {
-		scope, regex, errorMessage := w.parseArgument(argument, i)
+		scope, regex, negated, errorMessage := w.parseArgument(argument, i)
 		w.rules = append(w.rules, stringFormatSubrule{
 			parent:       w,
 			scope:        scope,
 			regexp:       regex,
+			negated:      negated,
 			errorMessage: errorMessage,
 		})
 	}
 }
 
-func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, errorMessage string) {
-	g, ok := argument.([]interface{}) // Cast to generic slice first
+func (w lintStringFormatRule) parseArgument(argument any, ruleNum int) (scope stringFormatSubruleScope, regex *regexp.Regexp, negated bool, errorMessage string) {
+	g, ok := argument.([]any) // Cast to generic slice first
 	if !ok {
 		w.configError("argument is not a slice", ruleNum, 0)
 	}
@@ -146,7 +148,12 @@ func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (
 	}
 
 	// Strip / characters from the beginning and end of rule[1] before compiling
-	regex, err := regexp.Compile(rule[1][1 : len(rule[1])-1])
+	negated = rule[1][0] == '!'
+	offset := 1
+	if negated {
+		offset++
+	}
+	regex, err := regexp.Compile(rule[1][offset : len(rule[1])-1])
 	if err != nil {
 		w.parseError(fmt.Sprintf("unable to compile %s as regexp", rule[1]), ruleNum, 1)
 	}
@@ -155,7 +162,7 @@ func (w lintStringFormatRule) parseArgument(argument interface{}, ruleNum int) (
 	if len(rule) == 3 {
 		errorMessage = rule[2]
 	}
-	return scope, regex, errorMessage
+	return scope, regex, negated, errorMessage
 }
 
 // Report an invalid config, this is specifically the user's fault
@@ -204,10 +211,14 @@ func (lintStringFormatRule) getCallName(call *ast.CallExpr) (callName string, ok
 	if selector, ok := call.Fun.(*ast.SelectorExpr); ok {
 		// Scoped function call
 		scope, ok := selector.X.(*ast.Ident)
-		if !ok {
-			return "", false
+		if ok {
+			return scope.Name + "." + selector.Sel.Name, true
 		}
-		return scope.Name + "." + selector.Sel.Name, true
+		// Scoped function call inside structure
+		recv, ok := selector.X.(*ast.SelectorExpr)
+		if ok {
+			return recv.Sel.Name + "." + selector.Sel.Name, true
+		}
 	}
 
 	return "", false
@@ -261,7 +272,26 @@ func (r *stringFormatSubrule) Apply(call *ast.CallExpr) {
 }
 
 func (r *stringFormatSubrule) lintMessage(s string, node ast.Node) {
-	// Fail if the string doesn't match the user's regex
+	if r.negated {
+		if !r.regexp.MatchString(s) {
+			return
+		}
+		// Fail if the string does match the user's regex
+		var failure string
+		if len(r.errorMessage) > 0 {
+			failure = r.errorMessage
+		} else {
+			failure = fmt.Sprintf("string literal matches user defined regex /%s/", r.regexp.String())
+		}
+		r.parent.onFailure(lint.Failure{
+			Confidence: 1,
+			Failure:    failure,
+			Node:       node,
+		})
+		return
+	}
+
+	// Fail if the string does NOT match the user's regex
 	if r.regexp.MatchString(s) {
 		return
 	}

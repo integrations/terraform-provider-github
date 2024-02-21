@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubTree() *schema.Resource {
@@ -83,7 +83,9 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(tree.GetSHA())
-	d.Set("entries", entries)
+	if err = d.Set("entries", entries); err != nil {
+		return err
+	}
 
 	return nil
 }

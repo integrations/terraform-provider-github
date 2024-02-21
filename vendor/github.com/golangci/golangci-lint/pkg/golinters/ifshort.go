@@ -9,9 +9,9 @@ import (
 )
 
 func NewIfshort(settings *config.IfshortSettings) *goanalysis.Linter {
-	var cfg map[string]map[string]interface{}
+	var cfg map[string]map[string]any
 	if settings != nil {
-		cfg = map[string]map[string]interface{}{
+		cfg = map[string]map[string]any{
 			analyzer.Analyzer.Name: {
 				"max-decl-lines": settings.MaxDeclLines,
 				"max-decl-chars": settings.MaxDeclChars,
@@ -19,10 +19,12 @@ func NewIfshort(settings *config.IfshortSettings) *goanalysis.Linter {
 		}
 	}
 
+	a := analyzer.Analyzer
+
 	return goanalysis.NewLinter(
-		"ifshort",
-		"Checks that your code uses short syntax for if-statements whenever possible",
-		[]*analysis.Analyzer{analyzer.Analyzer},
+		a.Name,
+		a.Doc,
+		[]*analysis.Analyzer{a},
 		cfg,
 	).WithLoadMode(goanalysis.LoadModeSyntax)
 }

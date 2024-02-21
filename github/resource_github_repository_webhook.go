@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
@@ -24,7 +24,9 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id>")
 				}
-				d.Set("repository", parts[0])
+				if err := d.Set("repository", parts[0]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},
@@ -34,11 +36,6 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		MigrateState:  resourceGithubWebhookMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "The `name` attribute is no longer necessary.",
-			},
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -124,7 +121,9 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 
 	hook.Config = insecureSslStringToBool(hook.Config)
 
-	d.Set("configuration", []interface{}{hook.Config})
+	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+		return err
+	}
 
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
@@ -158,9 +157,15 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 		}
 		return err
 	}
-	d.Set("url", hook.GetURL())
-	d.Set("active", hook.GetActive())
-	d.Set("events", hook.Events)
+	if err = d.Set("url", hook.GetURL()); err != nil {
+		return err
+	}
+	if err = d.Set("active", hook.GetActive()); err != nil {
+		return err
+	}
+	if err = d.Set("events", hook.Events); err != nil {
+		return err
+	}
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
@@ -176,7 +181,9 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 
 	hook.Config = insecureSslStringToBool(hook.Config)
 
-	d.Set("configuration", []interface{}{hook.Config})
+	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+		return err
+	}
 
 	return nil
 }

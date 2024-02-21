@@ -19,12 +19,12 @@ type BaseIssue struct {
 	replacement                       *result.Replacement
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (b BaseIssue) Position() token.Position {
 	return b.position
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (b BaseIssue) Replacement() *result.Replacement {
 	return b.replacement
 }
@@ -33,53 +33,49 @@ type ExtraLeadingSpace struct {
 	BaseIssue
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i ExtraLeadingSpace) Details() string {
 	return fmt.Sprintf("directive `%s` should not have more than one leading space", i.fullDirective)
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i ExtraLeadingSpace) String() string { return toString(i) }
 
 type NotMachine struct {
 	BaseIssue
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i NotMachine) Details() string {
 	expected := i.fullDirective[:2] + strings.TrimLeftFunc(i.fullDirective[2:], unicode.IsSpace)
 	return fmt.Sprintf("directive `%s` should be written without leading space as `%s`",
 		i.fullDirective, expected)
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i NotMachine) String() string { return toString(i) }
 
 type NotSpecific struct {
 	BaseIssue
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i NotSpecific) Details() string {
 	return fmt.Sprintf("directive `%s` should mention specific linter such as `%s:my-linter`",
 		i.fullDirective, i.directiveWithOptionalLeadingSpace)
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i NotSpecific) String() string { return toString(i) }
 
 type ParseError struct {
 	BaseIssue
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i ParseError) Details() string {
 	return fmt.Sprintf("directive `%s` should match `%s[:<comma-separated-linters>] [// <explanation>]`",
 		i.fullDirective,
 		i.directiveWithOptionalLeadingSpace)
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i ParseError) String() string { return toString(i) }
 
 type NoExplanation struct {
@@ -87,13 +83,12 @@ type NoExplanation struct {
 	fullDirectiveWithoutExplanation string
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i NoExplanation) Details() string {
 	return fmt.Sprintf("directive `%s` should provide explanation such as `%s // this is why`",
 		i.fullDirective, i.fullDirectiveWithoutExplanation)
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i NoExplanation) String() string { return toString(i) }
 
 type UnusedCandidate struct {
@@ -101,7 +96,7 @@ type UnusedCandidate struct {
 	ExpectedLinter string
 }
 
-//nolint:gocritic // TODO must be change in the future.
+//nolint:gocritic // TODO(ldez) must be change in the future.
 func (i UnusedCandidate) Details() string {
 	details := fmt.Sprintf("directive `%s` is unused", i.fullDirective)
 	if i.ExpectedLinter != "" {
@@ -110,7 +105,6 @@ func (i UnusedCandidate) Details() string {
 	return details
 }
 
-//nolint:gocritic // TODO must be change in the future.
 func (i UnusedCandidate) String() string { return toString(i) }
 
 func toString(i Issue) string {
@@ -152,7 +146,7 @@ func NewLinter(needs Needs, excludes []string) (*Linter, error) {
 	}
 
 	return &Linter{
-		needs:           needs,
+		needs:           needs | NeedsMachineOnly,
 		excludeByLinter: excludeByName,
 	}, nil
 }
@@ -184,11 +178,13 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 					leadingSpace = leadingSpaceMatches[1]
 				}
 
-				directiveWithOptionalLeadingSpace := comment.Text
-				if len(leadingSpace) > 0 {
-					split := strings.Split(strings.SplitN(comment.Text, ":", 2)[0], "//")
-					directiveWithOptionalLeadingSpace = "// " + strings.TrimSpace(split[1])
+				directiveWithOptionalLeadingSpace := "//"
+				if leadingSpace != "" {
+					directiveWithOptionalLeadingSpace += " "
 				}
+
+				split := strings.Split(strings.SplitN(comment.Text, ":", 2)[0], "//")
+				directiveWithOptionalLeadingSpace += strings.TrimSpace(split[1])
 
 				pos := fset.Position(comment.Pos())
 				end := fset.Position(comment.End())
@@ -199,8 +195,8 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 					position:                          pos,
 				}
 
-				// check for, report and eliminate leading spaces so we can check for other issues
-				if len(leadingSpace) > 0 {
+				// check for, report and eliminate leading spaces, so we can check for other issues
+				if leadingSpace != "" {
 					removeWhitespace := &result.Replacement{
 						Inline: &result.InlineFix{
 							StartCol:  pos.Column + 1,
@@ -227,8 +223,9 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 				}
 
 				lintersText, explanation := fullMatches[1], fullMatches[2]
+
 				var linters []string
-				if len(lintersText) > 0 {
+				if lintersText != "" && !strings.HasPrefix(lintersText, "all") {
 					lls := strings.Split(lintersText, ",")
 					linters = make([]string, 0, len(lls))
 					rangeStart := (pos.Column - 1) + len("//") + len(leadingSpace) + len("nolint:")
@@ -281,7 +278,7 @@ func (l Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
 
 				if (l.needs&NeedsExplanation) != 0 && (explanation == "" || strings.TrimSpace(explanation) == "//") {
 					needsExplanation := len(linters) == 0 // if no linters are mentioned, we must have explanation
-					// otherwise, check if we are excluding all of the mentioned linters
+					// otherwise, check if we are excluding all the mentioned linters
 					for _, ll := range linters {
 						if !l.excludeByLinter[ll] { // if a linter does require explanation
 							needsExplanation = true

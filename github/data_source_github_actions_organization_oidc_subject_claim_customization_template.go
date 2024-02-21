@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
@@ -38,7 +38,10 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRea
 	}
 
 	d.SetId(orgName)
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	err = d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
