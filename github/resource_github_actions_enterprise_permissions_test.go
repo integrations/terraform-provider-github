@@ -50,6 +50,12 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		}
 
 		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
 			testCase(t, enterprise)
 		})
 	})
@@ -136,6 +142,12 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		}
 
 		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
 			testCase(t, enterprise)
 		})
 	})
@@ -189,6 +201,12 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		}
 
 		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
 			testCase(t, enterprise)
 		})
 	})
@@ -271,6 +289,12 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		}
 
 		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
 			testCase(t, enterprise)
 		})
 	})
