@@ -176,7 +176,20 @@ func needToSkipBasedOnContext(
 	_, blockEndWithReturn := block.List[len(block.List)-1].(*ast.ReturnStmt)
 	if !blockEndWithReturn {
 		for i := currCallIndex + 1; i < len(otherCalls); i++ {
-			if (otherCalls[i].rootIf == nil) || (otherCalls[i].rootIf != currCall.rootIf) {
+			nextCall := otherCalls[i]
+			nextCallInElseBlock := false
+
+			if pIf := currCall.parentIf; pIf != nil && pIf.Else != nil {
+				ast.Inspect(pIf.Else, func(n ast.Node) bool {
+					if n == nextCall.call {
+						nextCallInElseBlock = true
+						return false
+					}
+					return true
+				})
+			}
+
+			if !nextCallInElseBlock {
 				noCallsAfter = false
 				break
 			}
