@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.19.0
+	golang.org/x/crypto v0.20.0
 	golang.org/x/oauth2 v0.17.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
