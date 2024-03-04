@@ -14,5 +14,5 @@ export GITHUB_APP_PEM_FILE=
 ```
 
 ```console
-terraform apply -var "organization=${GITHUB_ORG}"
+terraform apply -var "owner=${GITHUB_OWNER}"
 ```
