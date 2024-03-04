@@ -8,13 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/internal/tfplugin5"
 )
 
-func ServerCapabilities(in *tfplugin5.ServerCapabilities) *tfprotov5.ServerCapabilities {
+func DynamicValue(in *tfplugin5.DynamicValue) *tfprotov5.DynamicValue {
 	if in == nil {
 		return nil
 	}
 
-	return &tfprotov5.ServerCapabilities{
-		GetProviderSchemaOptional: in.GetProviderSchemaOptional,
-		PlanDestroy:               in.PlanDestroy,
+	resp := &tfprotov5.DynamicValue{
+		MsgPack: in.Msgpack,
+		JSON:    in.Json,
 	}
+
+	return resp
 }
