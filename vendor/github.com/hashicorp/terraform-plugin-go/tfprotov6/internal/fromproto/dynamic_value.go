@@ -9,8 +9,14 @@ import (
 )
 
 func DynamicValue(in *tfplugin6.DynamicValue) *tfprotov6.DynamicValue {
-	return &tfprotov6.DynamicValue{
+	if in == nil {
+		return nil
+	}
+
+	resp := &tfprotov6.DynamicValue{
 		MsgPack: in.Msgpack,
 		JSON:    in.Json,
 	}
+
+	return resp
 }

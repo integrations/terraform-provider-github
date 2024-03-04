@@ -8,13 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6/internal/tfplugin6"
 )
 
-func ServerCapabilities(in *tfplugin6.ServerCapabilities) *tfprotov6.ServerCapabilities {
+func RawState(in *tfplugin6.RawState) *tfprotov6.RawState {
 	if in == nil {
 		return nil
 	}
 
-	return &tfprotov6.ServerCapabilities{
-		GetProviderSchemaOptional: in.GetProviderSchemaOptional,
-		PlanDestroy:               in.PlanDestroy,
+	resp := &tfprotov6.RawState{
+		JSON:    in.Json,
+		Flatmap: in.Flatmap,
 	}
+
+	return resp
 }
