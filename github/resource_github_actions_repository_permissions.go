@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 
 	"github.com/google/go-github/v57/github"
@@ -97,8 +96,7 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) (*gith
 
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
-		return &github.ActionsAllowed{},
-			errors.New("the allowed_actions_config {} block must be specified if allowed_actions == 'selected'")
+		return nil, nil
 	}
 
 	return allowed, nil
@@ -141,12 +139,17 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		if err != nil {
 			return err
 		}
-		_, _, err = client.Repositories.EditActionsAllowed(ctx,
-			owner,
-			repoName,
-			*actionsAllowedData)
-		if err != nil {
-			return err
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Allowed actions config is set")
+			_, _, err = client.Repositories.EditActionsAllowed(ctx,
+				owner,
+				repoName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Allowed actions config not set, skipping")
 		}
 	}
 
@@ -166,7 +169,12 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 		return err
 	}
 
-	if actionsPermissions.GetAllowedActions() == "selected" {
+	// only load and fill allowed_actions_config if allowed_actions_config is also set
+	// in the TF code. (see #2105)
+	// on initial import there might not be any value in the state, then we have to import the data
+	allowedActions := d.Get("allowed_actions").(string)
+	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
+	if (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == "" {
 		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
 		if err != nil {
 			return err
