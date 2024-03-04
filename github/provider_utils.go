@@ -69,6 +69,16 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION environment variables should be set")
 		}
+
+	case app:
+		if os.Getenv("GITHUB_APP_ID") != "" &&
+			os.Getenv("GITHUB_APP_INSTALLATION_ID") != "" &&
+			os.Getenv("GITHUB_APP_PEM_FILE") != "" &&
+			os.Getenv("GITHUB_OWNER") != "" {
+			return
+		} else {
+			t.Log("GITHUB_OWNER, GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID, and GITHUB_APP_PEM_FILE environment variables should be set")
+		}
 	}
 
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
@@ -130,7 +140,32 @@ func testOwnerFunc() string {
 	return owner
 }
 
+func testAppIDFunc() string {
+	appID := os.Getenv("GITHUB_APP_ID")
+	if appID == "" {
+		appID = os.Getenv("GITHUB_TEST_APP_ID")
+	}
+	return appID
+}
+
+func testAppInstallationIDFunc() string {
+	appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
+	if appInstallationID == "" {
+		appInstallationID = os.Getenv("GITHUB_TEST_APP_INSTALLATION_ID")
+	}
+	return appInstallationID
+}
+
+func testAppPemFileFunc() string {
+	appPemFile := os.Getenv("GITHUB_APP_PEM_FILE")
+	if appPemFile == "" {
+		appPemFile = os.Getenv("GITHUB_TEST_APP_PEM_FILE")
+	}
+	return appPemFile
+}
+
 const anonymous = "anonymous"
 const individual = "individual"
 const organization = "organization"
 const enterprise = "enterprise"
+const app = "app"
