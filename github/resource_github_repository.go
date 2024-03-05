@@ -598,7 +598,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				Name:               githubv4.String(d.Get("name").(string)),
 				OwnerID:            githubv4.ID(owner.NodeID),
 				Description:        &description,
-				RepositoryID:       githubv4.ID(templateID),
+				RepositoryID:       templateID,
 				Visibility:         effectiveVisibility,
 				IncludeAllBranches: &includeAllBranches,
 			}, nil)
