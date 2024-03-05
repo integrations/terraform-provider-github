@@ -1,0 +1,35 @@
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes#configuring-automatically-generated-release-notes
+
+changelog:
+  categories:
+    - title: 💥 Breaking Changes
+      labels:
+        - "Type: Breaking change"
+
+    - title: 🚀 New Features
+      labels:
+        - "Type: Feature"
+
+    - title: 🐛 Bugfixes
+      labels:
+        - "Type: Bug"
+
+    - title: 🪦 Deprecations
+      labels:
+        - "Deprecation"
+
+    - title: 🛠️ Maintenance
+      labels:
+        - "Type: Maintenance"
+
+    - title: 📝 Documentation
+      labels:
+        - "Type: Documentation"
+
+    - title: 📦 Dependency Updates
+      labels:
+        - "dependencies"
+
+    - title: 🏷 Other Changes
+      labels:
+        - "*"
