@@ -9,6 +9,8 @@ changelog:
     - title: 🚀 New Features
       labels:
         - "Type: Feature"
+        - "New data source"
+        - "New resource"
 
     - title: 🐛 Bugfixes
       labels:
