@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -106,8 +107,7 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
-		return &github.ActionsAllowed{},
-			errors.New("the allowed_actions_config {} block must be specified if allowed_actions == 'selected'")
+		return nil, nil
 	}
 
 	return allowed, nil
@@ -162,11 +162,16 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		if err != nil {
 			return err
 		}
-		_, _, err = client.Actions.EditActionsAllowed(ctx,
-			orgName,
-			*actionsAllowedData)
-		if err != nil {
-			return err
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Allowed actions config is set")
+			_, _, err = client.Actions.EditActionsAllowed(ctx,
+				orgName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Allowed actions config not set, skipping")
 		}
 	}
 
@@ -201,7 +206,12 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		return err
 	}
 
-	if actionsPermissions.GetAllowedActions() == "selected" {
+	// only load and fill allowed_actions_config if allowed_actions_config is also set
+	// in the TF code. (see #2105)
+	// on initial import there might not be any value in the state, then we have to import the data
+	allowedActions := d.Get("allowed_actions").(string)
+	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
+	if (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == "" {
 		actionsAllowed, _, err := client.Actions.GetActionsAllowed(ctx, d.Id())
 		if err != nil {
 			return err
