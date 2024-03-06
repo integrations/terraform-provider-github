@@ -1,11 +1,11 @@
 ---
 layout: "github"
-page_title: "GitHub: github_actions_enterprise_permissions"
+page_title: "GitHub: github_enterprise_actions_permissions"
 description: |-
   Creates and manages Actions permissions within a GitHub enterprise
 ---
 
-# github_actions_enterprise_permissions
+# github_enterprise_actions_permissions
 
 This resource allows you to create and manage GitHub Actions permissions within your GitHub enterprise.
 You must have admin access to an enterprise to use this resource.
@@ -21,7 +21,7 @@ data "github_organization" "example-org" {
   name = "my-org"
 }
 
-resource "github_actions_enterprise_permissions" "test" {
+resource "github_enterprise_actions_permissions" "test" {
   enterprise_id = data.github_enterprise.example-enterprise.slug
   allowed_actions = "selected"
   enabled_organizations = "selected"
@@ -64,5 +64,5 @@ The `enabled_organizations_config` block supports the following:
 This resource can be imported using the name of the GitHub enterprise:
 
 ```
-$ terraform import github_actions_enterprise_permissions.test github_enterprise_name
+$ terraform import github_enterprise_actions_permissions.test github_enterprise_name
 ```

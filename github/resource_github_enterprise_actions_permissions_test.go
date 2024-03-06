@@ -20,7 +20,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				slug = "%s"
 			}
 
-			resource "github_actions_enterprise_permissions" "test" {
+			resource "github_enterprise_actions_permissions" "test" {
 				enterprise_id = data.github_enterprise.enterprise.id
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
@@ -29,10 +29,10 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions", allowedActions,
+				"github_enterprise_actions_permissions.test", "allowed_actions", allowedActions,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations", enabledOrganizations,
+				"github_enterprise_actions_permissions.test", "enabled_organizations", enabledOrganizations,
 			),
 		)
 
@@ -93,7 +93,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				]
 			}
 
-			resource "github_actions_enterprise_permissions" "test" {
+			resource "github_enterprise_actions_permissions" "test" {
 				enterprise_id = data.github_enterprise.enterprise.id
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
@@ -110,16 +110,16 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions", allowedActions,
+				"github_enterprise_actions_permissions.test", "allowed_actions", allowedActions,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations", enabledOrganizations,
+				"github_enterprise_actions_permissions.test", "enabled_organizations", enabledOrganizations,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions_config.#", "1",
+				"github_enterprise_actions_permissions.test", "allowed_actions_config.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations_config.#", "1",
+				"github_enterprise_actions_permissions.test", "enabled_organizations_config.#", "1",
 			),
 		)
 
@@ -133,7 +133,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 						Check:  check,
 					},
 					{
-						ResourceName:      "github_actions_enterprise_permissions.test",
+						ResourceName:      "github_enterprise_actions_permissions.test",
 						ImportState:       true,
 						ImportStateVerify: true,
 					},
@@ -163,7 +163,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
 			}
-			resource "github_actions_enterprise_permissions" "test" {
+			resource "github_enterprise_actions_permissions" "test" {
 				enterprise_id = data.github_enterprise.enterprise.id
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
@@ -177,13 +177,13 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions", allowedActions,
+				"github_enterprise_actions_permissions.test", "allowed_actions", allowedActions,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations", enabledOrganizations,
+				"github_enterprise_actions_permissions.test", "enabled_organizations", enabledOrganizations,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions_config.#", "1",
+				"github_enterprise_actions_permissions.test", "allowed_actions_config.#", "1",
 			),
 		)
 
@@ -253,7 +253,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					data.github_user.current.login
 				]
 			}
-			resource "github_actions_enterprise_permissions" "test" {
+			resource "github_enterprise_actions_permissions" "test" {
 				enterprise_id = data.github_enterprise.enterprise.id
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
@@ -265,13 +265,13 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "allowed_actions", allowedActions,
+				"github_enterprise_actions_permissions.test", "allowed_actions", allowedActions,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations", enabledOrganizations,
+				"github_enterprise_actions_permissions.test", "enabled_organizations", enabledOrganizations,
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_enterprise_permissions.test", "enabled_organizations_config.#", "1",
+				"github_enterprise_actions_permissions.test", "enabled_organizations_config.#", "1",
 			),
 		)
 
