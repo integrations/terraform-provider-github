@@ -125,6 +125,7 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_enterprise_actions_permissions":                                 resourceGithubActionsEnterprisePermissions(),
 			"github_actions_environment_secret":                                     resourceGithubActionsEnvironmentSecret(),
 			"github_actions_environment_variable":                                   resourceGithubActionsEnvironmentVariable(),
 			"github_actions_organization_oidc_subject_claim_customization_template": resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
