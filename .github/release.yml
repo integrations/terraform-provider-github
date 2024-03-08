@@ -23,14 +23,11 @@ changelog:
     - title: 🛠️ Maintenance
       labels:
         - "Type: Maintenance"
+        - "dependencies"
 
     - title: 📝 Documentation
       labels:
         - "Type: Documentation"
-
-    - title: 📦 Dependency Updates
-      labels:
-        - "dependencies"
 
     - title: 🏷 Other Changes
       labels:
