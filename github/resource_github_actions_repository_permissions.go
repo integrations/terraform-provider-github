@@ -172,9 +172,14 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	// only load and fill allowed_actions_config if allowed_actions_config is also set
 	// in the TF code. (see #2105)
 	// on initial import there might not be any value in the state, then we have to import the data
+	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
 	allowedActions := d.Get("allowed_actions").(string)
 	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
-	if (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == "" {
+
+	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
+	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
+
+	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
 		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
 		if err != nil {
 			return err
