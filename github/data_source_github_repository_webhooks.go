@@ -100,7 +100,7 @@ func flattenGitHubWebhooks(hooks []*github.Hook) []map[string]interface{} {
 		result["id"] = hook.ID
 		result["type"] = hook.Type
 		result["name"] = hook.Name
-		result["url"] = hook.Config["url"]
+		result["url"] = hook.Config.URL
 		result["active"] = hook.Active
 
 		results = append(results, result)

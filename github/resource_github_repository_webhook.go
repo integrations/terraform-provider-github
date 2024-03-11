@@ -86,13 +86,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 
 	config := d.Get("configuration").([]interface{})
 	if len(config) > 0 {
-		hook.Config = config[0].(map[string]interface{})
-	}
-
-	if hook.Config["insecure_ssl"].(bool) {
-		hook.Config["insecure_ssl"] = "1"
-	} else {
-		hook.Config["insecure_ssl"] = "0"
+		hook.Config = flattenWebhookConfig(config[0].(map[string]interface{}))
 	}
 
 	return hook
@@ -115,13 +109,11 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from our request to GitHub
-	if hook.Config["secret"] != nil {
-		hook.Config["secret"] = hk.Config["secret"]
+	if hook.Config.Secret != nil {
+		hook.Config.Secret = hk.Config.Secret
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", expandWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
@@ -172,16 +164,14 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	// write the configuration secret in state from what we get from
 	// ResourceData
 	if len(d.Get("configuration").([]interface{})) > 0 {
-		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"].(string)
 
-		if hook.Config["secret"] != nil {
-			hook.Config["secret"] = currentSecret
+		if hook.Config.Secret != nil {
+			hook.Config.Secret = &currentSecret
 		}
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", expandWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
