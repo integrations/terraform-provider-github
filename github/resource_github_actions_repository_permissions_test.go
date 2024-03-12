@@ -294,4 +294,61 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		})
 
 	})
+
+	// https://github.com/integrations/terraform-provider-github/issues/2182
+	t.Run("test load with disabled actions", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			locals {
+				actions_enabled = false
+			}
+
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-actions-permissions-%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics		= ["terraform", "testing"]
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				repository = github_repository.test.name
+				enabled         = local.actions_enabled
+				allowed_actions = local.actions_enabled ? "all" : null
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_permissions.test", "enabled", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_permissions.test", "allowed_actions.#", "0",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
