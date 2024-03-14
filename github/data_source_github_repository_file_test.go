@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -8,12 +9,13 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
@@ -282,28 +284,36 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		}
 
 		testSchema := map[string]*schema.Schema{
-			"repository": {Type: schema.TypeString},
-			"file":       {Type: schema.TypeString},
-			"branch":     {Type: schema.TypeString},
-			"commit_sha": {Type: schema.TypeString},
-			"content":    {Type: schema.TypeString},
-			"id":         {Type: schema.TypeString},
+			"repository":     {Type: schema.TypeString},
+			"file":           {Type: schema.TypeString},
+			"branch":         {Type: schema.TypeString},
+			"commit_sha":     {Type: schema.TypeString},
+			"commit_email":   {Type: schema.TypeString},
+			"commit_author":  {Type: schema.TypeString},
+			"commit_message": {Type: schema.TypeString},
+			"content":        {Type: schema.TypeString},
+			"id":             {Type: schema.TypeString},
 		}
 
 		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
-			"repository": repositoryFullName,
-			"file":       fileName,
-			"branch":     branch,
-			"commit_sha": sha,
-			"content":    "",
-			"id":         "",
+			"repository":     repositoryFullName,
+			"file":           fileName,
+			"branch":         branch,
+			"commit_sha":     sha,
+			"commit_email":   committerEmail,
+			"commit_author":  committerName,
+			"commit_message": commitMessage,
+			"content":        "",
+			"id":             "",
 		})
 
 		// actual call
-		err := dataSourceGithubRepositoryFileRead(schema, meta)
+		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
 
 		// assertions
-		assert.Nil(t, err)
+		for _, diagnostic := range diags {
+			assert.Equal(t, diag.Warning, diagnostic.Severity)
+		}
 		assert.Equal(t, expectedRepo, schema.Get("repository"))
 		assert.Equal(t, fileContent, schema.Get("content"))
 		assert.Equal(t, expectedID, schema.Get("id"))
@@ -346,28 +356,36 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		}
 
 		testSchema := map[string]*schema.Schema{
-			"repository": {Type: schema.TypeString},
-			"file":       {Type: schema.TypeString},
-			"branch":     {Type: schema.TypeString},
-			"commit_sha": {Type: schema.TypeString},
-			"content":    {Type: schema.TypeString},
-			"id":         {Type: schema.TypeString},
+			"repository":     {Type: schema.TypeString},
+			"file":           {Type: schema.TypeString},
+			"branch":         {Type: schema.TypeString},
+			"commit_sha":     {Type: schema.TypeString},
+			"commit_email":   {Type: schema.TypeString},
+			"commit_author":  {Type: schema.TypeString},
+			"commit_message": {Type: schema.TypeString},
+			"content":        {Type: schema.TypeString},
+			"id":             {Type: schema.TypeString},
 		}
 
 		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
-			"repository": repositoryFullName,
-			"file":       fileName,
-			"branch":     branch,
-			"commit_sha": sha,
-			"content":    "",
-			"id":         "",
+			"repository":     repositoryFullName,
+			"file":           fileName,
+			"branch":         branch,
+			"commit_sha":     sha,
+			"commit_email":   committerEmail,
+			"commit_author":  committerName,
+			"commit_message": commitMessage,
+			"content":        "",
+			"id":             "",
 		})
 
 		// actual call
-		err := dataSourceGithubRepositoryFileRead(schema, meta)
+		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
 
 		// assertions
-		assert.Nil(t, err)
+		for _, diagnostic := range diags {
+			assert.Equal(t, diag.Warning, diagnostic.Severity)
+		}
 		assert.Equal(t, expectedRepo, schema.Get("repository"))
 		assert.Equal(t, fileContent, schema.Get("content"))
 		assert.Equal(t, expectedID, schema.Get("id"))
@@ -475,10 +493,12 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		})
 
 		// actual call
-		err := dataSourceGithubRepositoryFileRead(schema, meta)
+		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
 
 		// assertions
-		assert.Nil(t, err)
+		for _, diagnostic := range diags {
+			assert.Equal(t, diagnostic.Severity, diag.Warning)
+		}
 		assert.Equal(t, expectedRepo, schema.Get("repository"))
 		assert.Equal(t, expectedID, schema.Get("id"))
 		assert.Equal(t, "", schema.Get("content"))

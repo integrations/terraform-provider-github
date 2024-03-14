@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v57/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubCollaborators() *schema.Resource {
@@ -24,11 +24,11 @@ func dataSourceGithubCollaborators() *schema.Resource {
 			},
 			"affiliation": {
 				Type: schema.TypeString,
-				ValidateFunc: validation.StringInSlice([]string{
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
 					"outside",
-				}, false),
+				}, false), "affiliation"),
 				Optional: true,
 				Default:  "all",
 			},
@@ -125,9 +125,18 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, affiliation))
-	d.Set("owner", owner)
-	d.Set("repository", repo)
-	d.Set("affiliation", affiliation)
+	err := d.Set("owner", owner)
+	if err != nil {
+		return err
+	}
+	err = d.Set("repository", repo)
+	if err != nil {
+		return err
+	}
+	err = d.Set("affiliation", affiliation)
+	if err != nil {
+		return err
+	}
 
 	totalCollaborators := make([]interface{}, 0)
 	for {
@@ -149,7 +158,10 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 		options.Page = resp.NextPage
 	}
 
-	d.Set("collaborator", totalCollaborators)
+	err = d.Set("collaborator", totalCollaborators)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

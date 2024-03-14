@@ -67,7 +67,7 @@ func (w *tpWalker) isParameterized(typ types.Type) (res bool) {
 		// of a generic function type (or an interface method) that is
 		// part of the type we're testing. We don't care about these type
 		// parameters.
-		// Similarly, the receiver of a method may declare (rather then
+		// Similarly, the receiver of a method may declare (rather than
 		// use) type parameters, we don't care about those either.
 		// Thus, we only need to look at the input and result parameters.
 		return w.isParameterized(t.Params()) || w.isParameterized(t.Results())
@@ -95,14 +95,14 @@ func (w *tpWalker) isParameterized(typ types.Type) (res bool) {
 		return w.isParameterized(t.Elem())
 
 	case *types.Named:
-		list := typeparams.NamedTypeArgs(t)
+		list := t.TypeArgs()
 		for i, n := 0, list.Len(); i < n; i++ {
 			if w.isParameterized(list.At(i)) {
 				return true
 			}
 		}
 
-	case *typeparams.TypeParam:
+	case *types.TypeParam:
 		return true
 
 	default:

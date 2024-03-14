@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v57/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 		Update: resourceGithubOrganizationCustomRoleUpdate,
 		Delete: resourceGithubOrganizationCustomRoleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -26,10 +26,10 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 				Description: "The organization custom repository role to create.",
 			},
 			"base_role": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The base role for the custom repository role.",
-				ValidateFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The base role for the custom repository role.",
+				ValidateDiagFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
 			},
 			"permissions": {
 				Type:        schema.TypeSet,
@@ -112,10 +112,18 @@ func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta inter
 		return nil
 	}
 
-	d.Set("name", role.Name)
-	d.Set("description", role.Description)
-	d.Set("base_role", role.BaseRole)
-	d.Set("permissions", role.Permissions)
+	if err = d.Set("name", role.Name); err != nil {
+		return err
+	}
+	if err = d.Set("description", role.Description); err != nil {
+		return err
+	}
+	if err = d.Set("base_role", role.BaseRole); err != nil {
+		return err
+	}
+	if err = d.Set("permissions", role.Permissions); err != nil {
+		return err
+	}
 
 	return nil
 }

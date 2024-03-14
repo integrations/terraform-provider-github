@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 )
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(client *github.Client, owner, repo, branch string) error {
 	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(repo, branch))
-	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, true)
+	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -98,7 +98,7 @@ func getAutolinkByKeyPrefix(client *github.Client, owner, repo, keyPrefix string
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("cannot find autolink reference %s in repo %s/%s", keyPrefix, owner, repo)
 }
 
 // listAutolinks returns all autolink references for the given repository.
@@ -122,4 +122,14 @@ func listAutolinks(client *github.Client, owner, repo string) ([]*github.Autolin
 	}
 
 	return allAutolinks, nil
+}
+
+// get the list of retriable errors
+func getDefaultRetriableErrors() map[int]bool {
+	return map[int]bool{
+		500: true,
+		502: true,
+		503: true,
+		504: true,
+	}
 }

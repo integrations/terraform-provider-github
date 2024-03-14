@@ -3,10 +3,11 @@ package github
 import (
 	"encoding/json"
 	"log"
+	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v57/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {
@@ -62,10 +63,6 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []interface{} {
 	if bypassActors == nil {
 		return []interface{}{}
 	}
-
-	sort.SliceStable(bypassActors, func(i, j int) bool {
-		return bypassActors[i].GetActorID() > bypassActors[j].GetActorID()
-	})
 
 	actorsSlice := make([]interface{}, 0)
 	for _, v := range bypassActors {
@@ -334,6 +331,37 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
 
+	// Required workflows to pass before merging rule
+	if v, ok := rulesMap["required_workflows"].([]interface{}); ok && len(v) != 0 {
+		requiredWorkflowsMap := v[0].(map[string]interface{})
+		requiredWorkflows := make([]*github.RuleRequiredWorkflow, 0)
+
+		if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
+
+			requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
+			for _, workflowMap := range requiredWorkflowsSet.List() {
+				workflow := workflowMap.(map[string]interface{})
+
+				// Get all parameters
+				repositoryID := github.Int64(int64(workflow["repository_id"].(int)))
+				ref := github.String(workflow["ref"].(string))
+
+				params := &github.RuleRequiredWorkflow{
+					RepositoryID: repositoryID,
+					Path:         workflow["path"].(string),
+					Ref:          ref,
+				}
+
+				requiredWorkflows = append(requiredWorkflows, params)
+			}
+		}
+
+		params := &github.RequiredWorkflowsRuleParameters{
+			RequiredWorkflows: requiredWorkflows,
+		}
+		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
+	}
+
 	return rulesSlice
 }
 
@@ -448,4 +476,25 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 	}
 
 	return []interface{}{rulesMap}
+}
+
+func bypassActorsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	// If the length has changed, no need to suppress
+	if k == "bypass_actors.#" {
+		return old == new
+	}
+
+	// Get change to bypass actors
+	o, n := d.GetChange("bypass_actors")
+	oldBypassActors := o.([]interface{})
+	newBypassActors := n.([]interface{})
+
+	sort.SliceStable(oldBypassActors, func(i, j int) bool {
+		return oldBypassActors[i].(map[string]interface{})["actor_id"].(int) > oldBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+	sort.SliceStable(newBypassActors, func(i, j int) bool {
+		return newBypassActors[i].(map[string]interface{})["actor_id"].(int) > newBypassActors[j].(map[string]interface{})["actor_id"].(int)
+	})
+
+	return reflect.DeepEqual(oldBypassActors, newBypassActors)
 }

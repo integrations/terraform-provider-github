@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v57/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepository() *schema.Resource {
@@ -118,6 +118,117 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"repository_license": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"path": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"license": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"spdx_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"html_url": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"featured": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"description": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"implementation": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"permissions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"conditions": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"limitations": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"body": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"sha": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"size": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"html_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"git_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"download_url": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"content": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"encoding": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"pages": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -194,7 +305,6 @@ func dataSourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
@@ -295,18 +405,39 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("error setting pages: %w", err)
 		}
 	} else {
-		d.Set("pages", flattenPages(nil))
+		err = d.Set("pages", flattenPages(nil))
+		if err != nil {
+			return err
+		}
+	}
+
+	if repo.License != nil {
+		repository_license, _, err := client.Repositories.License(context.TODO(), owner, repoName)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("repository_license", flattenRepositoryLicense(repository_license)); err != nil {
+			return fmt.Errorf("error setting repository_license: %w", err)
+		}
+	} else {
+		d.Set("repository_license", flattenRepositoryLicense(nil))
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		err = d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
 		})
+		if err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		err = d.Set("template", []interface{}{})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
