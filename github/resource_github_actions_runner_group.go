@@ -23,6 +23,11 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the runner group.",
+			},
 			"allows_public_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -151,7 +156,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
 		return err
 	}
-	if err = d.Set("id", runnerGroup.GetID()); err != nil {
+
+	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
 		return err
 	}
 	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
@@ -238,7 +244,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
 		return err
 	}
-	if err = d.Set("id", runnerGroup.GetID()); err != nil {
+	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
 		return err
 	}
 	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
