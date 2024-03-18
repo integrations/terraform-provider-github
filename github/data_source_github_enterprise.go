@@ -12,6 +12,10 @@ func dataSourceGithubEnterprise() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubEnterpriseRead,
 		Schema: map[string]*schema.Schema{
+			"database_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -40,6 +44,7 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta interface{})
 	var query struct {
 		Enterprise struct {
 			ID          githubv4.String
+			DatabaseId  githubv4.Int
 			Name        githubv4.String
 			Description githubv4.String
 			CreatedAt   githubv4.String
@@ -73,6 +78,10 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta interface{})
 		return err
 	}
 	err = data.Set("url", query.Enterprise.Url)
+	if err != nil {
+		return err
+	}
+	err = data.Set("database_id", query.Enterprise.DatabaseId)
 	if err != nil {
 		return err
 	}
