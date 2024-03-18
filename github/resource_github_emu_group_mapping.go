@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v60/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 

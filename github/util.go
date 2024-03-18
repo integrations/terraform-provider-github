@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v60/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -280,4 +280,37 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 		}
 	}
 	return err
+}
+
+func expandWebhookConfig(configured *github.HookConfig) []map[string]interface{} {
+	config := make(map[string]interface{})
+	config["url"] = configured.URL
+	config["content_type"] = configured.ContentType
+	config["secret"] = configured.Secret
+	config["insecure_ssl"] = func() bool {
+		if *configured.InsecureSSL != "1" {
+			return true
+		}
+		return false
+	}()
+	config["secret"] = configured.Secret
+	return []map[string]interface{}{config}
+}
+
+func flattenWebhookConfig(v map[string]interface{}) *github.HookConfig {
+	configured := &github.HookConfig{
+		URL:         github.String(v["url"].(string)),
+		ContentType: github.String(v["content_type"].(string)), // Convert to *string
+		InsecureSSL: func() *string {
+			var insecureSSL *string
+			if v["insecure_ssl"].(bool) {
+				insecureSSL = github.String("0")
+			} else {
+				insecureSSL = github.String("1")
+			}
+			return insecureSSL
+		}(),
+		Secret: github.String(v["secret"].(string)),
+	}
+	return configured
 }
