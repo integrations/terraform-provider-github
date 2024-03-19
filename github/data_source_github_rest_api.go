@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"io"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -43,21 +44,22 @@ func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	var body map[string]interface{}
-
 	req, err := client.NewRequest("GET", u, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, _ := client.Do(ctx, req, &body)
+	resp, err := client.Do(ctx, req, nil)
+	if err != nil && resp.StatusCode != 404 {
+		return err
+	}
 
 	h, err := json.Marshal(resp.Header)
 	if err != nil {
 		return err
 	}
 
-	b, err := json.Marshal(body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
