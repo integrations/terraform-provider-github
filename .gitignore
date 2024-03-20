@@ -33,6 +33,6 @@ terraform-provider-github
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
-
+examples/testing/main.tf
 # do not commit secrets
 .env
