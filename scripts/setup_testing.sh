@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Ask for the resource name
-read -p "Enter the resource name to use in the test: " resourceName
+read -p "Enter the resource name to use in the test(i.e. issue_label for resource_github_issue_label): " resourceName
 
 # Define the directory and file path
-DIR="examples/${resourceName}"
+DIR="examples/testing/${resourceName}"
 FILE="${DIR}/main.tf"
 
 # Create the directory, if it doesn't already exist
@@ -27,6 +27,7 @@ terraform {
   }
 
   // Example resource placeholder using provided resource name
+  // Documentation: https://registry.terraform.io/providers/integrations/github/latest/docs/resources/${resourceName}
   resource "${resourceName}" "test" {
 
   }
