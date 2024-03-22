@@ -55,6 +55,9 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the repository.
 
+* `owner` - (Optional) The GitHub organization or user the repository is owned by.
+Defaults to the owner/organization specified in the provider configuration.
+If neither are given, this field defaults to the authenticated user. 
 * `description` - (Optional) A description of the repository.
 
 * `homepage_url` - (Optional) URL of a page describing the project.
