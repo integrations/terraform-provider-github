@@ -33,7 +33,9 @@ data "github_organization" "example" {
  * `repositories` - (`list`) A list of the full names of the repositories in the organization formatted as `owner/name` strings
  * `members` - **Deprecated**: use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login` which will give you the same value, expect this field to be removed in next major version
  * `users` - (`list`) A list with the members of the organization with following fields:
-   * `id` - The ID of the member
+   * `id` - **Deprecated**: Use `node_id` instead. Expect this to become equivalent to `database_id` in next major version
+   * `node_id` - The Node ID of the member
+   * `database_id` - The ID of the member
    * `login` - The members login
    * `email` - Publicly available email
    * `role` - Member role `ADMIN`, `MEMBER`

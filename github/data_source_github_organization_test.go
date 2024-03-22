@@ -27,6 +27,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "plan"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "repositories.#"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "members.#"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "users.#"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "two_factor_requirement_enabled"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "default_repository_permission"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "members_can_create_repositories"),
