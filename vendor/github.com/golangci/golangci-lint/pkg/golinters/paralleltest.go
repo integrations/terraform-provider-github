@@ -13,12 +13,16 @@ func NewParallelTest(settings *config.ParallelTestSettings) *goanalysis.Linter {
 
 	var cfg map[string]map[string]any
 	if settings != nil {
-		cfg = map[string]map[string]any{
-			a.Name: {
-				"i":                     settings.IgnoreMissing,
-				"ignoremissingsubtests": settings.IgnoreMissingSubtests,
-			},
+		d := map[string]any{
+			"i":                     settings.IgnoreMissing,
+			"ignoremissingsubtests": settings.IgnoreMissingSubtests,
 		}
+
+		if config.IsGoGreaterThanOrEqual(settings.Go, "1.22") {
+			d["ignoreloopVar"] = true
+		}
+
+		cfg = map[string]map[string]any{a.Name: d}
 	}
 
 	return goanalysis.NewLinter(

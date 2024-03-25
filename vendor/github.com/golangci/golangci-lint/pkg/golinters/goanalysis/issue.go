@@ -13,9 +13,9 @@ type Issue struct {
 	Pass *analysis.Pass
 }
 
-func NewIssue(i *result.Issue, pass *analysis.Pass) Issue {
+func NewIssue(issue *result.Issue, pass *analysis.Pass) Issue {
 	return Issue{
-		Issue: *i,
+		Issue: *issue,
 		Pass:  pass,
 	}
 }
@@ -23,6 +23,7 @@ func NewIssue(i *result.Issue, pass *analysis.Pass) Issue {
 type EncodingIssue struct {
 	FromLinter           string
 	Text                 string
+	Severity             string
 	Pos                  token.Position
 	LineRange            *result.Range
 	Replacement          *result.Replacement
