@@ -195,6 +195,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
 				"dismissal_apps":                  schema.NewSet(schema.HashString, apps),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
+				"require_last_push_approval":      rprr.RequireLastPushApproval,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 				"bypass_pull_request_allowances":  bpra,
 			},
@@ -351,6 +352,8 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
+			requireLastPushApproval := m["require_last_push_approval"].(bool)
+			rprr.RequireLastPushApproval = &requireLastPushApproval
 			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 
