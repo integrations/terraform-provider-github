@@ -81,7 +81,8 @@ Some API operations may not be available when using a GitHub App installation co
 
 ```terraform
 provider "github" {
-  owner = var.github_organization
+  owner = var.github_owner # or `GITHUB_OWNER`
+
   app_auth {
     id              = var.app_id              # or `GITHUB_APP_ID`
     installation_id = var.app_installation_id # or `GITHUB_APP_INSTALLATION_ID`
@@ -90,14 +91,15 @@ provider "github" {
 }
 ```
 
-~> **Note:** When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: https://github.com/hashicorp/terraform-plugin-sdk/issues/142
+When using `GITHUB_APP_XXX` environment variables for app authentication, the `app_auth` block can be omitted:
 
 ```terraform
 provider "github" {
-  owner = var.github_organization
-  app_auth {} # When using `GITHUB_APP_XXX` environment variables
+  owner = var.github_owner # or `GITHUB_OWNER`
 }
 ```
+
+Notice that with this configuration, if `GITHUB_TOKEN` is set, it will take precedence over the `GITHUB_APP_XXX` variables. Such configuration can be used to switch between token-based and app-based authentication in different contexts via environment variables and without altering the code.
 
 ## Argument Reference
 
@@ -115,6 +117,10 @@ The following arguments are supported in the `provider` block:
   * `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
   * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
+
+* `app_id` - (Optional) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
+* `app_installation_id` - (Optional) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
+* `app_pem_file` - (Optional) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
 
 * `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Defaults to 1000ms or 1 second if not provided.
 
