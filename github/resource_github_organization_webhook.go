@@ -98,6 +98,9 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	if hook.Config["secret"] != nil {
 		hook.Config["secret"] = webhookObj.Config["secret"]
 	}
+
+	hook.Config = insecureSslStringToBool(hook.Config)
+
 	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
 		return err
 	}
