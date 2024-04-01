@@ -7,7 +7,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/config"
-	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
+	"github.com/golangci/golangci-lint/pkg/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/result"
 )
@@ -29,7 +29,6 @@ func NewGodot(settings *config.GodotSettings) *goanalysis.Linter {
 		}
 
 		// Convert deprecated setting
-		// todo(butuzov): remove on v2 release
 		if settings.CheckAll {
 			dotSettings.Scope = godot.AllScope
 		}

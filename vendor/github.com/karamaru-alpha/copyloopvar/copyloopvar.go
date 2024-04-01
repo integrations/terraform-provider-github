@@ -52,7 +52,9 @@ func checkRangeStmt(pass *analysis.Pass, rangeStmt *ast.RangeStmt) {
 	}
 	var value *ast.Ident
 	if rangeStmt.Value != nil {
-		value = rangeStmt.Value.(*ast.Ident)
+		if value, ok = rangeStmt.Value.(*ast.Ident); !ok {
+			return
+		}
 	}
 	for _, stmt := range rangeStmt.Body.List {
 		assignStmt, ok := stmt.(*ast.AssignStmt)
@@ -67,7 +69,7 @@ func checkRangeStmt(pass *analysis.Pass, rangeStmt *ast.RangeStmt) {
 			if !ok {
 				continue
 			}
-			if right.Name != key.Name && (value != nil && right.Name != value.Name) {
+			if right.Name != key.Name && (value == nil || right.Name != value.Name) {
 				continue
 			}
 			if ignoreAlias {
