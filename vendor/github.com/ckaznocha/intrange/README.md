@@ -19,7 +19,9 @@ go install github.com/ckaznocha/intrange/cmd/intrange@latest
 go vet -vettool=$(which intrange) ./...
 ```
 
-## Example
+## Examples
+
+### A loop that uses the value of the loop variable
 
 ```go
 package main
@@ -49,6 +51,40 @@ import "fmt"
 func main() {
     for i := range 10 {
         fmt.Println(i)
+    }
+}
+```
+
+### A loop that does not use the value of the loop variable
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    for i := 0; i < 10; i++ {
+        fmt.Println("Hello again!")
+    }
+}
+```
+
+Running `intrange` on the above code will produce the following output:
+
+```bash
+main.go:5:2: for loop can be changed to use an integer range (Go 1.22+)
+```
+
+The loop can be rewritten as:
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    for range 10 {
+        fmt.Println("Hello again!")
     }
 }
 ```
