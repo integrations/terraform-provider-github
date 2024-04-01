@@ -1,3 +1,6 @@
+# Visit https://golangci-lint.run/ for usage documentation
+# and information on other useful linters
+
 run:
   deadline: 3m
   modules-download-mode: vendor
@@ -9,17 +12,25 @@ issues:
 linters:
   disable-all: true
   enable:
+    - durationcheck
     - errcheck
+    - exportloopref
+    # - forcetypeassert
+    # - godot
     - gofmt
     - gosimple
     - ineffassign
+    - makezero
     - misspell
+    # - nilerr
+    # - predeclared
     - staticcheck
+    - tenv
     - unconvert
+    # - unparam
     - unused
     - vet
 
 linters-settings:
   errcheck:
     ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close
-
