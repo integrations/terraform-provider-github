@@ -17,21 +17,22 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Anonymous)
         id: acceptance-tests-anonymous
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
       - name: Failed Acceptance Tests (Anonymous)
         if: ${{ failure() }}
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: DEBUG
           RUN_ALLOWED: ${{ steps.acceptance-tests-anonymous.outputs.run_allowed }}
@@ -48,15 +49,16 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
@@ -65,7 +67,7 @@ jobs:
           GITHUB_TEST_ORGANIZATION: terraformtesting
       - name: Failed Acceptance Tests (Individual)
         if: ${{ failure() }}
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: DEBUG
           RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
@@ -84,16 +86,17 @@ jobs:
             jq -rc .label.name $GITHUB_EVENT_PATH | cut -d/ -f 2
           )"
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALLOWED: ${{ steps.args.outputs.run_allowed }}
@@ -102,7 +105,7 @@ jobs:
           GITHUB_TEST_OWNER: github-terraform-test-user
 
       - name: Failed Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         if: ${{ failure() }}
         with:
           TF_LOG: DEBUG
@@ -110,6 +113,3 @@ jobs:
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
-
-
-

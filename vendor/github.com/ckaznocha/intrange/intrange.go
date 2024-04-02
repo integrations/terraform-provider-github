@@ -84,8 +84,16 @@ func check(pass *analysis.Pass) func(node ast.Node) {
 			return
 		}
 
+		var nExpr ast.Expr
+
 		switch cond.Op {
-		case token.LSS: // ;i < x;
+		case token.LSS: // ;i < n;
+			if isBenchmark(cond.Y) {
+				return
+			}
+
+			nExpr = findNExpr(cond.Y)
+
 			x, ok := cond.X.(*ast.Ident)
 			if !ok {
 				return
@@ -94,7 +102,13 @@ func check(pass *analysis.Pass) func(node ast.Node) {
 			if x.Name != initIdent.Name {
 				return
 			}
-		case token.GTR: // ;x > i;
+		case token.GTR: // ;n > i;
+			if isBenchmark(cond.X) {
+				return
+			}
+
+			nExpr = findNExpr(cond.X)
+
 			y, ok := cond.Y.(*ast.Ident)
 			if !ok {
 				return
@@ -201,6 +215,7 @@ func check(pass *analysis.Pass) func(node ast.Node) {
 
 		bc := &bodyChecker{
 			initIdent: initIdent,
+			nExpr:     nExpr,
 		}
 
 		ast.Inspect(forStmt.Body, bc.check)
@@ -216,8 +231,81 @@ func check(pass *analysis.Pass) func(node ast.Node) {
 	}
 }
 
+func findNExpr(expr ast.Expr) ast.Expr {
+	switch e := expr.(type) {
+	case *ast.CallExpr:
+		if e.Fun.(*ast.Ident).Name != "len" {
+			return nil
+		}
+
+		if len(e.Args) != 1 {
+			return nil
+		}
+
+		return findNExpr(e.Args[0])
+	case *ast.BasicLit:
+		return nil
+	case *ast.Ident:
+		return e
+	case *ast.SelectorExpr:
+		return e
+	default:
+		return nil
+	}
+}
+
+func isBenchmark(expr ast.Expr) bool {
+	selectorExpr, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	if selectorExpr.Sel.Name != "N" {
+		return false
+	}
+
+	ident, ok := selectorExpr.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	if ident.Name == "b" {
+		return true
+	}
+
+	return false
+}
+
+func identEqual(a, b ast.Expr) bool {
+	if a == nil || b == nil {
+		return false
+	}
+
+	switch aT := a.(type) {
+	case *ast.Ident:
+		identB, ok := b.(*ast.Ident)
+		if !ok {
+			return false
+		}
+
+		return aT.Name == identB.Name
+	case *ast.SelectorExpr:
+		selectorB, ok := b.(*ast.SelectorExpr)
+		if !ok {
+			return false
+		}
+
+		return identEqual(aT.Sel, selectorB.Sel) && identEqual(aT.X, selectorB.X)
+	case *ast.IndexExpr:
+		return identEqual(aT.X, b)
+	default:
+		return false
+	}
+}
+
 type bodyChecker struct {
 	initIdent *ast.Ident
+	nExpr     ast.Expr
 	modified  bool
 }
 
@@ -225,24 +313,14 @@ func (b *bodyChecker) check(n ast.Node) bool {
 	switch stmt := n.(type) {
 	case *ast.AssignStmt:
 		for _, lhs := range stmt.Lhs {
-			ident, ok := lhs.(*ast.Ident)
-			if !ok {
-				continue
-			}
-
-			if b.initIdent.Name == ident.Name {
+			if identEqual(lhs, b.initIdent) || identEqual(lhs, b.nExpr) {
 				b.modified = true
 
 				return false
 			}
 		}
 	case *ast.IncDecStmt:
-		ident, ok := stmt.X.(*ast.Ident)
-		if !ok {
-			return true
-		}
-
-		if b.initIdent.Name == ident.Name {
+		if identEqual(stmt.X, b.initIdent) || identEqual(stmt.X, b.nExpr) {
 			b.modified = true
 
 			return false

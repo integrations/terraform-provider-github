@@ -23,15 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Anonymous)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
 
@@ -41,15 +42,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Individual)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_OWNER: administrator
@@ -61,15 +63,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           GITHUB_BASE_URL: "https://terraformtesting-ghe.eastus.cloudapp.azure.com/"
           GITHUB_ORGANIZATION: terraformtesting

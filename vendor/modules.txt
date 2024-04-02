@@ -141,7 +141,7 @@ github.com/charithe/durationcheck
 # github.com/chavacava/garif v0.1.0
 ## explicit; go 1.16
 github.com/chavacava/garif
-# github.com/ckaznocha/intrange v0.1.0
+# github.com/ckaznocha/intrange v0.1.1
 ## explicit; go 1.21
 github.com/ckaznocha/intrange
 # github.com/client9/misspell v0.3.4
@@ -273,7 +273,7 @@ github.com/golangci/dupl/syntax/golang
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/gofmt/internal/diff
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.57.1
+# github.com/golangci/golangci-lint v1.57.2
 ## explicit; go 1.21
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/internal/cache
@@ -286,9 +286,10 @@ github.com/golangci/golangci-lint/pkg/commands/internal
 github.com/golangci/golangci-lint/pkg/config
 github.com/golangci/golangci-lint/pkg/exitcodes
 github.com/golangci/golangci-lint/pkg/fsutils
+github.com/golangci/golangci-lint/pkg/goanalysis
+github.com/golangci/golangci-lint/pkg/goanalysis/load
 github.com/golangci/golangci-lint/pkg/golinters
-github.com/golangci/golangci-lint/pkg/golinters/goanalysis
-github.com/golangci/golangci-lint/pkg/golinters/goanalysis/load
+github.com/golangci/golangci-lint/pkg/golinters/internal
 github.com/golangci/golangci-lint/pkg/golinters/nolintlint
 github.com/golangci/golangci-lint/pkg/goutil
 github.com/golangci/golangci-lint/pkg/lint
@@ -492,7 +493,7 @@ github.com/hexops/gotextdiff/span
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/jgautheron/goconst v1.7.0
+# github.com/jgautheron/goconst v1.7.1
 ## explicit; go 1.13
 github.com/jgautheron/goconst
 # github.com/jingyugao/rowserrcheck v1.1.1
@@ -507,13 +508,13 @@ github.com/jjti/go-spancheck
 # github.com/julz/importas v0.1.0
 ## explicit; go 1.15
 github.com/julz/importas
-# github.com/karamaru-alpha/copyloopvar v1.0.8
+# github.com/karamaru-alpha/copyloopvar v1.0.10
 ## explicit; go 1.21
 github.com/karamaru-alpha/copyloopvar
 # github.com/kisielk/errcheck v1.7.0
 ## explicit; go 1.18
 github.com/kisielk/errcheck/errcheck
-# github.com/kkHAIKE/contextcheck v1.1.4
+# github.com/kkHAIKE/contextcheck v1.1.5
 ## explicit; go 1.20
 github.com/kkHAIKE/contextcheck
 # github.com/kulti/thelper v0.6.3
@@ -525,8 +526,8 @@ github.com/kunwardeep/paralleltest/pkg/paralleltest
 # github.com/kyoh86/exportloopref v0.1.11
 ## explicit; go 1.18
 github.com/kyoh86/exportloopref
-# github.com/ldez/gomoddirectives v0.2.3
-## explicit; go 1.16
+# github.com/ldez/gomoddirectives v0.2.4
+## explicit; go 1.21
 github.com/ldez/gomoddirectives
 # github.com/ldez/tagliatelle v0.5.0
 ## explicit; go 1.19
@@ -611,7 +612,7 @@ github.com/nishanths/exhaustive
 # github.com/nishanths/predeclared v0.2.2
 ## explicit; go 1.14
 github.com/nishanths/predeclared/passes/predeclared
-# github.com/nunnatsa/ginkgolinter v0.16.1
+# github.com/nunnatsa/ginkgolinter v0.16.2
 ## explicit; go 1.21
 github.com/nunnatsa/ginkgolinter
 github.com/nunnatsa/ginkgolinter/internal/ginkgohandler
