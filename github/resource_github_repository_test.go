@@ -1575,8 +1575,8 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
-				auto_init    = true
+				name                        = "tf-acc-%s"
+				auto_init                   = true
 				web_commit_signoff_required = true
 			}
 		`, randomID)
@@ -1622,9 +1622,10 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 		
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
-				auto_init    = true
-				allow_merge_commit = true
+				name                        = "tf-acc-%s"
+				auto_init                   = true
+				allow_merge_commit          = true
+				web_commit_signoff_required = true
 			}
 		`, randomID)
 
@@ -1653,9 +1654,7 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 						Check:  checks["before"],
 					},
 					{
-						Config: strings.Replace(config,
-							`}`,
-							"web_commit_signoff_required = true\n}", 1),
+						Config: config,
 						Check: checks["after"],
 					},
 				},
