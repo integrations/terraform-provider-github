@@ -2,14 +2,15 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
+	"time"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v57/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 const (
@@ -85,34 +86,33 @@ func resourceGithubRepositoryCodeScanningCreate(d *schema.ResourceData, meta int
 	createUpdateOpts := createUpdateCodeScanning(d, meta)
 	ctx := context.Background()
 
-	_, response, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
+	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
 		owner,
 		repoName,
 		&createUpdateOpts,
 	)
+
 	if err != nil {
-		return err
-	}
-
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-
-	responseData := &DefaultSetupConfigurationResponse{}
-	if err = json.Unmarshal(body, responseData); err != nil {
-		return err
-	}
-
-	wait := d.Get("wait")
-
-	if wait.(bool) {
-		err = resource.Retry(d.Timeout(schema.TimeoutCreate),
-			waitForCodeQLActionCompleteFunc(ctx, client, d.Id(), responseData.RunId))
-		if err != nil {
+		_, ok := err.(*github.AcceptedError)
+		if !ok {
 			return err
 		}
+	}
+
+	err = retry.RetryContext(ctx, 3*time.Second, func() *retry.RetryError {
+		conf, _, err := client.CodeScanning.GetDefaultSetupConfiguration(ctx, owner, repoName)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if *conf.State == "not-configured" {
+			return retry.RetryableError(errors.New("not configured yet"))
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error waiting for default setup configuration (%s) to be configured: %s", d.Id(), err)
 	}
 
 	d.SetId(buildTwoPartID(owner, repoName))
