@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -39,10 +38,6 @@ func resourceGithubRepositoryCodeScanning() *schema.Resource {
 				Required:    true,
 				Description: "The GitHub repository",
 			},
-			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
 			"languages": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -67,11 +62,6 @@ func resourceGithubRepositoryCodeScanning() *schema.Resource {
 			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-			"wait": {
-				Type:     schema.TypeBool,
-				Default:  true,
-				Optional: true,
 			},
 		},
 	}
@@ -115,37 +105,29 @@ func resourceGithubRepositoryCodeScanningCreate(d *schema.ResourceData, meta int
 		return fmt.Errorf("Error waiting for default setup configuration (%s) to be configured: %s", d.Id(), err)
 	}
 
-	d.SetId(buildTwoPartID(owner, repoName))
+	d.SetId(repoName)
 
 	return resourceGithubRepositoryCodeScanningRead(d, meta)
 }
 
 func resourceGithubRepositoryCodeScanningDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-
-	owner, repoName, err := parseTwoPartID(d.Id(), "owner", "repository")
-	if err != nil {
-		return err
-	}
+	owner := meta.(*Owner).name
 
 	createUpdateOpts := createUpdateCodeScanning(d, meta)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, _, err = client.CodeScanning.UpdateDefaultSetupConfiguration(ctx, owner, repoName, &createUpdateOpts)
+	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx, owner, d.Id(), &createUpdateOpts)
 	return err
 }
 
 func resourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-
-	owner, repoName, err := parseTwoPartID(d.Id(), "owner", "repository")
-	if err != nil {
-		return err
-	}
+	owner := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	config, _, err := client.CodeScanning.GetDefaultSetupConfiguration(ctx, owner, repoName)
+	config, _, err := client.CodeScanning.GetDefaultSetupConfiguration(ctx, owner, d.Id())
 	if err != nil {
 		return err
 	}
@@ -156,8 +138,7 @@ func resourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta inter
 		timeString = config.UpdatedAt.String()
 	}
 
-	d.Set("repository", repoName)
-	d.Set("owner", owner)
+	d.Set("repository", d.Id())
 	d.Set("state", config.GetState())
 	d.Set("query_suite", config.GetQuerySuite())
 	d.Set("languages", config.Languages)
@@ -168,25 +149,21 @@ func resourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta inter
 
 func resourceGithubRepositoryCodeScanningUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-
-	owner, repoName, err := parseTwoPartID(d.Id(), "owner", "repository")
-	if err != nil {
-		return err
-	}
+	owner := meta.(*Owner).name
 
 	createUpdateOpts := createUpdateCodeScanning(d, meta)
 	ctx := context.Background()
 
-	_, _, err = client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
+	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx,
 		owner,
-		repoName,
+		d.Id(),
 		&createUpdateOpts,
 	)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(buildTwoPartID(owner, repoName))
+	d.SetId(d.Id())
 
 	return resourceGithubRepositoryCodeScanningRead(d, meta)
 }
@@ -202,29 +179,4 @@ func createUpdateCodeScanning(d *schema.ResourceData, meta interface{}) github.U
 	data.State = d.Get("state").(string)
 
 	return data
-}
-
-func waitForCodeQLActionCompleteFunc(ctx context.Context, client *github.Client, resourceId string, runId int64) resource.RetryFunc {
-	return func() *resource.RetryError {
-		owner, repoName, err := parseTwoPartID(resourceId, "owner", "repository")
-		if err != nil {
-			return resource.NonRetryableError(err)
-		}
-
-		workflowRun, _, err := client.Actions.GetWorkflowRunByID(ctx, owner, repoName, runId)
-		if err != nil {
-			return resource.NonRetryableError(err)
-		}
-
-		switch *workflowRun.Status {
-		case "success":
-			return nil
-		case "failure", "timed out", "cancelled":
-			return resource.NonRetryableError(errors.New(codeQLWorkflowRunFailure))
-		case "queued", "in progress", "waiting":
-			return resource.RetryableError(errors.New(codeQLWorkflowRunInFlight))
-		}
-
-		return nil
-	}
 }

@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,11 +9,6 @@ import (
 )
 
 func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
-	owner := os.Getenv("GITHUB_ORGANIZATION")
-	if owner == "" {
-		t.FailNow()
-	}
-
 	randomId := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	t.Run("manages the code scanning setup for a repository", func(t *testing.T) {
 		config := fmt.Sprintf(`
@@ -39,21 +33,19 @@ func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "%s"
 
 				state       = "configured"
 				query_suite = "default"
 
 				depends_on = ["github_repository_file.test_py"]
 			}
-		`, randomId, owner)
+		`, randomId)
 
 		config2 := config + fmt.Sprintf(`
 			data "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "%s"
 			}
-		`, owner)
+		`)
 
 		const resourceName = "data.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(
@@ -131,21 +123,19 @@ func TestAccGithubRepositoryCodeScanningDataSource(t *testing.T) {
 
 			resource "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "%s"
 
 				state      = "configured"
 				query_suite = "extended"
 
 				depends_on = ["github_repository_file.test_js", "github_repository_file.test_py"]
 			}
-		`, randomId, owner)
+		`, randomId)
 
 		config2 := config + fmt.Sprintf(`
 			data "github_repository_code_scanning" "test" {
 				repository = github_repository.test.name
-				owner      = "%s"
 			}
-		`, owner)
+		`)
 
 		const resourceName = "data.github_repository_code_scanning.test"
 		check := resource.ComposeTestCheckFunc(

@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v57/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -47,7 +46,6 @@ func dataSourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta int
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	config := &github.DefaultSetupConfiguration{}
 	config, _, err := client.CodeScanning.GetDefaultSetupConfiguration(
 		ctx,
 		owner,
@@ -63,7 +61,7 @@ func dataSourceGithubRepositoryCodeScanningRead(d *schema.ResourceData, meta int
 		timeString = config.UpdatedAt.String()
 	}
 
-	d.SetId(buildTwoPartID(owner, repository))
+	d.SetId(repository)
 	d.Set("languages", config.Languages)
 	d.Set("query_suite", config.GetQuerySuite())
 	d.Set("state", config.GetState())
