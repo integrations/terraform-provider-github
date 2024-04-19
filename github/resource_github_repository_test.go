@@ -1619,7 +1619,7 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 	// being set, doesn't set the value of web_commit_signoff_required to true
 	// or false in the GitHub API call.
 	t.Run("changes a non web_commit_signoff_required attribute for a repository", func(t *testing.T) {
-		
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                        = "tf-acc-%s"
@@ -1655,7 +1655,7 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 					},
 					{
 						Config: config,
-						Check: checks["after"],
+						Check:  checks["after"],
 					},
 				},
 			})
@@ -1809,4 +1809,3 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
 }
-
