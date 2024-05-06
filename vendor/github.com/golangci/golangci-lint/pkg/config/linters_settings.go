@@ -144,6 +144,8 @@ var defaultLintersSettings = LintersSettings{
 		NoMixedArgs:    true,
 		KVOnly:         false,
 		AttrOnly:       false,
+		NoGlobal:       "",
+		Context:        "",
 		ContextOnly:    false,
 		StaticMsg:      false,
 		NoRawKeys:      false,
@@ -243,6 +245,7 @@ type LintersSettings struct {
 	MaintIdx        MaintIdxSettings
 	Makezero        MakezeroSettings
 	Misspell        MisspellSettings
+	Mnd             MndSettings
 	MustTag         MustTagSettings
 	Nakedret        NakedretSettings
 	Nestif          NestifSettings
@@ -314,7 +317,8 @@ type BiDiChkSettings struct {
 }
 
 type CopyLoopVarSettings struct {
-	IgnoreAlias bool `mapstructure:"ignore-alias"`
+	IgnoreAlias bool `mapstructure:"ignore-alias"` // Deprecated: use CheckAlias
+	CheckAlias  bool `mapstructure:"check-alias"`
 }
 
 type Cyclop struct {
@@ -380,10 +384,17 @@ type ErrChkJSONSettings struct {
 }
 
 type ErrorLintSettings struct {
-	Errorf      bool `mapstructure:"errorf"`
-	ErrorfMulti bool `mapstructure:"errorf-multi"`
-	Asserts     bool `mapstructure:"asserts"`
-	Comparison  bool `mapstructure:"comparison"`
+	Errorf                bool                 `mapstructure:"errorf"`
+	ErrorfMulti           bool                 `mapstructure:"errorf-multi"`
+	Asserts               bool                 `mapstructure:"asserts"`
+	Comparison            bool                 `mapstructure:"comparison"`
+	AllowedErrors         []ErrorLintAllowPair `mapstructure:"allowed-errors"`
+	AllowedErrorsWildcard []ErrorLintAllowPair `mapstructure:"allowed-errors-wildcard"`
+}
+
+type ErrorLintAllowPair struct {
+	Err string `mapstructure:"err"`
+	Fun string `mapstructure:"fun"`
 }
 
 type ExhaustiveSettings struct {
@@ -549,11 +560,9 @@ type GoImportsSettings struct {
 	LocalPrefixes string `mapstructure:"local-prefixes"`
 }
 
+// Deprecated: use MndSettings.
 type GoMndSettings struct {
-	Checks           []string `mapstructure:"checks"`
-	IgnoredNumbers   []string `mapstructure:"ignored-numbers"`
-	IgnoredFiles     []string `mapstructure:"ignored-files"`
-	IgnoredFunctions []string `mapstructure:"ignored-functions"`
+	MndSettings `mapstructure:",squash"`
 
 	// Deprecated: use root level settings instead.
 	Settings map[string]map[string]any
@@ -723,6 +732,13 @@ type NlreturnSettings struct {
 	BlockSize int `mapstructure:"block-size"`
 }
 
+type MndSettings struct {
+	Checks           []string `mapstructure:"checks"`
+	IgnoredNumbers   []string `mapstructure:"ignored-numbers"`
+	IgnoredFiles     []string `mapstructure:"ignored-files"`
+	IgnoredFunctions []string `mapstructure:"ignored-functions"`
+}
+
 type NoLintLintSettings struct {
 	RequireExplanation bool     `mapstructure:"require-explanation"`
 	RequireSpecific    bool     `mapstructure:"require-specific"`
@@ -803,9 +819,10 @@ type RowsErrCheckSettings struct {
 type SlogLintSettings struct {
 	NoMixedArgs    bool   `mapstructure:"no-mixed-args"`
 	KVOnly         bool   `mapstructure:"kv-only"`
-	NoGlobal       string `mapstructure:"no-global"`
 	AttrOnly       bool   `mapstructure:"attr-only"`
-	ContextOnly    bool   `mapstructure:"context-only"`
+	NoGlobal       string `mapstructure:"no-global"`
+	Context        string `mapstructure:"context"`
+	ContextOnly    bool   `mapstructure:"context-only"` // Deprecated: use Context instead.
 	StaticMsg      bool   `mapstructure:"static-msg"`
 	NoRawKeys      bool   `mapstructure:"no-raw-keys"`
 	KeyNamingCase  string `mapstructure:"key-naming-case"`
@@ -813,8 +830,9 @@ type SlogLintSettings struct {
 }
 
 type SpancheckSettings struct {
-	Checks                []string `mapstructure:"checks"`
-	IgnoreCheckSignatures []string `mapstructure:"ignore-check-signatures"`
+	Checks                   []string `mapstructure:"checks"`
+	IgnoreCheckSignatures    []string `mapstructure:"ignore-check-signatures"`
+	ExtraStartSpanSignatures []string `mapstructure:"extra-start-span-signatures"`
 }
 
 type StaticCheckSettings struct {
@@ -898,11 +916,11 @@ type UseStdlibVarsSettings struct {
 	TimeLayout         bool `mapstructure:"time-layout"`
 	CryptoHash         bool `mapstructure:"crypto-hash"`
 	DefaultRPCPath     bool `mapstructure:"default-rpc-path"`
-	OSDevNull          bool `mapstructure:"os-dev-null"`
+	OSDevNull          bool `mapstructure:"os-dev-null"` // Deprecated
 	SQLIsolationLevel  bool `mapstructure:"sql-isolation-level"`
 	TLSSignatureScheme bool `mapstructure:"tls-signature-scheme"`
 	ConstantKind       bool `mapstructure:"constant-kind"`
-	SyslogPriority     bool `mapstructure:"syslog-priority"`
+	SyslogPriority     bool `mapstructure:"syslog-priority"` // Deprecated
 }
 
 type UnconvertSettings struct {

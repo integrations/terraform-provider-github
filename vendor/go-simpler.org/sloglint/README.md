@@ -89,14 +89,10 @@ For them to work properly, you need to pass a context to all logger calls.
 The `context-only` option causes `sloglint` to report the use of methods without a context:
 
 ```go
-slog.Info("a user has logged in") // sloglint: methods without a context should not be used
+slog.Info("a user has logged in") // sloglint: InfoContext should be used instead
 ```
 
-This report can be fixed by using the equivalent method with the `Context` suffix:
-
-```go
-slog.InfoContext(ctx, "a user has logged in")
-```
+Possible values are `all` (report all contextless calls) and `scope` (report only if a context exists in the scope of the outermost function).
 
 ### Static messages
 
