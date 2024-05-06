@@ -24,7 +24,7 @@ type Options struct {
 	KVOnly         bool   // Enforce using key-value pairs only (overrides NoMixedArgs, incompatible with AttrOnly).
 	AttrOnly       bool   // Enforce using attributes only (overrides NoMixedArgs, incompatible with KVOnly).
 	NoGlobal       string // Enforce not using global loggers ("all" or "default").
-	ContextOnly    bool   // Enforce using methods that accept a context.
+	ContextOnly    string // Enforce using methods that accept a context ("all" or "scope").
 	StaticMsg      bool   // Enforce using static log messages.
 	NoRawKeys      bool   // Enforce using constants instead of raw keys.
 	KeyNamingCase  string // Enforce a single key naming convention ("snake", "kebab", "camel", or "pascal").
@@ -36,6 +36,7 @@ func New(opts *Options) *analysis.Analyzer {
 	if opts == nil {
 		opts = &Options{NoMixedArgs: true}
 	}
+
 	return &analysis.Analyzer{
 		Name:     "sloglint",
 		Doc:      "ensure consistent code style when using log/slog",
@@ -50,6 +51,12 @@ func New(opts *Options) *analysis.Analyzer {
 			case "", "all", "default":
 			default:
 				return nil, fmt.Errorf("sloglint: Options.NoGlobal=%s: %w", opts.NoGlobal, errInvalidValue)
+			}
+
+			switch opts.ContextOnly {
+			case "", "all", "scope":
+			default:
+				return nil, fmt.Errorf("sloglint: Options.ContextOnly=%s: %w", opts.ContextOnly, errInvalidValue)
 			}
 
 			switch opts.KeyNamingCase {
@@ -91,7 +98,7 @@ func flags(opts *Options) flag.FlagSet {
 	boolVar(&opts.KVOnly, "kv-only", "enforce using key-value pairs only (overrides -no-mixed-args, incompatible with -attr-only)")
 	boolVar(&opts.AttrOnly, "attr-only", "enforce using attributes only (overrides -no-mixed-args, incompatible with -kv-only)")
 	strVar(&opts.NoGlobal, "no-global", "enforce not using global loggers (all|default)")
-	boolVar(&opts.ContextOnly, "context-only", "enforce using methods that accept a context")
+	strVar(&opts.ContextOnly, "context-only", "enforce using methods that accept a context (all|scope)")
 	boolVar(&opts.StaticMsg, "static-msg", "enforce using static log messages")
 	boolVar(&opts.NoRawKeys, "no-raw-keys", "enforce using constants instead of raw keys")
 	strVar(&opts.KeyNamingCase, "key-naming-case", "enforce a single key naming convention (snake|kebab|camel|pascal)")
@@ -142,96 +149,116 @@ const (
 )
 
 func run(pass *analysis.Pass, opts *Options) {
-	visit := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	visitor := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	filter := []ast.Node{(*ast.CallExpr)(nil)}
 
-	visit.Preorder(filter, func(node ast.Node) {
-		call := node.(*ast.CallExpr)
+	// WithStack is ~2x slower than Preorder, use it only when stack is needed.
+	if opts.ContextOnly == "scope" {
+		visitor.WithStack(filter, func(node ast.Node, _ bool, stack []ast.Node) bool {
+			visit(pass, opts, node, stack)
+			return false
+		})
+		return
+	}
 
-		fn := typeutil.StaticCallee(pass.TypesInfo, call)
-		if fn == nil {
-			return
-		}
-
-		name := fn.FullName()
-		argsPos, ok := slogFuncs[name]
-		if !ok {
-			return
-		}
-
-		switch opts.NoGlobal {
-		case "all":
-			if strings.HasPrefix(name, "log/slog.") || globalLoggerUsed(pass.TypesInfo, call.Fun) {
-				pass.Reportf(call.Pos(), "global logger should not be used")
-			}
-		case "default":
-			if strings.HasPrefix(name, "log/slog.") {
-				pass.Reportf(call.Pos(), "default logger should not be used")
-			}
-		}
-
-		if opts.ContextOnly {
-			typ := pass.TypesInfo.TypeOf(call.Args[0])
-			if typ != nil && typ.String() != "context.Context" {
-				pass.Reportf(call.Pos(), "methods without a context should not be used")
-			}
-		}
-
-		if opts.StaticMsg && !staticMsg(call.Args[argsPos-1]) {
-			pass.Reportf(call.Pos(), "message should be a string literal or a constant")
-		}
-
-		// NOTE: we assume that the arguments have already been validated by govet.
-		args := call.Args[argsPos:]
-		if len(args) == 0 {
-			return
-		}
-
-		var keys []ast.Expr
-		var attrs []ast.Expr
-
-		for i := 0; i < len(args); i++ {
-			typ := pass.TypesInfo.TypeOf(args[i])
-			if typ == nil {
-				continue
-			}
-			switch typ.String() {
-			case "string":
-				keys = append(keys, args[i])
-				i++ // skip the value.
-			case "log/slog.Attr":
-				attrs = append(attrs, args[i])
-			}
-		}
-
-		switch {
-		case opts.KVOnly && len(attrs) > 0:
-			pass.Reportf(call.Pos(), "attributes should not be used")
-		case opts.AttrOnly && len(attrs) < len(args):
-			pass.Reportf(call.Pos(), "key-value pairs should not be used")
-		case opts.NoMixedArgs && 0 < len(attrs) && len(attrs) < len(args):
-			pass.Reportf(call.Pos(), "key-value pairs and attributes should not be mixed")
-		}
-
-		if opts.NoRawKeys && rawKeysUsed(pass.TypesInfo, keys, attrs) {
-			pass.Reportf(call.Pos(), "raw keys should not be used")
-		}
-
-		if opts.ArgsOnSepLines && argsOnSameLine(pass.Fset, call, keys, attrs) {
-			pass.Reportf(call.Pos(), "arguments should be put on separate lines")
-		}
-
-		switch {
-		case opts.KeyNamingCase == snakeCase && badKeyNames(pass.TypesInfo, strcase.ToSnake, keys, attrs):
-			pass.Reportf(call.Pos(), "keys should be written in snake_case")
-		case opts.KeyNamingCase == kebabCase && badKeyNames(pass.TypesInfo, strcase.ToKebab, keys, attrs):
-			pass.Reportf(call.Pos(), "keys should be written in kebab-case")
-		case opts.KeyNamingCase == camelCase && badKeyNames(pass.TypesInfo, strcase.ToCamel, keys, attrs):
-			pass.Reportf(call.Pos(), "keys should be written in camelCase")
-		case opts.KeyNamingCase == pascalCase && badKeyNames(pass.TypesInfo, strcase.ToPascal, keys, attrs):
-			pass.Reportf(call.Pos(), "keys should be written in PascalCase")
-		}
+	visitor.Preorder(filter, func(node ast.Node) {
+		visit(pass, opts, node, nil)
 	})
+}
+
+// NOTE: stack is nil if Preorder is used.
+func visit(pass *analysis.Pass, opts *Options, node ast.Node, stack []ast.Node) {
+	call := node.(*ast.CallExpr)
+
+	fn := typeutil.StaticCallee(pass.TypesInfo, call)
+	if fn == nil {
+		return
+	}
+
+	name := fn.FullName()
+	argsPos, ok := slogFuncs[name]
+	if !ok {
+		return
+	}
+
+	switch opts.NoGlobal {
+	case "all":
+		if strings.HasPrefix(name, "log/slog.") || globalLoggerUsed(pass.TypesInfo, call.Fun) {
+			pass.Reportf(call.Pos(), "global logger should not be used")
+		}
+	case "default":
+		if strings.HasPrefix(name, "log/slog.") {
+			pass.Reportf(call.Pos(), "default logger should not be used")
+		}
+	}
+
+	switch opts.ContextOnly {
+	case "all":
+		typ := pass.TypesInfo.TypeOf(call.Args[0])
+		if typ != nil && typ.String() != "context.Context" {
+			pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
+		}
+	case "scope":
+		typ := pass.TypesInfo.TypeOf(call.Args[0])
+		if typ != nil && typ.String() != "context.Context" && hasContextInScope(pass.TypesInfo, stack) {
+			pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
+		}
+	}
+
+	if opts.StaticMsg && !staticMsg(call.Args[argsPos-1]) {
+		pass.Reportf(call.Pos(), "message should be a string literal or a constant")
+	}
+
+	// NOTE: we assume that the arguments have already been validated by govet.
+	args := call.Args[argsPos:]
+	if len(args) == 0 {
+		return
+	}
+
+	var keys []ast.Expr
+	var attrs []ast.Expr
+
+	for i := 0; i < len(args); i++ {
+		typ := pass.TypesInfo.TypeOf(args[i])
+		if typ == nil {
+			continue
+		}
+		switch typ.String() {
+		case "string":
+			keys = append(keys, args[i])
+			i++ // skip the value.
+		case "log/slog.Attr":
+			attrs = append(attrs, args[i])
+		}
+	}
+
+	switch {
+	case opts.KVOnly && len(attrs) > 0:
+		pass.Reportf(call.Pos(), "attributes should not be used")
+	case opts.AttrOnly && len(attrs) < len(args):
+		pass.Reportf(call.Pos(), "key-value pairs should not be used")
+	case opts.NoMixedArgs && 0 < len(attrs) && len(attrs) < len(args):
+		pass.Reportf(call.Pos(), "key-value pairs and attributes should not be mixed")
+	}
+
+	if opts.NoRawKeys && rawKeysUsed(pass.TypesInfo, keys, attrs) {
+		pass.Reportf(call.Pos(), "raw keys should not be used")
+	}
+
+	if opts.ArgsOnSepLines && argsOnSameLine(pass.Fset, call, keys, attrs) {
+		pass.Reportf(call.Pos(), "arguments should be put on separate lines")
+	}
+
+	switch {
+	case opts.KeyNamingCase == snakeCase && badKeyNames(pass.TypesInfo, strcase.ToSnake, keys, attrs):
+		pass.Reportf(call.Pos(), "keys should be written in snake_case")
+	case opts.KeyNamingCase == kebabCase && badKeyNames(pass.TypesInfo, strcase.ToKebab, keys, attrs):
+		pass.Reportf(call.Pos(), "keys should be written in kebab-case")
+	case opts.KeyNamingCase == camelCase && badKeyNames(pass.TypesInfo, strcase.ToCamel, keys, attrs):
+		pass.Reportf(call.Pos(), "keys should be written in camelCase")
+	case opts.KeyNamingCase == pascalCase && badKeyNames(pass.TypesInfo, strcase.ToPascal, keys, attrs):
+		pass.Reportf(call.Pos(), "keys should be written in PascalCase")
+	}
 }
 
 func globalLoggerUsed(info *types.Info, expr ast.Expr) bool {
@@ -245,6 +272,24 @@ func globalLoggerUsed(info *types.Info, expr ast.Expr) bool {
 	}
 	obj := info.ObjectOf(ident)
 	return obj.Parent() == obj.Pkg().Scope()
+}
+
+func hasContextInScope(info *types.Info, stack []ast.Node) bool {
+	for i := len(stack) - 1; i >= 0; i-- {
+		decl, ok := stack[i].(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		params := decl.Type.Params
+		if len(params.List) == 0 || len(params.List[0].Names) == 0 {
+			continue
+		}
+		typ := info.TypeOf(params.List[0].Names[0])
+		if typ != nil && typ.String() == "context.Context" {
+			return true
+		}
+	}
+	return false
 }
 
 func staticMsg(expr ast.Expr) bool {
@@ -315,12 +360,18 @@ func badKeyNames(info *types.Info, caseFn func(string) string, keys, attrs []ast
 
 	for _, attr := range attrs {
 		var expr ast.Expr
+
 		switch attr := attr.(type) {
 		case *ast.CallExpr: // e.g. slog.Int()
 			fn := typeutil.StaticCallee(info, attr)
-			if _, ok := attrFuncs[fn.FullName()]; ok {
-				expr = attr.Args[0]
+			if fn == nil {
+				continue
 			}
+			if _, ok := attrFuncs[fn.FullName()]; !ok {
+				continue
+			}
+			expr = attr.Args[0]
+
 		case *ast.CompositeLit: // slog.Attr{}
 			switch len(attr.Elts) {
 			case 1: // slog.Attr{Key: ...} | slog.Attr{Value: ...}
@@ -337,6 +388,7 @@ func badKeyNames(info *types.Info, caseFn func(string) string, keys, attrs []ast
 				}
 			}
 		}
+
 		if name, ok := getKeyName(expr); ok && name != caseFn(name) {
 			return true
 		}
