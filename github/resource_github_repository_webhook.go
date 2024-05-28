@@ -212,13 +212,3 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
 	return err
 }
-
-func insecureSslStringToBool(config map[string]interface{}) map[string]interface{} {
-	if config["insecure_ssl"] == "1" {
-		config["insecure_ssl"] = true
-	} else {
-		config["insecure_ssl"] = false
-	}
-
-	return config
-}
