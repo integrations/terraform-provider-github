@@ -304,6 +304,8 @@ func (l *Loader) handleGoVersion() {
 	if l.cfg.LintersSettings.Stylecheck.GoVersion == "" {
 		l.cfg.LintersSettings.Stylecheck.GoVersion = trimmedGoVersion
 	}
+
+	os.Setenv("GOSECGOVERSION", l.cfg.Run.Go)
 }
 
 func (l *Loader) handleDeprecation() error {
@@ -350,11 +352,25 @@ func (l *Loader) handleDeprecation() error {
 		l.cfg.Output.Formats = f
 	}
 
+	for _, format := range l.cfg.Output.Formats {
+		if format.Format == OutFormatGithubActions {
+			l.log.Warnf("The output format `%s` is deprecated, please use `%s`", OutFormatGithubActions, OutFormatColoredLineNumber)
+			break // To avoid repeating the message if there are several usages of github-actions format.
+		}
+	}
+
+	// Deprecated since v1.59.0
+	if l.cfg.Issues.ExcludeGeneratedStrict {
+		l.log.Warnf("The configuration option `issues.exclude-generated-strict` is deprecated, please use `issues.exclude-generated`")
+		l.cfg.Issues.ExcludeGenerated = "strict" // Don't use the constants to avoid cyclic dependencies.
+	}
+
 	l.handleLinterOptionDeprecations()
 
 	return nil
 }
 
+//nolint:gocyclo // the complexity cannot be reduced.
 func (l *Loader) handleLinterOptionDeprecations() {
 	// Deprecated since v1.57.0,
 	// but it was unofficially deprecated since v1.19 (2019) (https://github.com/golangci/golangci-lint/pull/697).
@@ -371,6 +387,12 @@ func (l *Loader) handleLinterOptionDeprecations() {
 	// Deprecated since v1.42.0.
 	if l.cfg.LintersSettings.Errcheck.Exclude != "" {
 		l.log.Warnf("The configuration option `linters.errcheck.exclude` is deprecated, please use `linters.errcheck.exclude-functions`.")
+	}
+
+	// Deprecated since v1.59.0,
+	// but it was unofficially deprecated since v1.13 (2018) (https://github.com/golangci/golangci-lint/pull/332).
+	if l.cfg.LintersSettings.Errcheck.Ignore != "" {
+		l.log.Warnf("The configuration option `linters.errcheck.ignore` is deprecated, please use `linters.errcheck.exclude-functions`.")
 	}
 
 	// Deprecated since v1.44.0.

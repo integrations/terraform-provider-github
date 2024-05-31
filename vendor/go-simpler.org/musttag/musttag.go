@@ -273,7 +273,7 @@ func implementsInterface(typ types.Type, ifaces []string, imports []*types.Packa
 		if !ok {
 			continue
 		}
-		if types.Implements(typ, iface) {
+		if types.Implements(typ, iface) || types.Implements(types.NewPointer(typ), iface) {
 			return true
 		}
 	}
