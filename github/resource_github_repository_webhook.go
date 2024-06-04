@@ -212,3 +212,18 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
 	return err
 }
+
+func insecureSslStringToBool(config *github.HookConfig) map[string]interface{} {
+	parsedConfig := make(map[string]interface{})
+	parsedConfig["content_type"] = config.GetContentType()
+	parsedConfig["secret"] = config.GetSecret()
+	parsedConfig["url"] = config.GetURL()
+
+	if config.GetInsecureSSL() == "1" {
+		parsedConfig["insecure_ssl"] = true
+	} else {
+		parsedConfig["insecure_ssl"] = false
+	}
+
+	return parsedConfig
+}
