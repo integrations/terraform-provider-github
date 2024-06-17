@@ -20,11 +20,11 @@ func resourceGithubActionsEnterprisePermissions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"enterprise_id": {
+			"enterprise_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The ID of the enterprise.",
+				Description: "The slug of the enterprise.",
 			},
 			"allowed_actions": {
 				Type:             schema.TypeString,
@@ -145,7 +145,7 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	enterpriseId := d.Get("enterprise_id").(string)
+	enterpriseId := d.Get("enterprise_slug").(string)
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledOrganizations := d.Get("enabled_organizations").(string)
 
@@ -264,6 +264,9 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 	if err = d.Set("enabled_organizations", actionsPermissions.GetEnabledOrganizations()); err != nil {
 		return err
 	}
+	if err = d.Set("enterprise_slug", d.Id()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -275,7 +278,7 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 
 	// This will nullify any allowedActions elements
 	_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
-		d.Get("enterprise_id").(string),
+		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       github.String("all"),
 			EnabledOrganizations: github.String("all"),
