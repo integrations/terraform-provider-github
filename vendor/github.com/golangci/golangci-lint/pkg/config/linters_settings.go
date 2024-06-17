@@ -25,9 +25,6 @@ var defaultLintersSettings = LintersSettings{
 	Dupl: DuplSettings{
 		Threshold: 150,
 	},
-	Errcheck: ErrcheckSettings{
-		Ignore: "fmt:.*",
-	},
 	ErrorLint: ErrorLintSettings{
 		Errorf:      true,
 		ErrorfMulti: true,
@@ -146,10 +143,10 @@ var defaultLintersSettings = LintersSettings{
 		AttrOnly:       false,
 		NoGlobal:       "",
 		Context:        "",
-		ContextOnly:    false,
 		StaticMsg:      false,
 		NoRawKeys:      false,
 		KeyNamingCase:  "",
+		ForbiddenKeys:  nil,
 		ArgsOnSepLines: false,
 	},
 	TagAlign: TagAlignSettings{
@@ -371,11 +368,13 @@ type ErrcheckSettings struct {
 	DisableDefaultExclusions bool     `mapstructure:"disable-default-exclusions"`
 	CheckTypeAssertions      bool     `mapstructure:"check-type-assertions"`
 	CheckAssignToBlank       bool     `mapstructure:"check-blank"`
-	Ignore                   string   `mapstructure:"ignore"`
 	ExcludeFunctions         []string `mapstructure:"exclude-functions"`
 
 	// Deprecated: use ExcludeFunctions instead
 	Exclude string `mapstructure:"exclude"`
+
+	// Deprecated: use ExcludeFunctions instead
+	Ignore string `mapstructure:"ignore"`
 }
 
 type ErrChkJSONSettings struct {
@@ -817,16 +816,19 @@ type RowsErrCheckSettings struct {
 }
 
 type SlogLintSettings struct {
-	NoMixedArgs    bool   `mapstructure:"no-mixed-args"`
-	KVOnly         bool   `mapstructure:"kv-only"`
-	AttrOnly       bool   `mapstructure:"attr-only"`
-	NoGlobal       string `mapstructure:"no-global"`
-	Context        string `mapstructure:"context"`
-	ContextOnly    bool   `mapstructure:"context-only"` // Deprecated: use Context instead.
-	StaticMsg      bool   `mapstructure:"static-msg"`
-	NoRawKeys      bool   `mapstructure:"no-raw-keys"`
-	KeyNamingCase  string `mapstructure:"key-naming-case"`
-	ArgsOnSepLines bool   `mapstructure:"args-on-sep-lines"`
+	NoMixedArgs    bool     `mapstructure:"no-mixed-args"`
+	KVOnly         bool     `mapstructure:"kv-only"`
+	AttrOnly       bool     `mapstructure:"attr-only"`
+	NoGlobal       string   `mapstructure:"no-global"`
+	Context        string   `mapstructure:"context"`
+	StaticMsg      bool     `mapstructure:"static-msg"`
+	NoRawKeys      bool     `mapstructure:"no-raw-keys"`
+	KeyNamingCase  string   `mapstructure:"key-naming-case"`
+	ForbiddenKeys  []string `mapstructure:"forbidden-keys"`
+	ArgsOnSepLines bool     `mapstructure:"args-on-sep-lines"`
+
+	// Deprecated: use Context instead.
+	ContextOnly bool `mapstructure:"context-only"`
 }
 
 type SpancheckSettings struct {
@@ -876,6 +878,10 @@ type TestifylintSettings struct {
 	ExpectedActual struct {
 		ExpVarPattern string `mapstructure:"pattern"`
 	} `mapstructure:"expected-actual"`
+
+	GoRequire struct {
+		IgnoreHTTPHandlers bool `mapstructure:"ignore-http-handlers"`
+	} `mapstructure:"go-require"`
 
 	RequireError struct {
 		FnPattern string `mapstructure:"fn-pattern"`

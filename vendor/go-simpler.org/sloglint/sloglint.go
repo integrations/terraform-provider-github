@@ -8,6 +8,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,15 +21,16 @@ import (
 
 // Options are options for the sloglint analyzer.
 type Options struct {
-	NoMixedArgs    bool   // Enforce not mixing key-value pairs and attributes (default true).
-	KVOnly         bool   // Enforce using key-value pairs only (overrides NoMixedArgs, incompatible with AttrOnly).
-	AttrOnly       bool   // Enforce using attributes only (overrides NoMixedArgs, incompatible with KVOnly).
-	NoGlobal       string // Enforce not using global loggers ("all" or "default").
-	ContextOnly    string // Enforce using methods that accept a context ("all" or "scope").
-	StaticMsg      bool   // Enforce using static log messages.
-	NoRawKeys      bool   // Enforce using constants instead of raw keys.
-	KeyNamingCase  string // Enforce a single key naming convention ("snake", "kebab", "camel", or "pascal").
-	ArgsOnSepLines bool   // Enforce putting arguments on separate lines.
+	NoMixedArgs    bool     // Enforce not mixing key-value pairs and attributes (default true).
+	KVOnly         bool     // Enforce using key-value pairs only (overrides NoMixedArgs, incompatible with AttrOnly).
+	AttrOnly       bool     // Enforce using attributes only (overrides NoMixedArgs, incompatible with KVOnly).
+	NoGlobal       string   // Enforce not using global loggers ("all" or "default").
+	ContextOnly    string   // Enforce using methods that accept a context ("all" or "scope").
+	StaticMsg      bool     // Enforce using static log messages.
+	NoRawKeys      bool     // Enforce using constants instead of raw keys.
+	KeyNamingCase  string   // Enforce a single key naming convention ("snake", "kebab", "camel", or "pascal").
+	ForbiddenKeys  []string // Enforce not using specific keys.
+	ArgsOnSepLines bool     // Enforce putting arguments on separate lines.
 }
 
 // New creates a new sloglint analyzer.
@@ -104,28 +106,40 @@ func flags(opts *Options) flag.FlagSet {
 	strVar(&opts.KeyNamingCase, "key-naming-case", "enforce a single key naming convention (snake|kebab|camel|pascal)")
 	boolVar(&opts.ArgsOnSepLines, "args-on-sep-lines", "enforce putting arguments on separate lines")
 
+	fset.Func("forbidden-keys", "enforce not using specific keys (comma-separated)", func(s string) error {
+		opts.ForbiddenKeys = append(opts.ForbiddenKeys, strings.Split(s, ",")...)
+		return nil
+	})
+
 	return *fset
 }
 
-var slogFuncs = map[string]int{ // funcName:argsPos
-	"log/slog.Log":                    3,
-	"log/slog.Debug":                  1,
-	"log/slog.Info":                   1,
-	"log/slog.Warn":                   1,
-	"log/slog.Error":                  1,
-	"log/slog.DebugContext":           2,
-	"log/slog.InfoContext":            2,
-	"log/slog.WarnContext":            2,
-	"log/slog.ErrorContext":           2,
-	"(*log/slog.Logger).Log":          3,
-	"(*log/slog.Logger).Debug":        1,
-	"(*log/slog.Logger).Info":         1,
-	"(*log/slog.Logger).Warn":         1,
-	"(*log/slog.Logger).Error":        1,
-	"(*log/slog.Logger).DebugContext": 2,
-	"(*log/slog.Logger).InfoContext":  2,
-	"(*log/slog.Logger).WarnContext":  2,
-	"(*log/slog.Logger).ErrorContext": 2,
+var slogFuncs = map[string]struct {
+	argsPos          int
+	skipContextCheck bool
+}{
+	"log/slog.With":                   {argsPos: 0, skipContextCheck: true},
+	"log/slog.Log":                    {argsPos: 3},
+	"log/slog.LogAttrs":               {argsPos: 3},
+	"log/slog.Debug":                  {argsPos: 1},
+	"log/slog.Info":                   {argsPos: 1},
+	"log/slog.Warn":                   {argsPos: 1},
+	"log/slog.Error":                  {argsPos: 1},
+	"log/slog.DebugContext":           {argsPos: 2},
+	"log/slog.InfoContext":            {argsPos: 2},
+	"log/slog.WarnContext":            {argsPos: 2},
+	"log/slog.ErrorContext":           {argsPos: 2},
+	"(*log/slog.Logger).With":         {argsPos: 0, skipContextCheck: true},
+	"(*log/slog.Logger).Log":          {argsPos: 3},
+	"(*log/slog.Logger).LogAttrs":     {argsPos: 3},
+	"(*log/slog.Logger).Debug":        {argsPos: 1},
+	"(*log/slog.Logger).Info":         {argsPos: 1},
+	"(*log/slog.Logger).Warn":         {argsPos: 1},
+	"(*log/slog.Logger).Error":        {argsPos: 1},
+	"(*log/slog.Logger).DebugContext": {argsPos: 2},
+	"(*log/slog.Logger).InfoContext":  {argsPos: 2},
+	"(*log/slog.Logger).WarnContext":  {argsPos: 2},
+	"(*log/slog.Logger).ErrorContext": {argsPos: 2},
 }
 
 var attrFuncs = map[string]struct{}{
@@ -176,14 +190,14 @@ func visit(pass *analysis.Pass, opts *Options, node ast.Node, stack []ast.Node) 
 	}
 
 	name := fn.FullName()
-	argsPos, ok := slogFuncs[name]
+	funcInfo, ok := slogFuncs[name]
 	if !ok {
 		return
 	}
 
 	switch opts.NoGlobal {
 	case "all":
-		if strings.HasPrefix(name, "log/slog.") || globalLoggerUsed(pass.TypesInfo, call.Fun) {
+		if strings.HasPrefix(name, "log/slog.") || isGlobalLoggerUsed(pass.TypesInfo, call.Fun) {
 			pass.Reportf(call.Pos(), "global logger should not be used")
 		}
 	case "default":
@@ -192,25 +206,30 @@ func visit(pass *analysis.Pass, opts *Options, node ast.Node, stack []ast.Node) 
 		}
 	}
 
-	switch opts.ContextOnly {
-	case "all":
-		typ := pass.TypesInfo.TypeOf(call.Args[0])
-		if typ != nil && typ.String() != "context.Context" {
-			pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
-		}
-	case "scope":
-		typ := pass.TypesInfo.TypeOf(call.Args[0])
-		if typ != nil && typ.String() != "context.Context" && hasContextInScope(pass.TypesInfo, stack) {
-			pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
+	// NOTE: "With" functions are not checked for context.Context.
+	if !funcInfo.skipContextCheck {
+		switch opts.ContextOnly {
+		case "all":
+			typ := pass.TypesInfo.TypeOf(call.Args[0])
+			if typ != nil && typ.String() != "context.Context" {
+				pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
+			}
+		case "scope":
+			typ := pass.TypesInfo.TypeOf(call.Args[0])
+			if typ != nil && typ.String() != "context.Context" && isContextInScope(pass.TypesInfo, stack) {
+				pass.Reportf(call.Pos(), "%sContext should be used instead", fn.Name())
+			}
 		}
 	}
 
-	if opts.StaticMsg && !staticMsg(call.Args[argsPos-1]) {
+	msgPos := funcInfo.argsPos - 1
+	// NOTE: "With" functions have no message argument and must be skipped.
+	if opts.StaticMsg && msgPos >= 0 && !isStaticMsg(call.Args[msgPos]) {
 		pass.Reportf(call.Pos(), "message should be a string literal or a constant")
 	}
 
 	// NOTE: we assume that the arguments have already been validated by govet.
-	args := call.Args[argsPos:]
+	args := call.Args[funcInfo.argsPos:]
 	if len(args) == 0 {
 		return
 	}
@@ -241,28 +260,48 @@ func visit(pass *analysis.Pass, opts *Options, node ast.Node, stack []ast.Node) 
 		pass.Reportf(call.Pos(), "key-value pairs and attributes should not be mixed")
 	}
 
-	if opts.NoRawKeys && rawKeysUsed(pass.TypesInfo, keys, attrs) {
-		pass.Reportf(call.Pos(), "raw keys should not be used")
+	if opts.NoRawKeys {
+		forEachKey(pass.TypesInfo, keys, attrs, func(key ast.Expr) {
+			if ident, ok := key.(*ast.Ident); !ok || ident.Obj == nil || ident.Obj.Kind != ast.Con {
+				pass.Reportf(call.Pos(), "raw keys should not be used")
+			}
+		})
 	}
 
-	if opts.ArgsOnSepLines && argsOnSameLine(pass.Fset, call, keys, attrs) {
+	checkKeyNamingCase := func(caseFn func(string) string, caseName string) {
+		forEachKey(pass.TypesInfo, keys, attrs, func(key ast.Expr) {
+			if name, ok := getKeyName(key); ok && name != caseFn(name) {
+				pass.Reportf(call.Pos(), "keys should be written in %s", caseName)
+			}
+		})
+	}
+
+	switch opts.KeyNamingCase {
+	case snakeCase:
+		checkKeyNamingCase(strcase.ToSnake, "snake_case")
+	case kebabCase:
+		checkKeyNamingCase(strcase.ToKebab, "kebab-case")
+	case camelCase:
+		checkKeyNamingCase(strcase.ToCamel, "camelCase")
+	case pascalCase:
+		checkKeyNamingCase(strcase.ToPascal, "PascalCase")
+	}
+
+	if len(opts.ForbiddenKeys) > 0 {
+		forEachKey(pass.TypesInfo, keys, attrs, func(key ast.Expr) {
+			if name, ok := getKeyName(key); ok && slices.Contains(opts.ForbiddenKeys, name) {
+				pass.Reportf(call.Pos(), "%q key is forbidden and should not be used", name)
+			}
+		})
+	}
+
+	if opts.ArgsOnSepLines && areArgsOnSameLine(pass.Fset, call, keys, attrs) {
 		pass.Reportf(call.Pos(), "arguments should be put on separate lines")
-	}
-
-	switch {
-	case opts.KeyNamingCase == snakeCase && badKeyNames(pass.TypesInfo, strcase.ToSnake, keys, attrs):
-		pass.Reportf(call.Pos(), "keys should be written in snake_case")
-	case opts.KeyNamingCase == kebabCase && badKeyNames(pass.TypesInfo, strcase.ToKebab, keys, attrs):
-		pass.Reportf(call.Pos(), "keys should be written in kebab-case")
-	case opts.KeyNamingCase == camelCase && badKeyNames(pass.TypesInfo, strcase.ToCamel, keys, attrs):
-		pass.Reportf(call.Pos(), "keys should be written in camelCase")
-	case opts.KeyNamingCase == pascalCase && badKeyNames(pass.TypesInfo, strcase.ToPascal, keys, attrs):
-		pass.Reportf(call.Pos(), "keys should be written in PascalCase")
 	}
 }
 
-func globalLoggerUsed(info *types.Info, expr ast.Expr) bool {
-	selector, ok := expr.(*ast.SelectorExpr)
+func isGlobalLoggerUsed(info *types.Info, call ast.Expr) bool {
+	selector, ok := call.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
@@ -274,7 +313,7 @@ func globalLoggerUsed(info *types.Info, expr ast.Expr) bool {
 	return obj.Parent() == obj.Pkg().Scope()
 }
 
-func hasContextInScope(info *types.Info, stack []ast.Node) bool {
+func isContextInScope(info *types.Info, stack []ast.Node) bool {
 	for i := len(stack) - 1; i >= 0; i-- {
 		decl, ok := stack[i].(*ast.FuncDecl)
 		if !ok {
@@ -292,8 +331,8 @@ func hasContextInScope(info *types.Info, stack []ast.Node) bool {
 	return false
 }
 
-func staticMsg(expr ast.Expr) bool {
-	switch msg := expr.(type) {
+func isStaticMsg(msg ast.Expr) bool {
+	switch msg := msg.(type) {
 	case *ast.BasicLit: // e.g. slog.Info("msg")
 		return msg.Kind == token.STRING
 	case *ast.Ident: // e.g. const msg = "msg"; slog.Info(msg)
@@ -303,120 +342,64 @@ func staticMsg(expr ast.Expr) bool {
 	}
 }
 
-func rawKeysUsed(info *types.Info, keys, attrs []ast.Expr) bool {
-	isConst := func(expr ast.Expr) bool {
-		ident, ok := expr.(*ast.Ident)
-		return ok && ident.Obj != nil && ident.Obj.Kind == ast.Con
-	}
-
+func forEachKey(info *types.Info, keys, attrs []ast.Expr, fn func(key ast.Expr)) {
 	for _, key := range keys {
-		if !isConst(key) {
-			return true
-		}
+		fn(key)
 	}
 
 	for _, attr := range attrs {
 		switch attr := attr.(type) {
 		case *ast.CallExpr: // e.g. slog.Int()
-			fn := typeutil.StaticCallee(info, attr)
-			if _, ok := attrFuncs[fn.FullName()]; ok && !isConst(attr.Args[0]) {
-				return true
-			}
-
-		case *ast.CompositeLit: // slog.Attr{}
-			isRawKey := func(kv *ast.KeyValueExpr) bool {
-				return kv.Key.(*ast.Ident).Name == "Key" && !isConst(kv.Value)
-			}
-
-			switch len(attr.Elts) {
-			case 1: // slog.Attr{Key: ...} | slog.Attr{Value: ...}
-				kv := attr.Elts[0].(*ast.KeyValueExpr)
-				if isRawKey(kv) {
-					return true
-				}
-			case 2: // slog.Attr{..., ...} | slog.Attr{Key: ..., Value: ...}
-				kv1, ok := attr.Elts[0].(*ast.KeyValueExpr)
-				if ok {
-					kv2 := attr.Elts[1].(*ast.KeyValueExpr)
-					if isRawKey(kv1) || isRawKey(kv2) {
-						return true
-					}
-				} else if !isConst(attr.Elts[0]) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
-func badKeyNames(info *types.Info, caseFn func(string) string, keys, attrs []ast.Expr) bool {
-	for _, key := range keys {
-		if name, ok := getKeyName(key); ok && name != caseFn(name) {
-			return true
-		}
-	}
-
-	for _, attr := range attrs {
-		var expr ast.Expr
-
-		switch attr := attr.(type) {
-		case *ast.CallExpr: // e.g. slog.Int()
-			fn := typeutil.StaticCallee(info, attr)
-			if fn == nil {
+			callee := typeutil.StaticCallee(info, attr)
+			if callee == nil {
 				continue
 			}
-			if _, ok := attrFuncs[fn.FullName()]; !ok {
+			if _, ok := attrFuncs[callee.FullName()]; !ok {
 				continue
 			}
-			expr = attr.Args[0]
+			fn(attr.Args[0])
 
 		case *ast.CompositeLit: // slog.Attr{}
 			switch len(attr.Elts) {
 			case 1: // slog.Attr{Key: ...} | slog.Attr{Value: ...}
 				if kv := attr.Elts[0].(*ast.KeyValueExpr); kv.Key.(*ast.Ident).Name == "Key" {
-					expr = kv.Value
+					fn(kv.Value)
 				}
-			case 2: // slog.Attr{..., ...} | slog.Attr{Key: ..., Value: ...}
-				expr = attr.Elts[0]
-				if kv1, ok := attr.Elts[0].(*ast.KeyValueExpr); ok && kv1.Key.(*ast.Ident).Name == "Key" {
-					expr = kv1.Value
-				}
-				if kv2, ok := attr.Elts[1].(*ast.KeyValueExpr); ok && kv2.Key.(*ast.Ident).Name == "Key" {
-					expr = kv2.Value
+			case 2: // slog.Attr{Key: ..., Value: ...} | slog.Attr{Value: ..., Key: ...} | slog.Attr{..., ...}
+				if kv, ok := attr.Elts[0].(*ast.KeyValueExpr); ok && kv.Key.(*ast.Ident).Name == "Key" {
+					fn(kv.Value)
+				} else if kv, ok := attr.Elts[1].(*ast.KeyValueExpr); ok && kv.Key.(*ast.Ident).Name == "Key" {
+					fn(kv.Value)
+				} else {
+					fn(attr.Elts[0])
 				}
 			}
 		}
-
-		if name, ok := getKeyName(expr); ok && name != caseFn(name) {
-			return true
-		}
 	}
-
-	return false
 }
 
-func getKeyName(expr ast.Expr) (string, bool) {
-	if expr == nil {
-		return "", false
-	}
-	if ident, ok := expr.(*ast.Ident); ok {
+func getKeyName(key ast.Expr) (string, bool) {
+	if ident, ok := key.(*ast.Ident); ok {
 		if ident.Obj == nil || ident.Obj.Decl == nil || ident.Obj.Kind != ast.Con {
 			return "", false
 		}
 		if spec, ok := ident.Obj.Decl.(*ast.ValueSpec); ok && len(spec.Values) > 0 {
-			// TODO: support len(spec.Values) > 1; e.g. "const foo, bar = 1, 2"
-			expr = spec.Values[0]
+			// TODO: support len(spec.Values) > 1; e.g. const foo, bar = 1, 2
+			key = spec.Values[0]
 		}
 	}
-	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		return lit.Value, true
+	if lit, ok := key.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		// string literals are always quoted.
+		value, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			panic("unreachable")
+		}
+		return value, true
 	}
 	return "", false
 }
 
-func argsOnSameLine(fset *token.FileSet, call ast.Expr, keys, attrs []ast.Expr) bool {
+func areArgsOnSameLine(fset *token.FileSet, call ast.Expr, keys, attrs []ast.Expr) bool {
 	if len(keys)+len(attrs) <= 1 {
 		return false // special case: slog.Info("msg", "key", "value") is ok.
 	}

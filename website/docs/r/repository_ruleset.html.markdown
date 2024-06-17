@@ -5,7 +5,7 @@ description: |-
   Creates a GitHub repository ruleset.
 ---
 
-# github_repository_ruleset (Resource)
+# github_repository_ruleset
 
 Creates a GitHub repository ruleset.
 
@@ -13,7 +13,7 @@ This resource allows you to create and manage rulesets on the repository level. 
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "Example repository"
