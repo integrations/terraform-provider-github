@@ -60,10 +60,33 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"users": {
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:       schema.TypeString,
+							Computed:   true,
+							Deprecated: "Use `node_id` instead. Expect this to become equivalent to `database_id` in next major version.",
+						},
+						"node_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"database_id": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"login": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"email": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"role": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -198,9 +221,10 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 				Edges []struct {
 					Role githubv4.String
 					Node struct {
-						Id    githubv4.String
-						Login githubv4.String
-						Email githubv4.String
+						Id         githubv4.String
+						DatabaseId githubv4.Int
+						Login      githubv4.String
+						Email      githubv4.String
 					}
 				}
 				PageInfo struct {
@@ -215,7 +239,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		"after": (*githubv4.String)(nil),
 	}
 	var members []string
-	var users []map[string]string
+	var users []map[string]interface{}
 	for {
 		err := client4.Query(ctx, &query, variables)
 		if err != nil {
@@ -223,11 +247,13 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		}
 		for _, edge := range query.Organization.MembersWithRole.Edges {
 			members = append(members, string(edge.Node.Login))
-			users = append(users, map[string]string{
-				"id":    string(edge.Node.Id),
-				"login": string(edge.Node.Login),
-				"email": string(edge.Node.Email),
-				"role":  string(edge.Role),
+			users = append(users, map[string]interface{}{
+				"id":          string(edge.Node.Id),
+				"node_id":     string(edge.Node.Id),
+				"database_id": int(edge.Node.DatabaseId),
+				"login":       string(edge.Node.Login),
+				"email":       string(edge.Node.Email),
+				"role":        string(edge.Role),
 			})
 		}
 		if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
