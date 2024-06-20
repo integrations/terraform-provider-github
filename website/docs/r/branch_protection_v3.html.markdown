@@ -48,7 +48,7 @@ resource "github_branch_protection_v3" "example" {
     dismiss_stale_reviews = true
     dismissal_users       = ["foo-user"]
     dismissal_teams       = [github_team.example.slug]
-    dismissal_app         = ["foo-app]
+    dismissal_app         = ["foo-app"]
 
     bypass_pull_request_allowances {
       users = ["foo-user"]
