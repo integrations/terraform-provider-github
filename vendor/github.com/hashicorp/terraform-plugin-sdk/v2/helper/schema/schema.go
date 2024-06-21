@@ -980,7 +980,8 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 				return fmt.Errorf("%s: DefaultFunc is for configurable attributes,"+
 					"there's nothing to configure on computed-only field", k)
 			}
-			if v.DiffSuppressFunc != nil {
+			// Allow this behavior for etag, which is a special case (being too noisy)
+			if v.DiffSuppressFunc != nil && k != "etag" {
 				return fmt.Errorf("%s: DiffSuppressFunc is for suppressing differences"+
 					" between config and state representation. "+
 					"There is no config for computed-only field, nothing to compare.", k)

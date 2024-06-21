@@ -89,6 +89,10 @@ func resourceGithubTeam() *schema.Resource {
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"node_id": {
 				Type:        schema.TypeString,
