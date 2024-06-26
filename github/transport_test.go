@@ -160,6 +160,42 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 	}
 }
 
+func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri: "/repos/test/blah",
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "10",
+			},
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_, _, err := client.Repositories.Get(ctx, "test", "blah")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Expected context deadline exceeded, got: %v", err)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("Waited for longer than expected: %s", time.Since(start))
+	}
+}
+
 func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	ts := githubApiMock([]*mockResponse{
 		{
