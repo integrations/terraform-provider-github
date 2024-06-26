@@ -10,13 +10,6 @@ Checks usage of:
 - [OpenTelemetry spans](https://opentelemetry.io/docs/instrumentation/go/manual/) from [go.opentelemetry.io/otel/trace](go.opentelemetry.io/otel/trace)
 - [OpenCensus spans](https://opencensus.io/quickstart/go/tracing/) from [go.opencensus.io/trace](https://pkg.go.dev/go.opencensus.io/trace#Span)
 
-## Installation & Usage
-
-```bash
-go install github.com/jjti/go-spancheck/cmd/spancheck@latest
-spancheck ./...
-```
-
 ## Example
 
 ```bash
@@ -43,6 +36,51 @@ func _() error {
 
 ## Configuration
 
+### golangci-lint
+
+Docs on configuring the linter are also available at [https://golangci-lint.run/usage/linters/#spancheck](https://golangci-lint.run/usage/linters/#spancheck):
+
+```yaml
+linters:
+  enable:
+    - spancheck
+
+linters-settings:
+  spancheck:
+    # Checks to enable.
+    # Options include:
+    # - `end`: check that `span.End()` is called
+    # - `record-error`: check that `span.RecordError(err)` is called when an error is returned
+    # - `set-status`: check that `span.SetStatus(codes.Error, msg)` is called when an error is returned
+    # Default: ["end"]
+    checks:
+      - end
+      - record-error
+      - set-status
+    # A list of regexes for function signatures that silence `record-error` and `set-status` reports
+    # if found in the call path to a returned error.
+    # https://github.com/jjti/go-spancheck#ignore-check-signatures
+    # Default: []
+    ignore-check-signatures:
+      - "telemetry.RecordError"
+    # A list of regexes for additional function signatures that create spans. This is useful if you have a utility
+    # method to create spans. Each entry should be of the form <regex>:<telemetry-type>, where `telemetry-type`
+    # can be `opentelemetry` or `opencensus`.
+    # https://github.com/jjti/go-spancheck#extra-start-span-signatures
+    # Default: []
+    extra-start-span-signatures:
+      - "github.com/user/repo/telemetry/trace.Start:opentelemetry"
+```
+
+### CLI
+
+To install the linter as a CLI:
+
+```bash
+go install github.com/jjti/go-spancheck/cmd/spancheck@latest
+spancheck ./...
+```
+
 Only the `span.End()` check is enabled by default. The others can be enabled with `-checks 'end,set-status,record-error'`.
 
 ```txt
@@ -51,11 +89,13 @@ $ spancheck -h
 Flags:
   -checks string
         comma-separated list of checks to enable (options: end, set-status, record-error) (default "end")
+  -extra-start-span-signatures string
+        comma-separated list of regex:telemetry-type for function signatures that indicate the start of a span
   -ignore-check-signatures string
         comma-separated list of regex for function signatures that disable checks on errors
 ```
 
-### Ignore check signatures
+### Ignore Check Signatures
 
 The `span.SetStatus()` and `span.RecordError()` checks warn when there is:
 
@@ -90,6 +130,21 @@ The warnings are can be ignored by setting `-ignore-check-signatures` flag to `r
 
 ```bash
 spancheck -checks 'end,set-status,record-error' -ignore-check-signatures 'recordErr' ./...
+```
+
+### Extra Start Span Signatures
+
+By default, Span creation will be tracked from calls to [(go.opentelemetry.io/otel/trace.Tracer).Start](https://github.com/open-telemetry/opentelemetry-go/blob/98b32a6c3a87fbee5d34c063b9096f416b250897/trace/trace.go#L523), [go.opencensus.io/trace.StartSpan](https://pkg.go.dev/go.opencensus.io/trace#StartSpan), or [go.opencensus.io/trace.StartSpanWithRemoteParent](https://github.com/census-instrumentation/opencensus-go/blob/v0.24.0/trace/trace_api.go#L66).
+
+You can use the `-extra-start-span-signatures` flag to list additional Span creation functions. For all such functions:
+
+1. their Spans will be linted (for all enable checks)
+1. checks will be disabled (i.e. there is no linting of Spans within the creation functions)
+
+You must pass a comma-separated list of regex patterns and the telemetry library corresponding to the returned Span. Each entry should be of the form `<regex>:<telemetry-type>`, where `telemetry-type` can be `opentelemetry` or `opencensus`. For example, if you have created a function named `StartTrace` in a `telemetry` package, using the `go.opentelemetry.io/otel` library, you can include this function for analysis like so:
+
+```bash
+spancheck -extra-start-span-signatures 'github.com/user/repo/telemetry/StartTrace:opentelemetry' ./...
 ```
 
 ## Problem Statement
@@ -208,3 +263,6 @@ This linter is the product of liberal copying of:
 - [github.com/tomarrell/wrapcheck](https://github.com/tomarrell/wrapcheck) (error type checking and config)
 - [github.com/Antonboom/testifylint](https://github.com/Antonboom/testifylint) (README)
 - [github.com/ghostiam/protogetter](https://github.com/ghostiam/protogetter/blob/main/testdata/Makefile) (test setup)
+
+And the contributions of:
+- [@trixnz](https://github.com/trixnz) who [added support for custom span start functions](https://github.com/jjti/go-spancheck/pull/16)

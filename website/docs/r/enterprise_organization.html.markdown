@@ -37,7 +37,8 @@ resource "github_enterprise_organization" "org" {
 
 The following additional attributes are exported:
 
-* `id` - The ID of the organization.
+* `id` - The node ID of the organization for use with the v4 API.
+* `database_id` - The ID of the organization.
 
 ## Import
 

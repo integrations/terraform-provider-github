@@ -421,7 +421,7 @@ import (
 `,
 	},
 	{
-		"comment-whithout-whitespace",
+		"comment-without-whitespace",
 
 		commonConfig,
 
@@ -1272,6 +1272,26 @@ import (
 
 	testing "github.com/daixiang0/test"
 	g "github.com/golang"
+)
+`,
+	},
+	{
+		"no-trailing-newline",
+
+		`sections:
+  - Standard
+`,
+		`package main
+
+import (
+	"net"
+	"fmt"
+)`,
+		`package main
+
+import (
+	"fmt"
+	"net"
 )
 `,
 	},
