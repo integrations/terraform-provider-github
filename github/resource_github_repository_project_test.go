@@ -24,7 +24,7 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 
 			resource "github_repository_project" "test" {
 			  name       = "test"
-			  repository = github_repository.test.id
+			  repository = github_repository.test.name
 			  body       = "this is a test project"
 			}
 		`, randomID)
