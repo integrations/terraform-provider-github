@@ -1,10 +1,8 @@
 provider "github" {
   owner = var.owner
-  app_auth {
-    // Empty block to allow the provider configurations to be specified through
-    // environment variables.
-    // See: https://github.com/hashicorp/terraform-plugin-sdk/issues/142
-  }
+  // GitHub app credentials can be specified through environment variables
+  // An empty app_auth block can be used to avoid picking up GITHUB_TOKEN from the environment
+  // app_auth {}
 }
 
 terraform {
