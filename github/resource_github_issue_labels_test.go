@@ -108,7 +108,7 @@ func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]interfa
 
 		resource = fmt.Sprintf(`
 			resource "github_issue_labels" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 
 				%s
 			}

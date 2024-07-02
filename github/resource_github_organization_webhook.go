@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -67,7 +67,7 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 
 	config := d.Get("configuration").([]interface{})
 	if len(config) > 0 {
-		hook.Config = config[0].(map[string]interface{})
+		hook.Config = webhookConfigFromInterface(config[0].(map[string]interface{}))
 	}
 
 	return hook
@@ -95,13 +95,11 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from our request to GitHub
-	if hook.Config["secret"] != nil {
-		hook.Config["secret"] = webhookObj.Config["secret"]
+	if hook.Config.Secret != nil {
+		hook.Config.Secret = webhookObj.Config.Secret
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
@@ -162,14 +160,12 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 	if len(d.Get("configuration").([]interface{})) > 0 {
 		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
 
-		if hook.Config["secret"] != nil {
-			hook.Config["secret"] = currentSecret
+		if hook.Config.Secret != nil {
+			hook.Config.Secret = github.String(currentSecret.(string))
 		}
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
@@ -218,4 +214,50 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interf
 
 	_, err = client.Organizations.DeleteHook(ctx, orgName, hookID)
 	return err
+}
+
+func webhookConfigFromInterface(config map[string]interface{}) *github.HookConfig {
+	hookConfig := &github.HookConfig{}
+	if config["url"] != nil {
+		hookConfig.URL = github.String(config["url"].(string))
+	}
+	if config["content_type"] != nil {
+		hookConfig.ContentType = github.String(config["content_type"].(string))
+	}
+	if config["insecure_ssl"] != nil {
+		if insecureSsl, ok := config["insecure_ssl"].(bool); ok {
+			if insecureSsl {
+				hookConfig.InsecureSSL = github.String("1")
+			} else {
+				hookConfig.InsecureSSL = github.String("0")
+			}
+		} else {
+			if config["insecure_ssl"] == "1" || config["insecure_ssl"] == "true" {
+				hookConfig.InsecureSSL = github.String("1")
+			} else {
+				hookConfig.InsecureSSL = github.String("0")
+			}
+		}
+	}
+	if config["secret"] != nil {
+		hookConfig.Secret = github.String(config["secret"].(string))
+	}
+	return hookConfig
+}
+
+func interfaceFromWebhookConfig(config *github.HookConfig) []interface{} {
+	cfg := map[string]interface{}{}
+	if config.URL != nil {
+		cfg["url"] = *config.URL
+	}
+	if config.ContentType != nil {
+		cfg["content_type"] = *config.ContentType
+	}
+	if config.InsecureSSL != nil {
+		cfg["insecure_ssl"] = *config.InsecureSSL == "1"
+	}
+	if config.Secret != nil {
+		cfg["secret"] = *config.Secret
+	}
+	return []interface{}{cfg}
 }

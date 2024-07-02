@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -26,7 +26,11 @@ func resourceGithubRepositoryTagProtection() *schema.Resource {
 				if err := d.Set("repository", parts[0]); err != nil {
 					return nil, err
 				}
-				if err := d.Set("tag_protection_id", parts[1]); err != nil {
+				tag_protection_id, err := strconv.ParseInt(parts[1], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				if err := d.Set("tag_protection_id", tag_protection_id); err != nil {
 					return nil, err
 				}
 				d.SetId(parts[1])

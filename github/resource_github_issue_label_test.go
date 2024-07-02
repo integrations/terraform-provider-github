@@ -26,7 +26,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			}
 
 			resource "github_issue_label" "test" {
-			  repository  = github_repository.test.id
+			  repository  = github_repository.test.name
 			  name        = "foo"
 			  color       = "000000"
 			  description = "%s"

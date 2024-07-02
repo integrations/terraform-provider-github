@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -84,15 +84,9 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		Active: &active,
 	}
 
-	config := d.Get("configuration").([]interface{})
+	config := d.Get("configuration").([]interface{})[0].(map[string]interface{})
 	if len(config) > 0 {
-		hook.Config = config[0].(map[string]interface{})
-	}
-
-	if hook.Config["insecure_ssl"].(bool) {
-		hook.Config["insecure_ssl"] = "1"
-	} else {
-		hook.Config["insecure_ssl"] = "0"
+		hook.Config = webhookConfigFromInterface(config)
 	}
 
 	return hook
@@ -115,13 +109,11 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from our request to GitHub
-	if hook.Config["secret"] != nil {
-		hook.Config["secret"] = hk.Config["secret"]
+	if hook.Config.Secret != nil {
+		hook.Config.Secret = hk.Config.Secret
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
@@ -174,14 +166,12 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	if len(d.Get("configuration").([]interface{})) > 0 {
 		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
 
-		if hook.Config["secret"] != nil {
-			hook.Config["secret"] = currentSecret
+		if hook.Config.Secret != nil {
+			hook.Config.Secret = github.String(currentSecret.(string))
 		}
 	}
 
-	hook.Config = insecureSslStringToBool(hook.Config)
-
-	if err = d.Set("configuration", []interface{}{hook.Config}); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
 
@@ -221,14 +211,4 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
 	return err
-}
-
-func insecureSslStringToBool(config map[string]interface{}) map[string]interface{} {
-	if config["insecure_ssl"] == "1" {
-		config["insecure_ssl"] = true
-	} else {
-		config["insecure_ssl"] = false
-	}
-
-	return config
 }

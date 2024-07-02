@@ -49,6 +49,7 @@ func TestProvider(t *testing.T) {
 
 }
 
+// TODO: this is failing
 func TestAccProviderConfigure(t *testing.T) {
 
 	t.Run("can be configured to run anonymously", func(t *testing.T) {

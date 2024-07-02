@@ -21,7 +21,7 @@ func TestAccGithubCodespacesPublicKeyDataSource(t *testing.T) {
 			}
 
 			data "github_codespaces_public_key" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 			}
 		`, randomID)
 
