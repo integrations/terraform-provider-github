@@ -99,8 +99,6 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interf
 		hook.Config.Secret = webhookObj.Config.Secret
 	}
 
-	// hook.Config = insecureSslStringToBool(hook.Config)
-
 	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err
 	}
@@ -166,8 +164,6 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interfac
 			hook.Config.Secret = github.String(currentSecret.(string))
 		}
 	}
-
-	// hook.Config = insecureSslStringToBool(hook.Config)
 
 	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
 		return err

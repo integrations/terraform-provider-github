@@ -241,7 +241,6 @@ func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protec
 	return d.Set("restrictions", []interface{}{})
 }
 
-// TODO: review pointer structure
 func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusChecks, error) {
 	if v, ok := d.GetOk("required_status_checks"); ok {
 		vL := v.([]interface{})
