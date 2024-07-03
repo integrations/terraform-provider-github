@@ -21,7 +21,7 @@ func TestAccGithubDependabotPublicKeyDataSource(t *testing.T) {
 			}
 
 			data "github_actions_public_key" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 			}
 		`, randomID)
 

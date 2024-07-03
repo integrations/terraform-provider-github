@@ -59,6 +59,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 
 	})
 
+	// TODO: This still fails on missing id attribute
 	t.Run("queries an invalid ref without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
