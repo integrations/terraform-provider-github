@@ -16,12 +16,8 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		enabledOrganizations := "all"
 
 		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
-
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_id = data.github_enterprise.enterprise.id
+				enterprise_slug = "%s"
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 			}
@@ -74,27 +70,23 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc := "Initial org description"
 
 		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
-
 			data "github_user" "current" {
 				username = ""
 			}
 	
 			resource "github_enterprise_organization" "org" {
-				enterprise_id = data.github_enterprise.enterprise.id
-				name          = "%s"
-				display_name  = "%s"
-				description   = "%s"
-				billing_email = data.github_user.current.email
-				admin_logins  = [
+				enterprise_slug = "%s"
+				name            = "%s"
+				display_name    = "%s"
+				description     = "%s"
+				billing_email   = data.github_user.current.email
+				admin_logins    = [
 					data.github_user.current.login
 				]
 			}
 
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_id = data.github_enterprise.enterprise.id
+				enterprise_slug = "%s"
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				allowed_actions_config {
@@ -106,7 +98,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					organization_ids       = [github_enterprise_organization.org.id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testEnterprise, orgName, displayName, desc, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -160,11 +152,8 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		verifiedAllowed := true
 
 		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_id = data.github_enterprise.enterprise.id
+				enterprise_slug = "%s"
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				allowed_actions_config {
@@ -227,41 +216,38 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc2 := fmt.Sprintf("Initial org description %s", randomID2)
 
 		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
 			data "github_user" "current" {
 				username = ""
 			}
 			resource "github_enterprise_organization" "org" {
-				enterprise_id = data.github_enterprise.enterprise.id
-				name          = "%s"
-				display_name  = "%s"
-				description   = "%s"
-				billing_email = data.github_user.current.email
-				admin_logins  = [
+				enterprise_slug = "%s"
+				name            = "%s"
+				display_name    = "%s"
+				description     = "%s"
+				billing_email   = data.github_user.current.email
+				admin_logins    = [
 					data.github_user.current.login
 				]
 			}
 			resource "github_enterprise_organization" "org2" {
-				enterprise_id = data.github_enterprise.enterprise.id
-				name          = "%s"
-				display_name  = "%s"
-				description   = "%s"
-				billing_email = data.github_user.current.email
-				admin_logins  = [
+				enterprise_slug = "%s"
+				name            = "%s"
+				display_name    = "%s"
+				description     = "%s"
+				billing_email   = data.github_user.current.email
+				admin_logins    = [
 					data.github_user.current.login
 				]
 			}
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_id = data.github_enterprise.enterprise.id
+				enterprise_slug = "%s"
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				enabled_organizations_config {
 					organization_ids       = [github_enterprise_organization.org.id, github_enterprise_organization.org2.id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, orgName2, displayName2, desc2, allowedActions, enabledOrganizations)
+		`, testEnterprise, orgName, displayName, desc, testEnterprise, orgName2, displayName2, desc2, testEnterprise, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

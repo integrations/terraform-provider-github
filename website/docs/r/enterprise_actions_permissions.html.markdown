@@ -13,16 +13,12 @@ You must have admin access to an enterprise to use this resource.
 ## Example Usage
 
 ```hcl
-data "github_enterprise" "example-enterprise" {
-  slug = "my-enterprise"
-}
-
 data "github_organization" "example-org" {
   name = "my-org"
 }
 
 resource "github_enterprise_actions_permissions" "test" {
-  enterprise_id = data.github_enterprise.example-enterprise.slug
+  enterprise_slug = "my-enterprise"
   allowed_actions = "selected"
   enabled_organizations = "selected"
   allowed_actions_config {
@@ -39,10 +35,10 @@ resource "github_enterprise_actions_permissions" "test" {
 ## Argument Reference
 
 The following arguments are supported:
-* `enterprise_id`              - (Required) The ID of the enterprise.
-* `allowed_actions`            - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
-* `enabled_organizations`      - (Required) The policy that controls the organizations in the enterprise that are allowed to run GitHub Actions. Can be one of: `all`, `none`, or `selected`.
-* `allowed_actions_config`     - (Optional) Sets the actions that are allowed in an enterprise. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
+* `"my-enterprise"`              - (Required) The slug of the enterprise.
+* `allowed_actions`              - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
+* `enabled_organizations`        - (Required) The policy that controls the organizations in the enterprise that are allowed to run GitHub Actions. Can be one of: `all`, `none`, or `selected`.
+* `allowed_actions_config`       - (Optional) Sets the actions that are allowed in an enterprise. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
 * `enabled_organizations_config` - (Optional) Sets the list of selected organizations that are enabled for GitHub Actions in an enterprise. Only available when `enabled_organizations` = `selected`. See [Enabled Organizations Config](#enabled-organizations-config) below for details.
 
 ### Allowed Actions Config
