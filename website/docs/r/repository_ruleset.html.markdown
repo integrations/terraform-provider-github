@@ -5,7 +5,7 @@ description: |-
   Creates a GitHub repository ruleset.
 ---
 
-# github_repository_ruleset (Resource)
+# github_repository_ruleset
 
 Creates a GitHub repository ruleset.
 
@@ -13,7 +13,7 @@ This resource allows you to create and manage rulesets on the repository level. 
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "Example repository"
@@ -173,7 +173,7 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
-#### required_status_checks.required_check ####
+#### rules.required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
@@ -206,7 +206,7 @@ The `rules` block supports the following:
 * `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
   * `maintain` -> `2`
   * `write` -> `4`
-  * `admiin` -> `5`
+  * `admin` -> `5`
 
 
 #### conditions ####

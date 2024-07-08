@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubBranchProtectionV3_defaults(t *testing.T) {
@@ -301,6 +301,16 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			  auto_init = true
 			}
 
+			resource "github_team" "test" {
+				name = "tf-acc-test-%[1]s"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "admin"
+			}
+
 			resource "github_branch_protection_v3" "test" {
 
 			  repository  = github_repository.test.name
@@ -309,10 +319,20 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			  required_pull_request_reviews {
 				  dismiss_stale_reviews      = true
 				  require_code_owner_reviews = true
+				  required_approving_review_count = 1
+				  require_last_push_approval = true
+				  dismissal_users = ["a"]
+				  dismissal_teams = ["b"]
+				  dismissal_apps = ["c"]
+				  bypass_pull_request_allowances {
+					  users = ["d"]
+					  teams = [github_team.test.slug]
+					  apps = ["e"]
+				  }
 			  }
 
+			  depends_on = [github_team_repository.test]
 			}
-
 	`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
@@ -327,6 +347,30 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
 			),
 		)
 

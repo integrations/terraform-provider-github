@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource(t *testing.T) {
@@ -17,7 +17,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
-				private = true
+				visibility = "private"
 			}
 	
 			resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -36,7 +36,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 		config3 := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
-				private = true
+				visibility = "private"
 			}
 	
 			resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -61,7 +61,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 
 		check2 := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_actions_repository_oidc_subject_claim_customization_template.test", "use_default", "true"),
-			resource.TestCheckNoResourceAttr("data.github_actions_repository_oidc_subject_claim_customization_template.test", "include_claim_keys"),
+			resource.TestCheckResourceAttr("data.github_actions_repository_oidc_subject_claim_customization_template.test", "include_claim_keys.#", "0"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

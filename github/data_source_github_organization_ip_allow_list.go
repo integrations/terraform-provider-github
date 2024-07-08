@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -119,7 +119,10 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(string(query.Organization.ID))
-	d.Set("ip_allow_list", ipAllowList)
+	err = d.Set("ip_allow_list", ipAllowList)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -1,7 +1,7 @@
 package result
 
 import (
-	"crypto/md5" //nolint:gosec
+	"crypto/md5" //nolint:gosec // for md5 hash
 	"fmt"
 	"go/token"
 
@@ -91,8 +91,8 @@ func (i *Issue) Fingerprint() string {
 		firstLine = i.SourceLines[0]
 	}
 
-	hash := md5.New() //nolint:gosec
-	_, _ = hash.Write([]byte(fmt.Sprintf("%s%s%s", i.Pos.Filename, i.Text, firstLine)))
+	hash := md5.New() //nolint:gosec // we don't need a strong hash here
+	_, _ = fmt.Fprintf(hash, "%s%s%s", i.Pos.Filename, i.Text, firstLine)
 
 	return fmt.Sprintf("%X", hash.Sum(nil))
 }

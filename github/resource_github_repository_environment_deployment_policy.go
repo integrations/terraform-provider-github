@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v62/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		Update: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
 		Delete: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {

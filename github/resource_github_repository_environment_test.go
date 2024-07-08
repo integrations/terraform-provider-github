@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
@@ -22,12 +22,15 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				visibility = "public"
 			}
 
 			resource "github_repository_environment" "test" {
 				repository 	= github_repository.test.name
-				environment	= "environment/test"
-				wait_timer	= 10000
+				environment	= "environment / test"
+				can_admins_bypass = false
+				wait_timer = 10000
+                                prevent_self_review = true
 				reviewers {
 					users = [data.github_user.current.id]
 				}
@@ -39,11 +42,11 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_environment.test", "environment",
-				"environment/test",
-			),
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment / test"),
+			resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
+			resource.TestCheckResourceAttr("github_repository_environment.test", "prevent_self_review", "true"),
+			resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v62/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationSecurityManager() *schema.Resource {
@@ -17,7 +17,7 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 		Update: resourceGithubOrganizationSecurityManagerUpdate,
 		Delete: resourceGithubOrganizationSecurityManagerDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -100,7 +100,9 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 		return nil
 	}
 
-	d.Set("team_slug", team.GetSlug())
+	if err = d.Set("team_slug", team.GetSlug()); err != nil {
+		return err
+	}
 
 	return nil
 }

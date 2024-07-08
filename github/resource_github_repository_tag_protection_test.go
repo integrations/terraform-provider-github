@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+// TODO: This still failes on mismatched ID on stateVerify
 func TestAccGithubRepositoryTagProtection(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	t.Run("creates tag protection without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-%s"
 			  auto_init    = true
+				visibility = "private"
 			}
 
 			resource "github_repository_tag_protection" "test" {
@@ -55,11 +57,13 @@ func TestAccGithubRepositoryTagProtection(t *testing.T) {
 
 	})
 	t.Run("imports tag protection without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-%s"
 			  auto_init    = true
+				visibility = "private"
 			}
 
 			resource "github_repository_tag_protection" "test" {
@@ -107,11 +111,13 @@ func TestAccGithubRepositoryTagProtection(t *testing.T) {
 		})
 	})
 	t.Run("deletes tag protection without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
 					name = "tf-acc-test-%s"
 					auto_init = true
+					visibility = "private"
 				}
 
 				resource "github_repository_tag_protection" "test" {

@@ -3,8 +3,8 @@ package github
 import (
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v62/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -16,6 +16,11 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"ignore_archived_repos": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
 			},
 			"orgname": {
 				Type:     schema.TypeString,
@@ -176,8 +181,15 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 			break
 		}
 	}
+
+	ignoreArchiveRepos := d.Get("ignore_archived_repos").(bool)
 	for index := range allRepos {
-		repoList = append(repoList, allRepos[index].GetFullName())
+		repo := allRepos[index]
+		if ignoreArchiveRepos && repo.GetArchived() {
+			continue
+		}
+
+		repoList = append(repoList, repo.GetFullName())
 	}
 
 	var query struct {

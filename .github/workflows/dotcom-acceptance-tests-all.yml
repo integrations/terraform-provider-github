@@ -16,15 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - name: Acceptance Tests (Anonymous)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -33,17 +34,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -53,7 +55,7 @@ jobs:
 
       - name: Failed Acceptance Tests (Individual)
         if: ${{ failure() }}
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: DEBUG
           RUN_ALLOWED: ${{ steps.acceptance-tests-individual.outputs.failed }}
@@ -65,17 +67,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
           TF_LOG: INFO
           RUN_ALL: true
@@ -84,7 +87,7 @@ jobs:
           GITHUB_TEST_OWNER: github-terraform-test-user
 
       - name: Failed Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@v2.2.0
+        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         if: ${{ failure() }}
         with:
           TF_LOG: DEBUG
