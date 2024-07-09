@@ -55,7 +55,7 @@ func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.Resourc
 	canApprovePullRequestReviews := d.Get("can_approve_pull_request_reviews").(bool)
 
 	repoWorkflowPermissions := github.DefaultWorkflowPermissionRepository{
-		DefaultWorkflowPermissions: &defaultWorkflowPermissions,
+		DefaultWorkflowPermissions:   &defaultWorkflowPermissions,
 		CanApprovePullRequestReviews: &canApprovePullRequestReviews,
 	}
 
@@ -69,7 +69,7 @@ func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.Resourc
 	}
 
 	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	return resourceGithubWorkflowRepositoryPermissionsRead(d, meta)
 }
 
 func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, meta interface{}) error {
