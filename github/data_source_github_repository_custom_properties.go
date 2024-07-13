@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	abs "github.com/microsoft/kiota-abstractions-go"
+	"github.com/octokit/go-sdk/pkg/github/models"
 )
 
 func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
@@ -29,6 +30,39 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
+func parseRepositoryCustomProperties(repo models.FullRepositoryable) (map[string]string, error) {
+	repoFullName := repo.GetFullName()
+	repoProps := repo.GetCustomProperties().GetAdditionalData()
+
+	properties := make(map[string]string)
+	for key, value := range repoProps {
+
+		typeAssertionErr := errors.New(fmt.Sprintf("Error reading custom property `%v` in %s. Value couldn't be parsed as a string, or a list of strings", key, repoFullName))
+
+		// The value of a custom property can be either a string, or a list of strings (https://docs.github.com/en/enterprise-cloud@latest/rest/repos/custom-properties?apiVersion=2022-11-28#get-all-custom-property-values-for-a-repository)
+		if valueAsString, ok := value.(*string); ok {
+			properties[key] = *valueAsString
+		} else if valueAsInterfaceSlice, ok := value.([]interface{}); ok {
+			// Format the multi_select props as comma separated values
+			var valueStringBuilder strings.Builder
+			for _, valueAsInterface := range valueAsInterfaceSlice {
+				if valueAsString, ok := valueAsInterface.(*string); ok {
+					valueStringBuilder.WriteString(*valueAsString)
+					valueStringBuilder.WriteString(",")
+				} else {
+					return nil, typeAssertionErr
+				}
+
+			}
+			properties[key] = strings.TrimSuffix(valueStringBuilder.String(), ",") // Remove any trailing commas
+		} else {
+			return nil, typeAssertionErr
+		}
+	}
+
+	return properties, nil
+}
+
 func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta interface{}) error {
 
 	octokitClient := meta.(*Owner).octokitClient
@@ -45,31 +79,9 @@ func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta
 		return err
 	}
 
-	properties := make(map[string]string)
-	repoProps := repo.GetCustomProperties()
-	for key, value := range repoProps.GetAdditionalData() {
-
-		typeAssertionErr := errors.New(fmt.Sprintf("Error reading custom property `%v` in %s/%s. Value couldn't be parsed as a string, or a list of strings", key, owner, repoName))
-
-		// The value of a custom property can be either a string, or a list of strings (https://docs.github.com/en/enterprise-cloud@latest/rest/repos/custom-properties?apiVersion=2022-11-28#get-all-custom-property-values-for-a-repository)
-		if valueAsString, ok := value.(*string); ok {
-			properties[key] = *valueAsString
-		} else if valueAsInterfaceSlice, ok := value.([]interface{}); ok {
-			// Format the multi_select props as comma separated values
-			var valueStringBuilder strings.Builder
-			for _, valueAsInterface := range valueAsInterfaceSlice {
-				if valueAsString, ok := valueAsInterface.(*string); ok {
-					valueStringBuilder.WriteString(*valueAsString)
-					valueStringBuilder.WriteString(",")
-				} else {
-					return typeAssertionErr
-				}
-
-			}
-			properties[key] = strings.TrimSuffix(valueStringBuilder.String(), ",") // Remove any trailing commas
-		} else {
-			return typeAssertionErr
-		}
+	properties, err := parseRepositoryCustomProperties(repo)
+	if err != nil {
+		return err
 	}
 
 	d.SetId(buildTwoPartID(owner, repoName)) // TODO: Maybe this should just be the repo name
