@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -66,7 +67,7 @@ func parseRepositoryCustomProperties(repo models.FullRepositoryable) (map[string
 func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta interface{}) error {
 
 	octokitClient := meta.(*Owner).octokitClient
-	ctx := meta.(*Owner).StopContext
+	ctx := context.Background()
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
