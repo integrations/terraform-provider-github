@@ -41,22 +41,24 @@ func parseRepositoryCustomProperties(repo models.FullRepositoryable) (map[string
 		typeAssertionErr := errors.New(fmt.Sprintf("error reading custom property `%v` in %s. Value couldn't be parsed as a string, or a list of strings", key, *repoFullName))
 
 		// The value of a custom property can be either a string, or a list of strings (https://docs.github.com/en/enterprise-cloud@latest/rest/repos/custom-properties?apiVersion=2022-11-28#get-all-custom-property-values-for-a-repository)
-		if valueAsString, ok := value.(*string); ok {
-			properties[key] = *valueAsString
-		} else if valueAsInterfaceSlice, ok := value.([]interface{}); ok {
-			// Format the multi_select props as comma separated values
+
+		switch valueStringOrSlice := value.(type) {
+		case *string:
+			properties[key] = *valueStringOrSlice
+		case []interface{}:
 			var valueStringBuilder strings.Builder
-			for _, valueAsInterface := range valueAsInterfaceSlice {
-				if valueAsString, ok := valueAsInterface.(*string); ok {
-					valueStringBuilder.WriteString(*valueAsString)
+			for _, valueSliceElem := range valueStringOrSlice {
+
+				switch val := valueSliceElem.(type) {
+				case *string:
+					valueStringBuilder.WriteString(*val)
 					valueStringBuilder.WriteString(",")
-				} else {
+				default:
 					return nil, typeAssertionErr
 				}
-
 			}
 			properties[key] = strings.TrimSuffix(valueStringBuilder.String(), ",") // Remove any trailing commas
-		} else {
+		default:
 			return nil, typeAssertionErr
 		}
 	}
