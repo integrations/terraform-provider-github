@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -38,7 +37,7 @@ func parseRepositoryCustomProperties(repo models.FullRepositoryable) (map[string
 	properties := make(map[string]string)
 	for key, value := range repoProps {
 
-		typeAssertionErr := errors.New(fmt.Sprintf("error reading custom property `%v` in %s. Value couldn't be parsed as a string, or a list of strings", key, *repoFullName))
+		typeAssertionErr := fmt.Errorf("error reading custom property `%v` in %s. Value couldn't be parsed as a string, or a list of strings", key, *repoFullName)
 
 		// The value of a custom property can be either a string, or a list of strings (https://docs.github.com/en/enterprise-cloud@latest/rest/repos/custom-properties?apiVersion=2022-11-28#get-all-custom-property-values-for-a-repository)
 
