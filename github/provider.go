@@ -242,7 +242,7 @@ func Provider() *schema.Provider {
 			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
 			"github_repository_branches":                                            dataSourceGithubRepositoryBranches(),
-			"github_repository_custom_property":                                   dataSourceGithubRepositoryCustomProperty(),
+			"github_repository_custom_property":                                     dataSourceGithubRepositoryCustomProperty(),
 			"github_repository_environments":                                        dataSourceGithubRepositoryEnvironments(),
 			"github_repository_deploy_keys":                                         dataSourceGithubRepositoryDeployKeys(),
 			"github_repository_deployment_branch_policies":                          dataSourceGithubRepositoryDeploymentBranchPolicies(),
