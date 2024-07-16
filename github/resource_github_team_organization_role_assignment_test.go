@@ -22,7 +22,6 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
 
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -104,7 +103,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_read"],
 				),
 			),
-			"after":  resource.ComposeTestCheckFunc(
+			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_write"],
 				),
