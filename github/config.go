@@ -126,7 +126,7 @@ func (c *Config) NewOctokitClient() (*pkg.Client, error) {
 	octokitClient, err := pkg.NewApiClient(
 		// pkg.WithUserAgent("my-user-agent"), // Should this be set to terraform-provider-github or similar? Doesn't look like the user-agent is set for the other clients
 		pkg.WithRequestTimeout(5*time.Second),
-		pkg.WithBaseUrl(strings.TrimSuffix(uv3.Path, "/")), // Drop the last `/` if it's there
+		pkg.WithBaseUrl(strings.TrimSuffix(uv3.Path, "/")), // the octokit/go-sdk expects the url to not end with a "/"
 		pkg.WithTokenAuthentication(c.Token),
 	)
 
