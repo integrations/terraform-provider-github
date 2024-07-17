@@ -28,7 +28,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 				description = "test"
 			}
 			resource "github_team_organization_role_assignment" "test" {
-				team_slug = github_team.test.slug
+				team_id = github_team.test.id
 				role_id = "%s"
 			}
 		`, randomID, githubPredefinedRoleMapping["all_repo_read"])
@@ -38,7 +38,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 				"github_team_organization_role_assignment.test", "id",
 			),
 			resource.TestCheckResourceAttrSet(
-				"github_team_organization_role_assignment.test", "team_slug",
+				"github_team_organization_role_assignment.test", "team_id",
 			),
 			resource.TestCheckResourceAttr(
 				"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_read"],
@@ -81,7 +81,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					description = "test"
 				}
 				resource "github_team_organization_role_assignment" "test" {
-					team_slug = github_team.test.slug
+					team_id = github_team.test.id
 					role_id = "%s"
 				}
 		`, randomID, githubPredefinedRoleMapping["all_repo_read"]),
@@ -91,7 +91,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					description = "test"
 				}
 				resource "github_team_organization_role_assignment" "test" {
-					team_slug = github_team.test.slug
+					team_id = github_team.test.id
 					role_id = "%s"
 				}
 		`, randomID, githubPredefinedRoleMapping["all_repo_write"]),

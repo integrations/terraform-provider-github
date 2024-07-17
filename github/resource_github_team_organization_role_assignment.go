@@ -16,20 +16,33 @@ func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
 		Read:   resourceGithubTeamOrganizationRoleAssignmentRead,
 		Delete: resourceGithubTeamOrganizationRoleAssignmentDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				teamIdString, roleID, err := parseTwoPartID(d.Id(), "team_id", "role_id")
+				if err != nil {
+					return nil, err
+				}
+
+				teamSlug, err := getTeamSlug(teamIdString, meta)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(buildTwoPartID(teamSlug, roleID))
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_slug": {
+			"team_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The organization custom repository role to create.",
+				Description: "The GitHub team id or the GitHub team slug.",
 				ForceNew:    true,
 			},
 			"role_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The base role for the custom repository role.",
+				Description: "The GitHub Organization Role id.",
 				ForceNew:    true,
 			},
 		},
@@ -58,7 +71,13 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	teamSlug := d.Get("team_slug").(string)
+	// The given team id could be an id or a slug
+	givenTeamId := d.Get("team_id").(string)
+	teamSlug, err := getTeamSlug(givenTeamId, meta)
+	if err != nil {
+		return err
+	}
+
 	roleIDString := d.Get("role_id").(string)
 	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
 
@@ -72,7 +91,7 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 		return err
 	}
 
-	d.SetId(buildThreePartID(orgName, teamSlug, roleIDString))
+	d.SetId(buildTwoPartID(teamSlug, roleIDString))
 	return resourceGithubTeamOrganizationRoleAssignmentRead(d, meta)
 }
 
@@ -87,8 +106,17 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
-	teamSlug := d.Get("team_slug").(string)
-	roleIDString := d.Get("role_id").(string)
+	teamIdString, roleIDString, err := parseTwoPartID(d.Id(), "team_id", "role_id")
+	if err != nil {
+		return err
+	}
+
+	// The given team id could be an id or a slug
+	teamSlug, err := getTeamSlug(teamIdString, meta)
+	if err != nil {
+		return err
+	}
+
 	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
 	if err != nil {
 		return err
@@ -125,13 +153,6 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 		return nil
 	}
 
-	if err = d.Set("team_slug", foundTeam.GetSlug()); err != nil {
-		return err
-	}
-	if err = d.Set("role_id", roleIDString); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -146,9 +167,21 @@ func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, 
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	teamSlug := d.Get("team_slug").(string)
-	roleIDString := d.Get("role_id").(string)
+	teamIdString, roleIDString, err := parseTwoPartID(d.Id(), "team_id", "role_id")
+	if err != nil {
+		return err
+	}
+
+	// The given team id could be an id or a slug
+	teamSlug, err := getTeamSlug(teamIdString, meta)
+	if err != nil {
+		return err
+	}
+
 	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		return err
