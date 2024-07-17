@@ -5,10 +5,9 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/google/go-github/v62/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	abs "github.com/microsoft/kiota-abstractions-go"
-	"github.com/octokit/go-sdk/pkg/github/models"
-	"github.com/octokit/go-sdk/pkg/github/orgs"
 )
 
 func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
@@ -49,6 +48,11 @@ func newOctokitClientDefaultRequestConfig() *abs.RequestConfiguration[abs.Defaul
 }
 
 func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	octokitClient := meta.(*Owner).octokitClient
 
 	orgName := meta.(*Owner).name
@@ -73,7 +77,12 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 }
 
 func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, meta interface{}) error {
-	octokitClient := meta.(*Owner).octokitClient
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
+	restClient := meta.(*Owner).v3client
 
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -81,38 +90,42 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 	teamSlug := d.Get("team_slug").(string)
 	roleIDString := d.Get("role_id").(string)
 	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
-
-	headers := abs.NewRequestHeaders()
-	_ = headers.TryAdd("Accept", "application/vnd.github.v3+json")
-	_ = headers.TryAdd("X-GitHub-Api-Version", "2022-11-28")
-	requestConfig := &abs.RequestConfiguration[orgs.ItemOrganizationRolesItemTeamsRequestBuilderGetQueryParameters]{
-		QueryParameters: &orgs.ItemOrganizationRolesItemTeamsRequestBuilderGetQueryParameters{},
-		Headers:         headers,
-	}
-
-	// TODO: Unsure if this handles pagination
-	// If it doesn't the go-github sdk does
-	// client := meta.(*Owner).v3client
-	// client.Organizations.ListTeamsAssignedToOrgRole()
-	roleTeamAssignments, err := octokitClient.Orgs().ByOrg(orgName).OrganizationRoles().ByRole_id(int32(roleID)).Teams().Get(ctx, requestConfig)
 	if err != nil {
 		return err
 	}
 
-	var roleAssignment models.TeamRoleAssignmentable
-	for _, roleTeamAssignment := range roleTeamAssignments {
-		if *roleTeamAssignment.GetSlug() == teamSlug {
-			roleAssignment = roleTeamAssignment
+	// There is no api for checking a specific team role assignment, so instead we iterate over all teams assigned to the role
+	// go-github pagination (https://github.com/google/go-github?tab=readme-ov-file#pagination)
+	options := &github.ListOptions{
+		PerPage: 100,
+	}
+	var foundTeam *github.Team
+	for {
+		teams, resp, err := restClient.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleID, options)
+		if err != nil {
+			return err
 		}
+
+		for _, team := range teams {
+			if team.GetSlug() == teamSlug {
+				foundTeam = team
+			}
+
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		options.Page = resp.NextPage
 	}
 
-	if roleAssignment == nil {
+	if foundTeam == nil {
 		log.Printf("[WARN] Removing team organization role association %s from state because it no longer exists in GitHub", d.Id())
 		d.SetId("")
 		return nil
 	}
 
-	if err = d.Set("team_slug", roleAssignment.GetSlug()); err != nil {
+	if err = d.Set("team_slug", foundTeam.GetSlug()); err != nil {
 		return err
 	}
 	if err = d.Set("role_id", roleIDString); err != nil {
@@ -123,6 +136,11 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 }
 
 func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, meta interface{}) error {
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
 	octokitClient := meta.(*Owner).octokitClient
 
 	orgName := meta.(*Owner).name

@@ -12,7 +12,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	// Mapping of the Organization predefined roles and their ID:s (https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/)
+	// Using the predefined roles since custom roles are a strictly Enterprise feature ((https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/))
 	githubPredefinedRoleMapping := make(map[string]string)
 	githubPredefinedRoleMapping["all_repo_read"] = "8132"
 	githubPredefinedRoleMapping["all_repo_triage"] = "8133"
