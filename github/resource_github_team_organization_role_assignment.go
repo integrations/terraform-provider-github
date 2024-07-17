@@ -137,6 +137,7 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 		for _, team := range teams {
 			if team.GetSlug() == teamSlug {
 				foundTeam = team
+				break
 			}
 
 		}
