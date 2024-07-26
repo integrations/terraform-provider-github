@@ -40,7 +40,7 @@ resource "github_enterprise_actions_runner_group" "example" {
 The following arguments are supported:
 * `enterprise_slug`            - (Required) The slug of the enterprise.
 * `name`                       - (Required) Name of the runner group
-* `visibility`                 - (Optional) Visibility of a runner group to enterprise organizations. Whether the runner group can include `all` or `selected`
+* `visibility`                 - (Required) Visibility of a runner group to enterprise organizations. Whether the runner group can include `all` or `selected`
 * `selected_organization_ids`  - (Optional) IDs of the organizations which should be added to the runner group
 * `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
 * `restricted_to_workflows`    - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
