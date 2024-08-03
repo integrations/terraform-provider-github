@@ -150,7 +150,11 @@ func (s *RepositoriesService) DownloadContents(ctx context.Context, owner, repo,
 				return nil, resp, fmt.Errorf("no download link found for %s", filepath)
 			}
 
-			dlResp, err := s.client.client.Get(*contents.DownloadURL)
+			dlReq, err := http.NewRequestWithContext(ctx, http.MethodGet, *contents.DownloadURL, nil)
+			if err != nil {
+				return nil, resp, err
+			}
+			dlResp, err := s.client.client.Do(dlReq)
 			if err != nil {
 				return nil, &Response{Response: dlResp}, err
 			}
@@ -188,7 +192,11 @@ func (s *RepositoriesService) DownloadContentsWithMeta(ctx context.Context, owne
 				return nil, contents, resp, fmt.Errorf("no download link found for %s", filepath)
 			}
 
-			dlResp, err := s.client.client.Get(*contents.DownloadURL)
+			dlReq, err := http.NewRequestWithContext(ctx, http.MethodGet, *contents.DownloadURL, nil)
+			if err != nil {
+				return nil, contents, resp, err
+			}
+			dlResp, err := s.client.client.Do(dlReq)
 			if err != nil {
 				return nil, contents, &Response{Response: dlResp}, err
 			}
@@ -346,7 +354,7 @@ func (s *RepositoriesService) GetArchiveLink(ctx context.Context, owner, repo st
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusFound {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusFound {
 		return nil, newResponse(resp), fmt.Errorf("unexpected status code: %s", resp.Status)
 	}
 
