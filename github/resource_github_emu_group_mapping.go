@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v63/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubEMUGroupMapping() *schema.Resource {
@@ -95,8 +95,12 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("group", group)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("group_id", int(*group.GroupID)); err != nil {
+		return err
+	}
 	return nil
 }
 

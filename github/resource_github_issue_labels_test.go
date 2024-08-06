@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIssueLabels(t *testing.T) {
@@ -108,7 +108,7 @@ func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]interfa
 
 		resource = fmt.Sprintf(`
 			resource "github_issue_labels" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 
 				%s
 			}
