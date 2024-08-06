@@ -11,6 +11,8 @@ This resource allows you to create and manage environment deployment branch poli
 
 ## Example Usage
 
+Create a branch-based deployment policy:
+
 ```hcl
 data "github_user" "current" {
   username = ""
@@ -21,9 +23,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_repository_environment" "test" {
-  repository 	= github_repository.test.name
-  environment	= "environment/test"
-  wait_timer	= 10000
+  repository    = github_repository.test.name
+  environment   = "environment/test"
+  wait_timer    = 10000
   reviewers {
     users = [data.github_user.current.id]
   }
@@ -34,11 +36,44 @@ resource "github_repository_environment" "test" {
 }
 
 resource "github_repository_environment_deployment_policy" "test" {
-  repository 	   = github_repository.test.name
-  environment	   = github_repository_environment.test.environment
+  repository     = github_repository.test.name
+  environment    = github_repository_environment.test.environment
   branch_pattern = "releases/*"
 }
 ```
+
+Create a tag-based deployment policy:
+
+```hcl
+
+data "github_user" "current" {
+  username = ""
+}
+
+resource "github_repository" "test" {
+  name      = "tf-acc-test-%s"
+}
+
+resource "github_repository_environment" "test" {
+  repository  = github_repository.test.name
+  environment = "environment/test"
+  wait_timer  = 10000
+  reviewers {
+    users = [data.github_user.current.id]
+  }
+  deployment_branch_policy {
+    protected_branches     = false
+    custom_branch_policies = true
+  }
+}
+
+resource "github_repository_environment_deployment_policy" "test" {
+  repository  = github_repository.test.name
+  environment = github_repository_environment.test.environment
+  tag_pattern = "v*"
+}
+```
+
 
 ## Argument Reference
 
@@ -48,7 +83,9 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the environment.
 
-* `branch_pattern` - (Required) The name pattern that branches must match in order to deploy to the environment.
+* `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
+
+* `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
 
 
 ## Import
