@@ -98,8 +98,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
 			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
-			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.members"),
-			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.repositories"),
+			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.members.0"),
+			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.repositories.0"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

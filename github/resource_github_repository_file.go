@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v63/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -119,6 +119,26 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description: "Enable overwriting existing files, defaults to \"false\"",
 				Default:     false,
 			},
+			"autocreate_branch": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
+				Default:     false,
+			},
+			"autocreate_branch_source_branch": {
+				Type:         schema.TypeString,
+				Default:      "main",
+				Optional:     true,
+				Description:  "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
+				RequiredWith: []string{"autocreate_branch"},
+			},
+			"autocreate_branch_source_sha": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
+				RequiredWith: []string{"autocreate_branch"},
+			},
 		},
 	}
 }
@@ -177,7 +197,29 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			return err
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + branch.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		checkOpt.Ref = branch.(string)
 	}
@@ -244,10 +286,14 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			log.Printf("[INFO] Removing repository path %s/%s/%s from state because the branch no longer exists in GitHub",
-				owner, repo, file)
-			d.SetId("")
-			return nil
+			if d.Get("autocreate_branch").(bool) {
+				branch = d.Get("autocreate_branch_source_branch").(string)
+			} else {
+				log.Printf("[INFO] Removing repository path %s/%s/%s from state because the branch no longer exists in GitHub",
+					owner, repo, file)
+				d.SetId("")
+				return nil
+			}
 		}
 		opts.Ref = branch.(string)
 	}
@@ -344,7 +390,29 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			return err
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + branch.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -395,6 +463,31 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 
 	if b, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", b.(string))
+		if err := checkRepositoryBranchExists(client, owner, repo, b.(string)); err != nil {
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + b.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
 		branch = b.(string)
 		opts.Branch = &branch
 	}
