@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
@@ -65,7 +65,10 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 	}
 
 	d.SetId(repoName + ":" + environmentName)
-	d.Set("deployment_branch_policies", results)
+	err = d.Set("deployment_branch_policies", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

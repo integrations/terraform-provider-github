@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v63/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
@@ -19,7 +19,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		Update: resourceGithubRepositoryCollaboratorsUpdate,
 		Delete: resourceGithubRepositoryCollaboratorsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -80,7 +80,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		CustomizeDiff: customdiff.Sequence(
 			// If there was a new user added to the list of collaborators,
 			// it's possible a new invitation id will be created in GitHub.
-			customdiff.ComputedIf("invitation_ids", func(d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("user")
 			}),
 		),
