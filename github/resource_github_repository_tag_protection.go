@@ -102,6 +102,13 @@ func resourceGithubRepositoryTagProtectionRead(d *schema.ResourceData, meta inte
 		}
 		return err
 	}
+
+	if len(tag_protection) == 0 {
+		log.Printf("[INFO] Removing tag protection %s from state because it no longer exists in GitHub", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	for _, tag := range tag_protection {
 		if tag.GetID() == id {
 			if err = d.Set("pattern", tag.GetPattern()); err != nil {
