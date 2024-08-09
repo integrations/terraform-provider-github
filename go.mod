@@ -6,6 +6,7 @@ toolchain go1.22.0
 
 require (
 	github.com/client9/misspell v0.3.4
+	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/google/go-github/v63 v63.0.0
 	github.com/google/uuid v1.6.0
@@ -15,7 +16,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.25.0
 	golang.org/x/oauth2 v0.22.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (
