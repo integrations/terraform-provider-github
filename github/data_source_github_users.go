@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -99,10 +99,18 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(buildChecksumID(usernames))
-	d.Set("logins", logins)
-	d.Set("emails", emails)
-	d.Set("node_ids", nodeIDs)
-	d.Set("unknown_logins", unknownLogins)
+	if err := d.Set("logins", logins); err != nil {
+		return err
+	}
+	if err := d.Set("emails", emails); err != nil {
+		return err
+	}
+	if err := d.Set("node_ids", nodeIDs); err != nil {
+		return err
+	}
+	if err := d.Set("unknown_logins", unknownLogins); err != nil {
+		return err
+	}
 
 	return nil
 }

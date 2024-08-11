@@ -2,21 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build windows darwin
+//go:build windows || darwin
 
 package robustio
 
 import (
-	"io/ioutil"
+	"errors"
 	"math/rand"
 	"os"
 	"syscall"
 	"time"
 )
 
-const arbitraryTimeout = 500 * time.Millisecond
-
-const ERROR_SHARING_VIOLATION = 32
+const arbitraryTimeout = 2000 * time.Millisecond
 
 // retry retries ephemeral errors from f up to an arbitrary timeout
 // to work around filesystem flakiness on Windows and Darwin.
@@ -33,7 +31,8 @@ func retry(f func() (err error, mayRetry bool)) error {
 			return err
 		}
 
-		if errno, ok := err.(syscall.Errno); ok && (lowestErrno == 0 || errno < lowestErrno) {
+		var errno syscall.Errno
+		if errors.As(err, &errno) && (lowestErrno == 0 || errno < lowestErrno) {
 			bestErr = err
 			lowestErrno = errno
 		} else if bestErr == nil {
@@ -54,7 +53,7 @@ func retry(f func() (err error, mayRetry bool)) error {
 
 // rename is like os.Rename, but retries ephemeral errors.
 //
-// On windows it wraps os.Rename, which (as of 2019-06-04) uses MoveFileEx with
+// On Windows it wraps os.Rename, which (as of 2019-06-04) uses MoveFileEx with
 // MOVEFILE_REPLACE_EXISTING.
 //
 // Windows also provides a different system call, ReplaceFile,
@@ -70,17 +69,16 @@ func rename(oldpath, newpath string) (err error) {
 	})
 }
 
-// readFile is like ioutil.ReadFile, but retries ephemeral errors.
+// readFile is like os.ReadFile, but retries ephemeral errors.
 func readFile(filename string) ([]byte, error) {
 	var b []byte
 	err := retry(func() (err error, mayRetry bool) {
-		b, err = ioutil.ReadFile(filename)
+		b, err = os.ReadFile(filename)
 
 		// Unlike in rename, we do not retry errFileNotFound here: it can occur
 		// as a spurious error, but the file may also genuinely not exist, so the
 		// increase in robustness is probably not worth the extra latency.
-
-		return err, isEphemeralError(err) && err != errFileNotFound
+		return err, isEphemeralError(err) && !errors.Is(err, errFileNotFound)
 	})
 	return b, err
 }

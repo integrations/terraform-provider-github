@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryMilestone() *schema.Resource {
@@ -57,10 +58,18 @@ func dataSourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interf
 	}
 
 	d.SetId(strconv.FormatInt(milestone.GetID(), 10))
-	d.Set("description", milestone.GetDescription())
-	d.Set("due_date", milestone.GetDueOn().Format(layoutISO))
-	d.Set("state", milestone.GetState())
-	d.Set("title", milestone.GetTitle())
+	if err = d.Set("description", milestone.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("due_date", milestone.GetDueOn().Format(layoutISO)); err != nil {
+		return err
+	}
+	if err = d.Set("state", milestone.GetState()); err != nil {
+		return err
+	}
+	if err = d.Set("title", milestone.GetTitle()); err != nil {
+		return err
+	}
 
 	return nil
 }

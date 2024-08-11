@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubApp() *schema.Resource {
@@ -44,9 +44,18 @@ func dataSourceGithubAppRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.FormatInt(app.GetID(), 10))
-	d.Set("description", app.GetDescription())
-	d.Set("name", app.GetName())
-	d.Set("node_id", app.GetNodeID())
+	err = d.Set("description", app.GetDescription())
+	if err != nil {
+		return err
+	}
+	err = d.Set("name", app.GetName())
+	if err != nil {
+		return err
+	}
+	err = d.Set("node_id", app.GetNodeID())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

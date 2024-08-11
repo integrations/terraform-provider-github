@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
@@ -65,7 +65,7 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 			}
 
 			resource "github_branch_protection" "protection" {
-				repository_id = github_repository.test.id
+				repository_id = github_repository.test.name
 			 	pattern = "main*"
 			}
 		`, randomID)

@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/url"
@@ -10,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
@@ -28,6 +29,26 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_OWNER", nil),
 				Description: descriptions["owner"],
+			},
+			"retryable_errors": {
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeInt},
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					defaultErrors := []int{500, 502, 503, 504}
+					errorInterfaces := make([]interface{}, len(defaultErrors))
+					for i, v := range defaultErrors {
+						errorInterfaces[i] = v
+					}
+					return errorInterfaces, nil
+				},
+				Description: descriptions["retryable_errors"],
+			},
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     3,
+				Description: descriptions["max_retries"],
 			},
 			"organization": {
 				Type:        schema.TypeString,
@@ -59,6 +80,12 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     0,
 				Description: descriptions["read_delay_ms"],
+			},
+			"retry_delay_ms": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1000,
+				Description: descriptions["retry_delay_ms"],
 			},
 			"parallel_requests": {
 				Type:        schema.TypeBool,
@@ -98,6 +125,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"github_enterprise_actions_permissions":                                 resourceGithubActionsEnterprisePermissions(),
 			"github_actions_environment_secret":                                     resourceGithubActionsEnvironmentSecret(),
 			"github_actions_environment_variable":                                   resourceGithubActionsEnvironmentVariable(),
 			"github_actions_organization_oidc_subject_claim_customization_template": resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
@@ -166,6 +194,7 @@ func Provider() terraform.ResourceProvider {
 			"github_user_invitation_accepter":                                       resourceGithubUserInvitationAccepter(),
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
+			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -233,7 +262,7 @@ func Provider() terraform.ResourceProvider {
 		},
 	}
 
-	p.ConfigureFunc = providerConfigure(p)
+	p.ConfigureContextFunc = providerConfigure(p)
 
 	return p
 }
@@ -264,16 +293,22 @@ func init() {
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
 			"Defaults to 0ms if not set.",
+		"retry_delay_ms": "Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. " +
+			"Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
 		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
 			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
 			"Although, it is not possible to enable this setting on github.com " +
 			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
 			"Defaults to false if not set",
+		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
+			"Defaults to [500, 502, 503, 504]",
+		"max_retries": "Number of times to retry a request after receiving an error status code" +
+			"Defaults to 3",
 	}
 }
 
-func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
@@ -309,13 +344,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
 				appID = v
 			} else {
-				return nil, fmt.Errorf("app_auth.id must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
 			}
 
 			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
 				appInstallationID = v
 			} else {
-				return nil, fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
 			}
 
 			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
@@ -328,12 +363,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 				// actual new line character before decoding.
 				appPemFile = strings.Replace(v, `\n`, "\n", -1)
 			} else {
-				return nil, fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")
+				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
 			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
 			if err != nil {
-				return nil, err
+				return nil, wrapErrors([]error{err})
 			}
 
 			token = appToken
@@ -341,33 +376,58 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 
 		if token == "" {
 			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
 			if err != nil {
-				return nil, fmt.Errorf("gh auth token: %w", err)
+				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
 			}
 			token = ghAuthToken
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
-			return nil, fmt.Errorf("write_delay_ms must be greater than 0ms")
+			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
 		}
 		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
-			return nil, fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")
+			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
+
+		retryDelay := d.Get("read_delay_ms").(int)
+		if retryDelay < 0 {
+			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
+		}
+		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
+
+		maxRetries := d.Get("max_retries").(int)
+		if maxRetries < 0 {
+			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
+		}
+		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
+		retryableErrors := make(map[int]bool)
+		if maxRetries > 0 {
+			reParam := d.Get("retryable_errors").([]interface{})
+			if len(reParam) == 0 {
+				retryableErrors = getDefaultRetriableErrors()
+			} else {
+				for _, status := range reParam {
+					retryableErrors[status.(int)] = true
+				}
+			}
+
+			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
+		}
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
 		if parallelRequests && isGithubDotCom {
-			return nil, fmt.Errorf("parallel_requests cannot be true when connecting to public github")
+			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
 		}
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
@@ -378,15 +438,16 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			Owner:            owner,
 			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
 			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
+			RetryDelay:       time.Duration(retryDelay) * time.Millisecond,
+			RetryableErrors:  retryableErrors,
+			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
 		}
 
 		meta, err := config.Meta()
 		if err != nil {
-			return nil, err
+			return nil, wrapErrors([]error{err})
 		}
-
-		meta.(*Owner).StopContext = p.StopContext()
 
 		return meta, nil
 	}
