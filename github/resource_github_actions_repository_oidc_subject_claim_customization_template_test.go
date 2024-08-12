@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
@@ -17,7 +17,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"
-			private = true
+			visibility = "private"
 		}
 
 		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -75,7 +75,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		configTemplate := `
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"
-			private = true
+			visibility = "private"
 		}
 
 		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -90,7 +90,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		resetToDefaultConfigTemplate := `
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"
-			private = true
+			visibility = "private"
 		}
 
 		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -157,9 +157,9 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
 					"use_default", "true"),
-				resource.TestCheckNoResourceAttr(
+				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
-					"include_claim_keys",
+					"include_claim_keys.#", "0",
 				),
 			),
 		}
@@ -201,7 +201,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"
-			private = true
+			visibility = "private"
 		}
 		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
 			repository = github_repository.test.name

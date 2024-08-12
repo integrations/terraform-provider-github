@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"github.com/ProtonMail/gopenpgp/v2/crypto"
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v63/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryFile() *schema.Resource {
@@ -36,7 +36,9 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				opts := &github.RepositoryContentGetOptions{}
 				if len(parts) == 2 {
 					opts.Ref = parts[1]
-					d.Set("branch", parts[1])
+					if err := d.Set("branch", parts[1]); err != nil {
+						return nil, err
+					}
 				}
 				fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 				if err != nil {
@@ -47,7 +49,9 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				}
 
 				d.SetId(fmt.Sprintf("%s/%s", repo, file))
-				d.Set("overwrite_on_create", false)
+				if err = d.Set("overwrite_on_create", false); err != nil {
+					return nil, err
+				}
 
 				return []*schema.ResourceData{d}, nil
 			},
@@ -134,6 +138,26 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Optional:    true,
 				Description: "Passphrase to unlock PGP signing key used to sign commits.",
 				Sensitive:   true,
+			},
+			"autocreate_branch": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
+				Default:     false,
+			},
+			"autocreate_branch_source_branch": {
+				Type:         schema.TypeString,
+				Default:      "main",
+				Optional:     true,
+				Description:  "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
+				RequiredWith: []string{"autocreate_branch"},
+			},
+			"autocreate_branch_source_sha": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
+				RequiredWith: []string{"autocreate_branch"},
 			},
 		},
 	}
@@ -243,7 +267,29 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			return err
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + branch.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		checkOpt.Ref = branch.(string)
 	}
@@ -345,8 +391,6 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 		d.Set("commit_sha", newCommit.SHA)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
@@ -363,10 +407,14 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			log.Printf("[INFO] Removing repository path %s/%s/%s from state because the branch no longer exists in GitHub",
-				owner, repo, file)
-			d.SetId("")
-			return nil
+			if d.Get("autocreate_branch").(bool) {
+				branch = d.Get("autocreate_branch_source_branch").(string)
+			} else {
+				log.Printf("[INFO] Removing repository path %s/%s/%s from state because the branch no longer exists in GitHub",
+					owner, repo, file)
+				d.SetId("")
+				return nil
+			}
 		}
 		opts.Ref = branch.(string)
 	}
@@ -384,10 +432,18 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("content", content)
-	d.Set("repository", repo)
-	d.Set("file", file)
-	d.Set("sha", fc.GetSHA())
+	if err = d.Set("content", content); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repo); err != nil {
+		return err
+	}
+	if err = d.Set("file", file); err != nil {
+		return err
+	}
+	if err = d.Set("sha", fc.GetSHA()); err != nil {
+		return err
+	}
 
 	var commit *github.RepositoryCommit
 
@@ -400,7 +456,9 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 	ref := parsedQuery["ref"][0]
-	d.Set("ref", ref)
+	if err = d.Set("ref", ref); err != nil {
+		return err
+	}
 
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
 	if sha, ok := d.GetOk("commit_sha"); ok {
@@ -415,7 +473,9 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("commit_sha", commit.GetSHA())
+	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
+		return err
+	}
 
 	commit_author := commit.Commit.GetCommitter().GetName()
 	commit_email := commit.Commit.GetCommitter().GetEmail()
@@ -425,10 +485,16 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 
 	//read from state if author+email is set explicitly, and if it was not github signing it for you previously
 	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
-		d.Set("commit_author", commit_author)
-		d.Set("commit_email", commit_email)
+		if err = d.Set("commit_author", commit_author); err != nil {
+			return err
+		}
+		if err = d.Set("commit_email", commit_email); err != nil {
+			return err
+		}
 	}
-	d.Set("commit_message", commit.GetCommit().GetMessage())
+	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -445,7 +511,29 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 	if branch, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", branch.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			return err
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + branch.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -548,6 +636,31 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 
 	if b, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", b.(string))
+		if err := checkRepositoryBranchExists(client, owner, repo, b.(string)); err != nil {
+			if d.Get("autocreate_branch").(bool) {
+				branchRefName := "refs/heads/" + b.(string)
+				sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+				sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+				if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+					ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+					if err != nil {
+						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+							owner, repo, sourceBranchRefName, err)
+					}
+					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+				}
+				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
+					Ref:    &branchRefName,
+					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				}); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
 		branch = b.(string)
 		opts.Branch = &branch
 	}

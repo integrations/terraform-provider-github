@@ -4,25 +4,24 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var testAccProviders map[string]terraform.ResourceProvider
-var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
+var testAccProviders map[string]*schema.Provider
+var testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
 var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
+	testAccProvider = Provider()
+	testAccProviders = map[string]*schema.Provider{
 		"github": testAccProvider,
 	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory {
-		return map[string]terraform.ResourceProviderFactory{
-			"github": func() (terraform.ResourceProvider, error) {
+	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error) {
+		return map[string]func() (*schema.Provider, error){
+			"github": func() (*schema.Provider, error) {
 				p := Provider()
-				*providers = append(*providers, p.(*schema.Provider))
+				*providers = append(*providers, p)
 				return p, nil
 			},
 		}
@@ -33,7 +32,7 @@ func TestProvider(t *testing.T) {
 
 	t.Run("runs internal validation without error", func(t *testing.T) {
 
-		if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
+		if err := Provider().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -45,11 +44,12 @@ func TestProvider(t *testing.T) {
 		// 	var _ terraform.ResourceProvider = Provider()
 		// }
 
-		var _ terraform.ResourceProvider = Provider()
+		var _ schema.Provider = *Provider()
 	})
 
 }
 
+// TODO: this is failing
 func TestAccProviderConfigure(t *testing.T) {
 
 	t.Run("can be configured to run anonymously", func(t *testing.T) {
@@ -162,4 +162,29 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 
 	})
+
+	t.Run("can be configured with max retries", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			provider "github" {
+				token = "%s"
+				owner = "%s"
+				max_retries = 3
+			}`,
+			testToken, testOwnerFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
+
 }

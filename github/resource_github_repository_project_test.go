@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRepositoryProject(t *testing.T) {
@@ -24,7 +24,7 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 
 			resource "github_repository_project" "test" {
 			  name       = "test"
-			  repository = github_repository.test.id
+			  repository = github_repository.test.name
 			  body       = "this is a test project"
 			}
 		`, randomID)

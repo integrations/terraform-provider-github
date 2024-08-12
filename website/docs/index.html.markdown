@@ -23,7 +23,7 @@ terraform {
   required_providers {
     github = {
       source  = "integrations/github"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 }
@@ -118,7 +118,13 @@ The following arguments are supported in the `provider` block:
 
 * `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Defaults to 1000ms or 1 second if not provided.
 
+* `retry_delay_ms` - (Optional) Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. Defaults to 1000ms or 1 second if not provided, the max_retries must be set to greater than zero.
+
 * `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms.
+
+* `retryable_errors` - (Optional) "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504]
+
+* `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
 
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 

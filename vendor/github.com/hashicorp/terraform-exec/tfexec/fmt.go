@@ -1,7 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfexec
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -44,7 +46,7 @@ func FormatString(ctx context.Context, execPath string, content string) (string,
 // FormatString formats a passed string.
 func (tf *Terraform) FormatString(ctx context.Context, content string) (string, error) {
 	in := strings.NewReader(content)
-	var outBuf bytes.Buffer
+	var outBuf strings.Builder
 	err := tf.Format(ctx, in, &outBuf)
 	if err != nil {
 		return "", err
@@ -101,7 +103,7 @@ func (tf *Terraform) FormatCheck(ctx context.Context, opts ...FormatOption) (boo
 		return false, nil, err
 	}
 
-	var outBuf bytes.Buffer
+	var outBuf strings.Builder
 	cmd.Stdout = mergeWriters(cmd.Stdout, &outBuf)
 
 	err = tf.runTerraformCmd(ctx, cmd)

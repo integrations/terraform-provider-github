@@ -11,7 +11,7 @@ Protects a GitHub branch.
 
 This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users, teams, and apps, can also be configured.
 
-Note: for the `push_restrictions` a given user or team must have specific write access to the repository. If specific write access not provided, github will reject the given actor, which will be the cause of terraform drift.
+Note: for the `push_allowances` a given user or team must have specific write access to the repository. If specific write access not provided, github will reject the given actor, which will be the cause of terraform drift.
 
 ## Example Usage
 
@@ -45,15 +45,17 @@ resource "github_branch_protection" "example" {
     ]
   }
 
-  push_restrictions = [
-    data.github_user.example.node_id,
-    "/exampleuser",
-    "exampleorganization/exampleteam",
-    # you can have more than one type of restriction (teams + users). If you use
-    # more than one type, you must use node_ids of each user and each team.
-    # github_team.example.node_id
-    # github_user.example-2.node_id
-  ]
+  restrict_pushes {
+    push_allowances = [
+      data.github_user.example.node_id,
+      "/exampleuser",
+      "exampleorganization/exampleteam",
+      # you can have more than one type of restriction (teams + users). If you use
+      # more than one type, you must use node_ids of each user and each team.
+      # github_team.example.node_id
+      # github_user.example-2.node_id
+    ]
+  }
 
   force_push_bypassers = [
     data.github_user.example.node_id,
@@ -97,11 +99,10 @@ The following arguments are supported:
 * `require_conversation_resolution` - (Optional) Boolean, setting this to `true` requires all conversations on code must be resolved before a pull request can be merged.
 * `required_status_checks` - (Optional) Enforce restrictions for required status checks. See [Required Status Checks](#required-status-checks) below for details.
 * `required_pull_request_reviews` - (Optional) Enforce restrictions for pull request reviews. See [Required Pull Request Reviews](#required-pull-request-reviews) below for details.
-* `push_restrictions` - (Optional) The list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
-* `force_push_bypassers` - (Optional) The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams.
+* `restrict_pushes` - (Optional) Restrict pushes to matching branches. See [Restrict Pushes](#restrict-pushes) below for details.
+* `force_push_bypassers` - (Optional) The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams. If the list is not empty, `allows_force_pushes` should be set to `false`.
 * `allows_deletions` - (Optional) Boolean, setting this to `true` to allow the branch to be deleted.
-* `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch.
-* `blocks_creations` - (Optional) Boolean, setting this to `true` to block creating the branch.
+* `allows_force_pushes` - (Optional) Boolean, setting this to `true` to allow force pushes on the branch to everyone. Set it to `false` if you specify `force_push_bypassers`.
 * `lock_branch` - (Optional) Boolean, Setting this to `true` will make the branch read-only and preventing any pushes to it. Defaults to `false`
 
 ### Required Status Checks
@@ -128,6 +129,13 @@ For workflows that use reusable workflows, the pattern is `<initial_workflow.job
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
   (https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
 * `require_last_push_approval`: (Optional) Require that The most recent push must be approved by someone other than the last pusher.  Defaults to `false`
+
+### Restrict Pushes
+
+`restrict_pushes` supports the following arguments:
+
+* `blocks_creations` - (Optional) Boolean, setting this to `false` allows people, teams, or apps to create new branches matching this rule. Defaults to `true`.
+* `push_allowances` - (Optional) A list of actor Names/IDs that may push to the branch. Actor names must either begin with a "/" for users or the organization name followed by a "/" for teams. Organization administrators, repository administrators, and users with the Maintain role on the repository can always push when all other requirements have passed.
 
 ## Import
 
