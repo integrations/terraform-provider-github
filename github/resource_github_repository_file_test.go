@@ -19,8 +19,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
 			}
 
 			resource "github_repository_file" "test" {
@@ -92,8 +93,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+			  name                 = "tf-acc-test-%s"
+			  auto_init            = true
+              vulnerability_alerts = true
 			}
 
 			resource "github_repository_file" "test" {
@@ -102,6 +104,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				file                = "README.md"
 				content             = "overwritten"
 				overwrite_on_create = false
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
 			}
 
 		`, randomID)
@@ -167,8 +172,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
 			}
 
 			resource "github_branch" "test" {
@@ -251,8 +257,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
 			}
 
 			resource "github_repository_file" "test" {

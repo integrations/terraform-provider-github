@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -298,7 +300,13 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		opts.Ref = branch.(string)
 	}
 
-	fc, _, _, _ := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	if err != nil {
+		var errorResponse *github.ErrorResponse
+		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusTooManyRequests {
+			return err
+		}
+	}
 	if fc == nil {
 		log.Printf("[INFO] Removing repository path %s/%s/%s from state because it no longer exists in GitHub",
 			owner, repo, file)
