@@ -87,7 +87,7 @@ func resourceGithubRepositoryEnvironmentDeploymentCustomProtectionRuleRead(d *sc
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing branch deployment policy for %s/%s/%s from state because it no longer exists in GitHub",
+				log.Printf("[INFO] Removing custom protection for %s/%s/%s from state because it no longer exists in GitHub",
 					owner, repoName, envName)
 				d.SetId("")
 				return nil
