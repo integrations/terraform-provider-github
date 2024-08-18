@@ -57,7 +57,7 @@ func resourceGithubRepositoryEnvironmentDeploymentCustomProtectionRuleCreate(d *
 		IntegrationID: github.Int64(int64(integrationID)),
 	}
 
-	resultKey, _, err := client.Repositories.CreateCustomDeploymentProtectionRule(ctx,owner,repoName,escapedEnvName,&createData)
+	resultKey, _, err := client.Repositories.CreateCustomDeploymentProtectionRule(ctx, owner, repoName, escapedEnvName, &createData)
 	if err != nil {
 		return err
 	}
