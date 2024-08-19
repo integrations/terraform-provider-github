@@ -19,7 +19,9 @@ data "github_organization" "example" {
 
 ## Argument Reference
 
-* `ignore_archived_repos` - Whether or not to include archived repos in the `repositories` list
+* `name` - (Required) The name of the organization.
+* `ignore_archived_repos` - (Optional) Whether or not to include archived repos in the `repositories` list. Defaults to `false`.
+* `summary_only` - (Optional) Exclude the repos, members and other attributes from the returned result. Defaults to `false`.
 
 ## Attributes Reference
 
