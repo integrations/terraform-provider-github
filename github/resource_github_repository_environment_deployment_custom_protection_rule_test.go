@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,14 +11,19 @@ import (
 
 func TestAccGithubRepositoryEnvironmentDeploymentCustomProtectionRule(t *testing.T) {
 
+	const APP_INTEGRATION_ID = "APP_INTEGRATION_ID"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	integration_id, exists := os.LookupEnv(APP_INTEGRATION_ID)
 
 	t.Run("creates a repository environment with custom policy enabled", func(t *testing.T) {
-
+		if !exists {
+			t.Skipf("%s environment variable is missing", APP_INTEGRATION_ID)
+		}
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      			 = "tf-acc-test-%s"
+				vulnerability_alerts = "true"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -28,10 +34,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentCustomProtectionRule(t *testing
 			resource "github_repository_environment_custom_protection_rule" "test" {
 				repository 	   = github_repository.test.name
 				environment	   = github_repository_environment.test.environment
-				integration_id = 973040
+				integration_id = %s
 			}
 
-		`, randomID)
+		`, randomID, integration_id)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -43,8 +49,8 @@ func TestAccGithubRepositoryEnvironmentDeploymentCustomProtectionRule(t *testing
 				"environment / test",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_environment_deployment_policy.test", "integration_id",
-				"973040",
+				"github_repository_environment_custom_protection_rule.test", "integration_id",
+				integration_id,
 			),
 		)
 
