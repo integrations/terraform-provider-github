@@ -96,7 +96,6 @@ func resourceGithubRepositoryEnvironmentDeploymentCustomProtectionRuleRead(d *sc
 		return err
 	}
 	log.Printf("[INFO] Custom protection rule with node_id %s is enabled", *protectionRule.NodeID)
-	// d.Set("protection_rule", protectionRule.GetID())
 	return nil
 }
 
