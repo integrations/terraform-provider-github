@@ -12,13 +12,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubUserSshKey() *schema.Resource {
+func resourceGithubUserSshSigningKey() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubUserSshKeyCreate,
-		ReadContext:   resourceGithubUserSshKeyRead,
-		DeleteContext: resourceGithubUserSshKeyDelete,
+		CreateContext: resourceGithubUserSshSigningKeyCreate,
+		ReadContext:   resourceGithubUserSshSigningKeyRead,
+		DeleteContext: resourceGithubUserSshSigningKeyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubUserSshKeyImport,
+			StateContext: resourceGithubUserSshSigningKeyImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -37,7 +37,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 			"key_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The unique identifier of the SSH key.",
+				Description: "The unique identifier of the SSH signing key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -47,13 +47,13 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
 
-	userKey, resp, err := client.Users.CreateKey(ctx, &github.Key{
+	userKey, resp, err := client.Users.CreateSSHSigningKey(ctx, &github.Key{
 		Title: github.Ptr(title),
 		Key:   github.Ptr(key),
 	})
@@ -76,11 +76,11 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
-	_, _, err := client.Users.GetKey(ctx, keyID)
+	_, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -88,7 +88,7 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, fmt.Sprintf("Removing user SSH key %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
-					"ssh_key_id": d.Id(),
+					"ssh_signing_key_id": d.Id(),
 				})
 				d.SetId("")
 				return nil
@@ -98,30 +98,30 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
-	resp, err := client.Users.DeleteKey(ctx, keyID)
+	resp, err := client.Users.DeleteSSHSigningKey(ctx, keyID)
 	if resp.StatusCode == http.StatusNotFound {
 		return nil
 	}
 	return diag.FromErr(err)
 }
 
-func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 
 	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid SSH key ID format: %v", err)
+		return nil, fmt.Errorf("invalid SSH signing key ID format: %v", err)
 	}
 
-	key, resp, err := client.Users.GetKey(ctx, keyID)
+	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				return nil, fmt.Errorf("SSH key with ID %d not found", keyID)
+				return nil, fmt.Errorf("SSH signing key with ID %d not found", keyID)
 			}
 		}
 		return nil, err
