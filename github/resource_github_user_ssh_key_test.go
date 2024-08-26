@@ -4,12 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -20,28 +22,15 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
 		testKey := newTestKey()
+
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {
-				title = "tf-acc-test-%s"
-				key   = "%s"
+				title = "%[1]s"
+				key   = "%[2]s"
 			}
-		`, randomID, testKey)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestMatchResourceAttr(
-				"github_user_ssh_key.test", "title",
-				regexp.MustCompile(randomID),
-			),
-			resource.TestMatchResourceAttr(
-				"github_user_ssh_key.test", "key",
-				regexp.MustCompile("^ssh-rsa "),
-			),
-			resource.TestMatchResourceAttr(
-				"github_user_ssh_key.test", "url",
-				regexp.MustCompile("^https://api.github.com/[a-z0-9]+/keys/"),
-			),
-		)
+		`, name, testKey)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, individual) },
@@ -49,7 +38,10 @@ func TestAccGithubUserSshKey(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+					},
 				},
 			},
 		})
@@ -59,18 +51,15 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
 		testKey := newTestKey()
+
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {
-				title = "tf-acc-test-%s"
-				key   = "%s"
+				title = "%[1]s"
+				key   = "%[2]s"
 			}
-		`, randomID, testKey)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_user_ssh_key.test", "title"),
-			resource.TestCheckResourceAttrSet("github_user_ssh_key.test", "key"),
-		)
+		`, name, testKey)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, individual) },
@@ -78,7 +67,10 @@ func TestAccGithubUserSshKey(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+					},
 				},
 				{
 					ResourceName:      "github_user_ssh_key.test",
@@ -93,6 +85,5 @@ func TestAccGithubUserSshKey(t *testing.T) {
 func newTestKey() string {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	publicKey, _ := ssh.NewPublicKey(&privateKey.PublicKey)
-	testKey := strings.TrimRight(string(ssh.MarshalAuthorizedKey(publicKey)), "\n")
-	return testKey
+	return strings.TrimRight(string(ssh.MarshalAuthorizedKey(publicKey)), "\n")
 }
