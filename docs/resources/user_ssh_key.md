@@ -32,6 +32,8 @@ The following attributes are exported:
 
 - `id` - The ID of the SSH key
 - `url` - The URL of the SSH key
+- `key_id` - The unique identifier of the SSH key.
+- `etag`
 
 ## Import
 

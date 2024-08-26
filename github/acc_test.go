@@ -270,6 +270,16 @@ func configureSweepers() {
 		Name: "teams",
 		F:    sweepTeams,
 	})
+
+	resource.AddTestSweepers("user_ssh_keys", &resource.Sweeper{
+		Name: "user_ssh_keys",
+		F:    sweepUserSSHKeys,
+	})
+
+	resource.AddTestSweepers("user_ssh_signing_keys", &resource.Sweeper{
+		Name: "user_ssh_signing_keys",
+		F:    sweepUserSSHSigningKeys,
+	})
 }
 
 func sweepTeams(_ string) error {
@@ -324,6 +334,56 @@ func sweepRepositories(_ string) error {
 			fmt.Printf("destroying repository %s\n", name)
 
 			if _, err := client.Repositories.Delete(ctx, owner, name); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func sweepUserSSHKeys(_ string) error {
+	fmt.Println("sweeping user SSH keys")
+
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
+	ctx := context.Background()
+
+	keys, _, err := client.Users.ListKeys(ctx, owner, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		if title := k.GetTitle(); strings.HasPrefix(title, testResourcePrefix) {
+			fmt.Printf("destroying user SSH key %s\n", title)
+
+			if _, err := client.Users.DeleteKey(ctx, k.GetID()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func sweepUserSSHSigningKeys(_ string) error {
+	fmt.Println("sweeping user SSH signing keys")
+
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
+	ctx := context.Background()
+
+	keys, _, err := client.Users.ListSSHSigningKeys(ctx, owner, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		if title := k.GetTitle(); strings.HasPrefix(title, testResourcePrefix) {
+			fmt.Printf("destroying user SSH signing key %s\n", title)
+
+			if _, err := client.Users.DeleteSSHSigningKey(ctx, k.GetID()); err != nil {
 				return err
 			}
 		}
