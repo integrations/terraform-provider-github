@@ -181,6 +181,9 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	} else {
 		id, err := strconv.ParseInt(d.Id(), 10, 64)
 		if err != nil {
@@ -192,11 +195,11 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	}
 
-	if err != nil {
-		return err
-	}
 	transformResponseToResourceData(d, release, repoName)
 	return nil
 }
