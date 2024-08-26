@@ -24,15 +24,15 @@ resource "github_user_ssh_key" "example" {
 
 The following arguments are supported:
 
-* `title` - (Required) A descriptive name for the new key. e.g. `Personal MacBook Air`
+* `title` - (Required) A descriptive name for the new key.
 * `key` - (Required) The public SSH key to add to your GitHub account.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the SSH key
-* `url` - The URL of the SSH key
+* `key_id` - The unique identifier of the SSH signing key.
+* `etag`
 
 ## Import
 
