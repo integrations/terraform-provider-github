@@ -2,13 +2,18 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/v63/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const retryDelay = 10 * time.Second
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	return &schema.Resource{
@@ -79,6 +84,10 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 	}
 
 	d.SetId(buildThreePartID(repoName, envName, name))
+
+	if _, err := waitEnvironmentVariableReady(ctx, client, owner, repoName, envName, name); err != nil {
+
+	}
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
@@ -154,4 +163,40 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 
 	return err
+}
+
+func waitEnvironmentVariableReady(ctx context.Context, client *github.Client, owner, repoName, envName, name string) (*github.ActionsVariable, error) {
+	const timeout = 5 * time.Minute
+	stateconf := &retry.StateChangeConf{
+		Delay:   retryDelay,
+		Pending: []string{"pending"},
+		Refresh: statusEnvironmentVariable(ctx, client, owner, repoName, envName, name),
+		Target:  []string{"ready"},
+		Timeout: timeout,
+	}
+
+	output, err := stateconf.WaitForStateContext(ctx)
+	if v, ok := output.(*github.ActionsVariable); ok {
+		return v, err
+	}
+	return nil, err
+}
+
+func statusEnvironmentVariable(ctx context.Context, client *github.Client, owner, repoName, envName, name string) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		envVar, resp, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, name)
+		if err != nil {
+			var errorResponse *github.ErrorResponse
+			if errors.As(err, &errorResponse) {
+				if resp.StatusCode == http.StatusNotFound {
+					return nil, "pending", nil
+				}
+				return nil, "", err
+			}
+		}
+		if envVar.Name == name {
+			return envVar, "ready", nil
+		}
+		return nil, "pending", nil
+	}
 }
