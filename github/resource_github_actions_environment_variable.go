@@ -2,10 +2,10 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v63/github"
@@ -13,7 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const retryDelay = 10 * time.Second
+const (
+	retryDelay    = 10 * time.Second
+	statusPending = "pending"
+	statusReady   = "ready"
+)
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	return &schema.Resource{
@@ -86,7 +90,7 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 	d.SetId(buildThreePartID(repoName, envName, name))
 
 	if _, err := waitEnvironmentVariableReady(ctx, client, owner, repoName, envName, name); err != nil {
-
+		return err
 	}
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
@@ -169,9 +173,9 @@ func waitEnvironmentVariableReady(ctx context.Context, client *github.Client, ow
 	const timeout = 5 * time.Minute
 	stateconf := &retry.StateChangeConf{
 		Delay:   retryDelay,
-		Pending: []string{"pending"},
+		Pending: []string{statusPending},
 		Refresh: statusEnvironmentVariable(ctx, client, owner, repoName, envName, name),
-		Target:  []string{"ready"},
+		Target:  []string{statusReady},
 		Timeout: timeout,
 	}
 
@@ -186,17 +190,14 @@ func statusEnvironmentVariable(ctx context.Context, client *github.Client, owner
 	return func() (interface{}, string, error) {
 		envVar, resp, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, name)
 		if err != nil {
-			var errorResponse *github.ErrorResponse
-			if errors.As(err, &errorResponse) {
-				if resp.StatusCode == http.StatusNotFound {
-					return nil, "pending", nil
-				}
-				return nil, "", err
+			if resp.StatusCode == http.StatusNotFound {
+				return nil, statusPending, nil
 			}
 		}
-		if envVar.Name == name {
-			return envVar, "ready", nil
+		// GitHub API returns the environment variables in uppercase
+		if envVar.Name == strings.ToUpper(name) {
+			return envVar, statusReady, nil
 		}
-		return nil, "pending", nil
+		return nil, statusPending, nil
 	}
 }
