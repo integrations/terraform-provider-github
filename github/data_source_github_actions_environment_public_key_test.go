@@ -25,7 +25,7 @@ func TestAccGithubActionsEnvironmentPublicKeyDataSource(t *testing.T) {
 			  }
 
 			data "github_actions_environment_public_key" "test" {
-				repository_id	= github_repository.test.id
+				repository_id	= github_repository.test.repo_id
 				environment     = github_repository_environment.test.environment
 			}
 		`, randomID)
