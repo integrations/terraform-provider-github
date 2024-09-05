@@ -8,7 +8,7 @@ description: |-
 # github\_actions\_environment\_public\_key
 
 Use this data source to retrieve information about the public key of the repository environment.
-Note that the provider `token` must have the "Secrets" repository permissions (read) and "Environments" repository permissions (read) to retreive the public key of a given environment.
+Note that the provider `token` must have the "Secrets" repository permissions (read) and "Environments" repository permissions (read) to retrieve the public key of a given environment.
 
 ## Example Usage
 
