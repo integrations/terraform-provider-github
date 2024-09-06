@@ -138,11 +138,11 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 		},
 	}
 
-	permissionIdString := permission
-	if len(permissionIdString) == 0 {
-		permissionIdString = "any"
+	if len(permission) == 0 {
+		d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, affiliation))
+	} else {
+		d.SetId(fmt.Sprintf("%s/%s/%s/%s", owner, repo, affiliation, permission))
 	}
-	d.SetId(fmt.Sprintf("%s/%s/%s/%s", owner, repo, affiliation, permissionIdString))
 	err := d.Set("owner", owner)
 	if err != nil {
 		return err
