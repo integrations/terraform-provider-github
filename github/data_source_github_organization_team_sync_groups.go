@@ -42,7 +42,11 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 	ctx := context.Background()
 
 	orgName := meta.(*Owner).name
-	options := &github.ListIDPGroupsOptions{}
+	options := &github.ListIDPGroupsOptions{
+	    ListCursorOptions: github.ListCursorOptions{
+	        PerPage: maxPerPage,
+            },
+	}
 
 	groups := make([]interface{}, 0)
 	for {
