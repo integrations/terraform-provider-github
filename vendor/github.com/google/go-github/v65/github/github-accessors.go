@@ -662,6 +662,14 @@ func (a *AnalysesListOptions) GetSarifID() string {
 	return *a.SarifID
 }
 
+// GetDomains returns the Domains field.
+func (a *APIMeta) GetDomains() *APIMetaDomains {
+	if a == nil {
+		return nil
+	}
+	return a.Domains
+}
+
 // GetSSHKeyFingerprints returns the SSHKeyFingerprints map if it's non-nil, an empty map otherwise.
 func (a *APIMeta) GetSSHKeyFingerprints() map[string]string {
 	if a == nil || a.SSHKeyFingerprints == nil {
@@ -676,6 +684,14 @@ func (a *APIMeta) GetVerifiablePasswordAuthentication() bool {
 		return false
 	}
 	return *a.VerifiablePasswordAuthentication
+}
+
+// GetArtifactAttestations returns the ArtifactAttestations field.
+func (a *APIMetaDomains) GetArtifactAttestations() *APIMetaArtifactAttestations {
+	if a == nil {
+		return nil
+	}
+	return a.ArtifactAttestations
 }
 
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
@@ -9004,6 +9020,22 @@ func (i *InstallationPermissions) GetOrganizationPackages() string {
 		return ""
 	}
 	return *i.OrganizationPackages
+}
+
+// GetOrganizationPersonalAccessTokenRequests returns the OrganizationPersonalAccessTokenRequests field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetOrganizationPersonalAccessTokenRequests() string {
+	if i == nil || i.OrganizationPersonalAccessTokenRequests == nil {
+		return ""
+	}
+	return *i.OrganizationPersonalAccessTokenRequests
+}
+
+// GetOrganizationPersonalAccessTokens returns the OrganizationPersonalAccessTokens field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetOrganizationPersonalAccessTokens() string {
+	if i == nil || i.OrganizationPersonalAccessTokens == nil {
+		return ""
+	}
+	return *i.OrganizationPersonalAccessTokens
 }
 
 // GetOrganizationPlan returns the OrganizationPlan field if it's non-nil, zero value otherwise.
@@ -22364,6 +22396,86 @@ func (s *SourceImportAuthor) GetURL() string {
 		return ""
 	}
 	return *s.URL
+}
+
+// GetPrivacyLevel returns the PrivacyLevel field if it's non-nil, zero value otherwise.
+func (s *SponsorshipChanges) GetPrivacyLevel() string {
+	if s == nil || s.PrivacyLevel == nil {
+		return ""
+	}
+	return *s.PrivacyLevel
+}
+
+// GetTier returns the Tier field.
+func (s *SponsorshipChanges) GetTier() *SponsorshipTier {
+	if s == nil {
+		return nil
+	}
+	return s.Tier
+}
+
+// GetAction returns the Action field if it's non-nil, zero value otherwise.
+func (s *SponsorshipEvent) GetAction() string {
+	if s == nil || s.Action == nil {
+		return ""
+	}
+	return *s.Action
+}
+
+// GetChanges returns the Changes field.
+func (s *SponsorshipEvent) GetChanges() *SponsorshipChanges {
+	if s == nil {
+		return nil
+	}
+	return s.Changes
+}
+
+// GetEffectiveDate returns the EffectiveDate field if it's non-nil, zero value otherwise.
+func (s *SponsorshipEvent) GetEffectiveDate() string {
+	if s == nil || s.EffectiveDate == nil {
+		return ""
+	}
+	return *s.EffectiveDate
+}
+
+// GetInstallation returns the Installation field.
+func (s *SponsorshipEvent) GetInstallation() *Installation {
+	if s == nil {
+		return nil
+	}
+	return s.Installation
+}
+
+// GetOrganization returns the Organization field.
+func (s *SponsorshipEvent) GetOrganization() *Organization {
+	if s == nil {
+		return nil
+	}
+	return s.Organization
+}
+
+// GetRepository returns the Repository field.
+func (s *SponsorshipEvent) GetRepository() *Repository {
+	if s == nil {
+		return nil
+	}
+	return s.Repository
+}
+
+// GetSender returns the Sender field.
+func (s *SponsorshipEvent) GetSender() *User {
+	if s == nil {
+		return nil
+	}
+	return s.Sender
+}
+
+// GetFrom returns the From field if it's non-nil, zero value otherwise.
+func (s *SponsorshipTier) GetFrom() string {
+	if s == nil || s.From == nil {
+		return ""
+	}
+	return *s.From
 }
 
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
