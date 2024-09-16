@@ -122,6 +122,25 @@ func Provider() *schema.Provider {
 					},
 				},
 			},
+			"app_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+				Description: descriptions["app_auth.id"],
+			},
+			"app_installation_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+				Description: descriptions["app_auth.installation_id"],
+			},
+			"app_pem_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
+				Description: descriptions["app_auth.pem_file"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -284,8 +303,8 @@ func init() {
 		"organization": "The GitHub organization name to manage. " +
 			"Use this field instead of `owner` when managing organization accounts.",
 
-		"app_auth": "The GitHub App credentials used to connect to GitHub. Conflicts with " +
-			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
+		"app_auth": "The GitHub App credentials used to connect to GitHub. " +
+			"Anonymous mode is enabled if both `token` and `app_auth` are not set.",
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
@@ -336,36 +355,58 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]interface{})
+		var appID, appInstallationID, appPemFile string
 
-			var appID, appInstallationID, appPemFile string
-
-			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
+		// If token is not set, we will try to use the direct app credentials
+		if token == "" {
+			// These values can be set directly or in via the env vars
+			if v, ok := d.Get("app_id").(string); ok && v != "" {
 				appID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
 			}
 
-			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
+			if v, ok := d.Get("app_installation_id").(string); ok && v != "" {
 				appInstallationID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
 			}
 
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				// The Go encoding/pem package only decodes PEM formatted blocks
-				// that contain new lines. Some platforms, like Terraform Cloud,
-				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value
-				// (explicit value, or default value taken from
-				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-				// actual new line character before decoding.
+			if v, ok := d.Get("app_pem_file").(string); ok && v != "" {
 				appPemFile = strings.Replace(v, `\n`, "\n", -1)
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
+		}
 
+		// Fall back to the app_auth block if the app_id, app_installation_id, and app_pem_file are not set
+		if appID == "" || appInstallationID == "" || appPemFile == "" {
+			if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
+				appAuthAttr := appAuth[0].(map[string]interface{})
+
+				if v, ok := appAuthAttr["id"].(string); ok && v != "" {
+					appID = v
+				} else {
+					return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
+				}
+
+				if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
+					appInstallationID = v
+				} else {
+					return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
+				}
+
+				if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+					// The Go encoding/pem package only decodes PEM formatted blocks
+					// that contain new lines. Some platforms, like Terraform Cloud,
+					// do not support new lines within Environment Variables.
+					// Any occurrence of \n in the `pem_file` argument's value
+					// (explicit value, or default value taken from
+					// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
+					// actual new line character before decoding.
+					appPemFile = strings.Replace(v, `\n`, "\n", -1)
+				} else {
+					return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
+				}
+			}
+		}
+
+		// If app credentials are set, generate an installation token
+		if appID != "" && appInstallationID != "" && appPemFile != "" {
 			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})

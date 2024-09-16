@@ -94,6 +94,55 @@ func TestAccProviderConfigure(t *testing.T) {
 
 	})
 
+	t.Run("can be configured with an app_auth block", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			provider "github" {
+				app_auth {
+					id = "%s"
+					installation_id = "%s"
+					pem_file = "%s"
+				}
+			}`,
+			testAppIDFunc(), testAppInstallationIDFunc(), testAppPemFileFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, app) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
+
+	t.Run("can be configured with individual app parameters", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			provider "github" {
+				app_id = "%s"
+				app_installation_id = "%s"
+				app_pem_file = "%s"
+			}`,
+			testAppIDFunc(), testAppInstallationIDFunc(), testAppPemFileFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, app) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
 	t.Run("can be configured with an individual account", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
