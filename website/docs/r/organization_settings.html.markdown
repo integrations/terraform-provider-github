@@ -71,7 +71,8 @@ The following arguments are supported:
 * `dependabot_security_updates_enabled_for_new_repositories` - (Optional) Whether or not dependabot security updates are enabled for new repositories. Defaults to `false`.
 * `dependency_graph_enabled_for_new_repositories` - (Optional) Whether or not dependency graph is enabled for new repositories. Defaults to `false`.
 * `secret_scanning_enabled_for_new_repositories` - (Optional) Whether or not secret scanning is enabled for new repositories. Defaults to `false`.
-* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`. 
+* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`.
+* `secret_scanning_push_protection_custom_link` - (Optional) The URL that will be displayed to contributors who are blocked from pushing a secret. Defaults to `null`.
 
 
 ## Attributes Reference
