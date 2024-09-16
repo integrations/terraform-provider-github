@@ -171,7 +171,6 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 			"secret_scanning_push_protection_custom_link": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     null,
 				Description: "The URL that will be displayed to contributors who are blocked from pushing a secret.",
 			},
 		},
