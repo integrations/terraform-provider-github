@@ -38,6 +38,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			dependency_graph_enabled_for_new_repositories = false
 			secret_scanning_enabled_for_new_repositories = false
 			secret_scanning_push_protection_enabled_for_new_repositories = false
+   			secret_scanning_push_protection_custom_link = null
 		  }`
 
 		check := resource.ComposeTestCheckFunc(
