@@ -27,14 +27,14 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 			"property_name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the repository which the custom properties should be on.",
+				Description: "Name of the custom property.",
 				ForceNew: true,
 			},
 			"property_value": {
 				Type:        schema.TypeSet,
 				MinItems:    1,
 				Required:    true,
-				Description: "Value the property should take.",
+				Description: "Value of the custom property.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
