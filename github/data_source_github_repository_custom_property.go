@@ -1,6 +1,10 @@
 package github
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -30,69 +34,45 @@ func dataSourceGithubRepositoryCustomProperty() *schema.Resource {
 	}
 }
 
-// func parseRepositoryCustomProperties(repo models.FullRepositoryable) (map[string][]string, error) {
-// 	repoFullName := repo.GetFullName()
-// 	repoProps := repo.GetCustomProperties().GetAdditionalData()
-
-// 	properties := make(map[string][]string)
-// 	for key, value := range repoProps {
-
-// 		typeAssertionErr := fmt.Errorf("error reading custom property `%v` in %s. Value couldn't be parsed as a string, or a list of strings", key, *repoFullName)
-
-// 		// The value of a custom property can be either a string, or a list of strings (https://docs.github.com/en/enterprise-cloud@latest/rest/repos/custom-properties?apiVersion=2022-11-28#get-all-custom-property-values-for-a-repository)
-// 		switch valueStringOrSlice := value.(type) {
-// 		case *string:
-// 			interfaceSlice := make([]string, 1)
-// 			interfaceSlice[0] = *valueStringOrSlice
-// 			properties[key] = interfaceSlice
-
-// 		case []interface{}:
-// 			interfaceSlice := make([]string, len(valueStringOrSlice))
-// 			for idx, valInterface := range valueStringOrSlice {
-// 				switch valString := valInterface.(type) {
-// 				case *string:
-// 					interfaceSlice[idx] = *valString
-
-// 				default:
-// 					return nil, typeAssertionErr
-// 				}
-// 			}
-// 			properties[key] = interfaceSlice
-
-// 		default:
-// 			return nil, typeAssertionErr
-// 		}
-// 	}
-
-// 	return properties, nil
-// }
-
 func dataSourceGithubOrgaRepositoryCustomProperty(d *schema.ResourceData, meta interface{}) error {
 
-	// octokitClient := meta.(*Owner).octokitClient
-	// ctx := context.Background()
+	client := meta.(*Owner).v3client
+	ctx := context.Background()
 
-	// owner := meta.(*Owner).name
-	// repoName := d.Get("repository").(string)
-	// propertyName := d.Get("property_name").(string)
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	propertyName := d.Get("property_name").(string)
 
-	// repoRequestConfig := &abs.RequestConfiguration[abs.DefaultQueryParameters]{
-	// 	QueryParameters: &abs.DefaultQueryParameters{},
-	// }
-	// repo, err := octokitClient.Repos().ByOwnerId(owner).ByRepoId(repoName).Get(ctx, repoRequestConfig)
-	// if err != nil {
-	// 	return err
-	// }
+	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
 
-	// properties, err := parseRepositoryCustomProperties(repo)
-	// if err != nil {
-	// 	return err
-	// }
+	var wantedCustomProperty *github.CustomPropertyValue
+	for _, customProperty := range allCustomProperties {
+		if customProperty.PropertyName == propertyName {
+			wantedCustomProperty = customProperty
+		}
+	}
 
-	// d.SetId(buildThreePartID(owner, repoName, propertyName))
-	// d.Set("repository", repoName)
-	// d.Set("property_name", propertyName)
-	// d.Set("property_value", properties[propertyName])
+	if wantedCustomProperty == nil {
+		return fmt.Errorf("could not find a custom property with name: %s", propertyName)
+	}
+
+	var wantedCustomPropertyValue []string // := make([]string, 0)
+	switch value := wantedCustomProperty.Value.(type) {
+	case string:
+		wantedCustomPropertyValue = []string{value}
+	case []string:
+		wantedCustomPropertyValue = value
+	default:
+		return fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+	}
+
+	d.SetId(buildThreePartID(owner, repoName, propertyName))
+	d.Set("repository", repoName)
+	d.Set("property_name", wantedCustomProperty.PropertyName)
+	d.Set("property_value", wantedCustomPropertyValue)
 
 	return nil
 }
