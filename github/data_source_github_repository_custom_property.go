@@ -2,9 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -43,35 +41,14 @@ func dataSourceGithubOrgaRepositoryCustomProperty(d *schema.ResourceData, meta i
 	repoName := d.Get("repository").(string)
 	propertyName := d.Get("property_name").(string)
 
-	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
+	wantedCustomPropertyValue, err := readRepositoryCustomPropertyValue(ctx, client,  owner, repoName, propertyName)
 	if err != nil {
 		return err
 	}
 
-	var wantedCustomProperty *github.CustomPropertyValue
-	for _, customProperty := range allCustomProperties {
-		if customProperty.PropertyName == propertyName {
-			wantedCustomProperty = customProperty
-		}
-	}
-
-	if wantedCustomProperty == nil {
-		return fmt.Errorf("could not find a custom property with name: %s", propertyName)
-	}
-
-	var wantedCustomPropertyValue []string // := make([]string, 0)
-	switch value := wantedCustomProperty.Value.(type) {
-	case string:
-		wantedCustomPropertyValue = []string{value}
-	case []string:
-		wantedCustomPropertyValue = value
-	default:
-		return fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
-	}
-
 	d.SetId(buildThreePartID(owner, repoName, propertyName))
 	d.Set("repository", repoName)
-	d.Set("property_name", wantedCustomProperty.PropertyName)
+	d.Set("property_name", propertyName)
 	d.Set("property_value", wantedCustomPropertyValue)
 
 	return nil
