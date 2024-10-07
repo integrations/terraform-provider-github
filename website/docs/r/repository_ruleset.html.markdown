@@ -103,6 +103,8 @@ The `rules` block supports the following:
 
 * `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
 
+* `file_path_restriction` -(Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [Below for nested schema](#rules.file_path_restriction))
+
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
   
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
@@ -202,6 +204,11 @@ The `rules` block supports the following:
 * `security_alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.
 
 * `tool` - (Required) (String) The name of a code scanning tool.
+
+#### rules.file_path_restriction ####
+
+* `restricted_file_paths` - (Required) (String) The file paths that are restricted from being pushed to the commit graph.
+
 
 #### bypass_actors ####
 
