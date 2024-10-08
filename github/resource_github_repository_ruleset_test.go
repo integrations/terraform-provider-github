@@ -64,6 +64,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
+						do_not_enforce_on_create = true
 
 						required_check {
 							context = "ci"
@@ -313,6 +314,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
+						do_not_enforce_on_create = true
 
 						required_check {
 							context = "ci"
