@@ -10,11 +10,15 @@ import (
 
 func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 
-	t.Skip("update <property_name> below and make sure the org you're testing against have a custom property with that name to unskip this test run") // TOOD: Actually run this
+	t.Skip("You need an org with custom properties already setup as described in the variables below") // TODO: at the time of writing org_custom_properties are not supported by this terraform provider
+	singleSelectPropertyName := "single-select" // Needs to be a of type single_select, and have "option1" as an option
+	multiSelectPropertyName := "multi-select" // Needs to be a of type multi_select, and have "option1" and "option2" as an options
+	trueFlasePropertyName := "true-false" // Needs to be a of type true_false, and have "option1" as an option
+	stringPropertyName := "string" // Needs to be a of type string, and have "option1" as an option
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates custom property without error", func(t *testing.T) {
+	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -23,15 +27,15 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 			}
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
-				property_name = "<property_name>"
-				property_value = ["test"]
+				property_name = "%s"
+				property_value = ["option1"]
 			}
-		`, randomID)
+		`, randomID, singleSelectPropertyName)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", "<property_name>"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", singleSelectPropertyName),
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "test"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -52,7 +56,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			t.Skip("individual account not supported for this operation")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
@@ -60,58 +64,143 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 
-	// t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
+	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
 
-	// 	orgName := os.Getenv("GITHUB_ORGANIZATION")
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+				auto_init = true
+			}
+			resource "github_repository_custom_property" "test" {
+				repository    = github_repository.test.name
+				property_name = "%s"
+				property_value = ["option1", "option2"]
+			}
+		`, randomID, multiSelectPropertyName)
 
-	// 	if orgName == "" {
-	// 		t.Skip("Set GITHUB_ORGANIZATION to unskip this test run")
-	// 	}
+		checkWithOwner := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", multiSelectPropertyName),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "2"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.1", "option2"),
+		)
 
-	// 	configWithOwner := fmt.Sprintf(`
-	// 		resource "github_repository" "test" {
-	// 			name = "tf-acc-test-%s"
-	// 			auto_init = true
-	// 		}
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checkWithOwner,
+					},
+				},
+			})
+		}
 
-	// 		resource "github_repository_collaborator" "test_repo_collaborator_2" {
-	// 			repository = "%s/${github_repository.test.name}"
-	// 			username   = "<username>"
-	// 			permission = "triage"
-	// 		}
-	// 	`, randomID, orgName)
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
 
-	// 	checkWithOwner := resource.ComposeTestCheckFunc(
-	// 		resource.TestCheckResourceAttr(
-	// 			"github_repository_collaborator.test_repo_collaborator_2", "permission",
-	// 			"triage",
-	// 		),
-	// 	)
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
 
-	// 	testCase := func(t *testing.T, mode string) {
-	// 		resource.Test(t, resource.TestCase{
-	// 			PreCheck:  func() { skipUnlessMode(t, mode) },
-	// 			Providers: testAccProviders,
-	// 			Steps: []resource.TestStep{
-	// 				{
-	// 					Config: configWithOwner,
-	// 					Check:  checkWithOwner,
-	// 				},
-	// 			},
-	// 		})
-	// 	}
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 
-	// 	t.Run("with an anonymous account", func(t *testing.T) {
-	// 		t.Skip("anonymous account not supported for this operation")
-	// 	})
+	t.Run("creates custom property of type true-false without error", func(t *testing.T) {
 
-	// 	t.Run("with an individual account", func(t *testing.T) {
-	// 		testCase(t, individual)
-	// 	})
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+				auto_init = true
+			}
+			resource "github_repository_custom_property" "test" {
+				repository    = github_repository.test.name
+				property_name = "%s"
+				property_value = ["true"]
+			}
+		`, randomID, trueFlasePropertyName)
 
-	// 	t.Run("with an organization account", func(t *testing.T) {
-	// 		testCase(t, organization)
-	// 	})
-	// })
+		checkWithOwner := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", trueFlasePropertyName),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "true"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checkWithOwner,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("creates custom property of type string without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+				auto_init = true
+			}
+			resource "github_repository_custom_property" "test" {
+				repository    = github_repository.test.name
+				property_name = "%s"
+				property_value = ["text"]
+			}
+		`, randomID, stringPropertyName)
+
+		checkWithOwner := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", stringPropertyName),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "text"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checkWithOwner,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
 
