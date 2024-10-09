@@ -22,13 +22,13 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the repository which the custom properties should be on.",
-				ForceNew: true,
+				ForceNew:    true,
 			},
 			"property_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the custom property.",
-				ForceNew: true,
+				ForceNew:    true,
 			},
 			"property_value": {
 				Type:        schema.TypeSet,
@@ -83,12 +83,12 @@ func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta int
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName"); 
+	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
 	if err != nil {
 		return err
 	}
 
-	wantedCustomPropertyValue, err := readRepositoryCustomPropertyValue(ctx, client,  owner, repoName, propertyName)
+	wantedCustomPropertyValue, err := readRepositoryCustomPropertyValue(ctx, client, owner, repoName, propertyName)
 	if err != nil {
 		return err
 	}
@@ -106,14 +106,14 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta i
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName"); 
+	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
 	if err != nil {
 		return err
 	}
 
 	customProperty := github.CustomPropertyValue{
 		PropertyName: propertyName,
-		Value: nil, // TODO: setting this will remove the custom proprty, but it's currently blocked by https://github.com/google/go-github/pull/3309
+		Value:        nil, // TODO: setting this will remove the custom proprty, but it's currently blocked by https://github.com/google/go-github/pull/3309
 	}
 
 	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, []*github.CustomPropertyValue{&customProperty})
@@ -124,7 +124,7 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta i
 	return nil
 }
 
-func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Client, owner, repoName, propertyName string) ([]string, error){
+func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Client, owner, repoName, propertyName string) ([]string, error) {
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {
 		return nil, err

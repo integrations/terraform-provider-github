@@ -50,7 +50,7 @@ func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta
 	ctx := context.Background()
 
 	owner := meta.(*Owner).name
-	
+
 	repoName := d.Get("repository").(string)
 
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
