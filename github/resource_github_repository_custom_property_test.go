@@ -14,7 +14,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates invitations without error", func(t *testing.T) {
+	t.Run("creates custom property without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
