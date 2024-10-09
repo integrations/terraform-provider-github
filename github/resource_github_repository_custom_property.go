@@ -141,15 +141,10 @@ func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Clien
 		return nil, fmt.Errorf("could not find a custom property with name: %s", propertyName)
 	}
 
-	var wantedCustomPropertyValue []string
-	switch value := wantedCustomProperty.Value.(type) {
-	case string:
-		wantedCustomPropertyValue = []string{value}
-	case []string:
-		wantedCustomPropertyValue = value
-	default:
-		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+	wantedPropertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(wantedCustomProperty)
+	if err != nil {
+		return nil, err
 	}
 
-	return wantedCustomPropertyValue, nil
+	return wantedPropertyValue, nil
 }

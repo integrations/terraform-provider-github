@@ -78,17 +78,26 @@ func flattenRepositoryCustomProperties(customProperties []*github.CustomProperty
 
 		result["property_name"] = prop.PropertyName
 
-		switch value := prop.Value.(type) {
-		case string:
-			result["property_value"] = []string{value}
-		case []string:
-			result["property_value"] = value
-		default:
-			return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+		propertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(prop)
+		if err != nil {
+			return nil, err
 		}
+
+		result["property_value"] = propertyValue
 
 		results = append(results, result)
 	}
 
 	return results, nil
+}
+
+func parseRepositoryCustomPropertyValueToStringSlice(prop *github.CustomPropertyValue) ([]string, error) {
+	switch value := prop.Value.(type) {
+	case string:
+		return []string{value}, nil
+	case []string:
+		return value, nil
+	default:
+		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+	}
 }
