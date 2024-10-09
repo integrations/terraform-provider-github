@@ -320,7 +320,6 @@ func resourceGithubRepository() *schema.Resource {
 			"vulnerability_alerts": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
