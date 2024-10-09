@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubRepositoryCustomProperty(t *testing.T) {
+func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 
 	t.Skip("You need an org with custom properties already setup as described in the variables below") // TODO: at the time of writing org_custom_properties are not supported by this terraform provider, so cant be setup in the test itself for now
 	singleSelectPropertyName := "single-select" // Needs to be a of type single_select, and have "option1" as an option
@@ -30,12 +30,18 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_name = "%s"
 				property_value = ["option1"]
 			}
+			data "github_repository_custom_properties" "test" {
+				repository    = github_repository_custom_property.test.repository
+			}
 		`, randomID, singleSelectPropertyName)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", singleSelectPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
+			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test",
+				"property.*", map[string]string{
+					"property_name":    singleSelectPropertyName,
+					"property_value.#": "1",
+					"property_value.0": "option1",
+				}),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -76,13 +82,19 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_name = "%s"
 				property_value = ["option1", "option2"]
 			}
+			data "github_repository_custom_properties" "test" {
+				repository    = github_repository_custom_property.test.repository
+			}
 		`, randomID, multiSelectPropertyName)
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", multiSelectPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "2"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.1", "option2"),
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test",
+				"property.*", map[string]string{
+					"property_name":    multiSelectPropertyName,
+					"property_value.#": "2",
+					"property_value.0": "option1",
+					"property_value.1": "option2",
+				}),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -92,7 +104,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						Check:  checkWithOwner,
+						Check:  check,
 					},
 				},
 			})
@@ -111,7 +123,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 
-	t.Run("creates custom property of type true-false without error", func(t *testing.T) {
+	t.Run("creates custom property of type true_false without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -123,12 +135,18 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_name = "%s"
 				property_value = ["true"]
 			}
+			data "github_repository_custom_properties" "test" {
+				repository    = github_repository_custom_property.test.repository
+			}
 		`, randomID, trueFlasePropertyName)
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", trueFlasePropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "true"),
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test",
+				"property.*", map[string]string{
+					"property_name":    trueFlasePropertyName,
+					"property_value.#": "1",
+					"property_value.0": "true",
+				}),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -138,7 +156,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						Check:  checkWithOwner,
+						Check:  check,
 					},
 				},
 			})
@@ -157,7 +175,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 
-	t.Run("creates custom property of type string without error", func(t *testing.T) {
+	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -169,12 +187,18 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_name = "%s"
 				property_value = ["text"]
 			}
+			data "github_repository_custom_properties" "test" {
+				repository    = github_repository_custom_property.test.repository
+			}
 		`, randomID, stringPropertyName)
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", stringPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "text"),
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test",
+				"property.*", map[string]string{
+					"property_name":    stringPropertyName,
+					"property_value.#": "1",
+					"property_value.0": "text",
+				}),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -184,7 +208,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config: config,
-						Check:  checkWithOwner,
+						Check:  check,
 					},
 				},
 			})
@@ -203,4 +227,3 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 }
-
