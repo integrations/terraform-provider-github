@@ -148,13 +148,10 @@ func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta interface{})
 			return err
 		}
 
-		// We don't want to rename branch if its already the default branch
-		if defaultBranch == *repository.DefaultBranch {
-			return nil
-		}
-
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
+		if defaultBranch != *repository.DefaultBranch {
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+				return err
+			}
 		}
 	} else {
 		repository := &github.Repository{
