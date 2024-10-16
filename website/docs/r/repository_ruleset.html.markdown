@@ -101,6 +101,8 @@ The `rules` block supports the following:
 
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applied to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
 
+* `file_path_restriction` -(Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [Below for nested schema](#rules.file_path_restriction))
+
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
   
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
@@ -191,6 +193,10 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
+
+#### rules.file_path_restriction ####
+
+* `restricted_file_paths` - (Required) (String) The file paths that are restricted from being pushed to the commit graph.
 
 
 #### bypass_actors ####
