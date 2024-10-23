@@ -484,7 +484,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"tool": {
 													Type:        schema.TypeString,
 													Required:    true,
-													Description: "The name of a code scanning tool",
+													Description: "The name of a code scanning tool.",
 												},
 											},
 										},
