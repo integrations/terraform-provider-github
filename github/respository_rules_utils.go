@@ -394,6 +394,19 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewRequiredCodeScanningRule(params))
 	}
 
+	// file_path_restriction rule
+	if v, ok := rulesMap["file_path_restriction"].([]interface{}); ok && len(v) != 0 {
+		filePathRestrictionMap := v[0].(map[string]interface{})
+		restrictedFilePaths := make([]string, 0)
+		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]interface{}) {
+			restrictedFilePaths = append(restrictedFilePaths, path.(string))
+		}
+		params := &github.RuleFileParameters{
+			RestrictedFilePaths: &restrictedFilePaths,
+		}
+		rulesSlice = append(rulesSlice, github.NewFilePathRestrictionRule(params))
+	}
+
 	return rulesSlice
 }
 
@@ -503,6 +516,17 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]interface{})
 			rule["required_check"] = requiredStatusChecksSlice
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "file_path_restriction":
+			var params github.RuleFileParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["restricted_file_paths"] = params.GetRestrictedFilePaths()
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}

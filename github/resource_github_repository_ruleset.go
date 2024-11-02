@@ -34,8 +34,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
