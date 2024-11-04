@@ -238,7 +238,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Specifies if the repository should be archived. `false` will unarchive a previously archived repository. Defaults to 'false'." 
+				Description: "Specifies if the repository should be archived. 'false' will unarchive a previously archived repository. Defaults to 'false'." 
 			},
 			"archive_on_destroy": {
 				Type:        schema.TypeBool,
