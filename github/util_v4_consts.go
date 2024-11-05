@@ -24,6 +24,8 @@ const (
 	PROTECTION_RESTRICTS_PUSHES                 = "restrict_pushes"
 	PROTECTION_RESTRICTS_REVIEW_DISMISSALS      = "restrict_dismissals"
 	PROTECTION_REVIEW_DISMISSAL_ALLOWANCES      = "dismissal_restrictions"
+	PROTECTION_REQUIRES_DEPLOYMENTS             = "required_deployments"
+	PROTECTION_REQUIRES_DEPLOYMENT_ENVIRONMENTS = "environments"
 
 	REPOSITORY_ID = "repository_id"
 )
