@@ -20,7 +20,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 		Read:   resourceGithubActionsEnvironmentSecretRead,
 		Delete: resourceGithubActionsEnvironmentSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubActionsSecretImport,
+			State: resourceGithubActionsEnvironmentSecretImport,
 		},
 
 		Schema: map[string]*schema.Schema{
