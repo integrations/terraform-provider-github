@@ -10,6 +10,7 @@ package ssa
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
 	"go/types"
 	"io"
 	"os"
@@ -199,7 +200,7 @@ func (s *sanity) checkInstr(idx int, instr Instruction) {
 		t := v.Type()
 		if t == nil {
 			s.errorf("no type: %s = %s", v.Name(), v)
-		} else if t == tRangeIter {
+		} else if t == tRangeIter || t == tDeferStack {
 			// not a proper type; ignore.
 		} else if b, ok := t.Underlying().(*types.Basic); ok && b.Info()&types.IsUntyped != 0 {
 			s.errorf("instruction has 'untyped' result: %s = %s : %s", v.Name(), v, t)
@@ -349,7 +350,7 @@ func (s *sanity) checkBlock(b *BasicBlock, index int) {
 
 			// Check that "untyped" types only appear on constant operands.
 			if _, ok := (*op).(*Const); !ok {
-				if basic, ok := (*op).Type().(*types.Basic); ok {
+				if basic, ok := (*op).Type().Underlying().(*types.Basic); ok {
 					if basic.Info()&types.IsUntyped != 0 {
 						s.errorf("operand #%d of %s is untyped: %s", i, instr, basic)
 					}
@@ -445,6 +446,8 @@ func (s *sanity) checkFunction(fn *Function) bool {
 			// ok (instantiation with InstantiateGenerics on)
 		} else if fn.topLevelOrigin != nil && len(fn.typeargs) > 0 {
 			// ok (we always have the syntax set for instantiation)
+		} else if _, rng := fn.syntax.(*ast.RangeStmt); rng && fn.Synthetic == "range-over-func yield" {
+			// ok (range-func-yields are both synthetic and keep syntax)
 		} else {
 			s.errorf("got fromSource=%t, hasSyntax=%t; want same values", src, syn)
 		}

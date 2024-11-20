@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -81,6 +81,56 @@ func resourceGithubRelease() *schema.Resource {
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"release_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the release.",
+			},
+			"node_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The node ID of the release.",
+			},
+			"created_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time the release was created.",
+			},
+			"published_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time the release was published.",
+			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the release.",
+			},
+			"html_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The HTML URL for the release.",
+			},
+			"assets_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the release assets.",
+			},
+			"upload_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the uploaded assets of release.",
+			},
+			"zipball_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the zipball of the release.",
+			},
+			"tarball_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the tarball of the release.",
 			},
 		},
 	}

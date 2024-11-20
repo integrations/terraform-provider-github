@@ -11,7 +11,7 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/internal/typeparams"
+	"golang.org/x/tools/internal/aliases"
 )
 
 // MethodValue returns the Function implementing method sel, building
@@ -32,7 +32,7 @@ func (prog *Program) MethodValue(sel *types.Selection) *Function {
 		return nil // interface method or type parameter
 	}
 
-	if prog.parameterized.isParameterized(T) {
+	if prog.isParameterized(T) {
 		return nil // generic method
 	}
 
@@ -58,10 +58,8 @@ func (prog *Program) MethodValue(sel *types.Selection) *Function {
 		fn, ok := mset.mapping[id]
 		if !ok {
 			obj := sel.Obj().(*types.Func)
-			_, ptrObj := deptr(recvType(obj))
-			_, ptrRecv := deptr(T)
 			needsPromotion := len(sel.Index()) > 1
-			needsIndirection := !ptrObj && ptrRecv
+			needsIndirection := !isPointer(recvType(obj)) && isPointer(T)
 			if needsPromotion || needsIndirection {
 				fn = createWrapper(prog, toSelection(sel), &cr)
 			} else {
@@ -102,7 +100,7 @@ func (prog *Program) objectMethod(obj *types.Func, cr *creator) *Function {
 	}
 
 	// Instantiation of generic?
-	if originObj := typeparams.OriginMethod(obj); originObj != obj {
+	if originObj := obj.Origin(); originObj != obj {
 		origin := prog.objectMethod(originObj, cr)
 		assert(origin.typeparams.Len() > 0, "origin is not generic")
 		targs := receiverTypeArgs(obj)
@@ -209,6 +207,9 @@ func forEachReachable(msets *typeutil.MethodSetCache, T types.Type, f func(types
 		}
 
 		switch T := T.(type) {
+		case *aliases.Alias:
+			visit(aliases.Unalias(T), skip) // emulates the pre-Alias behavior
+
 		case *types.Basic:
 			// nop
 

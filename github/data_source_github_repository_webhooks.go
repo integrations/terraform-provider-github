@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -100,7 +100,7 @@ func flattenGitHubWebhooks(hooks []*github.Hook) []map[string]interface{} {
 		result["id"] = hook.ID
 		result["type"] = hook.Type
 		result["name"] = hook.Name
-		result["url"] = hook.Config["url"]
+		result["url"] = hook.URL
 		result["active"] = hook.Active
 
 		results = append(results, result)

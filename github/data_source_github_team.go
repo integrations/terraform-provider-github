@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 
 	"github.com/shurcooL/githubv4"
 
@@ -168,13 +168,13 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		repositories_detailed = make([]interface{}, 0, resultsPerPage) //removed this from the loop
+
 		for {
 			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
 			if err != nil {
 				return err
 			}
-
-			repositories_detailed = make([]interface{}, 0, len(repository))
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
