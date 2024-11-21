@@ -23,6 +23,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -107,6 +108,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -157,6 +159,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -248,6 +251,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTag(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -332,6 +336,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagUpdate(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -382,6 +387,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagUpdate(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -474,6 +480,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchToTagUpdate(t *test
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -524,6 +531,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchToTagUpdate(t *test
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -616,6 +624,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *test
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -666,6 +675,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *test
 
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
