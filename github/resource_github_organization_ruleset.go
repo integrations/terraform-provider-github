@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -450,6 +450,41 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Optional:    true,
 													Default:     "master",
 													Description: "The ref (branch or tag) of the workflow file to use.",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"required_code_scanning": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_code_scanning_tool": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Tools that must provide code scanning results for this rule to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+												},
+												"security_alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+												},
+												"tool": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of a code scanning tool.",
 												},
 											},
 										},
