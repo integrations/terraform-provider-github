@@ -362,6 +362,38 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
 
+	// Required code scanning to pass before merging rule
+	if v, ok := rulesMap["required_code_scanning"].([]interface{}); ok && len(v) != 0 {
+		requiredCodeScanningMap := v[0].(map[string]interface{})
+		requiredCodeScanningTools := make([]*github.RuleRequiredCodeScanningTool, 0)
+
+		if requiredCodeScanningInput, ok := requiredCodeScanningMap["required_code_scanning_tool"]; ok {
+
+			requiredCodeScanningSet := requiredCodeScanningInput.(*schema.Set)
+			for _, codeScanningMap := range requiredCodeScanningSet.List() {
+				codeScanningTool := codeScanningMap.(map[string]interface{})
+
+				// Get all parameters
+				alertsThreshold := github.String(codeScanningTool["alerts_threshold"].(string))
+				securityAlertsThreshold := github.String(codeScanningTool["security_alerts_threshold"].(string))
+				tool := github.String(codeScanningTool["tool"].(string))
+
+				params := &github.RuleRequiredCodeScanningTool{
+					AlertsThreshold:         *alertsThreshold,
+					SecurityAlertsThreshold: *securityAlertsThreshold,
+					Tool:                    *tool,
+				}
+
+				requiredCodeScanningTools = append(requiredCodeScanningTools, params)
+			}
+		}
+
+		params := &github.RequiredCodeScanningRuleParameters{
+			RequiredCodeScanningTools: requiredCodeScanningTools,
+		}
+		rulesSlice = append(rulesSlice, github.NewRequiredCodeScanningRule(params))
+	}
+
 	return rulesSlice
 }
 
