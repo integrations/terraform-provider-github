@@ -28,6 +28,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "single_select"
 				property_value = ["option1"]
 			}
 			data "github_repository_custom_properties" "test" {
@@ -80,6 +81,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "multi_select"
 				property_value = ["option1", "option2"]
 			}
 			data "github_repository_custom_properties" "test" {
@@ -133,6 +135,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "true_false"
 				property_value = ["true"]
 			}
 			data "github_repository_custom_properties" "test" {
@@ -175,7 +178,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
+	t.Run("creates custom property of type string without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -185,6 +188,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "string"
 				property_value = ["text"]
 			}
 			data "github_repository_custom_properties" "test" {
