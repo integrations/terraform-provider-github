@@ -28,6 +28,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "single_select"
 				property_value = ["option1"]
 			}
 		`, randomID, singleSelectPropertyName)
@@ -74,6 +75,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "multi_select"
 				property_value = ["option1", "option2"]
 			}
 		`, randomID, multiSelectPropertyName)
@@ -121,6 +123,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "true_false"
 				property_value = ["true"]
 			}
 		`, randomID, trueFlasePropertyName)
@@ -167,6 +170,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 			resource "github_repository_custom_property" "test" {
 				repository    = github_repository.test.name
 				property_name = "%s"
+				property_type = "string"
 				property_value = ["text"]
 			}
 		`, randomID, stringPropertyName)
