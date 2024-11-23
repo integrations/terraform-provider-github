@@ -19,7 +19,7 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 				Description: "Name of the repository which the custom properties should be on.",
 			},
 			"property": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "List of custom properties",
 				Elem: &schema.Resource{

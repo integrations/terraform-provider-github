@@ -129,7 +129,7 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta i
 
 	customProperty := github.CustomPropertyValue{
 		PropertyName: propertyName,
-		Value:        nil, // TODO: setting this will remove the custom proprty, but it's currently blocked by https://github.com/google/go-github/pull/3309
+		Value:        nil,
 	}
 
 	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, []*github.CustomPropertyValue{&customProperty})
