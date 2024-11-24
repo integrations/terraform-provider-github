@@ -34,7 +34,7 @@ The following arguments are supported:
 
 * `property_type` - (Required) Type of the custom property. Can be one of `single_select`, `multi_select`, `string`, or `true_false`
 
-* `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization levle
+* `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization level
 
 * `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1 
 
