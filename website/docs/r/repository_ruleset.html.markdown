@@ -179,7 +179,7 @@ The `rules` block supports the following:
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
-* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from. It's an GitHub App ID, which can be obtained from [Get an app API](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
+* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from. It's a GitHub App ID, which can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app).
 
 #### rules.tag_name_pattern ####
 
