@@ -205,7 +205,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is an GitHub App ID. App ID can be obtained from [Get an app API](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
