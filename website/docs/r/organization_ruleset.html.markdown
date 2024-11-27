@@ -91,6 +91,8 @@ The `rules` block supports the following:
 
 * `required_workflows` - (Optional) (Block List, Max: 1) Define which Actions workflows must pass before changes can be merged into a branch matching the rule. Multiple workflows can be specified. (see [below for nested schema](#rules.required_workflows))
 
+* `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
+
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
@@ -170,6 +172,18 @@ The `rules` block supports the following:
 * `path` - (Required) (String) The path to the YAML definition file of the workflow.
 
 * `ref` - (Optional) (String) The optional ref from which to fetch the workflow. Defaults to `master`.
+
+#### rules.required_code_scanning ####
+
+* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_code_scanning_tool))
+
+#### rules.required_code_scanning.required_code_scanning_tool ####
+
+* `alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.
+
+* `security_alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.
+
+* `tool` - (Required) (String) The name of a code scanning tool.
 
 #### rules.tag_name_pattern ####
 

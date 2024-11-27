@@ -10,11 +10,7 @@ description: |-
 This resource allows you to create and manage repositories within your
 GitHub organization or personal account.
 
-~> Note: When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following attributes will be ignored, leading to unexpected behavior and confusing diffs:
-
-- `allow_merge_commit` (including the related `merge_commit_title` and `merge_commit_message`)
-- `allow_squash_merge` (including the related `squash_merge_commit_title` and `squash_merge_commit_message`)
-- `allow_rebase_merge`
+~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
 ## Example Usage
 

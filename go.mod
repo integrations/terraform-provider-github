@@ -6,16 +6,18 @@ toolchain go1.22.3
 
 require (
 	github.com/client9/misspell v0.3.4
+	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/golangci/golangci-lint v1.59.1
-	github.com/google/go-github/v62 v62.0.0
+	github.com/google/go-github/v66 v66.0.1-0.20241027130611-9e5757d5a766
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
+	github.com/microsoft/kiota-abstractions-go v1.6.0
+	github.com/octokit/go-sdk v0.0.20
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/crypto v0.25.0
-	golang.org/x/oauth2 v0.21.0
-	gopkg.in/square/go-jose.v2 v2.6.0
+	golang.org/x/crypto v0.26.0
+	golang.org/x/oauth2 v0.22.0
 )
 
 require (
@@ -146,7 +148,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mgechev/revive v1.3.7 // indirect
-	github.com/microsoft/kiota-abstractions-go v1.6.0 // indirect
 	github.com/microsoft/kiota-http-go v1.3.3 // indirect
 	github.com/microsoft/kiota-serialization-form-go v1.0.0 // indirect
 	github.com/microsoft/kiota-serialization-json-go v1.0.7 // indirect
@@ -164,7 +165,6 @@ require (
 	github.com/nishanths/exhaustive v0.12.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nunnatsa/ginkgolinter v0.16.2 // indirect
-	github.com/octokit/go-sdk v0.0.20 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -237,9 +237,9 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240227224415-6ceb2ff114de // indirect

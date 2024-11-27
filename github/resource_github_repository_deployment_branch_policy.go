@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -80,7 +80,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	environmentName := d.Get("environment_name").(string)
 	name := d.Get("name").(string)
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name})
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.String("branch")})
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -87,6 +87,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"allow_auto_merge": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"allow_update_branch": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -326,6 +330,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"delete_branch_on_merge": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -395,6 +403,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
+	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
