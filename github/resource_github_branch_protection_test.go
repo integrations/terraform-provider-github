@@ -520,7 +520,58 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		})
 
 	})
+	t.Run("configures branch push restrictions with deployment environments", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name      = "tf-acc-test-%s"
+			  auto_init = true
+			}
+
+			resource "github_branch_protection" "test" {
+
+			  repository_id = github_repository.test.node_id
+			  pattern       = "main"
+
+			  require_deployments {
+				environments = ["dev","test]
+			  }
+			}
+	`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection.test", "require_deployments.environments.#", "2",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 	t.Run("configures branch push restrictions with blocksCreations false", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 

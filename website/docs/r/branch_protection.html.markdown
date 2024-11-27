@@ -117,6 +117,12 @@ If specified, usual value is the [job name](https://docs.github.com/en/actions/u
 For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation]("https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy") for more information.
 For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
 
+### Required Deployments
+
+`required_deployments` supports the following arguments:
+
+* `environments`: (Optional) The list of required Environments that require deployment.
+
 ### Required Pull Request Reviews
 
 `required_pull_request_reviews` supports the following arguments:

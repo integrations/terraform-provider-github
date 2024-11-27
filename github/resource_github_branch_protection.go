@@ -119,6 +119,21 @@ func resourceGithubBranchProtection() *schema.Resource {
 					},
 				},
 			},
+			PROTECTION_REQUIRES_DEPLOYMENTS: {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Are successful deployments required before merging.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						PROTECTION_REQUIRES_DEPLOYMENT_ENVIRONMENTS: {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "The list of required deployment environments.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 			PROTECTION_REQUIRES_STATUS_CHECKS: {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -256,6 +271,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
 		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
+		RequiresDeployments:            githubv4.NewBoolean(githubv4.Boolean(data.RequiresDeployments)),
+		RequiredDeploymentEnvironments: githubv4NewIDSlice(githubv4IDSliceEmpty(data.RequiredDeploymentEnvironments)),
 	}
 
 	ctx := context.Background()
@@ -337,6 +354,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	rquiredDeployments := setRequiredDeployments(protection)
+	err = d.Set(PROTECTION_REQUIRES_DEPLOYMENTS, rquiredDeployments)
+	if err != nil {
+		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_DEPLOYMENTS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	statusChecks := setStatusChecks(protection)
@@ -429,6 +452,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 		LockBranch:                     githubv4.NewBoolean(githubv4.Boolean(data.LockBranch)),
 		RequireLastPushApproval:        githubv4.NewBoolean(githubv4.Boolean(data.RequireLastPushApproval)),
+		RequiresDeployments:            githubv4.NewBoolean(githubv4.Boolean(data.RequiresDeployments)),
+		RequiredDeploymentEnvironments: githubv4NewIDSlice(githubv4IDSliceEmpty(data.RequiredDeploymentEnvironments)),
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

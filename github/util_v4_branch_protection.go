@@ -91,6 +91,8 @@ type BranchProtectionRule struct {
 	RestrictsReviewDismissals      githubv4.Boolean
 	RequireLastPushApproval        githubv4.Boolean
 	LockBranch                     githubv4.Boolean
+	RequiresDeployments            githubv4.Boolean
+	RequiredDeploymentEnvironments []githubv4.String
 }
 
 type BranchProtectionResourceData struct {
@@ -119,6 +121,8 @@ type BranchProtectionResourceData struct {
 	ReviewDismissalActorIDs        []string
 	RequireLastPushApproval        bool
 	LockBranch                     bool
+	RequiresDeployments            bool
+	RequiredDeploymentEnvironments []string
 }
 
 func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
@@ -210,6 +214,23 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			if v, ok := m[PROTECTION_REQUIRE_LAST_PUSH_APPROVAL]; ok {
 				data.RequireLastPushApproval = v.(bool)
 			}
+		}
+	}
+
+	if v, ok := d.GetOk(PROTECTION_REQUIRES_DEPLOYMENTS); ok {
+		data.RequiresDeployments = true
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_DEPLOYMENT_ENVIRONMENTS)
+		}
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
+			m := v.(map[string]interface{})
+			data.RequiredDeploymentEnvironments = expandNestedSet(m, PROTECTION_REQUIRES_DEPLOYMENT_ENVIRONMENTS)
 		}
 	}
 
@@ -513,6 +534,21 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 	}
 
 	return approvalReviews
+}
+
+func setRequiredDeployments(protection BranchProtectionRule) interface{} {
+	if !protection.RequiresDeployments {
+		return nil
+	}
+
+	requiredDeployments := []interface{}{
+		map[string]interface{}{
+			PROTECTION_REQUIRES_DEPLOYMENTS:             protection.RequiresDeployments,
+			PROTECTION_REQUIRES_DEPLOYMENT_ENVIRONMENTS: protection.RequiredDeploymentEnvironments,
+		},
+	}
+
+	return requiredDeployments
 }
 
 func setStatusChecks(protection BranchProtectionRule) interface{} {
