@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	abs "github.com/microsoft/kiota-abstractions-go"
 )
 
 func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
@@ -49,25 +48,13 @@ func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
 	}
 }
 
-func newOctokitClientDefaultRequestConfig() *abs.RequestConfiguration[abs.DefaultQueryParameters] {
-	headers := abs.NewRequestHeaders()
-	_ = headers.TryAdd("Accept", "application/vnd.github.v3+json")
-	_ = headers.TryAdd("X-GitHub-Api-Version", "2022-11-28")
-
-	return &abs.RequestConfiguration[abs.DefaultQueryParameters]{
-		QueryParameters: &abs.DefaultQueryParameters{},
-		Headers:         headers,
-	}
-}
-
 func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	octokitClient := meta.(*Owner).octokitClient
-
+	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
@@ -85,8 +72,7 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 		return err
 	}
 
-	defaultRequestConfig := newOctokitClientDefaultRequestConfig()
-	err = octokitClient.Orgs().ByOrg(orgName).OrganizationRoles().Teams().ByTeam_slug(teamSlug).ByRole_id(int32(roleID)).Put(ctx, defaultRequestConfig)
+	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, teamSlug, roleID)
 	if err != nil {
 		return err
 	}
@@ -101,8 +87,7 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 		return err
 	}
 
-	restClient := meta.(*Owner).v3client
-
+	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
@@ -129,7 +114,7 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 	}
 	var foundTeam *github.Team
 	for {
-		teams, resp, err := restClient.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleID, options)
+		teams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleID, options)
 		if err != nil {
 			return err
 		}
@@ -163,8 +148,7 @@ func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, 
 		return err
 	}
 
-	octokitClient := meta.(*Owner).octokitClient
-
+	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
@@ -188,8 +172,7 @@ func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, 
 		return err
 	}
 
-	defaultRequestConfig := newOctokitClientDefaultRequestConfig()
-	err = octokitClient.Orgs().ByOrg(orgName).OrganizationRoles().Teams().ByTeam_slug(teamSlug).ByRole_id(int32(roleID)).Delete(ctx, defaultRequestConfig)
+	_, err = client.Organizations.RemoveOrgRoleFromTeam(ctx, orgName, teamSlug, roleID)
 	if err != nil {
 		return err
 	}
