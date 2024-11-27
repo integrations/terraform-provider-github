@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
-	"github.com/octokit/go-sdk/pkg"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -33,7 +32,6 @@ type Owner struct {
 	id             int64
 	v3client       *github.Client
 	v4client       *githubv4.Client
-	octokitClient  *pkg.Client
 	StopContext    context.Context
 	IsOrganization bool
 }
@@ -112,31 +110,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 	return v3client, nil
 }
 
-func (c *Config) NewOctokitClient() (*pkg.Client, error) {
-
-	uv3, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if uv3.String() != "https://api.github.com/" {
-		uv3.Path = uv3.Path + "api/v3/"
-	}
-
-	octokitClient, err := pkg.NewApiClient(
-		// pkg.WithUserAgent("my-user-agent"), // Should this be set to terraform-provider-github or similar? Doesn't look like the user-agent is set for the other clients
-		pkg.WithRequestTimeout(5*time.Second),
-		pkg.WithBaseUrl(strings.TrimSuffix(uv3.Path, "/")), // the octokit/go-sdk expects the url to not end with a "/"
-		pkg.WithTokenAuthentication(c.Token),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return octokitClient, nil
-}
-
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
@@ -179,11 +152,6 @@ func (c *Config) Meta() (interface{}, error) {
 		return nil, err
 	}
 
-	octokitClient, err := c.NewOctokitClient()
-	if err != nil {
-		return nil, err
-	}
-
 	v4client, err := c.NewGraphQLClient(client)
 	if err != nil {
 		return nil, err
@@ -192,7 +160,6 @@ func (c *Config) Meta() (interface{}, error) {
 	var owner Owner
 	owner.v4client = v4client
 	owner.v3client = v3client
-	owner.octokitClient = octokitClient
 	owner.StopContext = context.Background()
 
 	_, err = c.ConfigureOwner(&owner)
