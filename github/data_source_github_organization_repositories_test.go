@@ -10,12 +10,14 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 	t.Run("manages repositories", func(t *testing.T) {
 		config := `
 			resource "github_repository" "test1" {
-			  name = "test1"
+			  name       = "test1"
+			  visibility = "private"
 			}
 
 			resource "github_repository" "test2" {
 			  name       = "test2"
 			  archived   = true
+			  visibility = "public"
 			  depends_on = [github_repository.test1]
 			}
 		 `
@@ -34,7 +36,7 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(resourceName, "webhooks.0.node_id"),
 			resource.TestCheckResourceAttr(resourceName, "webhooks.1.name", "test2"),
 			resource.TestCheckResourceAttr(resourceName, "webhooks.1.archived", "true"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.1.visibility", "private"),
+			resource.TestCheckResourceAttr(resourceName, "webhooks.1.visibility", "public"),
 			resource.TestCheckResourceAttrSet(resourceName, "webhooks.1.repo_id"),
 			resource.TestCheckResourceAttrSet(resourceName, "webhooks.1.node_id"),
 		)
