@@ -103,7 +103,9 @@ The `rules` block supports the following:
 
 * `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
 
-* `file_path_restriction` - (Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [Below for nested schema](#rules.file_path_restriction))
+* `file_path_restriction` - (Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [below for nested schema](#rules.file_path_restriction))
+
+* `max_file_size` - (Optional) (Block List, Max 1) Parameters to be used for the max_file_size rule. When enabled restricts the maximum size of a file that can be pushed to the repository. (See [below for nested schema](#rules.max_file_size))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
   
@@ -209,6 +211,9 @@ The `rules` block supports the following:
 
 * `restricted_file_paths` - (Required) (String) The file paths that are restricted from being pushed to the commit graph.
 
+#### rules.max_file_size ####
+
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
 
 #### bypass_actors ####
 

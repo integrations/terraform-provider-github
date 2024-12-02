@@ -385,8 +385,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
                                                                              file_path_restriction {
                                                                                              restricted_file_paths = ["test.txt"]
                                                                              }
+																			max_file_size {
+																							max_file_size = 1048576
+																			}
                                                              }
                                              }
+
                              `, randomID)
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -400,6 +404,10 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "rules.0.file_path_restriction.0.restricted_file_paths.0",
 				"test.txt",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "rules.0.max_file_size.0.max_file_size",
+				"1048576",
 			),
 		)
 		testCase := func(t *testing.T, mode string) {

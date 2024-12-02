@@ -407,6 +407,17 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewFilePathRestrictionRule(params))
 	}
 
+	// max_file_size rule
+	if v, ok := rulesMap["max_file_size"].([]interface{}); ok && len(v) != 0 {
+		maxFileSizeMap := v[0].(map[string]interface{})
+		maxFileSize := int64(maxFileSizeMap["max_file_size"].(float64))
+		params := &github.RuleMaxFileSizeParameters{
+			MaxFileSize: maxFileSize,
+		}
+		rulesSlice = append(rulesSlice, github.NewMaxFileSizeRule(params))
+
+	}
+
 	return rulesSlice
 }
 
