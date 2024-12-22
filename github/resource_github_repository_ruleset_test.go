@@ -368,30 +368,33 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
 		}
 		config := fmt.Sprintf(`
-                                             resource "github_repository" "test" {
-                                                             name                 = "tf-acc-test-%s"
-                                                             auto_init            = false
-                                                             visibility           = "internal"
-                                                             vulnerability_alerts = true
-                                             }
+			 resource "github_repository" "test" {
+				 name                 = "tf-acc-test-%s"
+				 auto_init            = false
+				 visibility           = "internal"
+				 vulnerability_alerts = true
+			 }
 
-                                             resource "github_repository_ruleset" "test_push" {
-                                                             name        = "test-push"
-                                                             repository  = github_repository.test.id
-                                                             target      = "push"
-                                                             enforcement = "active"
+			 resource "github_repository_ruleset" "test_push" {
+				 name        = "test-push"
+				 repository  = github_repository.test.id
+				 target      = "push"
+				 enforcement = "active"
 
-                                                             rules {
-                                                                             file_path_restriction {
-                                                                                             restricted_file_paths = ["test.txt"]
-                                                                             }
-																			max_file_size {
-																							max_file_size = 1048576
-																			}
-                                                             }
-                                             }
+				 rules {
+					file_path_restriction {
+					  restricted_file_paths = ["test.txt"]
+					 }
+					max_file_size {
+					  max_file_size = 1048576
+					}
+					file_extension_restriction {
+					   restricted_file_extensions = ["*.zip"]
+					}
+				 }
+			 }
 
-                             `, randomID)
+		`, randomID)
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "name",
@@ -408,6 +411,10 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "rules.0.max_file_size.0.max_file_size",
 				"1048576",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "rules.0.file_extension_restriction.0.restricted_file_extensions.0",
+				"*.zip",
 			),
 		)
 		testCase := func(t *testing.T, mode string) {

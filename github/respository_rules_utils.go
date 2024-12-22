@@ -418,6 +418,19 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 
 	}
 
+	// file_extension_restriction rule
+	if v, ok := rulesMap["file_extension_restriction"].([]interface{}); ok && len(v) != 0 {
+		fileExtensionRestrictionMap := v[0].(map[string]interface{})
+		restrictedFileExtensions := make([]string, 0)
+		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]interface{}) {
+			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+		}
+		params := &github.RuleFileExtensionRestrictionParameters{
+			RestrictedFileExtensions: restrictedFileExtensions,
+		}
+		rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
+	}
+
 	return rulesSlice
 }
 

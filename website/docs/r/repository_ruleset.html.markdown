@@ -209,11 +209,15 @@ The `rules` block supports the following:
 
 #### rules.file_path_restriction ####
 
-* `restricted_file_paths` - (Required) (String) The file paths that are restricted from being pushed to the commit graph.
+* `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
 
 #### rules.max_file_size ####
 
 * `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+
+#### rules.file_extension_restriction ####
+
+* `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
 
 #### bypass_actors ####
 

@@ -453,6 +453,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"restricted_file_paths": {
 										Type:        schema.TypeList,
+										MinItems:    1,
 										Required:    true,
 										Description: "The file paths that are restricted from being pushed to the commit graph.",
 										Elem: &schema.Schema{
@@ -473,6 +474,21 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:        schema.TypeInt,
 										Required:    true,
 										Description: "The maximum allowed size of a file in bytes.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "A list of file extensions.",
 									},
 								},
 							},
