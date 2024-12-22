@@ -481,6 +481,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"file_extension_restriction": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							MaxItems:    1,
 							Description: "Prevent pushes based on file extensions.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -489,6 +490,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										MinItems:    1,
 										Required:    true,
 										Description: "A list of file extensions.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
 									},
 								},
 							},
