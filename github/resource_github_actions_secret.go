@@ -26,6 +26,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 			"owner": {
 				Type:        schema.TypeString,
 				Required:    false,
+				Optional:    true,
 				ForceNew:    true,
 				Description: "The account owner of the repository.",
 			},

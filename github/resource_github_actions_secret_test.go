@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -297,17 +296,18 @@ func TestAccGithubActionsSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates another owner repository name without error", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		updatedRepoName := fmt.Sprintf("tf-acc-test-%s-updated", randomID)
+		repoName := fmt.Sprintf("tf-acc-test-%s-with-owner", randomID)
+		updatedRepoName := fmt.Sprintf("tf-acc-test-%s-with-owner-updated", randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "%s"
+				name                 = "%s"
+				vulnerability_alerts = true
 			}
 
 			resource "github_actions_secret" "plaintext_secret" {
-			  owner             = github_repository.test.owner
+			  owner            = github_repository.test.owner
 			  repository       = github_repository.test.name
 			  secret_name      = "test_plaintext_secret"
 			  plaintext_value  = "%s"
