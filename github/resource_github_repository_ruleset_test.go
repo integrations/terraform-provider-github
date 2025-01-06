@@ -115,6 +115,83 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Creates and updates repository rulesets including checks without errors", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-checks-%s"
+				auto_init = false
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["refs/heads/main"]
+						exclude = []
+					}
+				}
+
+				rules {
+					deletion                = true
+					non_fast_forward        = true
+					
+					pull_request {
+						required_approving_review_count   = 1
+						required_review_thread_resolution = false
+						require_code_owner_review         = false
+						dismiss_stale_reviews_on_push     = true
+						require_last_push_approval        = false
+					}
+
+					required_status_checks {
+						required_check {
+							context = "ci"
+						}
+						strict_required_status_checks_policy = false
+					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckNoResourceAttr(
+				"github_repository_ruleset.test", "rules.0.required_status_checks.0.required_check.0.integration_id",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("Creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
 		if isEnterprise != "true" {
 			t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")

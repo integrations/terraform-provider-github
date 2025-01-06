@@ -250,7 +250,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"integration_id": {
 													Type:        schema.TypeInt,
 													Optional:    true,
-													Default:     0,
 													Description: "The optional integration ID that this status check must originate from.",
 												},
 											},
