@@ -2,8 +2,8 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v66/github"
@@ -30,6 +30,21 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	}
 }
 
+func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName string) (*github.CustomOrgRoles, error) {
+	roles, _, err := client.Organizations.ListRoles(ctx, orgName)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, role := range roles.CustomRepoRoles {
+		if *role.Name == "security_manager" {
+			return role, nil
+		}
+	}
+
+	return nil, errors.New("security manager role not found")
+}
+
 func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
@@ -44,18 +59,16 @@ func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, met
 
 	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
 	if err != nil {
-		log.Printf("[INFO] Team %s/%s was not found in GitHub", orgName, teamSlug)
 		return err
 	}
 
-	_, err = client.Organizations.AddSecurityManagerTeam(ctx, orgName, teamSlug)
+	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusConflict {
-				log.Printf("[WARN] Organization %s has reached the maximum number of security manager teams", orgName)
-				return nil
-			}
-		}
+		return err
+	}
+
+	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, teamSlug, smRole.GetID())
+	if err != nil {
 		return err
 	}
 
@@ -79,28 +92,42 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// There is no endpoint for getting a single security manager team, so get the list and filter.
-	// There is a maximum number of security manager teams (currently 10), so this should be fine.
-	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
+	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
 		return err
 	}
 
-	var team *github.Team
-	for _, t := range teams {
-		if t.GetID() == teamId {
-			team = t
+	// There is no endpoint for getting a single security manager team, so get the list and filter.
+	options := &github.ListOptions{PerPage: 100}
+	var smTeam *github.Team = nil
+	for {
+		smTeams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, smRole.GetID(), options)
+		if err != nil {
+			return err
+		}
+
+		for _, t := range smTeams {
+			if t.GetID() == teamId {
+				smTeam = t
+				break
+			}
+		}
+
+		// Break when we've found the team or there are no more pages.
+		if smTeam != nil || resp.NextPage == 0 {
 			break
 		}
+
+		options.Page = resp.NextPage
 	}
 
-	if team == nil {
+	if smTeam == nil {
 		log.Printf("[WARN] Removing organization security manager team %s from state because it no longer exists in GitHub", d.Id())
 		d.SetId("")
 		return nil
 	}
 
-	if err = d.Set("team_slug", team.GetSlug()); err != nil {
+	if err = d.Set("team_slug", smTeam.GetSlug()); err != nil {
 		return err
 	}
 
@@ -128,8 +155,13 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 		return err
 	}
 
+	smRole, err := getSecurityManagerRole(client, ctx, orgName)
+	if err != nil {
+		return err
+	}
+
 	// Adding the same team is a no-op.
-	_, err = client.Organizations.AddSecurityManagerTeam(ctx, orgName, team.GetSlug())
+	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, team.GetSlug(), smRole.GetID())
 	if err != nil {
 		return err
 	}
@@ -149,6 +181,11 @@ func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, met
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Organizations.RemoveSecurityManagerTeam(ctx, orgName, teamSlug)
+	smRole, err := getSecurityManagerRole(client, ctx, orgName)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Organizations.RemoveOrgRoleFromTeam(ctx, orgName, teamSlug, smRole.GetID())
 	return err
 }
