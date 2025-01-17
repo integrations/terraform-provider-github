@@ -136,6 +136,8 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
+* `public` - (Optional) Whether the rendered GitHub Pages site is publicly availabe.
+
 #### GitHub Pages Source ####
 
 The `source` block supports the following:
