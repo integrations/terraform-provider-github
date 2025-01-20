@@ -918,7 +918,12 @@ func expandPages(input []interface{}) *github.Pages {
 		buildType = github.String(v)
 	}
 
-	return &github.Pages{Source: source, BuildType: buildType}
+	var public *bool
+	// Only set the github.PagesUpdate public field if the value is a valid boolean.
+	if v, ok := pages["public"].(bool); ok {
+		public = github.Bool(v)
+	}
+	return &github.Pages{Source: source, BuildType: buildType, Public: public}
 }
 
 func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
