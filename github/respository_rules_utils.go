@@ -324,9 +324,11 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
 		params := &github.RequiredStatusChecksRuleParameters{
 			RequiredStatusChecks:             requiredStatusChecks,
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
@@ -503,6 +505,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]interface{})
 			rule["required_check"] = requiredStatusChecksSlice
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
+			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}
