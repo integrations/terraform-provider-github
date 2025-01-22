@@ -3,14 +3,16 @@ package github
 import (
 	"context"
 	"io"
+	"errors"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"fmt"
 
 	"github.com/ProtonMail/gopenpgp/v2/crypto"
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -140,24 +142,27 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Sensitive:   true,
 			},
 			"autocreate_branch": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
-				Default:     false,
+				Type:             schema.TypeBool,
+				Optional:         true,
+				Description:      "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
+				Default:          false,
+				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 			},
 			"autocreate_branch_source_branch": {
-				Type:         schema.TypeString,
-				Default:      "main",
-				Optional:     true,
-				Description:  "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
-				RequiredWith: []string{"autocreate_branch"},
+				Type:             schema.TypeString,
+				Default:          "main",
+				Optional:         true,
+				Description:      "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
+				RequiredWith:     []string{"autocreate_branch"},
+				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 			},
 			"autocreate_branch_source_sha": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				Description:  "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
-				RequiredWith: []string{"autocreate_branch"},
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				Description:      "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
+				RequiredWith:     []string{"autocreate_branch"},
+				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 			},
 		},
 	}
@@ -419,7 +424,13 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		opts.Ref = branch.(string)
 	}
 
-	fc, _, _, _ := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	if err != nil {
+		var errorResponse *github.ErrorResponse
+		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusTooManyRequests {
+			return err
+		}
+	}
 	if fc == nil {
 		log.Printf("[INFO] Removing repository path %s/%s/%s from state because it no longer exists in GitHub",
 			owner, repo, file)
@@ -744,4 +755,14 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	return nil
+}
+
+func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
+	if !d.Get("autocreate_branch").(bool) {
+		switch k {
+		case "autocreate_branch", "autocreate_branch_source_branch", "autocreate_branch_source_sha":
+			return true
+		}
+	}
+	return false
 }

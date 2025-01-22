@@ -2,12 +2,13 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -34,12 +35,21 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				Description: "The name of the environment.",
 			},
 			"branch_pattern": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    false,
-				Description: "The name pattern that branches must match in order to deploy to the environment.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				ConflictsWith: []string{"tag_pattern"},
+				Description:   "The name pattern that branches must match in order to deploy to the environment.",
+			},
+			"tag_pattern": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				ConflictsWith: []string{"branch_pattern"},
+				Description:   "The name pattern that tags must match in order to deploy to the environment.",
 			},
 		},
+		CustomizeDiff: customDeploymentPolicyDiffFunction,
 	}
 
 }
@@ -51,11 +61,21 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 
-	createData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+	var createData github.DeploymentBranchPolicyRequest
+	if v, ok := d.GetOk("branch_pattern"); ok {
+		createData = github.DeploymentBranchPolicyRequest{
+			Name: github.String(v.(string)),
+			Type: github.String("branch"),
+		}
+	} else if v, ok := d.GetOk("tag_pattern"); ok {
+		createData = github.DeploymentBranchPolicyRequest{
+			Name: github.String(v.(string)),
+			Type: github.String("tag"),
+		}
+	} else {
+		return fmt.Errorf("exactly one of %q and %q must be specified", "branch_pattern", "tag_pattern")
 	}
 
 	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
@@ -98,7 +118,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 		return err
 	}
 
-	d.Set("branch_pattern", branchPolicy.GetName())
+	if branchPolicy.GetType() == "branch" {
+		d.Set("branch_pattern", branchPolicy.GetName())
+	} else {
+		d.Set("tag_pattern", branchPolicy.GetName())
+	}
 	return nil
 }
 
@@ -110,6 +134,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 	branchPattern := d.Get("branch_pattern").(string)
+	tagPattern := d.Get("tag_pattern").(string)
 	escapedEnvName := url.PathEscape(envName)
 	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 	if err != nil {
@@ -121,8 +146,13 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 		return err
 	}
 
+	pattern := branchPattern
+	if branchPattern == "" {
+		pattern = tagPattern
+	}
+
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(branchPattern),
+		Name: github.String(pattern),
 	}
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
@@ -151,6 +181,35 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.Resourc
 	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	oldBranchPattern, newBranchPattern := diff.GetChange("branch_pattern")
+
+	if oldBranchPattern != "" && newBranchPattern == "" {
+		if err := diff.ForceNew("branch_pattern"); err != nil {
+			return err
+		}
+	}
+	if oldBranchPattern == "" && newBranchPattern != "" {
+		if err := diff.ForceNew("branch_pattern"); err != nil {
+			return err
+		}
+	}
+
+	oldTagPattern, newTagPattern := diff.GetChange("tag_pattern")
+	if oldTagPattern != "" && newTagPattern == "" {
+		if err := diff.ForceNew("tag_pattern"); err != nil {
+			return err
+		}
+	}
+	if oldTagPattern == "" && newTagPattern != "" {
+		if err := diff.ForceNew("tag_pattern"); err != nil {
+			return err
+		}
 	}
 
 	return nil
