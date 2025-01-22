@@ -2,8 +2,8 @@ package github
 
 import (
 	"context"
-	"io"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
