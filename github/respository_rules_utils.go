@@ -507,6 +507,29 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
 			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "workflows":
+			var params github.RequiredWorkflowsRuleParameters
+			log.Printf("[DEBUG] osama test: %v", v.Parameters)
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredWorkflowsSlice := make([]map[string]interface{}, 0)
+			for _, workflow := range params.RequiredWorkflows {
+				requiredWorkflowsSlice = append(requiredWorkflowsSlice, map[string]interface{}{
+					"repository_id": workflow.RepositoryID,
+					"ref":           *workflow.Ref,
+					"path":          workflow.Path,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["required_workflow"] = requiredWorkflowsSlice
+			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}
 
