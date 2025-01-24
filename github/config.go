@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
@@ -35,6 +36,9 @@ type Owner struct {
 	StopContext    context.Context
 	IsOrganization bool
 }
+
+// regex to match a GitHub Enterprise Cloud with data residency URL
+var GhecDrRegex = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 
@@ -80,7 +84,7 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 		return nil, err
 	}
 
-	if uv4.String() != "https://api.github.com/" {
+	if uv4.String() != "https://api.github.com/" && !GhecDrRegex.MatchString(uv4.String()) {
 		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	} else {
 		uv4.Path = path.Join(uv4.Path, "graphql")
@@ -96,7 +100,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		return nil, err
 	}
 
-	if uv3.String() != "https://api.github.com/" {
+	if uv3.String() != "https://api.github.com/" && !GhecDrRegex.MatchString(uv3.String()) {
 		uv3.Path = uv3.Path + "api/v3/"
 	}
 
