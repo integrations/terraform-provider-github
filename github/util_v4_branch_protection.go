@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -258,6 +259,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					pushActorIDs = append(pushActorIDs, v.(string))
 				}
 				if len(pushActorIDs) > 0 {
+					sort.Strings(pushActorIDs)
 					data.PushActorIDs = pushActorIDs
 				}
 			}
@@ -460,32 +462,37 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 
 func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	pushActors := make([]string, 0, len(actors))
-
 	orgName := meta.(*Owner).name
 
+	idMap := make(map[string]bool)
+	for _, v := range data.PushActorIDs {
+		idMap[v] = true
+	}
+
 	for _, a := range actors {
-		IsID := false
-		for _, v := range data.PushActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
-				pushActors = append(pushActors, v)
-				IsID = true
-				break
-			}
-		}
-		if !IsID {
+		// Check for raw IDs first
+		if a.Actor.Team.ID != nil && idMap[a.Actor.Team.ID.(string)] {
+			pushActors = append(pushActors, a.Actor.Team.ID.(string))
+		} else if a.Actor.User.ID != nil && idMap[a.Actor.User.ID.(string)] {
+			pushActors = append(pushActors, a.Actor.User.ID.(string))
+		} else if a.Actor.App.ID != nil && idMap[a.Actor.App.ID.(string)] {
+			pushActors = append(pushActors, a.Actor.App.ID.(string))
+		} else {
+			// Fall back to formatted strings only if no ID match
 			if a.Actor.Team.Slug != "" {
 				pushActors = append(pushActors, orgName+"/"+string(a.Actor.Team.Slug))
-				continue
-			}
-			if a.Actor.User.Login != "" {
+			} else if a.Actor.User.Login != "" {
 				pushActors = append(pushActors, "/"+string(a.Actor.User.Login))
-				continue
-			}
-			if a.Actor.App != (Actor{}) {
+			} else if a.Actor.App != (Actor{}) {
 				pushActors = append(pushActors, a.Actor.App.ID.(string))
 			}
 		}
 	}
+
+	// Sort for consistent ordering
+	// This is important for preventing unnecessary drift in the Terraform state
+	sort.Strings(pushActors)
+	log.Printf("[DEBUG] Final sorted pushActors: %v", pushActors)
 	return pushActors
 }
 
