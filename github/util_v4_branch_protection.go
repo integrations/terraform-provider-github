@@ -464,36 +464,67 @@ func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData,
 	pushActors := make([]string, 0, len(actors))
 	orgName := meta.(*Owner).name
 
-	idMap := make(map[string]bool)
-	for _, v := range data.PushActorIDs {
-		idMap[v] = true
+	// Create a map to track seen IDs to prevent duplicates
+	seenIDs := make(map[string]struct{})
+
+	for _, a := range actors {
+		var id string
+		if a.Actor.Team.ID != nil {
+			id = a.Actor.Team.ID.(string)
+		} else if a.Actor.User.ID != nil {
+			id = a.Actor.User.ID.(string)
+		} else if a.Actor.App.ID != nil {
+			id = a.Actor.App.ID.(string)
+		}
+
+		if id != "" {
+			if _, exists := seenIDs[id]; !exists {
+				pushActors = append(pushActors, id)
+				seenIDs[id] = struct{}{}
+			}
+		}
 	}
 
 	for _, a := range actors {
-		// Check for raw IDs first
-		if a.Actor.Team.ID != nil && idMap[a.Actor.Team.ID.(string)] {
-			pushActors = append(pushActors, a.Actor.Team.ID.(string))
-		} else if a.Actor.User.ID != nil && idMap[a.Actor.User.ID.(string)] {
-			pushActors = append(pushActors, a.Actor.User.ID.(string))
-		} else if a.Actor.App.ID != nil && idMap[a.Actor.App.ID.(string)] {
-			pushActors = append(pushActors, a.Actor.App.ID.(string))
-		} else {
-			// Fall back to formatted strings only if no ID match
+		if a.Actor.Team.ID == nil && a.Actor.User.ID == nil && a.Actor.App.ID == nil {
+			var formattedID string
 			if a.Actor.Team.Slug != "" {
-				pushActors = append(pushActors, orgName+"/"+string(a.Actor.Team.Slug))
+				formattedID = orgName + "/" + string(a.Actor.Team.Slug)
 			} else if a.Actor.User.Login != "" {
-				pushActors = append(pushActors, "/"+string(a.Actor.User.Login))
+				formattedID = "/" + string(a.Actor.User.Login)
 			} else if a.Actor.App != (Actor{}) {
-				pushActors = append(pushActors, a.Actor.App.ID.(string))
+				continue
+			}
+
+			if formattedID != "" {
+				if _, exists := seenIDs[formattedID]; !exists {
+					pushActors = append(pushActors, formattedID)
+					seenIDs[formattedID] = struct{}{}
+				}
 			}
 		}
 	}
 
 	// Sort for consistent ordering
-	// This is important for preventing unnecessary drift in the Terraform state
 	sort.Strings(pushActors)
-	log.Printf("[DEBUG] Final sorted pushActors: %v", pushActors)
-	return pushActors
+
+	// Validate against provided IDs
+	idMap := make(map[string]bool)
+	for _, v := range data.PushActorIDs {
+		idMap[v] = true
+	}
+
+	// Only keep IDs that were in the original PushActorIDs
+	validPushActors := make([]string, 0, len(pushActors))
+	for _, actor := range pushActors {
+		if idMap[actor] {
+			validPushActors = append(validPushActors, actor)
+		}
+	}
+
+	sort.Strings(validPushActors)
+	log.Printf("[DEBUG] Final sorted and validated pushActors: %v", validPushActors)
+	return validPushActors
 }
 
 func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
@@ -545,13 +576,18 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 	pushAllowances := protection.PushAllowances.Nodes
 	pushActors := setPushActorIDs(pushAllowances, data, meta)
 
+	// If we have no push actors but restrictions are enabled, return an empty list
+	// rather than nil to prevent drift
+	if len(pushActors) == 0 && protection.RestrictsPushes {
+		pushActors = make([]string, 0)
+	}
+
 	restrictsPushes := []interface{}{
 		map[string]interface{}{
 			PROTECTION_BLOCKS_CREATIONS: protection.BlocksCreations,
 			PROTECTION_PUSH_ALLOWANCES:  pushActors,
 		},
 	}
-
 	return restrictsPushes
 }
 
@@ -618,15 +654,34 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 
 func getActorIds(data []string, meta interface{}) ([]string, error) {
 	var actors []string
+	log.Printf("[DEBUG] getActorIds input data: %v", data)
+
+	// Create a map to track processed IDs and prevent duplicates
+	seen := make(map[string]bool)
+
 	for _, v := range data {
+		if v == "" {
+			continue
+		}
+
 		id, err := getNodeIDv4(v, meta)
 		if err != nil {
+			log.Printf("[DEBUG] Error getting node ID for %s: %v", v, err)
 			return []string{}, err
 		}
-		log.Printf("[DEBUG] Retrieved node ID for user/team : %s - node ID : %s", v, id)
-		actors = append(actors, id)
+
+		log.Printf("[DEBUG] Retrieved node ID for user/team: %s - node ID: %s", v, id)
+
+		if !seen[id] {
+			actors = append(actors, id)
+			seen[id] = true
+		} else {
+			log.Printf("[DEBUG] Skipping duplicate ID: %s", id)
+		}
 	}
 
+	sort.Strings(actors)
+	log.Printf("[DEBUG] Final sorted actor IDs: %v", actors)
 	return actors, nil
 }
 
