@@ -579,6 +579,7 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 	// If we have no push actors but restrictions are enabled, return an empty list
 	// rather than nil to prevent drift
 	if len(pushActors) == 0 && protection.RestrictsPushes {
+		log.Printf("[DEBUG] No push actors found, returning empty list")
 		pushActors = make([]string, 0)
 	}
 
