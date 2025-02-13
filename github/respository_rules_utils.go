@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -324,9 +324,11 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
 		params := &github.RequiredStatusChecksRuleParameters{
 			RequiredStatusChecks:             requiredStatusChecks,
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
@@ -360,6 +362,38 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			RequiredWorkflows: requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
+	}
+
+	// Required code scanning to pass before merging rule
+	if v, ok := rulesMap["required_code_scanning"].([]interface{}); ok && len(v) != 0 {
+		requiredCodeScanningMap := v[0].(map[string]interface{})
+		requiredCodeScanningTools := make([]*github.RuleRequiredCodeScanningTool, 0)
+
+		if requiredCodeScanningInput, ok := requiredCodeScanningMap["required_code_scanning_tool"]; ok {
+
+			requiredCodeScanningSet := requiredCodeScanningInput.(*schema.Set)
+			for _, codeScanningMap := range requiredCodeScanningSet.List() {
+				codeScanningTool := codeScanningMap.(map[string]interface{})
+
+				// Get all parameters
+				alertsThreshold := github.String(codeScanningTool["alerts_threshold"].(string))
+				securityAlertsThreshold := github.String(codeScanningTool["security_alerts_threshold"].(string))
+				tool := github.String(codeScanningTool["tool"].(string))
+
+				params := &github.RuleRequiredCodeScanningTool{
+					AlertsThreshold:         *alertsThreshold,
+					SecurityAlertsThreshold: *securityAlertsThreshold,
+					Tool:                    *tool,
+				}
+
+				requiredCodeScanningTools = append(requiredCodeScanningTools, params)
+			}
+		}
+
+		params := &github.RequiredCodeScanningRuleParameters{
+			RequiredCodeScanningTools: requiredCodeScanningTools,
+		}
+		rulesSlice = append(rulesSlice, github.NewRequiredCodeScanningRule(params))
 	}
 
 	return rulesSlice
@@ -471,6 +505,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]interface{})
 			rule["required_check"] = requiredStatusChecksSlice
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
+			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}
