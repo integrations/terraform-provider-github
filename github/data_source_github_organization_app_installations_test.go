@@ -11,8 +11,8 @@ func TestAccGithubOrganizationAppInstallations(t *testing.T) {
 		config := `data "github_organization_app_installations" "test" {}`
 
 		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.id"),
 			resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.slug"),
-			resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.node_id"),
 			resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.app_id"),
 		)
 

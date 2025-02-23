@@ -17,12 +17,12 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"slug": {
-							Type:     schema.TypeString,
+						"id": {
+							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"node_id": {
-							Type:     schema.TypeInt,
+						"slug": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"app_id": {
@@ -80,8 +80,8 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 	for _, appInstallation := range orgAppInstallations {
 		result := make(map[string]interface{})
 
+		result["id"] = appInstallation.ID
 		result["slug"] = appInstallation.AppSlug
-		result["node_id"] = appInstallation.NodeID
 		result["app_id"] = appInstallation.AppID
 
 		results = append(results, result)
