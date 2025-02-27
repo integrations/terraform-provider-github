@@ -9,14 +9,10 @@ import (
 	"io"
 	"net/http"
 	"time"
-	"regexp"
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 )
-
-// regex to match a GitHub Enterprise Cloud with data residency URL
-var GhecDrRegex = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
 // The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
@@ -35,7 +31,7 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 }
 
 func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
-	if baseURL != "https://api.github.com/" && !GhecDrRegex.MatchString(baseURL) {
+	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) {
 		baseURL += "api/v3/"
 	}
 
