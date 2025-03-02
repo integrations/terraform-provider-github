@@ -88,7 +88,7 @@ The `rules` block supports the following:
 
 * `non_fast_forward` - (Optional) (Boolean) Prevent users with push access from force pushing to branches.
 
-* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue.
+* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#rules.merge_queue))
 
 * `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rules.pull_request))
 
