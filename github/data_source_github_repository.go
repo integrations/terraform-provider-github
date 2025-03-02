@@ -270,6 +270,10 @@ func dataSourceGithubRepository() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"public": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
 						"status": {
 							Type:     schema.TypeString,
 							Computed: true,
