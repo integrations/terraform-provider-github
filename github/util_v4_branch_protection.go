@@ -475,32 +475,16 @@ func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData,
 			id = a.Actor.User.ID.(string)
 		} else if a.Actor.App.ID != nil {
 			id = a.Actor.App.ID.(string)
+		} else if a.Actor.Team.Slug != "" {
+			formattedID = orgName + "/" + string(a.Actor.Team.Slug)
+		} else if a.Actor.User.Login != "" {
+			formattedID = "/" + string(a.Actor.User.Login)
 		}
 
 		if id != "" {
 			if _, exists := seenIDs[id]; !exists {
 				pushActors = append(pushActors, id)
 				seenIDs[id] = struct{}{}
-			}
-		}
-	}
-
-	for _, a := range actors {
-		if a.Actor.Team.ID == nil && a.Actor.User.ID == nil && a.Actor.App.ID == nil {
-			var formattedID string
-			if a.Actor.Team.Slug != "" {
-				formattedID = orgName + "/" + string(a.Actor.Team.Slug)
-			} else if a.Actor.User.Login != "" {
-				formattedID = "/" + string(a.Actor.User.Login)
-			} else if a.Actor.App != (Actor{}) {
-				continue
-			}
-
-			if formattedID != "" {
-				if _, exists := seenIDs[formattedID]; !exists {
-					pushActors = append(pushActors, formattedID)
-					seenIDs[formattedID] = struct{}{}
-				}
 			}
 		}
 	}
