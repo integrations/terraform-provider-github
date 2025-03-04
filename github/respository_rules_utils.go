@@ -525,7 +525,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 
-    		case "workflows":
+		case "workflows":
 			var params github.RequiredWorkflowsRuleParameters
 
 			err := json.Unmarshal(*v.Parameters, &params)
