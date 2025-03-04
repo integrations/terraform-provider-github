@@ -22,7 +22,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				name = "tf-acc-test-%s"
 				auto_init = true
 				default_branch = "main"
-        vulnerability_alerts = true
+                                vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
