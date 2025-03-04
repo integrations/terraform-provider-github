@@ -570,7 +570,7 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["required_code_scanning_tool"] = requiredCodeScanningSlice
 			rulesMap["required_code_scanning"] = []map[string]interface{}{rule}
 
-               case "merge_queue":
+		case "merge_queue":
 			var params github.MergeQueueRuleParameters
 
 			err := json.Unmarshal(*v.Parameters, &params)
