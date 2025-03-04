@@ -311,7 +311,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			  description  = "Terraform acceptance tests %[1]s"
 			  auto_init    = true
 			  default_branch = "main"
-        vulnerability_alerts = true
+                          vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
