@@ -156,7 +156,7 @@ The `rules` block supports the following:
 
 * `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests that will be merged together in a group. Defaults to `5`.
 
 * `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
 
