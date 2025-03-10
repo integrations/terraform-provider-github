@@ -10,7 +10,7 @@ require (
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/google/go-github/v66 v66.0.1-0.20241027130611-9e5757d5a766
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
+	github.com/hashicorp/go-cty v1.4.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.9.0

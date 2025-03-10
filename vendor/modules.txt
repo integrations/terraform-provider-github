@@ -474,7 +474,7 @@ github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
+# github.com/hashicorp/go-cty v1.4.1
 ## explicit; go 1.12
 github.com/hashicorp/go-cty/cty
 github.com/hashicorp/go-cty/cty/convert
