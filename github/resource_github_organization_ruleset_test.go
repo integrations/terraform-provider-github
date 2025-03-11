@@ -260,4 +260,87 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Creates and updates organization using bypasses", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+					update = true
+					deletion                = true
+					required_linear_history = true
+					required_signatures = false
+					pull_request {
+						required_approving_review_count   = 2
+						required_review_thread_resolution = true
+						require_code_owner_review         = true
+						dismiss_stale_reviews_on_push     = true
+						require_last_push_approval        = true
+					}
+
+					bypass_actors {
+						actor_type = "DeployKey"
+						bypass_mode = "always"
+					}
+
+					bypass_actors {
+						actor_id    = 5
+						actor_type  = "RepositoryRole"
+						bypass_mode = "always"
+					}
+
+					bypass_actors {
+						actor_id    = 0
+						actor_type  = "OrganizationAdmin"
+						bypass_mode = "always"
+					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				"0",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				"5",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
+				"0",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
 }

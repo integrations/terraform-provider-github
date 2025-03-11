@@ -44,7 +44,11 @@ func expandBypassActors(input []interface{}) []*github.BypassActor {
 		inputMap := v.(map[string]interface{})
 		actor := &github.BypassActor{}
 		if v, ok := inputMap["actor_id"].(int); ok {
-			actor.ActorID = github.Int64(int64(v))
+			if v == 0 {
+				actor.ActorID = nil
+			} else {
+				actor.ActorID = github.Int64(int64(v))
+			}
 		}
 
 		if v, ok := inputMap["actor_type"].(string); ok {
