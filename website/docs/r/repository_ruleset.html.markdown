@@ -62,7 +62,7 @@ resource "github_repository_ruleset" "example" {
 
 * `rules` - (Required) (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#rules))
 
-* `target` - (Required) (String) Possible values are `branch` and `tag`.
+* `target` - (Required) (String) Possible values are `branch`, `push` and `tag`.
 
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
