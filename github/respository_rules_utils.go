@@ -300,6 +300,22 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewPullRequestRule(params))
 	}
 
+	// Merge queue rule
+	if v, ok := rulesMap["merge_queue"].([]interface{}); ok && len(v) != 0 {
+		mergeQueueMap := v[0].(map[string]interface{})
+		params := &github.MergeQueueRuleParameters{
+			CheckResponseTimeoutMinutes:  mergeQueueMap["check_response_timeout_minutes"].(int),
+			GroupingStrategy:             mergeQueueMap["grouping_strategy"].(string),
+			MaxEntriesToBuild:            mergeQueueMap["max_entries_to_build"].(int),
+			MaxEntriesToMerge:            mergeQueueMap["max_entries_to_merge"].(int),
+			MergeMethod:                  mergeQueueMap["merge_method"].(string),
+			MinEntriesToMerge:            mergeQueueMap["min_entries_to_merge"].(int),
+			MinEntriesToMergeWaitMinutes: mergeQueueMap["min_entries_to_merge_wait_minutes"].(int),
+		}
+
+		rulesSlice = append(rulesSlice, github.NewMergeQueueRule(params))
+	}
+
 	// Required status checks rule
 	if v, ok := rulesMap["required_status_checks"].([]interface{}); ok && len(v) != 0 {
 		requiredStatusMap := v[0].(map[string]interface{})
@@ -324,9 +340,11 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
 		params := &github.RequiredStatusChecksRuleParameters{
 			RequiredStatusChecks:             requiredStatusChecks,
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
 	}
@@ -503,6 +521,26 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]interface{})
 			rule["required_check"] = requiredStatusChecksSlice
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
+			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "merge_queue":
+			var params github.MergeQueueRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			rule := make(map[string]interface{})
+			rule["check_response_timeout_minutes"] = params.CheckResponseTimeoutMinutes
+			rule["grouping_strategy"] = params.GroupingStrategy
+			rule["max_entries_to_build"] = params.MaxEntriesToBuild
+			rule["max_entries_to_merge"] = params.MaxEntriesToMerge
+			rule["merge_method"] = params.MergeMethod
+			rule["min_entries_to_merge"] = params.MinEntriesToMerge
+			rule["min_entries_to_merge_wait_minutes"] = params.MinEntriesToMergeWaitMinutes
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 		}
 	}
