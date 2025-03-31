@@ -1,8 +1,6 @@
 package nilnil
 
 import (
-	"strings"
-
 	"github.com/Antonboom/nilnil/pkg/analyzer"
 	"golang.org/x/tools/go/analysis"
 
@@ -10,13 +8,16 @@ import (
 	"github.com/golangci/golangci-lint/pkg/goanalysis"
 )
 
-func New(cfg *config.NilNilSettings) *goanalysis.Linter {
+func New(settings *config.NilNilSettings) *goanalysis.Linter {
 	a := analyzer.New()
 
-	cfgMap := make(map[string]map[string]any)
-	if cfg != nil && len(cfg.CheckedTypes) != 0 {
-		cfgMap[a.Name] = map[string]any{
-			"checked-types": strings.Join(cfg.CheckedTypes, ","),
+	cfg := make(map[string]map[string]any)
+	if settings != nil {
+		cfg[a.Name] = map[string]any{
+			"detect-opposite": settings.DetectOpposite,
+		}
+		if len(settings.CheckedTypes) != 0 {
+			cfg[a.Name]["checked-types"] = settings.CheckedTypes
 		}
 	}
 
@@ -24,7 +25,7 @@ func New(cfg *config.NilNilSettings) *goanalysis.Linter {
 		a.Name,
 		a.Doc,
 		[]*analysis.Analyzer{a},
-		cfgMap,
+		cfg,
 	).
 		WithLoadMode(goanalysis.LoadModeTypesInfo)
 }

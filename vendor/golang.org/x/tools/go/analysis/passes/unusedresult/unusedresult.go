@@ -24,7 +24,6 @@ import (
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
-	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 )
@@ -86,7 +85,7 @@ func init() {
 		"comma-separated list of names of methods of type func() string whose results must be used")
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	// Split functions into (pkg, name) pairs to save allocation later.
@@ -101,7 +100,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.ExprStmt)(nil),
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
-		call, ok := astutil.Unparen(n.(*ast.ExprStmt).X).(*ast.CallExpr)
+		call, ok := ast.Unparen(n.(*ast.ExprStmt).X).(*ast.CallExpr)
 		if !ok {
 			return // not a call statement
 		}
@@ -131,9 +130,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 // func() string
-var sigNoArgsStringResult = types.NewSignature(nil, nil,
-	types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])),
-	false)
+var sigNoArgsStringResult = types.NewSignatureType(nil, nil, nil, nil, types.NewTuple(types.NewParam(token.NoPos, nil, "", types.Typ[types.String])), false)
 
 type stringSetFlag map[string]bool
 

@@ -84,6 +84,7 @@ func (s *GRPCProviderServer) GetMetadata(ctx context.Context, req *tfprotov5.Get
 
 	resp := &tfprotov5.GetMetadataResponse{
 		DataSources:        make([]tfprotov5.DataSourceMetadata, 0, len(s.provider.DataSourcesMap)),
+		EphemeralResources: make([]tfprotov5.EphemeralResourceMetadata, 0),
 		Functions:          make([]tfprotov5.FunctionMetadata, 0),
 		Resources:          make([]tfprotov5.ResourceMetadata, 0, len(s.provider.ResourcesMap)),
 		ServerCapabilities: s.serverCapabilities(),
@@ -110,10 +111,11 @@ func (s *GRPCProviderServer) GetProviderSchema(ctx context.Context, req *tfproto
 	logging.HelperSchemaTrace(ctx, "Getting provider schema")
 
 	resp := &tfprotov5.GetProviderSchemaResponse{
-		DataSourceSchemas:  make(map[string]*tfprotov5.Schema, len(s.provider.DataSourcesMap)),
-		Functions:          make(map[string]*tfprotov5.Function, 0),
-		ResourceSchemas:    make(map[string]*tfprotov5.Schema, len(s.provider.ResourcesMap)),
-		ServerCapabilities: s.serverCapabilities(),
+		DataSourceSchemas:        make(map[string]*tfprotov5.Schema, len(s.provider.DataSourcesMap)),
+		EphemeralResourceSchemas: make(map[string]*tfprotov5.Schema, 0),
+		Functions:                make(map[string]*tfprotov5.Function, 0),
+		ResourceSchemas:          make(map[string]*tfprotov5.Schema, len(s.provider.ResourcesMap)),
+		ServerCapabilities:       s.serverCapabilities(),
 	}
 
 	resp.Provider = &tfprotov5.Schema{
@@ -281,6 +283,32 @@ func (s *GRPCProviderServer) ValidateResourceTypeConfig(ctx context.Context, req
 		resp.Diagnostics = convert.AppendProtoDiag(ctx, resp.Diagnostics, err)
 		return resp, nil
 	}
+	if req.ClientCapabilities == nil || !req.ClientCapabilities.WriteOnlyAttributesAllowed {
+		resp.Diagnostics = convert.AppendProtoDiag(ctx, resp.Diagnostics, validateWriteOnlyNullValues(configVal, schemaBlock, cty.Path{}))
+	}
+
+	r := s.provider.ResourcesMap[req.TypeName]
+
+	// Calling all ValidateRawResourceConfigFunc here since they validate on the raw go-cty config value
+	// and were introduced after the public provider.ValidateResource method.
+	if r.ValidateRawResourceConfigFuncs != nil {
+		writeOnlyAllowed := false
+
+		if req.ClientCapabilities != nil {
+			writeOnlyAllowed = req.ClientCapabilities.WriteOnlyAttributesAllowed
+		}
+
+		validateReq := ValidateResourceConfigFuncRequest{
+			WriteOnlyAttributesAllowed: writeOnlyAllowed,
+			RawConfig:                  configVal,
+		}
+
+		for _, validateFunc := range r.ValidateRawResourceConfigFuncs {
+			validateResp := &ValidateResourceConfigFuncResponse{}
+			validateFunc(ctx, validateReq, validateResp)
+			resp.Diagnostics = convert.AppendProtoDiag(ctx, resp.Diagnostics, validateResp.Diagnostics)
+		}
+	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 
@@ -392,6 +420,9 @@ func (s *GRPCProviderServer) UpgradeResourceState(ctx context.Context, req *tfpr
 	// Normalize the value and fill in any missing blocks.
 	val = objchange.NormalizeObjectFromLegacySDK(val, schemaBlock)
 
+	// Set any write-only attribute values to null
+	val = setWriteOnlyNullValues(val, schemaBlock)
+
 	// encode the final state to the expected msgpack format
 	newStateMP, err := msgpack.Marshal(val, schemaBlock.ImpliedType())
 	if err != nil {
@@ -501,7 +532,7 @@ func (s *GRPCProviderServer) upgradeJSONState(ctx context.Context, version int, 
 // Remove any attributes no longer present in the schema, so that the json can
 // be correctly decoded.
 func (s *GRPCProviderServer) removeAttributes(ctx context.Context, v interface{}, ty cty.Type) {
-	// we're only concerned with finding maps that corespond to object
+	// we're only concerned with finding maps that correspond to object
 	// attributes
 	switch v := v.(type) {
 	case []interface{}:
@@ -736,6 +767,7 @@ func (s *GRPCProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Re
 
 	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
+	newStateVal = setWriteOnlyNullValues(newStateVal, schemaBlock)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 	if err != nil {
@@ -934,6 +966,9 @@ func (s *GRPCProviderServer) PlanResourceChange(ctx context.Context, req *tfprot
 	if create {
 		plannedStateVal = SetUnknowns(plannedStateVal, schemaBlock)
 	}
+
+	// Set any write-only attribute values to null
+	plannedStateVal = setWriteOnlyNullValues(plannedStateVal, schemaBlock)
 
 	plannedMP, err := msgpack.Marshal(plannedStateVal, schemaBlock.ImpliedType())
 	if err != nil {
@@ -1182,6 +1217,8 @@ func (s *GRPCProviderServer) ApplyResourceChange(ctx context.Context, req *tfpro
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
+	newStateVal = setWriteOnlyNullValues(newStateVal, schemaBlock)
+
 	newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(ctx, resp.Diagnostics, err)
@@ -1302,6 +1339,9 @@ func (s *GRPCProviderServer) ImportResourceState(ctx context.Context, req *tfpro
 			newStateValueMap[TimeoutsConfigKey] = cty.NullVal(newStateType.AttributeType(TimeoutsConfigKey))
 			newStateVal = cty.ObjectVal(newStateValueMap)
 		}
+
+		// Set any write-only attribute values to null
+		newStateVal = setWriteOnlyNullValues(newStateVal, schemaBlock)
 
 		newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 		if err != nil {
@@ -1482,6 +1522,78 @@ func (s *GRPCProviderServer) GetFunctions(ctx context.Context, req *tfprotov5.Ge
 	return resp, nil
 }
 
+func (s *GRPCProviderServer) ValidateEphemeralResourceConfig(ctx context.Context, req *tfprotov5.ValidateEphemeralResourceConfigRequest) (*tfprotov5.ValidateEphemeralResourceConfigResponse, error) {
+	ctx = logging.InitContext(ctx)
+
+	logging.HelperSchemaTrace(ctx, "Returning error for ephemeral resource validate")
+
+	resp := &tfprotov5.ValidateEphemeralResourceConfigResponse{
+		Diagnostics: []*tfprotov5.Diagnostic{
+			{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Unknown Ephemeral Resource Type",
+				Detail:   fmt.Sprintf("The %q ephemeral resource type is not supported by this provider.", req.TypeName),
+			},
+		},
+	}
+
+	return resp, nil
+}
+
+func (s *GRPCProviderServer) OpenEphemeralResource(ctx context.Context, req *tfprotov5.OpenEphemeralResourceRequest) (*tfprotov5.OpenEphemeralResourceResponse, error) {
+	ctx = logging.InitContext(ctx)
+
+	logging.HelperSchemaTrace(ctx, "Returning error for ephemeral resource open")
+
+	resp := &tfprotov5.OpenEphemeralResourceResponse{
+		Diagnostics: []*tfprotov5.Diagnostic{
+			{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Unknown Ephemeral Resource Type",
+				Detail:   fmt.Sprintf("The %q ephemeral resource type is not supported by this provider.", req.TypeName),
+			},
+		},
+	}
+
+	return resp, nil
+}
+
+func (s *GRPCProviderServer) RenewEphemeralResource(ctx context.Context, req *tfprotov5.RenewEphemeralResourceRequest) (*tfprotov5.RenewEphemeralResourceResponse, error) {
+	ctx = logging.InitContext(ctx)
+
+	logging.HelperSchemaTrace(ctx, "Returning error for ephemeral resource renew")
+
+	resp := &tfprotov5.RenewEphemeralResourceResponse{
+		Diagnostics: []*tfprotov5.Diagnostic{
+			{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Unknown Ephemeral Resource Type",
+				Detail:   fmt.Sprintf("The %q ephemeral resource type is not supported by this provider.", req.TypeName),
+			},
+		},
+	}
+
+	return resp, nil
+}
+
+func (s *GRPCProviderServer) CloseEphemeralResource(ctx context.Context, req *tfprotov5.CloseEphemeralResourceRequest) (*tfprotov5.CloseEphemeralResourceResponse, error) {
+	ctx = logging.InitContext(ctx)
+
+	logging.HelperSchemaTrace(ctx, "Returning error for ephemeral resource close")
+
+	resp := &tfprotov5.CloseEphemeralResourceResponse{
+		Diagnostics: []*tfprotov5.Diagnostic{
+			{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Unknown Ephemeral Resource Type",
+				Detail:   fmt.Sprintf("The %q ephemeral resource type is not supported by this provider.", req.TypeName),
+			},
+		},
+	}
+
+	return resp, nil
+}
+
 func pathToAttributePath(path cty.Path) *tftypes.AttributePath {
 	var steps []tftypes.AttributePathStep
 
@@ -1593,7 +1705,7 @@ func stripSchema(s *Schema) *Schema {
 }
 
 // Zero values and empty containers may be interchanged by the apply process.
-// When there is a discrepency between src and dst value being null or empty,
+// When there is a discrepancy between src and dst value being null or empty,
 // prefer the src value. This takes a little more liberty with set types, since
 // we can't correlate modified set values. In the case of sets, if the src set
 // was wholly known we assume the value was correctly applied and copy that

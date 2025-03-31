@@ -8,6 +8,7 @@ import (
 
 var _ Processor = (*MaxFromLinter)(nil)
 
+// MaxFromLinter limits the number of reports from the same linter.
 type MaxFromLinter struct {
 	linterCounter map[string]int
 	limit         int
@@ -33,12 +34,7 @@ func (p *MaxFromLinter) Process(issues []result.Issue) ([]result.Issue, error) {
 		return issues, nil
 	}
 
-	return filterIssues(issues, func(issue *result.Issue) bool {
-		if issue.Replacement != nil && p.cfg.Issues.NeedFix {
-			// we need to fix all issues at once => we need to return all of them
-			return true
-		}
-
+	return filterIssuesUnsafe(issues, func(issue *result.Issue) bool {
 		p.linterCounter[issue.FromLinter]++ // always inc for stat
 
 		return p.linterCounter[issue.FromLinter] <= p.limit

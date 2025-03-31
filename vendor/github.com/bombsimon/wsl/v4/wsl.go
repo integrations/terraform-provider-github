@@ -174,6 +174,11 @@ type Configuration struct {
 	//
 	// is not allowed. This logic overrides ForceCuddleErrCheckAndAssign among others.
 	ForceExclusiveShortDeclarations bool
+
+	// IncludeGenerated will include generated files in the analysis and report
+	// errors even for generated files. Can be useful when developing
+	// generators.
+	IncludeGenerated bool
 }
 
 // fix is a range to fixup.
@@ -348,7 +353,7 @@ func (p *processor) parseBlockStatements(statements []ast.Stmt) {
 				return false
 			}
 
-			for j := 0; j < n; j++ {
+			for j := range n {
 				s1 := statements[i+j]
 				s2 := statements[i+j+1]
 
@@ -578,7 +583,7 @@ func (p *processor) parseBlockStatements(statements []ast.Stmt) {
 				}
 
 				p.addWhitespaceBeforeError(t, reasonExpressionCuddledWithDeclOrRet)
-			case *ast.IfStmt, *ast.RangeStmt, *ast.SwitchStmt:
+			case *ast.IfStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt, *ast.ForStmt:
 				p.addWhitespaceBeforeError(t, reasonExpressionCuddledWithBlock)
 			}
 
@@ -1108,8 +1113,8 @@ func (p *processor) findLeadingAndTrailingWhitespaces(ident *ast.Ident, stmt, ne
 		return
 	}
 
-	blockStartLine = p.fileSet.PositionFor(blockStartPos, false).Line
-	blockEndLine = p.fileSet.PositionFor(blockEndPos, false).Line
+	blockStartLine = p.fileSet.Position(blockStartPos).Line
+	blockEndLine = p.fileSet.Position(blockEndPos).Line
 
 	// No whitespace possible if LBrace and RBrace is on the same line.
 	if blockStartLine == blockEndLine {
@@ -1357,14 +1362,14 @@ func isExampleFunc(ident *ast.Ident) bool {
 }
 
 func (p *processor) nodeStart(node ast.Node) int {
-	return p.fileSet.PositionFor(node.Pos(), false).Line
+	return p.fileSet.Position(node.Pos()).Line
 }
 
 func (p *processor) nodeEnd(node ast.Node) int {
-	line := p.fileSet.PositionFor(node.End(), false).Line
+	line := p.fileSet.Position(node.End()).Line
 
 	if isEmptyLabeledStmt(node) {
-		return p.fileSet.PositionFor(node.Pos(), false).Line
+		return p.fileSet.Position(node.Pos()).Line
 	}
 
 	return line
@@ -1403,7 +1408,7 @@ func (p *processor) addErrorRange(reportAt, start, end token.Pos, reason string)
 }
 
 func (p *processor) addWarning(w string, pos token.Pos, t interface{}) {
-	position := p.fileSet.PositionFor(pos, false)
+	position := p.fileSet.Position(pos)
 
 	p.warnings = append(p.warnings,
 		fmt.Sprintf("%s:%d: %s (%T)", position.Filename, position.Line, w, t),

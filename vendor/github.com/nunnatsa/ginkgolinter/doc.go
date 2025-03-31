@@ -30,6 +30,14 @@ For example:
 This will probably happen when using the old format:
 	Eventually(aFunc, 500 * time.Millisecond, 10 * time.Second).Should(Succeed())
 
+* Success matcher validation: [BUG]
+  The Success matcher expect that the actual argument will be a single error. In async actual assertions, It also allow 
+  functions with Gomega object as the function first parameter.
+For example:
+  Expect(myInt).To(Succeed())
+or
+  Eventually(func() int { return 42 }).Should(Succeed())
+
 * reject variable assignments in ginkgo containers [Bug/Style]:
 For example:
 	var _ = Describe("description", func(){
@@ -86,7 +94,7 @@ For example:
 	Eventually(func() bool { return true }, time.Second*10, 500*time.Millisecond).ProbeEvery(time.Millisecond * 500).Should(BeTrue())
 
 * async timing interval: non-time.Duration intervals [Style]
-gomega supports a few formats for timeout and polling intervals, when using the old format (the last two parameters of Eventually and Constantly):
+gomega supports a few formats for timeout and polling intervals, when using the old format (the last two parameters of Eventually and Consistently):
   * time.Duration
   * any kind of numeric value, as number of seconds
   * duration string like "12s"
@@ -96,4 +104,13 @@ methods.
 For example:
 	Eventually(context.Background(), func() bool { return true }, "1s").Should(BeTrue())
 	Eventually(context.Background(), func() bool { return true }, time.Second*60, 15).Should(BeTrue())
+
+* Success <=> Eventually usage [Style]
+  enforce that the Succeed() matcher will be used for error functions, and the HaveOccurred() matcher will
+  be used for error values.
+
+For example:
+  Expect(err).ToNot(Succeed())
+or
+  Expect(funcRetError().ToNot(HaveOccurred())
 `

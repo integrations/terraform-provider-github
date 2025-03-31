@@ -1,7 +1,7 @@
 package processors
 
 import (
-	"regexp"
+	"cmp"
 
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
@@ -13,11 +13,10 @@ const severityFromLinter = "@linter"
 
 var _ Processor = (*Severity)(nil)
 
-type severityRule struct {
-	baseRule
-	severity string
-}
-
+// Severity modifies report severity.
+// It uses the same `baseRule` structure as [ExcludeRules] processor.
+//
+// Warning: it doesn't use `path-prefix` option.
 type Severity struct {
 	name string
 
@@ -43,7 +42,7 @@ func NewSeverity(log logutils.Log, files *fsutils.Files, cfg *config.Severity) *
 		p.name = "severity-rules-case-sensitive"
 	}
 
-	p.rules = createSeverityRules(cfg.Rules, prefix)
+	p.rules = parseRules(cfg.Rules, prefix, newSeverityRule)
 
 	return p
 }
@@ -67,10 +66,7 @@ func (p *Severity) transform(issue *result.Issue) *result.Issue {
 				return issue
 			}
 
-			issue.Severity = rule.severity
-			if issue.Severity == "" {
-				issue.Severity = p.defaultSeverity
-			}
+			issue.Severity = cmp.Or(rule.severity, p.defaultSeverity)
 
 			return issue
 		}
@@ -83,34 +79,14 @@ func (p *Severity) transform(issue *result.Issue) *result.Issue {
 	return issue
 }
 
-func createSeverityRules(rules []config.SeverityRule, prefix string) []severityRule {
-	parsedRules := make([]severityRule, 0, len(rules))
+type severityRule struct {
+	baseRule
+	severity string
+}
 
-	for _, rule := range rules {
-		parsedRule := severityRule{}
-		parsedRule.linters = rule.Linters
-		parsedRule.severity = rule.Severity
-
-		if rule.Text != "" {
-			parsedRule.text = regexp.MustCompile(prefix + rule.Text)
-		}
-
-		if rule.Source != "" {
-			parsedRule.source = regexp.MustCompile(prefix + rule.Source)
-		}
-
-		if rule.Path != "" {
-			path := fsutils.NormalizePathInRegex(rule.Path)
-			parsedRule.path = regexp.MustCompile(path)
-		}
-
-		if rule.PathExcept != "" {
-			pathExcept := fsutils.NormalizePathInRegex(rule.PathExcept)
-			parsedRule.pathExcept = regexp.MustCompile(pathExcept)
-		}
-
-		parsedRules = append(parsedRules, parsedRule)
+func newSeverityRule(rule *config.SeverityRule, prefix string) severityRule {
+	return severityRule{
+		baseRule: newBaseRule(&rule.BaseRule, prefix),
+		severity: rule.Severity,
 	}
-
-	return parsedRules
 }

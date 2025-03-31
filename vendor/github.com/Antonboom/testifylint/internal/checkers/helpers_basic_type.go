@@ -1,23 +1,84 @@
 package checkers
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 
 	"golang.org/x/tools/go/analysis"
 )
 
 func isZero(e ast.Expr) bool { return isIntNumber(e, 0) }
 
-func isNotZero(e ast.Expr) bool { return !isZero(e) }
-
 func isOne(e ast.Expr) bool { return isIntNumber(e, 1) }
 
-func isIntNumber(e ast.Expr, v int) bool {
+func isAnyZero(e ast.Expr) bool {
+	return isIntNumber(e, 0) || isTypedSignedIntNumber(e, 0) || isTypedUnsignedIntNumber(e, 0)
+}
+
+func isNotAnyZero(e ast.Expr) bool {
+	return !isAnyZero(e)
+}
+
+func isZeroOrSignedZero(e ast.Expr) bool {
+	return isIntNumber(e, 0) || isTypedSignedIntNumber(e, 0)
+}
+
+func isSignedNotZero(pass *analysis.Pass, e ast.Expr) bool {
+	return !isUnsigned(pass, e) && !isZeroOrSignedZero(e)
+}
+
+func isTypedSignedIntNumber(e ast.Expr, v int) bool {
+	return isTypedIntNumber(e, v, "int", "int8", "int16", "int32", "int64")
+}
+
+func isTypedUnsignedIntNumber(e ast.Expr, v int) bool {
+	return isTypedIntNumber(e, v, "uint", "uint8", "uint16", "uint32", "uint64")
+}
+
+func isTypedIntNumber(e ast.Expr, v int, types ...string) bool {
+	ce, ok := e.(*ast.CallExpr)
+	if !ok || len(ce.Args) != 1 {
+		return false
+	}
+
+	fn, ok := ce.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	for _, t := range types {
+		if fn.Name == t {
+			return isIntNumber(ce.Args[0], v)
+		}
+	}
+	return false
+}
+
+func isIntNumber(e ast.Expr, rhs int) bool {
+	lhs, ok := isIntBasicLit(e)
+	return ok && (lhs == rhs)
+}
+
+func isNegativeIntNumber(e ast.Expr) bool {
+	v, ok := isIntBasicLit(e)
+	return ok && v < 0
+}
+
+func isPositiveIntNumber(e ast.Expr) bool {
+	v, ok := isIntBasicLit(e)
+	return ok && v > 0
+}
+
+func isEmptyStringLit(e ast.Expr) bool {
 	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT && bl.Value == fmt.Sprintf("%d", v)
+	return ok && bl.Kind == token.STRING && bl.Value == `""`
+}
+
+func isNotEmptyStringLit(e ast.Expr) bool {
+	bl, ok := e.(*ast.BasicLit)
+	return ok && bl.Kind == token.STRING && bl.Value != `""`
 }
 
 func isBasicLit(e ast.Expr) bool {
@@ -25,37 +86,97 @@ func isBasicLit(e ast.Expr) bool {
 	return ok
 }
 
-func isIntBasicLit(e ast.Expr) bool {
-	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT
-}
-
-func isUntypedConst(p *analysis.Pass, e ast.Expr) bool {
-	t := p.TypesInfo.TypeOf(e)
-	if t == nil {
-		return false
+func isIntBasicLit(e ast.Expr) (int, bool) {
+	if un, ok := e.(*ast.UnaryExpr); ok {
+		if un.Op == token.SUB {
+			v, ok := isIntBasicLit(un.X)
+			return -1 * v, ok
+		}
 	}
 
-	b, ok := t.(*types.Basic)
-	return ok && b.Info()&types.IsUntyped > 0
+	bl, ok := e.(*ast.BasicLit)
+	if !ok {
+		return 0, false
+	}
+	if bl.Kind != token.INT {
+		return 0, false
+	}
+
+	v, err := strconv.Atoi(bl.Value)
+	if err != nil {
+		return 0, false
+	}
+	return v, true
 }
 
-func isTypedConst(p *analysis.Pass, e ast.Expr) bool {
-	tt, ok := p.TypesInfo.Types[e]
+func isUntypedConst(pass *analysis.Pass, e ast.Expr) bool {
+	return isUnderlying(pass, e, types.IsUntyped)
+}
+
+func isTypedConst(pass *analysis.Pass, e ast.Expr) bool {
+	tt, ok := pass.TypesInfo.Types[e]
 	return ok && tt.IsValue() && tt.Value != nil
 }
 
-func isFloat(pass *analysis.Pass, expr ast.Expr) bool {
-	t := pass.TypesInfo.TypeOf(expr)
+func isFloat(pass *analysis.Pass, e ast.Expr) bool {
+	return isUnderlying(pass, e, types.IsFloat)
+}
+
+func isUnsigned(pass *analysis.Pass, e ast.Expr) bool {
+	return isUnderlying(pass, e, types.IsUnsigned)
+}
+
+func isUnderlying(pass *analysis.Pass, e ast.Expr, flag types.BasicInfo) bool {
+	t := pass.TypesInfo.TypeOf(e)
 	if t == nil {
 		return false
 	}
 
 	bt, ok := t.Underlying().(*types.Basic)
-	return ok && (bt.Info()&types.IsFloat > 0)
+	return ok && (bt.Info()&flag > 0)
 }
 
-func isPointer(pass *analysis.Pass, expr ast.Expr) bool {
-	_, ok := pass.TypesInfo.TypeOf(expr).(*types.Pointer)
-	return ok
+func isPointer(pass *analysis.Pass, e ast.Expr) (types.Type, bool) {
+	ptr, ok := pass.TypesInfo.TypeOf(e).(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	return ptr.Elem(), true
+}
+
+// isByteArray returns true if expression is `[]byte` itself.
+func isByteArray(e ast.Expr) bool {
+	at, ok := e.(*ast.ArrayType)
+	return ok && isIdentWithName("byte", at.Elt)
+}
+
+// hasBytesType returns true if the expression is of `[]byte` type.
+func hasBytesType(pass *analysis.Pass, e ast.Expr) bool {
+	t := pass.TypesInfo.TypeOf(e)
+	if t == nil {
+		return false
+	}
+
+	sl, ok := t.(*types.Slice)
+	if !ok {
+		return false
+	}
+
+	el, ok := sl.Elem().(*types.Basic)
+	return ok && el.Kind() == types.Uint8
+}
+
+// hasStringType returns true if the expression is of `string` type.
+func hasStringType(pass *analysis.Pass, e ast.Expr) bool {
+	basicType, ok := pass.TypesInfo.TypeOf(e).(*types.Basic)
+	return ok && basicType.Kind() == types.String
+}
+
+// untype returns v from type(v) expression or v itself if there is no type conversion.
+func untype(e ast.Expr) ast.Expr {
+	ce, ok := e.(*ast.CallExpr)
+	if !ok || len(ce.Args) != 1 {
+		return e
+	}
+	return ce.Args[0]
 }

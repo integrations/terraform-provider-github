@@ -22,6 +22,7 @@ You may obtain a copy of the License [here](http://www.apache.org/licenses/LICEN
 [![Downloads](https://img.shields.io/github/downloads/securego/gosec/total.svg)](https://github.com/securego/gosec/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/securego/gosec.svg)](https://hub.docker.com/r/securego/gosec/tags)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](http://securego.slack.com)
+[![go-recipes](https://raw.githubusercontent.com/nikolaydubina/go-recipes/main/badge.svg?raw=true)](https://github.com/nikolaydubina/go-recipes)
 
 ## Install
 
@@ -139,6 +140,7 @@ directory you can supply `./...` as the input argument.
 - G112: Potential slowloris attack
 - G113: Usage of Rat.SetString in math/big with an overflow (CVE-2022-23772)
 - G114: Use of net/http serve function that has no support for setting timeouts
+- G115: Potential integer overflow when converting between integer types
 - G201: SQL query construction using format string
 - G202: SQL query construction using string concatenation
 - G203: Use of unescaped data in HTML templates
@@ -150,15 +152,20 @@ directory you can supply `./...` as the input argument.
 - G305: File traversal when extracting zip/tar archive
 - G306: Poor file permissions used when writing to a new file
 - G307: Poor file permissions used when creating a file with os.Create
-- G401: Detect the usage of DES, RC4, MD5 or SHA1
+- G401: Detect the usage of MD5 or SHA1
 - G402: Look for bad TLS connection settings
 - G403: Ensure minimum RSA key length of 2048 bits
 - G404: Insecure random number source (rand)
+- G405: Detect the usage of DES or RC4
+- G406: Detect the usage of MD4 or RIPEMD160
+- G407: Detect the usage of hardcoded Initialization Vector(IV)/Nonce
 - G501: Import blocklist: crypto/md5
 - G502: Import blocklist: crypto/des
 - G503: Import blocklist: crypto/rc4
 - G504: Import blocklist: net/http/cgi
 - G505: Import blocklist: crypto/sha1
+- G506: Import blocklist: golang.org/x/crypto/md4
+- G507: Import blocklist: golang.org/x/crypto/ripemd160
 - G601: Implicit memory aliasing of items from a range statement (only for Go 1.21 or lower)
 - G602: Slice access out of bounds
 
@@ -205,30 +212,9 @@ A number of global settings can be provided in a configuration file as follows:
 $ gosec -conf config.json .
 ```
 
-Also some rules accept configuration. For instance on rule `G104`, it is possible to define packages along with a list
-of functions which will be skipped when auditing the not checked errors:
+#### Rule Configuration
 
-```JSON
-{
-    "G104": {
-        "ioutil": ["WriteFile"]
-    }
-}
-```
-
-You can also configure the hard-coded credentials rule `G101` with additional patterns, or adjust the entropy threshold:
-
-```JSON
-{
-    "G101": {
-        "pattern": "(?i)passwd|pass|password|pwd|secret|private_key|token",
-         "ignore_entropy": false,
-         "entropy_threshold": "80.0",
-         "per_char_threshold": "3.0",
-         "truncate": "32"
-    }
-}
-```
+Some rules accept configuration flags as well; these flags are documented in [RULES.md](https://github.com/securego/gosec/blob/master/RULES.md).
 
 #### Go version
 
@@ -269,6 +255,19 @@ gosec can ignore generated go files with default generated code comment.
 gosec -exclude-generated ./...
 ```
 
+### Auto fixing vulnerabilities
+gosec can suggest fixes based on AI recommendation. It will call an AI API to receive a suggestion for a security finding.
+
+You can enable this feature by providing the following command line arguments:
+- `ai-api-provider`: the name of the AI API provider, currently only `gemini`is supported.
+- `ai-api-key` or set the environment variable `GOSEC_AI_API_KEY`: the key to access the AI API,
+For gemini, you can create an API key following [these instructions](https://ai.google.dev/gemini-api/docs/api-key).
+- `ai-endpoint`: the endpoint of the AI provider, this is optional argument.
+
+
+```bash
+gosec -ai-api-provider="gemini" -ai-api-key="your_key" ./...
+```
 
 ### Annotating code
 
@@ -289,7 +288,7 @@ func main() {
 	}
 
 	client := &http.Client{Transport: tr}
-	_, err := client.Get("https://golang.org/")
+	_, err := client.Get("https://go.dev/")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -336,7 +335,7 @@ comment.
 
 ### Build tags
 
-gosec is able to pass your [Go build tags](https://golang.org/pkg/go/build/) to the analyzer.
+gosec is able to pass your [Go build tags](https://pkg.go.dev/go/build/) to the analyzer.
 They can be provided as a comma separated list as follows:
 
 ```bash
@@ -354,7 +353,7 @@ file. The output format is controlled by the `-fmt` flag, and the output file is
 $ gosec -fmt=json -out=results.json *.go
 ```
 
-Results will be reported to stdout as well as to the provided output file by `-stdout` flag. The `-verbose` flag overrides the 
+Results will be reported to stdout as well as to the provided output file by `-stdout` flag. The `-verbose` flag overrides the
 output format when stdout the results while saving them in the output file
 ```bash
 # Write output in json format to results.json as well as stdout
@@ -367,6 +366,8 @@ $ gosec -fmt=json -out=results.json -stdout -verbose=text *.go
 **Note:** gosec generates the [generic issue import format](https://docs.sonarqube.org/latest/analysis/generic-issue/) for SonarQube, and a report has to be imported into SonarQube using `sonar.externalIssuesReportPaths=path/to/gosec-report.json`.
 
 ## Development
+
+[CONTRIBUTING.md](https://github.com/securego/gosec/blob/master/CONTRIBUTING.md) contains detailed information about adding new rules to gosec.
 
 ### Build
 
@@ -413,14 +414,14 @@ git push origin v1.0.0
 The GitHub [release workflow](.github/workflows/release.yml) triggers immediately after the tag is pushed upstream. This flow will
 release the binaries using the [goreleaser](https://goreleaser.com/actions/) action and then it will build and publish the docker image into Docker Hub.
 
-The released artifacts are signed using [cosign](https://docs.sigstore.dev/). You can use the public key from [cosign.pub](cosign.pub) 
+The released artifacts are signed using [cosign](https://docs.sigstore.dev/). You can use the public key from [cosign.pub](cosign.pub)
 file to verify the signature of docker image and binaries files.
 
 The docker image signature can be verified with the following command:
 ```
 cosign verify --key cosign.pub securego/gosec:<TAG>
 ```
- 
+
 The binary files signature can be verified with the following command:
 ```
 cosign verify-blob --key cosign.pub --signature gosec_<VERSION>_darwin_amd64.tar.gz.sig  gosec_<VERSION>_darwin_amd64.tar.gz

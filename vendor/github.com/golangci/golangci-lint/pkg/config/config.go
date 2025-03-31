@@ -1,17 +1,26 @@
 package config
 
 import (
+	"cmp"
+	"context"
+	"fmt"
 	"os"
-	"regexp"
+	"path/filepath"
+	"slices"
 	"strings"
 
 	hcversion "github.com/hashicorp/go-version"
-	"github.com/ldez/gomoddirectives"
+	"github.com/ldez/grignotin/goenv"
+	"github.com/ldez/grignotin/gomod"
+	"golang.org/x/mod/modfile"
 )
 
 // Config encapsulates the config data specified in the golangci-lint YAML config file.
 type Config struct {
-	cfgDir string // The directory containing the golangci-lint config file.
+	cfgDir   string // Path to the directory containing golangci-lint config file.
+	basePath string // Path the root directory related to [Run.RelativePathMode].
+
+	Version string `mapstructure:"version"` // From v2, to be able to detect v2 config file.
 
 	Run Run `mapstructure:"run"`
 
@@ -26,9 +35,13 @@ type Config struct {
 	InternalTest    bool // Option is used only for testing golangci-lint code, don't use it
 }
 
-// GetConfigDir returns the directory that contains golangci config file.
+// GetConfigDir returns the directory that contains golangci-lint config file.
 func (c *Config) GetConfigDir() string {
 	return c.cfgDir
+}
+
+func (c *Config) GetBasePath() string {
+	return c.basePath
 }
 
 func (c *Config) Validate() error {
@@ -75,36 +88,94 @@ func IsGoGreaterThanOrEqual(current, limit string) bool {
 	return v1.GreaterThanOrEqual(l)
 }
 
-func detectGoVersion() string {
-	file, _ := gomoddirectives.GetModuleFile()
+func detectGoVersion(ctx context.Context) string {
+	return cmp.Or(detectGoVersionFromGoMod(ctx), "1.17")
+}
 
-	if file != nil && file.Go != nil && file.Go.Version != "" {
+// detectGoVersionFromGoMod tries to get Go version from go.mod.
+// It returns `toolchain` version if present,
+// else it returns `go` version if present,
+// else it returns `GOVERSION` version if present,
+// else it returns empty.
+func detectGoVersionFromGoMod(ctx context.Context) string {
+	values, err := goenv.Get(ctx, goenv.GOMOD, goenv.GOVERSION)
+	if err != nil {
+		values = map[string]string{
+			goenv.GOMOD: detectGoModFallback(ctx),
+		}
+	}
+
+	if values[goenv.GOMOD] == "" {
+		return parseGoVersion(values[goenv.GOVERSION])
+	}
+
+	file, err := parseGoMod(values[goenv.GOMOD])
+	if err != nil {
+		return parseGoVersion(values[goenv.GOVERSION])
+	}
+
+	// The toolchain exists only if 'toolchain' version > 'go' version.
+	// If 'toolchain' version <= 'go' version, `go mod tidy` will remove 'toolchain' version from go.mod.
+	if file.Toolchain != nil && file.Toolchain.Name != "" {
+		return parseGoVersion(file.Toolchain.Name)
+	}
+
+	if file.Go != nil && file.Go.Version != "" {
 		return file.Go.Version
 	}
 
-	v := os.Getenv("GOVERSION")
-	if v != "" {
-		return v
-	}
-
-	return "1.17"
+	return parseGoVersion(values[goenv.GOVERSION])
 }
 
-// Trims the Go version to keep only M.m.
-// Since Go 1.21 the version inside the go.mod can be a patched version (ex: 1.21.0).
-// The version can also include information which we want to remove (ex: 1.21alpha1)
-// https://go.dev/doc/toolchain#versions
-// This a problem with staticcheck and gocritic.
-func trimGoVersion(v string) string {
-	if v == "" {
+func parseGoVersion(v string) string {
+	raw := strings.TrimPrefix(v, "go")
+
+	// prerelease version (ex: go1.24rc1)
+	idx := strings.IndexFunc(raw, func(r rune) bool {
+		return (r < '0' || r > '9') && r != '.'
+	})
+
+	if idx != -1 {
+		raw = raw[:idx]
+	}
+
+	return raw
+}
+
+func parseGoMod(goMod string) (*modfile.File, error) {
+	raw, err := os.ReadFile(filepath.Clean(goMod))
+	if err != nil {
+		return nil, fmt.Errorf("reading go.mod file: %w", err)
+	}
+
+	return modfile.Parse("go.mod", raw, nil)
+}
+
+func detectGoModFallback(ctx context.Context) string {
+	info, err := gomod.GetModuleInfo(ctx)
+	if err != nil {
 		return ""
 	}
 
-	exp := regexp.MustCompile(`(\d\.\d+)(?:\.\d+|[a-z]+\d)`)
-
-	if exp.MatchString(v) {
-		return exp.FindStringSubmatch(v)[1]
+	wd, err := os.Getwd()
+	if err != nil {
+		return ""
 	}
 
-	return v
+	slices.SortFunc(info, func(a, b gomod.ModInfo) int {
+		return cmp.Compare(len(b.Path), len(a.Path))
+	})
+
+	goMod := info[0]
+	for _, m := range info {
+		if !strings.HasPrefix(wd, m.Dir) {
+			continue
+		}
+
+		goMod = m
+
+		break
+	}
+
+	return goMod.GoMod
 }
