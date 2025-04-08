@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
+func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamOrganizationRoleAssignmentCreate,
-		Read:   resourceGithubTeamOrganizationRoleAssignmentRead,
-		Delete: resourceGithubTeamOrganizationRoleAssignmentDelete,
+		Create: resourceGithubOrganizationRoleTeamAssignmentCreate,
+		Read:   resourceGithubOrganizationRoleTeamAssignmentRead,
+		Delete: resourceGithubOrganizationRoleTeamAssignmentDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				teamIdString, roleID, err := parseTwoPartID(d.Id(), "team_id", "role_id")
@@ -47,7 +47,7 @@ func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -76,10 +76,10 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 	}
 
 	d.SetId(buildTwoPartID(teamSlug, roleIDString))
-	return resourceGithubTeamOrganizationRoleAssignmentRead(d, meta)
+	return resourceGithubOrganizationRoleTeamAssignmentRead(d, meta)
 }
 
-func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -140,7 +140,7 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

@@ -187,7 +187,7 @@ func Provider() *schema.Provider {
 			"github_team":                                                           resourceGithubTeam(),
 			"github_team_members":                                                   resourceGithubTeamMembers(),
 			"github_team_membership":                                                resourceGithubTeamMembership(),
-			"github_team_organization_role_assignment":                              resourceGithubTeamOrganizationRoleAssignment(),
+			"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 			"github_team_repository":                                                resourceGithubTeamRepository(),
 			"github_team_settings":                                                  resourceGithubTeamSettings(),
 			"github_team_sync_group_mapping":                                        resourceGithubTeamSyncGroupMapping(),
