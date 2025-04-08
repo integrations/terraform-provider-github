@@ -14,20 +14,7 @@ func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 		Read:   resourceGithubOrganizationRoleTeamAssignmentRead,
 		Delete: resourceGithubOrganizationRoleTeamAssignmentDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				teamIdString, roleID, err := parseTwoPartID(d.Id(), "team_id", "role_id")
-				if err != nil {
-					return nil, err
-				}
-
-				teamSlug, err := getTeamSlug(teamIdString, meta)
-				if err != nil {
-					return nil, err
-				}
-
-				d.SetId(buildTwoPartID(teamSlug, roleID))
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
