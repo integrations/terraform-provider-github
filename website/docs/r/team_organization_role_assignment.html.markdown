@@ -33,7 +33,7 @@ resource "github_team_organization_role_assignment" "test-team-role-assignment" 
 The following arguments are supported:
 
 * `team_id` - (Required) The GitHub team id or the GitHub team slug
-* `role_id` - (Required) The GitHub Organization Role id
+* `role_id` - (Required) The GitHub Organization role id or role name
 
 ## Import
 

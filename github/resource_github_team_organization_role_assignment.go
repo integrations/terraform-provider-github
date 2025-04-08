@@ -40,7 +40,7 @@ func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
 			"role_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The GitHub organization role id or the GitHub organization role name.",
+				Description: "The GitHub organization role id or role name.",
 				ForceNew:    true,
 			},
 		},
