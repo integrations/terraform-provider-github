@@ -82,7 +82,6 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 		return err
 	}
 
-
 	// There is no api for checking a specific team role assignment, so instead we iterate over all teams assigned to the role
 	// go-github pagination (https://github.com/google/go-github?tab=readme-ov-file#pagination)
 	options := &github.ListOptions{
