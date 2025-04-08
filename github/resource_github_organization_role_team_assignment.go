@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,16 +19,16 @@ func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_id": {
+			"team_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The GitHub team id or the GitHub team slug.",
+				Description: "The GitHub team slug.",
 				ForceNew:    true,
 			},
 			"role_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The GitHub organization role id or role name.",
+				Description: "The GitHub organization role id",
 				ForceNew:    true,
 			},
 		},
@@ -44,15 +45,10 @@ func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, 
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	// The given team id could be an id or a slug
-	givenTeamId := d.Get("team_id").(string)
-	teamSlug, err := getTeamSlug(givenTeamId, meta)
-	if err != nil {
-		return err
-	}
-
+	teamSlug := d.Get("team_slug").(string)
 	roleIDString := d.Get("role_id").(string)
-	roleID, err := getRoleID(roleIDString, meta)
+
+	roleID, err := strconv.ParseInt(roleIDString, 10, 64)
 	if err != nil {
 		return err
 	}
@@ -76,21 +72,16 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
-	teamIdString, roleIDString, err := parseTwoPartID(d.Id(), "team_id", "role_id")
+	teamSlug, roleIDString, err := parseTwoPartID(d.Id(), "team_slug", "role_id")
 	if err != nil {
 		return err
 	}
 
-	// The given team id could be an id or a slug
-	teamSlug, err := getTeamSlug(teamIdString, meta)
+	roleID, err := strconv.ParseInt(roleIDString, 10, 64)
 	if err != nil {
 		return err
 	}
 
-	roleID, err := getRoleID(roleIDString, meta)
-	if err != nil {
-		return err
-	}
 
 	// There is no api for checking a specific team role assignment, so instead we iterate over all teams assigned to the role
 	// go-github pagination (https://github.com/google/go-github?tab=readme-ov-file#pagination)
@@ -124,7 +115,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 		return nil
 	}
 
-	if err = d.Set("team_id", teamIdString); err != nil {
+	if err = d.Set("team_slug", teamSlug); err != nil {
 		return err
 	}
 	if err = d.Set("role_id", roleIDString); err != nil {
@@ -144,22 +135,12 @@ func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, 
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	teamIdString, roleIDString, err := parseTwoPartID(d.Id(), "team_id", "role_id")
+	teamSlug, roleIDString, err := parseTwoPartID(d.Id(), "team_slug", "role_id")
 	if err != nil {
 		return err
 	}
 
-	// The given team id could be an id or a slug
-	teamSlug, err := getTeamSlug(teamIdString, meta)
-	if err != nil {
-		return err
-	}
-
-	roleID, err := getRoleID(roleIDString, meta)
-	if err != nil {
-		return err
-	}
-
+	roleID, err := strconv.ParseInt(roleIDString, 10, 64)
 	if err != nil {
 		return err
 	}
