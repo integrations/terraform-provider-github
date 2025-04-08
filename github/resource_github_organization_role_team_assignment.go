@@ -137,6 +137,13 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 		return nil
 	}
 
+	if err = d.Set("team_id", teamIdString); err != nil {
+		return err
+	}
+	if err = d.Set("role_id", roleIDString); err != nil {
+		return err
+	}
+
 	return nil
 }
 

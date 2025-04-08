@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
+func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -23,7 +23,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 				name        = "tf-acc-test-team-repo-%s"
 				description = "test"
 			}
-			resource "github_team_organization_role_assignment" "test" {
+			resource github_organization_role_team_assignment "test" {
 				team_id = github_team.test.id
 				role_id = "%s"
 			}
@@ -31,13 +31,13 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
-				"github_team_organization_role_assignment.test", "id",
+				"github_organization_role_team_assignment.test", "id",
 			),
 			resource.TestCheckResourceAttrSet(
-				"github_team_organization_role_assignment.test", "team_id",
+				"github_organization_role_team_assignment.test", "team_id",
 			),
 			resource.TestCheckResourceAttr(
-				"github_team_organization_role_assignment.test", "role_id", allRepoReadRoleName,
+				"github_organization_role_team_assignment.test", "role_id", allRepoReadRoleName,
 			),
 		)
 
@@ -76,7 +76,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					name        = "tf-acc-test-team-repo-%s"
 					description = "test"
 				}
-				resource "github_team_organization_role_assignment" "test" {
+				resource github_organization_role_team_assignment "test" {
 					team_id = github_team.test.id
 					role_id = "%s"
 				}
@@ -86,7 +86,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					name        = "tf-acc-test-team-repo-%s"
 					description = "test"
 				}
-				resource "github_team_organization_role_assignment" "test" {
+				resource github_organization_role_team_assignment "test" {
 					team_id = github_team.test.id
 					role_id = "%s"
 				}
@@ -96,12 +96,12 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_organization_role_assignment.test", "role_id", allRepoReadRoleName,
+					"github_organization_role_team_assignment.test", "role_id", allRepoReadRoleName,
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_organization_role_assignment.test", "role_id", allRepoWriteRoleName,
+					"github_organization_role_team_assignment.test", "role_id", allRepoWriteRoleName,
 				),
 			),
 		}
