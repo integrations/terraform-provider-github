@@ -242,6 +242,32 @@ func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
 	return team.GetSlug(), nil
 }
 
+func getRoleID(roleIDString string, meta interface{}) (int64, error) {
+	// Given a string that is either a role id or role slug, return the
+	// id of the role it is referring to.
+	ctx := context.Background()
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+
+	roleId, parseIntErr := strconv.ParseInt(roleIDString, 10, 64)
+	if parseIntErr == nil {
+		return roleId, nil
+	}
+
+	roles, _, err := client.Organizations.ListRoles(ctx, orgName)
+	if err != nil {
+		return -1, err
+	}
+
+	for _, role := range roles.CustomRepoRoles {
+		if role.GetName() == roleIDString {
+			return role.GetID(), nil
+		}
+	}
+
+	return -1, fmt.Errorf("role not found: %s", roleIDString)
+}
+
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 

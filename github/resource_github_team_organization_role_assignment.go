@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"log"
-	"strconv"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,7 +40,7 @@ func resourceGithubTeamOrganizationRoleAssignment() *schema.Resource {
 			"role_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The GitHub Organization Role id.",
+				Description: "The GitHub organization role id or the GitHub organization role name.",
 				ForceNew:    true,
 			},
 		},
@@ -66,8 +65,7 @@ func resourceGithubTeamOrganizationRoleAssignmentCreate(d *schema.ResourceData, 
 	}
 
 	roleIDString := d.Get("role_id").(string)
-	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
-
+	roleID, err := getRoleID(roleIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -102,7 +100,7 @@ func resourceGithubTeamOrganizationRoleAssignmentRead(d *schema.ResourceData, me
 		return err
 	}
 
-	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
+	roleID, err := getRoleID(roleIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -163,7 +161,7 @@ func resourceGithubTeamOrganizationRoleAssignmentDelete(d *schema.ResourceData, 
 		return err
 	}
 
-	roleID, err := strconv.ParseInt(roleIDString, 10, 32)
+	roleID, err := getRoleID(roleIDString, meta)
 	if err != nil {
 		return err
 	}

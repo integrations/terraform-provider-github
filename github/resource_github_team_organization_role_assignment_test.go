@@ -13,12 +13,8 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	// Using the predefined roles since custom roles are a strictly Enterprise feature ((https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/))
-	githubPredefinedRoleMapping := make(map[string]string)
-	githubPredefinedRoleMapping["all_repo_read"] = "8132"
-	githubPredefinedRoleMapping["all_repo_triage"] = "8133"
-	githubPredefinedRoleMapping["all_repo_write"] = "8134"
-	githubPredefinedRoleMapping["all_repo_maintain"] = "8135"
-	githubPredefinedRoleMapping["all_repo_admin"] = "8136"
+	allRepoReadRoleName := "all_repo_read"
+	allRepoWriteRoleName := "all_repo_write"
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
 
@@ -31,7 +27,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 				team_id = github_team.test.id
 				role_id = "%s"
 			}
-		`, randomID, githubPredefinedRoleMapping["all_repo_read"])
+		`, randomID, allRepoReadRoleName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -41,7 +37,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 				"github_team_organization_role_assignment.test", "team_id",
 			),
 			resource.TestCheckResourceAttr(
-				"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_read"],
+				"github_team_organization_role_assignment.test", "role_id", allRepoReadRoleName,
 			),
 		)
 
@@ -84,7 +80,7 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					team_id = github_team.test.id
 					role_id = "%s"
 				}
-		`, randomID, githubPredefinedRoleMapping["all_repo_read"]),
+		`, randomID, allRepoReadRoleName),
 			"after": fmt.Sprintf(`
 				resource "github_team" "test" {
 					name        = "tf-acc-test-team-repo-%s"
@@ -94,18 +90,18 @@ func TestAccGithubTeamOrganizationRoleAssignment(t *testing.T) {
 					team_id = github_team.test.id
 					role_id = "%s"
 				}
-		`, randomID, githubPredefinedRoleMapping["all_repo_write"]),
+		`, randomID, allRepoWriteRoleName),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_read"],
+					"github_team_organization_role_assignment.test", "role_id", allRepoReadRoleName,
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
-					"github_team_organization_role_assignment.test", "role_id", githubPredefinedRoleMapping["all_repo_write"],
+					"github_team_organization_role_assignment.test", "role_id", allRepoWriteRoleName,
 				),
 			),
 		}
