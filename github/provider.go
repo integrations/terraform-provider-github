@@ -161,6 +161,7 @@ func Provider() *schema.Provider {
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
 			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
+			"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
