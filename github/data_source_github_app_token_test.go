@@ -63,4 +63,50 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, expectedAccessToken, schema.Get("token"))
 	})
+
+	t.Run("creates a application token without error for self hosted", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			{
+				ExpectedUri: fmt.Sprintf("/api/v3/app/installations/%s/access_tokens", testGitHubAppInstallationID),
+				ExpectedHeaders: map[string]string{
+					"Accept": "application/vnd.github.v3+json",
+				},
+				ResponseBody: fmt.Sprintf(`{"token": "%s"}`, expectedAccessToken),
+				StatusCode:   201,
+			},
+		})
+		defer ts.Close()
+
+		httpCl := http.DefaultClient
+		httpCl.Transport = http.DefaultTransport
+
+		client := github.NewClient(httpCl)
+		// For self-hosted Github Enterprise, in the NewRESTClient func
+		// the /api/v3 suffix is already added.
+		u, _ := url.Parse(ts.URL + "/api/v3/")
+
+		client.BaseURL = u
+		meta := &Owner{
+			name:     owner,
+			v3client: client,
+		}
+
+		testSchema := map[string]*schema.Schema{
+			"app_id":          {Type: schema.TypeString},
+			"installation_id": {Type: schema.TypeString},
+			"pem_file":        {Type: schema.TypeString},
+			"token":           {Type: schema.TypeString},
+		}
+
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+			"app_id":          testGitHubAppID,
+			"installation_id": testGitHubAppInstallationID,
+			"pem_file":        string(pemData),
+			"token":           "",
+		})
+
+		err := dataSourceGithubAppTokenRead(schema, meta)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAccessToken, schema.Get("token"))
+	})
 }
