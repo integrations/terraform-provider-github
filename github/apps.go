@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"strings"
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
@@ -31,7 +32,7 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 }
 
 func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
-	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) {
+	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) && !strings.HasSuffix(baseURL, "api/v3/") {
 		baseURL += "api/v3/"
 	}
 
