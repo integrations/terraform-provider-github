@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golangci/golangci-lint/internal/pkgcache"
+	"github.com/golangci/golangci-lint/internal/cache"
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
-	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/goanalysis/load"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 	"github.com/golangci/golangci-lint/pkg/logutils"
@@ -18,19 +17,17 @@ type ContextBuilder struct {
 
 	pkgLoader *PackageLoader
 
-	fileCache *fsutils.FileCache
-	pkgCache  *pkgcache.Cache
+	pkgCache *cache.Cache
 
 	loadGuard *load.Guard
 }
 
 func NewContextBuilder(cfg *config.Config, pkgLoader *PackageLoader,
-	fileCache *fsutils.FileCache, pkgCache *pkgcache.Cache, loadGuard *load.Guard,
+	pkgCache *cache.Cache, loadGuard *load.Guard,
 ) *ContextBuilder {
 	return &ContextBuilder{
 		cfg:       cfg,
 		pkgLoader: pkgLoader,
-		fileCache: fileCache,
 		pkgCache:  pkgCache,
 		loadGuard: loadGuard,
 	}
@@ -55,7 +52,6 @@ func (cl *ContextBuilder) Build(ctx context.Context, log logutils.Log, linters [
 
 		Cfg:       cl.cfg,
 		Log:       log,
-		FileCache: cl.fileCache,
 		PkgCache:  cl.pkgCache,
 		LoadGuard: cl.loadGuard,
 	}

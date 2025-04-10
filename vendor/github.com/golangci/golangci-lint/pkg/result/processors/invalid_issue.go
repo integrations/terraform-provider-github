@@ -9,6 +9,9 @@ import (
 
 var _ Processor = (*InvalidIssue)(nil)
 
+// InvalidIssue filters invalid reports.
+//   - non-go files (except `go.mod`)
+//   - reports without file path
 type InvalidIssue struct {
 	log logutils.Log
 }
@@ -22,7 +25,7 @@ func (InvalidIssue) Name() string {
 }
 
 func (p InvalidIssue) Process(issues []result.Issue) ([]result.Issue, error) {
-	tcIssues := filterIssues(issues, func(issue *result.Issue) bool {
+	tcIssues := filterIssuesUnsafe(issues, func(issue *result.Issue) bool {
 		return issue.FromLinter == typeCheckName
 	})
 

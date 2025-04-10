@@ -34,9 +34,9 @@ func RandomWithPrefix(name string) string {
 	return fmt.Sprintf("%s-%d", name, RandInt())
 }
 
-// RandIntRange returns a random integer between min (inclusive) and max (exclusive)
-func RandIntRange(min int, max int) int {
-	return rand.Intn(max-min) + min
+// RandIntRange returns a random integer between minVal (inclusive) and maxVal (exclusive)
+func RandIntRange(minVal int, maxVal int) int {
+	return rand.Intn(maxVal-minVal) + minVal
 }
 
 // RandString generates a random alphanumeric string of the length specified

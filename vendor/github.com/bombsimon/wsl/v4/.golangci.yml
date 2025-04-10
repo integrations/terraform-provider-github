@@ -1,24 +1,25 @@
 ---
 run:
-  deadline: 1m
+  timeout: 1m
   issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - vendor$
 
 output:
-  format: colored-line-number
   print-issued-lines: false
+  sort-results: true
+  formats:
+    - format: colored-line-number
 
 linters-settings:
   gocognit:
     min-complexity: 10
 
   depguard:
-    list-type: blacklist
-    include-go-root: false
-    packages:
-      - github.com/davecgh/go-spew/spew
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/davecgh/go-spew/spew"
+            desc: not allowed
 
   misspell:
     locale: US
@@ -38,44 +39,33 @@ linters:
   enable-all: true
   disable:
     - cyclop
-    - deadcode
     - depguard
     - dupl
     - dupword
-    - exhaustivestruct
     - exhaustruct
+    - exportloopref
     - forbidigo
     - funlen
     - gci
     - gocognit
     - gocyclo
     - godox
-    - golint
-    - gomnd
-    - ifshort
-    - interfacer
+    - mnd
     - lll
     - maintidx
-    - maligned
     - nakedret
     - nestif
     - nlreturn
-    - nosnakecase
     - paralleltest
     - prealloc
     - rowserrcheck
-    - scopelint
-    - structcheck
     - testpackage
-    - varcheck
+    - tparallel
     - varnamelen
     - wastedassign
-  fast: false
-
 
 issues:
   exclude-use-default: true
   max-issues-per-linter: 0
   max-same-issues: 0
-
 # vim: set sw=2 ts=2 et:
