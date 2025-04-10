@@ -1,17 +1,17 @@
+
 package github
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"regexp"
-	"strings"
-
-	"github.com/google/go-github/v66/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+    "context"
+    "errors"
+    "fmt"
+    "log"
+    "net/http"
+    "regexp"
+    "strings"
+    "github.com/google/go-github/v66/github"
+    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -62,6 +62,21 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:         true, // is affected by "private"
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false), "visibility"),
 				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
+			},
+			"fork": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to 'true' to fork an existing repository.",
+			},
+			"source_owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The owner of the source repository to fork from.",
+			},
+			"source_repo": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the source repository to fork from.",
 			},
 			"security_and_analysis": {
 				Type:        schema.TypeList,
@@ -526,9 +541,8 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
+		 return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -543,80 +557,134 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	// prefer visibility to private flag since private flag is deprecated
 	privateKeyword, ok := d.Get("private").(bool)
 	if ok {
-		isPrivate = privateKeyword
+		 isPrivate = privateKeyword
 	}
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
-		if visibility == "private" || visibility == "internal" {
-			isPrivate = true
-		}
+		 if visibility == "private" || visibility == "internal" {
+			  isPrivate = true
+		 }
 	}
 
 	repoReq.Private = github.Bool(isPrivate)
 
 	if template, ok := d.GetOk("template"); ok {
-		templateConfigBlocks := template.([]interface{})
+		 templateConfigBlocks := template.([]interface{})
 
-		for _, templateConfigBlock := range templateConfigBlocks {
-			templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
-			if !ok {
-				return errors.New("failed to unpack template configuration block")
+		 for _, templateConfigBlock := range templateConfigBlocks {
+			  templateConfigMap, ok := templateConfigBlock.(map[string]interface{})
+			  if !ok {
+					return errors.New("failed to unpack template configuration block")
+			  }
+
+			  templateRepo := templateConfigMap["repository"].(string)
+			  templateRepoOwner := templateConfigMap["owner"].(string)
+			  includeAllBranches := templateConfigMap["include_all_branches"].(bool)
+
+			  templateRepoReq := github.TemplateRepoRequest{
+					Name:               &repoName,
+					Owner:              &owner,
+					Description:        github.String(d.Get("description").(string)),
+					Private:            github.Bool(isPrivate),
+					IncludeAllBranches: github.Bool(includeAllBranches),
+			  }
+
+			  repo, _, err := client.Repositories.CreateFromTemplate(ctx,
+					templateRepoOwner,
+					templateRepo,
+					&templateRepoReq,
+			  )
+			  if err != nil {
+					return err
+			  }
+
+			  d.SetId(*repo.Name)
+		 }
+	} else if d.Get("fork").(bool) {
+			// Handle repository forking
+			sourceOwner := d.Get("source_owner").(string)
+			sourceRepo := d.Get("source_repo").(string)
+			requestedName := d.Get("name").(string)
+			owner := meta.(*Owner).name
+			log.Printf("[INFO] Creating fork of %s/%s in %s", sourceOwner, sourceRepo, owner)
+			
+			if sourceOwner == "" || sourceRepo == "" {
+				 return fmt.Errorf("source_owner and source_repo must be provided when forking a repository")
 			}
-
-			templateRepo := templateConfigMap["repository"].(string)
-			templateRepoOwner := templateConfigMap["owner"].(string)
-			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
-
-			templateRepoReq := github.TemplateRepoRequest{
-				Name:               &repoName,
-				Owner:              &owner,
-				Description:        github.String(d.Get("description").(string)),
-				Private:            github.Bool(isPrivate),
-				IncludeAllBranches: github.Bool(includeAllBranches),
+	  
+			// Create the fork using the GitHub client library
+			opts := &github.RepositoryCreateForkOptions{
+				 Name: requestedName, 
 			}
-
-			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
-				templateRepoOwner,
-				templateRepo,
-				&templateRepoReq,
-			)
+	  
+			if meta.(*Owner).IsOrganization {
+				 opts.Organization = owner
+			}
+			
+			fork, resp, err := client.Repositories.CreateFork(ctx, sourceOwner, sourceRepo, opts)
+			
 			if err != nil {
-				return err
+				// Handle accepted error (202) which means the fork is being created asynchronously
+				if _, ok := err.(*github.AcceptedError); ok {
+					 log.Printf("[INFO] Fork is being created asynchronously")
+					 
+					 // The fork information is still returned despite the 202 status
+					 if fork == nil {
+						  return fmt.Errorf("fork information not available after accepted status")
+					 }
+					 log.Printf("[DEBUG] Fork name: %s", fork.GetName())
+				} else {
+					 return fmt.Errorf("failed to create fork: %v", err)
+				}
+		  } else if resp != nil {
+				log.Printf("[DEBUG] Fork response status: %d", resp.StatusCode)
+		  }
+	  
+			if fork == nil {
+				 return fmt.Errorf("fork creation failed - no repository returned")
 			}
-
-			d.SetId(*repo.Name)
-		}
+	  
+			log.Printf("[INFO] Fork created with name: %s", fork.GetName())
+			d.SetId(fork.GetName())
+			log.Printf("[DEBUG] Set resource ID to just the name: %s", d.Id())
+	  
+			d.Set("name", fork.GetName())
+			d.Set("full_name", fork.GetFullName()) // Add the full name for reference
+			d.Set("html_url", fork.GetHTMLURL())
+			d.Set("ssh_clone_url", fork.GetSSHURL())
+			d.Set("git_clone_url", fork.GetGitURL())
+			d.Set("http_clone_url", fork.GetCloneURL())
 	} else {
-		// Create without a repository template
-		var repo *github.Repository
-		var err error
-		if meta.(*Owner).IsOrganization {
-			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
-		} else {
-			// Create repository within authenticated user's account
-			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
-		}
-		if err != nil {
-			return err
-		}
-		d.SetId(repo.GetName())
+		 // Create without a repository template
+		 var repo *github.Repository
+		 var err error
+		 if meta.(*Owner).IsOrganization {
+			  repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+		 } else {
+			  // Create repository within authenticated user's account
+			  repo, _, err = client.Repositories.Create(ctx, "", repoReq)
+		 }
+		 if err != nil {
+			  return err
+		 }
+		 d.SetId(repo.GetName())
 	}
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
-		if err != nil {
-			return err
-		}
+		 _, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
+		 if err != nil {
+			  return err
+		 }
 	}
 
 	pages := expandPages(d.Get("pages").([]interface{}))
 	if pages != nil {
-		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
-		if err != nil {
-			return err
-		}
+		 _, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
+		 if err != nil {
+			  return err
+		 }
 	}
 
 	return resourceGithubRepositoryUpdate(d, meta)
@@ -703,6 +771,21 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		if err := d.Set("pages", flattenPages(pages)); err != nil {
 			return fmt.Errorf("error setting pages: %w", err)
 		}
+	}
+
+	// Set fork information if this is a fork
+	if repo.GetFork() {
+		d.Set("fork", true)
+		
+		// If the repository has parent information, set the source details
+		if repo.Parent != nil {
+			d.Set("source_owner", repo.Parent.GetOwner().GetLogin())
+			d.Set("source_repo", repo.Parent.GetName())
+		}
+	} else {
+		d.Set("fork", false)
+		d.Set("source_owner", "")
+		d.Set("source_repo", "")
 	}
 
 	if repo.TemplateRepository != nil {
