@@ -209,7 +209,7 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 
 	if v, ok := rulesMap["update"].(bool); ok && v {
 		params := github.UpdateAllowsFetchAndMergeRuleParameters{}
-		if fetchAndMerge, ok := rulesMap["update"].(bool); ok && fetchAndMerge {
+		if fetchAndMerge, ok := rulesMap["update_allows_fetch_and_merge"].(bool); ok && fetchAndMerge {
 			params.UpdateAllowsFetchAndMerge = true
 		} else {
 			params.UpdateAllowsFetchAndMerge = false
