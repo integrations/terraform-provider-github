@@ -141,17 +141,6 @@ func listRepoVariables(client *github.Client, ctx context.Context, owner, repo s
 	return allVariables, nil
 }
 
-// Helper function to find variable by name in a list
-func findRepoVariableByName(variables []repoVariable, name string) *repoVariable {
-	name = strings.ToUpper(name) // GitHub stores variable names as uppercase
-	for _, v := range variables {
-		if v.name == name {
-			return &v
-		}
-	}
-	return nil
-}
-
 // Create or update variables to match desired state
 func syncRepoVariables(ctx context.Context, client *github.Client, owner, repo string,
 	wantVariables []interface{}, existingVariables []repoVariable) error {

@@ -149,17 +149,6 @@ func listEnvironmentVariables(client *github.Client, ctx context.Context, owner,
 	return allVariables, nil
 }
 
-// Helper function to find variable by name in a list
-func findVariableByName(variables []environmentVariable, name string) *environmentVariable {
-	name = strings.ToUpper(name) // GitHub stores variable names as uppercase
-	for _, v := range variables {
-		if v.name == name {
-			return &v
-		}
-	}
-	return nil
-}
-
 // Create or update variables to match desired state
 func syncEnvironmentVariables(ctx context.Context, client *github.Client, owner, repo, envName string,
 	wantVariables []interface{}, existingVariables []environmentVariable) error {
