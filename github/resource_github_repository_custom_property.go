@@ -22,7 +22,7 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 		Read:   resourceGithubRepositoryCustomPropertyRead,
 		Delete: resourceGithubRepositoryCustomPropertyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubRepositoryCustomPropertyImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -138,6 +138,34 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta i
 	}
 
 	return nil
+}
+
+func resourceGithubRepositoryCustomPropertyImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+
+	client := meta.(*Owner).v3client
+
+	err := resourceGithubRepositoryCustomPropertyRead(d, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	owner, _, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
+	if err != nil {
+		return nil, err
+	}
+
+	// Type is stored in state but not available on the endpoint used to read and not refreshed.
+	// This causes imported properties to be given null as their property type, which then is
+	// overridden in resource config, forcing replacement.
+	// Instead, import the type of the property from the organization's property schema.
+	wantedCustomPropertySchema, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Set("property_type", wantedCustomPropertySchema.ValueType)
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Client, owner, repoName, propertyName string) ([]string, error) {
