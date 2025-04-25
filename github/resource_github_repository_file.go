@@ -3,12 +3,12 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
-
-	"fmt"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -437,20 +437,30 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 		opts.Message = &m
 	}
 
-	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return err
+	schema := resourceGithubRepositoryFile()
+	allSchemaKeys := make([]string, 0, len(schema.Schema))
+	for k := range schema.Schema {
+		allSchemaKeys = append(allSchemaKeys, k)
 	}
+	allSchemaKeysButCommitDetails := slices.DeleteFunc(allSchemaKeys, func(v string) bool {
+		return slices.Contains([]string{"commit_sha", "commit_author", "commit_email", "commit_message"}, v)
+	})
 
-	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
-		return err
+	if d.HasChanges(allSchemaKeysButCommitDetails...) {
+		create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+		if err != nil {
+			return err
+		}
+		if err = d.Set("commit_sha", create.GetSHA()); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("[DEBUG] No changes to commit, skipping commit")
 	}
-
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
 func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
