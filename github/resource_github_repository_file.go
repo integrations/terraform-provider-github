@@ -367,23 +367,34 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	commit_author := commit.Commit.GetCommitter().GetName()
-	commit_email := commit.Commit.GetCommitter().GetEmail()
-
-	_, hasCommitAuthor := d.GetOk("commit_author")
-	_, hasCommitEmail := d.GetOk("commit_email")
-
-	//read from state if author+email is set explicitly, and if it was not github signing it for you previously
-	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
-		if err = d.Set("commit_author", commit_author); err != nil {
+	if commit_author_st, hasCommitAuthor := d.GetOk("commit_author"); hasCommitAuthor {
+		if err = d.Set("commit_author", commit_author_st.(string)); err != nil {
 			return err
 		}
-		if err = d.Set("commit_email", commit_email); err != nil {
+	} else {
+		if err = d.Set("commit_author", nil); err != nil {
 			return err
 		}
 	}
-	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
-		return err
+
+	if commit_email_st, hasCommitEmail := d.GetOk("commit_email"); hasCommitEmail {
+		if err = d.Set("commit_email", commit_email_st.(string)); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("commit_email", nil); err != nil {
+			return err
+		}
+	}
+
+	if commit_message_st, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
+		if err = d.Set("commit_message", commit_message_st.(string)); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("commit_message", nil); err != nil {
+			return err
+		}
 	}
 
 	return nil
