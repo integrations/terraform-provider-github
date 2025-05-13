@@ -355,7 +355,6 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		requiredWorkflows := make([]*github.RuleRequiredWorkflow, 0)
 
 		if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
-
 			requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
 			for _, workflowMap := range requiredWorkflowsSet.List() {
 				workflow := workflowMap.(map[string]interface{})
@@ -375,7 +374,8 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		}
 
 		params := &github.RequiredWorkflowsRuleParameters{
-			RequiredWorkflows: requiredWorkflows,
+			RequiredWorkflows:    requiredWorkflows,
+			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}

@@ -235,6 +235,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"required_check": {
 										Type:        schema.TypeSet,
 										MinItems:    1,
@@ -428,6 +434,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"required_workflow": {
 										Type:        schema.TypeSet,
 										MinItems:    1,
