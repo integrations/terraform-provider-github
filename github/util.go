@@ -281,3 +281,17 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	}
 	return err
 }
+
+func isSubset(subset, set []string) bool {
+	setMap := make(map[string]struct{}, len(set))
+	for _, item := range set {
+		setMap[item] = struct{}{}
+	}
+
+	for _, item := range subset {
+		if _, ok := setMap[item]; !ok {
+			return false
+		}
+	}
+	return true
+}
