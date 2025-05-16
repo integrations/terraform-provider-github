@@ -122,7 +122,12 @@ func resourceGithubOrganizationCustomProperty() *schema.Resource {
 		Read:   resourceGithubOrganizationCustomPropertyRead,
 		Delete: resourceGithubOrganizationCustomPropertyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				if err := resourceGithubOrganizationCustomPropertyRead(d, meta); err != nil {
+					return nil, err
+				}
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
 			// Validate the relationship between required and default_value.
@@ -162,7 +167,7 @@ func resourceGithubOrganizationCustomProperty() *schema.Resource {
 			// An empty list or a single option is allowed, but more than one value is not supported in this context.
 			if propertyType == SINGLE_SELECT || propertyType == STRING {
 				if len(defaultValue) > 1 {
-					return errors.New("defaultValue must contain zero or one item when type is SINGLE_SELECT or STRING")
+					return errors.New("default_value must contain zero or one item when type is SINGLE_SELECT or STRING")
 				}
 			}
 
@@ -188,7 +193,7 @@ func resourceGithubOrganizationCustomProperty() *schema.Resource {
 				ForceNew:         true,
 				Required:         true,
 				Type:             schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{SINGLE_SELECT, MULTI_SELECT, STRING, TRUE_FALSE}, false), "property_type"),
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{SINGLE_SELECT, MULTI_SELECT, STRING, TRUE_FALSE}, false), "type"),
 			},
 			"required": {
 				Default:     false,
@@ -224,7 +229,7 @@ func resourceGithubOrganizationCustomProperty() *schema.Resource {
 				Description:      "Who can edit the values of the property.",
 				Optional:         true,
 				Type:             schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{ORG_ACTORS, ORG_AND_REPO_ACTORS}, false), "property_values_editable_by"),
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{ORG_ACTORS, ORG_AND_REPO_ACTORS}, false), "values_editable_by"),
 			},
 		},
 	}
