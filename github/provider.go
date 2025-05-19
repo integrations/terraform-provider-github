@@ -157,6 +157,7 @@ func Provider() *schema.Provider {
 			"github_issue_label":                                                    resourceGithubIssueLabel(),
 			"github_issue_labels":                                                   resourceGithubIssueLabels(),
 			"github_membership":                                                     resourceGithubMembership(),
+			"github_organization_code_security_configuration":                       resourceGithubOrganizationCodeSecurityConfiguration(),
 			"github_organization_block":                                             resourceOrganizationBlock(),
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
