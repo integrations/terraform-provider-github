@@ -2,16 +2,16 @@
 package github
 
 import (
-		"context"
-		"errors"
-		"fmt"
-		"log"
-		"net/http"
-		"regexp"
-		"strings"
-		"github.com/google/go-github/v66/github"
-		"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-		"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"regexp"
+	"strings"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -565,9 +565,9 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
-		 if visibility == "private" || visibility == "internal" {
+		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
-		 }
+		}
 	}
 
 	repoReq.Private = github.Bool(isPrivate)
@@ -658,7 +658,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			d.Set("git_clone_url", fork.GetGitURL())
 			d.Set("http_clone_url", fork.GetCloneURL())
 	} else {
-		 // Create without a repository template
+		// Create without a repository template
 		var repo *github.Repository
 		var err error
 		if meta.(*Owner).IsOrganization {
@@ -675,10 +675,10 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
-		 _, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
-		 if err != nil {
-			  return err
-		 }
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
+		if err != nil {
+			return err
+		}
 	}
 
 	pages := expandPages(d.Get("pages").([]interface{}))
