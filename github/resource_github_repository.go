@@ -2,16 +2,16 @@
 package github
 
 import (
-    "context"
-    "errors"
-    "fmt"
-    "log"
-    "net/http"
-    "regexp"
-    "strings"
-    "github.com/google/go-github/v66/github"
-    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+		"context"
+		"errors"
+		"fmt"
+		"log"
+		"net/http"
+		"regexp"
+		"strings"
+		"github.com/google/go-github/v66/github"
+		"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+		"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -66,16 +66,19 @@ func resourceGithubRepository() *schema.Resource {
 			"fork": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "Set to 'true' to fork an existing repository.",
 			},
 			"source_owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "The owner of the source repository to fork from.",
 			},
 			"source_repo": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "The name of the source repository to fork from.",
 			},
 			"security_and_analysis": {
@@ -542,7 +545,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
-		 return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
+		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -557,13 +560,13 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	// prefer visibility to private flag since private flag is deprecated
 	privateKeyword, ok := d.Get("private").(bool)
 	if ok {
-		 isPrivate = privateKeyword
+		isPrivate = privateKeyword
 	}
 
 	visibility, ok := d.Get("visibility").(string)
 	if ok {
 		 if visibility == "private" || visibility == "internal" {
-			  isPrivate = true
+			isPrivate = true
 		 }
 	}
 
@@ -615,7 +618,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	  
 			// Create the fork using the GitHub client library
 			opts := &github.RepositoryCreateForkOptions{
-				 Name: requestedName, 
+				Name: requestedName, 
 			}
 	  
 			if meta.(*Owner).IsOrganization {
@@ -628,8 +631,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				// Handle accepted error (202) which means the fork is being created asynchronously
 				if _, ok := err.(*github.AcceptedError); ok {
 					 log.Printf("[INFO] Fork is being created asynchronously")
-					 
-					 // The fork information is still returned despite the 202 status
+					 // Despite the 202 status, the API should still return preliminary fork information
 					 if fork == nil {
 						  return fmt.Errorf("fork information not available after accepted status")
 					 }
@@ -637,9 +639,9 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 				} else {
 					 return fmt.Errorf("failed to create fork: %v", err)
 				}
-		  } else if resp != nil {
+			} else if resp != nil {
 				log.Printf("[DEBUG] Fork response status: %d", resp.StatusCode)
-		  }
+			}
 	  
 			if fork == nil {
 				 return fmt.Errorf("fork creation failed - no repository returned")
@@ -657,18 +659,18 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			d.Set("http_clone_url", fork.GetCloneURL())
 	} else {
 		 // Create without a repository template
-		 var repo *github.Repository
-		 var err error
-		 if meta.(*Owner).IsOrganization {
-			  repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
-		 } else {
-			  // Create repository within authenticated user's account
-			  repo, _, err = client.Repositories.Create(ctx, "", repoReq)
-		 }
-		 if err != nil {
-			  return err
-		 }
-		 d.SetId(repo.GetName())
+		var repo *github.Repository
+		var err error
+		if meta.(*Owner).IsOrganization {
+			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+		} else {
+			// Create repository within authenticated user's account
+			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
+		}
+		if err != nil {
+			return err
+		}
+		d.SetId(repo.GetName())
 	}
 
 	topics := repoReq.Topics
@@ -681,9 +683,9 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	pages := expandPages(d.Get("pages").([]interface{}))
 	if pages != nil {
-		 _, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
-		 if err != nil {
-			  return err
+		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
+		if err != nil {
+			return err
 		 }
 	}
 
