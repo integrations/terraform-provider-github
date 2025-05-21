@@ -543,7 +543,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	
+
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
 		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
@@ -686,7 +686,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
 		if err != nil {
 			return err
-		 }
+		}
 	}
 
 	return resourceGithubRepositoryUpdate(d, meta)
