@@ -69,9 +69,9 @@ The following arguments are supported:
 
 * `homepage_url` - (Optional) URL of a page describing the project.
 
-* `fork` - (Optional) Set to `true` to create a fork of another repository. When set to `true`, `source_owner` and `source_repo` must be specified.
+* `fork` - (Optional) Set to `true` to create a fork of an existing repository. When set to `true`, both `source_owner` and `source_repo` must also be specified.
 
-* `source_owner` - (Optional) The owner of the repository to fork. Required when `fork` is `true`.
+* `source_owner` - (Optional) The GitHub username or organization that owns the repository being forked. Required when `fork` is `true`.
 
 * `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
