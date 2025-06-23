@@ -53,6 +53,34 @@ resource "github_actions_environment_secret" "test_secret" {
 }
 ```
 
+## Example Lifecycle Ignore Changes
+
+This resource supports the `lifecycle` `ignore_changes` block. This is for use cases where a secret value is created
+using a placeholder value and then modified after creation outside the scope of Terraform. This approach ensures only
+the initial placeholder value is referenced in your code and in the resulting state file.
+
+```hcl
+resource "github_actions_environment_secret" "example_secret" {
+  environment       = "example_environment"
+  secret_name       = "example_secret_name"
+  plaintext_value   = "placeholder"
+
+  lifecycle {
+    ignore_changes = [plaintext_value]
+  }
+}
+
+resource "github_actions_environment_secret" "example_secret" {
+  environment       = "example_environment"
+  secret_name       = "example_secret_name"
+  encrypted_value   = base64sha256("placeholder")
+
+  lifecycle {
+    ignore_changes = [encrypted_value]
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
