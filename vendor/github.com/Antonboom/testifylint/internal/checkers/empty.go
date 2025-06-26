@@ -21,11 +21,16 @@ import (
 //	assert.Greater(t, 0, len(arr))
 //	assert.Less(t, len(arr), 1)
 //	assert.Greater(t, 1, len(arr))
+//	assert.Zero(t, len(arr))
+//	assert.Empty(t, len(arr))
 //
 //	assert.NotEqual(t, 0, len(arr))
 //	assert.NotEqualValues(t, 0, len(arr))
 //	assert.Less(t, 0, len(arr))
 //	assert.Greater(t, len(arr), 0)
+//	assert.Positive(t, len(arr))
+//	assert.NotZero(t, len(arr))
+//	assert.NotEmpty(t, len(arr))
 //
 // and requires
 //
@@ -48,18 +53,34 @@ func (checker Empty) checkEmpty(pass *analysis.Pass, call *CallMeta) *analysis.D
 	newUseEmptyDiagnostic := func(replaceStart, replaceEnd token.Pos, replaceWith ast.Expr) *analysis.Diagnostic {
 		const proposed = "Empty"
 		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+			analysis.TextEdit{
 				Pos:     replaceStart,
 				End:     replaceEnd,
 				NewText: analysisutil.NodeBytes(pass.Fset, replaceWith),
-			}),
-		)
+			})
+	}
+
+	if len(call.Args) == 0 {
+		return nil
+	}
+	a := call.Args[0]
+
+	switch call.Fn.NameFTrimmed {
+	case "Zero":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newUseEmptyDiagnostic(a.Pos(), a.End(), lenArg)
+		}
+
+	case "Empty":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newRemoveLenDiagnostic(pass, checker.Name(), call, a, lenArg)
+		}
 	}
 
 	if len(call.Args) < 2 {
 		return nil
 	}
-	a, b := call.Args[0], call.Args[1]
+	b := call.Args[1]
 
 	switch call.Fn.NameFTrimmed {
 	case "Len":
@@ -102,18 +123,34 @@ func (checker Empty) checkNotEmpty(pass *analysis.Pass, call *CallMeta) *analysi
 	newUseNotEmptyDiagnostic := func(replaceStart, replaceEnd token.Pos, replaceWith ast.Expr) *analysis.Diagnostic {
 		const proposed = "NotEmpty"
 		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
+			analysis.TextEdit{
 				Pos:     replaceStart,
 				End:     replaceEnd,
 				NewText: analysisutil.NodeBytes(pass.Fset, replaceWith),
-			}),
-		)
+			})
+	}
+
+	if len(call.Args) == 0 {
+		return nil
+	}
+	a := call.Args[0]
+
+	switch call.Fn.NameFTrimmed {
+	case "NotZero", "Positive":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newUseNotEmptyDiagnostic(a.Pos(), a.End(), lenArg)
+		}
+
+	case "NotEmpty":
+		if lenArg, ok := isBuiltinLenCall(pass, a); ok {
+			return newRemoveLenDiagnostic(pass, checker.Name(), call, a, lenArg)
+		}
 	}
 
 	if len(call.Args) < 2 {
 		return nil
 	}
-	a, b := call.Args[0], call.Args[1]
+	b := call.Args[1]
 
 	switch call.Fn.NameFTrimmed {
 	case "NotEqual", "NotEqualValues":

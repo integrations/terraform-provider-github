@@ -44,6 +44,10 @@ type WrapcheckConfig struct {
 	// list to your config.
 	IgnoreSigs []string `mapstructure:"ignoreSigs" yaml:"ignoreSigs"`
 
+	// ExtraIgnoreSigs defines an additional list of signatures to ignore, on
+	// top of IgnoreSigs.
+	ExtraIgnoreSigs []string `mapstructure:"extraIgnoreSigs" yaml:"extraIgnoreSigs"`
+
 	// IgnoreSigRegexps defines a list of regular expressions which if matched
 	// to the signature of the function call returning the error, will be ignored. This
 	// allows you to specify functions that wrapcheck will not report as
@@ -276,16 +280,16 @@ func reportUnwrapped(
 
 	// Check for ignored signatures
 	fnSig := pass.TypesInfo.ObjectOf(sel.Sel).String()
-	if contains(cfg.IgnoreSigs, fnSig) {
+	if contains(cfg.IgnoreSigs, fnSig) || contains(cfg.ExtraIgnoreSigs, fnSig) {
 		return
 	} else if containsMatch(regexpsSig, fnSig) {
 		return
 	}
 
 	// Check if the underlying type of the "x" in x.y.z is an interface, as
-	// errors returned from interface types should be wrapped, unless ignored
-	// as per `ignoreInterfaceRegexps`
-	if isInterface(pass, sel) {
+	// errors returned from exported interface types should be wrapped, unless
+	// ignored as per `ignoreInterfaceRegexps`
+	if sel.Sel.IsExported() && isInterface(pass, sel) {
 		pkgPath := pass.TypesInfo.ObjectOf(sel.Sel).Pkg().Path()
 		name := types.TypeString(pass.TypesInfo.TypeOf(sel.X), func(p *types.Package) string { return p.Name() })
 		if !containsMatch(regexpsInter, name) && !containsMatchGlob(pkgGlobs, pkgPath) {

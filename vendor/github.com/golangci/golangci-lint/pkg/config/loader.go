@@ -1,6 +1,8 @@
 package config
 
 import (
+	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
+	"github.com/golangci/golangci-lint/pkg/goutil"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
@@ -65,6 +68,26 @@ func (l *Loader) Load(opts LoadOptions) error {
 
 	l.applyStringSliceHack()
 
+	if l.cfg.Linters.LinterExclusions.Generated == "" {
+		// `l.cfg.Issues.ExcludeGenerated` is always non-empty because of the flag default value.
+		l.cfg.Linters.LinterExclusions.Generated = cmp.Or(l.cfg.Issues.ExcludeGenerated, "strict")
+	}
+
+	// Compatibility layer with v1.
+	// TODO(ldez): should be removed in v2.
+	if l.cfg.Issues.UseDefaultExcludes {
+		l.cfg.Linters.LinterExclusions.Presets = []string{
+			ExclusionPresetComments,
+			ExclusionPresetStdErrorHandling,
+			ExclusionPresetCommonFalsePositives,
+			ExclusionPresetLegacy,
+		}
+	}
+
+	if len(l.cfg.Issues.ExcludeRules) > 0 {
+		l.cfg.Linters.LinterExclusions.Rules = append(l.cfg.Linters.LinterExclusions.Rules, l.cfg.Issues.ExcludeRules...)
+	}
+
 	if opts.CheckDeprecation {
 		err = l.handleDeprecation()
 		if err != nil {
@@ -73,6 +96,16 @@ func (l *Loader) Load(opts LoadOptions) error {
 	}
 
 	l.handleGoVersion()
+
+	err = goutil.CheckGoVersion(l.cfg.Run.Go)
+	if err != nil {
+		return err
+	}
+
+	l.cfg.basePath, err = fsutils.GetBasePath(context.Background(), l.cfg.Run.RelativePathMode, l.cfg.cfgDir)
+	if err != nil {
+		return fmt.Errorf("get base path: %w", err)
+	}
 
 	err = l.handleEnableOnlyOption()
 	if err != nil {
@@ -279,31 +312,20 @@ func (l *Loader) appendStringSlice(name string, current *[]string) {
 
 func (l *Loader) handleGoVersion() {
 	if l.cfg.Run.Go == "" {
-		l.cfg.Run.Go = detectGoVersion()
+		l.cfg.Run.Go = detectGoVersion(context.Background())
 	}
 
 	l.cfg.LintersSettings.Govet.Go = l.cfg.Run.Go
 
 	l.cfg.LintersSettings.ParallelTest.Go = l.cfg.Run.Go
 
-	if l.cfg.LintersSettings.Gofumpt.LangVersion == "" {
-		l.cfg.LintersSettings.Gofumpt.LangVersion = l.cfg.Run.Go
-	}
+	l.cfg.LintersSettings.Gofumpt.LangVersion = cmp.Or(l.cfg.LintersSettings.Gofumpt.LangVersion, l.cfg.Run.Go)
 
-	trimmedGoVersion := trimGoVersion(l.cfg.Run.Go)
+	trimmedGoVersion := goutil.TrimGoVersion(l.cfg.Run.Go)
+
+	l.cfg.LintersSettings.Revive.Go = trimmedGoVersion
 
 	l.cfg.LintersSettings.Gocritic.Go = trimmedGoVersion
-
-	// staticcheck related linters.
-	if l.cfg.LintersSettings.Staticcheck.GoVersion == "" {
-		l.cfg.LintersSettings.Staticcheck.GoVersion = trimmedGoVersion
-	}
-	if l.cfg.LintersSettings.Gosimple.GoVersion == "" {
-		l.cfg.LintersSettings.Gosimple.GoVersion = trimmedGoVersion
-	}
-	if l.cfg.LintersSettings.Stylecheck.GoVersion == "" {
-		l.cfg.LintersSettings.Stylecheck.GoVersion = trimmedGoVersion
-	}
 
 	os.Setenv("GOSECGOVERSION", l.cfg.Run.Go)
 }
@@ -325,19 +347,23 @@ func (l *Loader) handleDeprecation() error {
 		l.cfg.Issues.ExcludeDirs = l.cfg.Run.SkipDirs
 	}
 
-	// The 2 options are true by default.
 	// Deprecated since v1.57.0
-	if !l.cfg.Run.UseDefaultSkipDirs {
+	if l.cfg.Run.UseDefaultSkipDirs != nil {
 		l.log.Warnf("The configuration option `run.skip-dirs-use-default` is deprecated, please use `issues.exclude-dirs-use-default`.")
+		l.cfg.Issues.UseDefaultExcludeDirs = *l.cfg.Run.UseDefaultSkipDirs
 	}
-	l.cfg.Issues.UseDefaultExcludeDirs = l.cfg.Run.UseDefaultSkipDirs && l.cfg.Issues.UseDefaultExcludeDirs
 
-	// The 2 options are false by default.
 	// Deprecated since v1.57.0
-	if l.cfg.Run.ShowStats {
+	if l.cfg.Run.ShowStats != nil {
 		l.log.Warnf("The configuration option `run.show-stats` is deprecated, please use `output.show-stats`")
+		l.cfg.Output.ShowStats = *l.cfg.Run.ShowStats
 	}
-	l.cfg.Output.ShowStats = l.cfg.Run.ShowStats || l.cfg.Output.ShowStats
+
+	// Deprecated since v1.63.0
+	if l.cfg.Output.UniqByLine != nil {
+		l.log.Warnf("The configuration option `output.uniq-by-line` is deprecated, please use `issues.uniq-by-line`")
+		l.cfg.Issues.UniqByLine = *l.cfg.Output.UniqByLine
+	}
 
 	// Deprecated since v1.57.0
 	if l.cfg.Output.Format != "" {
@@ -360,9 +386,11 @@ func (l *Loader) handleDeprecation() error {
 	}
 
 	// Deprecated since v1.59.0
-	if l.cfg.Issues.ExcludeGeneratedStrict {
+	if l.cfg.Issues.ExcludeGeneratedStrict != nil {
 		l.log.Warnf("The configuration option `issues.exclude-generated-strict` is deprecated, please use `issues.exclude-generated`")
-		l.cfg.Issues.ExcludeGenerated = "strict" // Don't use the constants to avoid cyclic dependencies.
+		if !*l.cfg.Issues.ExcludeGeneratedStrict {
+			l.cfg.Issues.ExcludeGenerated = "strict" // Don't use the constants to avoid cyclic dependencies.
+		}
 	}
 
 	l.handleLinterOptionDeprecations()
@@ -370,16 +398,15 @@ func (l *Loader) handleDeprecation() error {
 	return nil
 }
 
-//nolint:gocyclo // the complexity cannot be reduced.
 func (l *Loader) handleLinterOptionDeprecations() {
 	// Deprecated since v1.57.0,
 	// but it was unofficially deprecated since v1.19 (2019) (https://github.com/golangci/golangci-lint/pull/697).
-	if l.cfg.LintersSettings.Govet.CheckShadowing {
+	if l.cfg.LintersSettings.Govet.CheckShadowing != nil {
 		l.log.Warnf("The configuration option `linters.govet.check-shadowing` is deprecated. " +
 			"Please enable `shadow` instead, if you are not using `enable-all`.")
 	}
 
-	if l.cfg.LintersSettings.CopyLoopVar.IgnoreAlias {
+	if l.cfg.LintersSettings.CopyLoopVar.IgnoreAlias != nil {
 		l.log.Warnf("The configuration option `linters.copyloopvar.ignore-alias` is deprecated and ignored," +
 			"please use `linters.copyloopvar.check-alias`.")
 	}
@@ -401,14 +428,8 @@ func (l *Loader) handleLinterOptionDeprecations() {
 	}
 
 	// Deprecated since v1.33.0.
-	if l.cfg.LintersSettings.Godot.CheckAll {
+	if l.cfg.LintersSettings.Godot.CheckAll != nil {
 		l.log.Warnf("The configuration option `linters.godot.check-all` is deprecated, please use `linters.godot.scope: all`.")
-	}
-
-	// Deprecated since v1.44.0.
-	if len(l.cfg.LintersSettings.Gomnd.Settings) > 0 {
-		l.log.Warnf("The configuration option `linters.gomnd.settings` is deprecated. Please use the options " +
-			"`linters.gomnd.checks`,`linters.gomnd.ignored-numbers`,`linters.gomnd.ignored-files`,`linters.gomnd.ignored-functions`.")
 	}
 
 	// Deprecated since v1.47.0
@@ -431,21 +452,24 @@ func (l *Loader) handleLinterOptionDeprecations() {
 		l.log.Warnf("The configuration option `linters.stylecheck.go` is deprecated, please use global `run.go`.")
 	}
 
+	// Deprecated since v1.60.0
+	if l.cfg.LintersSettings.Unused.ExportedIsUsed != nil {
+		l.log.Warnf("The configuration option `linters.unused.exported-is-used` is deprecated.")
+	}
+
 	// Deprecated since v1.58.0
-	if l.cfg.LintersSettings.SlogLint.ContextOnly {
+	if l.cfg.LintersSettings.SlogLint.ContextOnly != nil {
 		l.log.Warnf("The configuration option `linters.sloglint.context-only` is deprecated, please use `linters.sloglint.context`.")
-		if l.cfg.LintersSettings.SlogLint.Context == "" {
-			l.cfg.LintersSettings.SlogLint.Context = "all"
-		}
+		l.cfg.LintersSettings.SlogLint.Context = cmp.Or(l.cfg.LintersSettings.SlogLint.Context, "all")
 	}
 
 	// Deprecated since v1.51.0
-	if l.cfg.LintersSettings.UseStdlibVars.OSDevNull {
+	if l.cfg.LintersSettings.UseStdlibVars.OSDevNull != nil {
 		l.log.Warnf("The configuration option `linters.usestdlibvars.os-dev-null` is deprecated.")
 	}
 
 	// Deprecated since v1.51.0
-	if l.cfg.LintersSettings.UseStdlibVars.SyslogPriority {
+	if l.cfg.LintersSettings.UseStdlibVars.SyslogPriority != nil {
 		l.log.Warnf("The configuration option `linters.usestdlibvars.syslog-priority` is deprecated.")
 	}
 }

@@ -10,6 +10,7 @@ import (
 
 var _ Processor = (*MaxSameIssues)(nil)
 
+// MaxSameIssues limits the number of reports with the same text.
 type MaxSameIssues struct {
 	textCounter map[string]int
 	limit       int
@@ -35,13 +36,9 @@ func (p *MaxSameIssues) Process(issues []result.Issue) ([]result.Issue, error) {
 		return issues, nil
 	}
 
-	return filterIssues(issues, func(issue *result.Issue) bool {
-		if issue.Replacement != nil && p.cfg.Issues.NeedFix {
-			// we need to fix all issues at once => we need to return all of them
-			return true
-		}
-
+	return filterIssuesUnsafe(issues, func(issue *result.Issue) bool {
 		p.textCounter[issue.Text]++ // always inc for stat
+
 		return p.textCounter[issue.Text] <= p.limit
 	}), nil
 }
