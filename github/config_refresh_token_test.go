@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 	"strings"
