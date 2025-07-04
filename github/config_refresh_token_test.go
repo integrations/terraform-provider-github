@@ -122,17 +122,14 @@ func TestAuthenticatedHTTPClient_MissingAppID(t *testing.T) {
 	}()
 
 	cfg := &Config{Token: "any"}
-
 	client := cfg.AuthenticatedHTTPClient()
 
-	if client == nil {
-		t.Log("client is nil as expected due to missing app ID")
-	} else {
-		t.Error("Expected nil client due to invalid GITHUB_APP_ID")
+	// Now force token fetch
+	_, err := client.Transport.(*oauth2.Transport).Source.Token()
+	if err == nil || err.Error() != "invalid GITHUB_APP_ID: strconv.ParseInt: parsing \"\": invalid syntax" {
+		t.Errorf("Expected error for missing GITHUB_APP_ID, got: %v", err)
 	}
 }
-
-
 
 func TestAuthenticatedHTTPClient_MissingInstallationID(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "123456")
@@ -145,15 +142,15 @@ func TestAuthenticatedHTTPClient_MissingInstallationID(t *testing.T) {
 	}()
 
 	cfg := &Config{Token: "any"}
-
 	client := cfg.AuthenticatedHTTPClient()
-	if client == nil {
-		t.Log("client is nil as expected due to missing installation ID")
-	} else {
-		t.Error("expected nil client due to invalid GITHUB_APP_INSTALLATION_ID")
+
+	tokenSource := client.Transport.(*oauth2.Transport).Source
+	_, err := tokenSource.Token()
+	if err == nil || !strings.Contains(err.Error(), "invalid GITHUB_APP_INSTALLATION_ID") {
+		t.Logf("actual error: %v", err)
+		t.Error("expected error due to missing GITHUB_APP_INSTALLATION_ID")
 	}
 }
-
 
 func TestAuthenticatedHTTPClient_MissingPEM(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "123456")
@@ -167,12 +164,12 @@ func TestAuthenticatedHTTPClient_MissingPEM(t *testing.T) {
 	}()
 
 	cfg := &Config{Token: "any"}
-
 	client := cfg.AuthenticatedHTTPClient()
-	if client == nil {
-		t.Log("client is nil as expected due to missing PEM")
-	} else {
-		t.Error("expected nil client due to missing PEM content")
+
+	tokenSource := client.Transport.(*oauth2.Transport).Source
+	_, err := tokenSource.Token()
+	if err == nil || !strings.Contains(err.Error(), "GITHUB_APP_PEM is empty") {
+		t.Logf("actual error: %v", err)
+		t.Error("expected error due to missing GITHUB_APP_PEM")
 	}
 }
-
