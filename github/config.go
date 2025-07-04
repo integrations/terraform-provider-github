@@ -2,13 +2,19 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
@@ -61,9 +67,54 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
 
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: c.Token},
-	)
+
+	initialExpiry := time.Now().Add(5 * time.Minute) // fallback expiry
+
+	ts := NewRefreshingTokenSource(c.Token, initialExpiry, func(ctx context.Context) (string, time.Time, error) {
+		appID, err := strconv.ParseInt(os.Getenv("GITHUB_APP_ID"), 10, 64)
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("invalid GITHUB_APP_ID: %w", err)
+		}
+
+		installationID, err := strconv.ParseInt(os.Getenv("GITHUB_APP_INSTALLATION_ID"), 10, 64)
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("invalid GITHUB_APP_INSTALLATION_ID: %w", err)
+		}
+
+		var pemBytes []byte
+		pemFile := os.Getenv("GITHUB_APP_PEM_FILE")
+		if pemFile != "" {
+			pemBytes, err = os.ReadFile(pemFile)
+			if err != nil {
+				return "", time.Time{}, fmt.Errorf("failed to read PEM file: %w", err)
+			}
+		} else {
+			pemBytes = []byte(os.Getenv("GITHUB_APP_PEM"))
+			if len(pemBytes) == 0 {
+				return "", time.Time{}, fmt.Errorf("GITHUB_APP_PEM is empty")
+			}
+		}
+
+		itr, err := ghinstallation.New(http.DefaultTransport, appID, installationID, pemBytes)
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("failed to create installation transport: %w", err)
+		}
+
+		token, err := itr.Token(context.Background())
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("failed to get GitHub App token: %w", err)
+		}
+
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("failed to get GitHub token: %w", err)
+		}
+		// Estimate expiry manually since ghinstallation.Token() doesn't return it
+		expiry := time.Now().Add(59 * time.Minute)
+
+		log.Printf("[INFO] Refreshed GitHub App token valid until %s", expiry.Format(time.RFC3339))
+		return token, expiry, nil
+	})
+
 	client := oauth2.NewClient(ctx, ts)
 
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
@@ -197,4 +248,46 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
+}
+
+type refreshingTokenSource struct {
+	mu          sync.Mutex
+	token       string
+	expiry      time.Time
+	refreshFunc func(ctx context.Context) (string, time.Time, error)
+}
+
+func (r *refreshingTokenSource) Token() (*oauth2.Token, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if time.Now().Before(r.expiry.Add(-2*time.Minute)) && r.token != "" {
+		return &oauth2.Token{
+			AccessToken: r.token,
+			TokenType:   "Bearer",
+			Expiry:      r.expiry,
+		}, nil
+	}
+
+	newToken, newExpiry, err := r.refreshFunc(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	r.token = newToken
+	r.expiry = newExpiry
+
+	return &oauth2.Token{
+		AccessToken: newToken,
+		TokenType:   "Bearer",
+		Expiry:      newExpiry,
+	}, nil
+}
+
+func NewRefreshingTokenSource(initialToken string, initialExpiry time.Time, refreshFunc func(ctx context.Context) (string, time.Time, error)) oauth2.TokenSource {
+	return &refreshingTokenSource{
+		token:       initialToken,
+		expiry:      initialExpiry,
+		refreshFunc: refreshFunc,
+	}
 }
