@@ -3,9 +3,12 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"testing"
+	"strings"
 	"time"
+	"golang.org/x/oauth2"
 )
 
 // --- Unified Mock Refresh Function ---
