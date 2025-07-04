@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -15,7 +14,6 @@ func makeMockRefreshFunc(token string, expiry time.Time, fail bool) func(context
 		if fail {
 			return "", time.Time{}, errors.New("mock refresh failure")
 		}
-		fmt.Println("[INFO] Test: Simulated refresh called")
 		return token, expiry, nil
 	}
 }
