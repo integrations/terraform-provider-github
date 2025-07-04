@@ -21,7 +21,7 @@ func makeMockRefreshFunc(token string, expiry time.Time, fail bool) func(context
 // --- RefreshingTokenSource Tests ---
 
 func TestRefreshingTokenSource_InitialValidToken(t *testing.T) {
-	exp := time.Now().Add(2 * time.Minute)
+	exp := time.Now().Add(5 * time.Minute)
 	ts := NewRefreshingTokenSource("init-token", exp, makeMockRefreshFunc("new-token", time.Now().Add(10*time.Minute), false))
 
 	token, err := ts.Token()
