@@ -115,15 +115,19 @@ func TestAuthenticatedHTTPClient_MissingAppID(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "")
 	os.Setenv("GITHUB_APP_INSTALLATION_ID", "1234")
 	os.Setenv("GITHUB_APP_PEM", "dummy")
+
 	cfg := &Config{Token: "any"}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic due to invalid app ID")
-		}
-	}()
-	_ = cfg.AuthenticatedHTTPClient()
+	// Capture logs or behavior
+	client := cfg.AuthenticatedHTTPClient()
+
+	if client == nil {
+		t.Log("client is nil as expected due to missing app ID")
+	} else {
+		t.Error("Expected nil client due to invalid GITHUB_APP_ID")
+	}
 }
+
 
 func TestAuthenticatedHTTPClient_MissingInstallationID(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "123456")
