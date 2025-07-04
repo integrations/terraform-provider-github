@@ -104,10 +104,6 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 		if err != nil {
 			return "", time.Time{}, fmt.Errorf("failed to get GitHub App token: %w", err)
 		}
-
-		if err != nil {
-			return "", time.Time{}, fmt.Errorf("failed to get GitHub token: %w", err)
-		}
 		// Estimate expiry manually since ghinstallation.Token() doesn't return it
 		expiry := time.Now().Add(59 * time.Minute)
 
