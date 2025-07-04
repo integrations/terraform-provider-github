@@ -115,10 +115,14 @@ func TestAuthenticatedHTTPClient_MissingAppID(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "")
 	os.Setenv("GITHUB_APP_INSTALLATION_ID", "1234")
 	os.Setenv("GITHUB_APP_PEM", "dummy")
+	defer func() {
+		os.Unsetenv("GITHUB_APP_ID")
+		os.Unsetenv("GITHUB_APP_INSTALLATION_ID")
+		os.Unsetenv("GITHUB_APP_PEM")
+	}()
 
 	cfg := &Config{Token: "any"}
 
-	// Capture logs or behavior
 	client := cfg.AuthenticatedHTTPClient()
 
 	if client == nil {
@@ -129,31 +133,46 @@ func TestAuthenticatedHTTPClient_MissingAppID(t *testing.T) {
 }
 
 
+
 func TestAuthenticatedHTTPClient_MissingInstallationID(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "123456")
 	os.Setenv("GITHUB_APP_INSTALLATION_ID", "")
 	os.Setenv("GITHUB_APP_PEM", "dummy")
+	defer func() {
+		os.Unsetenv("GITHUB_APP_ID")
+		os.Unsetenv("GITHUB_APP_INSTALLATION_ID")
+		os.Unsetenv("GITHUB_APP_PEM")
+	}()
+
 	cfg := &Config{Token: "any"}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic due to invalid installation ID")
-		}
-	}()
-	_ = cfg.AuthenticatedHTTPClient()
+	client := cfg.AuthenticatedHTTPClient()
+	if client == nil {
+		t.Log("client is nil as expected due to missing installation ID")
+	} else {
+		t.Error("expected nil client due to invalid GITHUB_APP_INSTALLATION_ID")
+	}
 }
+
 
 func TestAuthenticatedHTTPClient_MissingPEM(t *testing.T) {
 	os.Setenv("GITHUB_APP_ID", "123456")
 	os.Setenv("GITHUB_APP_INSTALLATION_ID", "1234")
 	os.Setenv("GITHUB_APP_PEM", "")
 	os.Unsetenv("GITHUB_APP_PEM_FILE")
+	defer func() {
+		os.Unsetenv("GITHUB_APP_ID")
+		os.Unsetenv("GITHUB_APP_INSTALLATION_ID")
+		os.Unsetenv("GITHUB_APP_PEM")
+	}()
+
 	cfg := &Config{Token: "any"}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic due to missing PEM content")
-		}
-	}()
-	_ = cfg.AuthenticatedHTTPClient()
+	client := cfg.AuthenticatedHTTPClient()
+	if client == nil {
+		t.Log("client is nil as expected due to missing PEM")
+	} else {
+		t.Error("expected nil client due to missing PEM content")
+	}
 }
+
