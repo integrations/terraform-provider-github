@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"testing"
-	"strings"
 	"time"
 )
 
