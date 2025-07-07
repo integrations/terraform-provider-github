@@ -880,6 +880,10 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 			repoReq := resourceGithubRepositoryObject(d)
+			if !d.HasChange("security_and_analysis") {
+				repoReq.SecurityAndAnalysis = nil
+				log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
+			}
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return err
