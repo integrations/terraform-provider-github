@@ -595,26 +595,21 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	t.Run("archives repositories on destroy", func(t *testing.T) {
 
+		repo := fmt.Sprintf("tf-acc-test-destroy-%s", randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name               = "tf-acc-test-destroy-%[1]s"
+				name               = "%[1]s"
 				auto_init          = true
 				archive_on_destroy = true
 				archived           = false
 			}
-		`, randomID)
+		`, repo)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_repository.test", "archived",
 					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "archived",
-					"true",
 				),
 			),
 		}
@@ -628,12 +623,21 @@ func TestAccGithubRepositories(t *testing.T) {
 						Config: config,
 						Check:  checks["before"],
 					},
-					{
-						Config: strings.Replace(config,
-							`archived           = false`,
-							`archived           = true`, 1),
-						Check: checks["after"],
-					},
+				},
+				CheckDestroy: func(*terraform.State) error {
+					conn := testAccProvider.Meta().(*Owner).v3client
+					orgName := testAccProvider.Meta().(*Owner).name
+					r, _, err := conn.Repositories.Get(context.Background(), orgName, repo)
+					if err != nil {
+						t.Fatalf("failed to get repo: %v", err)
+					} else if *r.Archived != true {
+						t.Fatal("repo was not archived on destroy")
+					}
+					_, err = conn.Repositories.Delete(context.Background(), orgName, repo)
+					if err != nil {
+						t.Fatalf("failed to actually delete archived archive_on_destroy repo: %v", err)
+					}
+					return nil
 				},
 			})
 		}
