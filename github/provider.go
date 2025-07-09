@@ -428,9 +428,11 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		parallelRequests := d.Get("parallel_requests").(bool)
 
 		if parallelRequests && isGithubDotCom {
-			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
+                        // Hack to allow parallel requests to github.com per:
+                        // https://github.com/integrations/terraform-provider-github/issues/567#issuecomment-2993829965
+			// return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
+		        log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 		}
-		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
 		config := Config{
 			Token:            token,
