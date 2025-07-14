@@ -221,6 +221,7 @@ func Provider() *schema.Provider {
 			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_organization_public_key":                                dataSourceGithubActionsOrganizationPublicKey(),
 			"github_actions_organization_registration_token":                        dataSourceGithubActionsOrganizationRegistrationToken(),
+			"github_actions_organization_registration_tokens":                       dataSourceGithubActionsOrganizationRemoveToken(),
 			"github_actions_organization_secrets":                                   dataSourceGithubActionsOrganizationSecrets(),
 			"github_actions_organization_variables":                                 dataSourceGithubActionsOrganizationVariables(),
 			"github_actions_public_key":                                             dataSourceGithubActionsPublicKey(),
