@@ -18,6 +18,7 @@ func TestAccGithubActionsRemoveTokenDataSource(t *testing.T) {
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
 				auto_init = true
+				vulnerability_alerts = true
 			}
 
 			data "github_actions_remove_token" "test" {
