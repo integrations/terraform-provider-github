@@ -35,10 +35,10 @@ func dataSourceGithubActionsRemoveTokenRead(d *schema.ResourceData, meta interfa
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	log.Printf("[DEBUG] Creating a GitHub Actions repository registration token for %s/%s", owner, repoName)
-	token, _, err := client.Actions.CreateRegistrationToken(context.TODO(), owner, repoName)
+	log.Printf("[DEBUG] Creating a GitHub Actions repository remove token for %s/%s", owner, repoName)
+	token, _, err := client.Actions.CreateRemoveToken(context.TODO(), owner, repoName)
 	if err != nil {
-		return fmt.Errorf("error creating a GitHub Actions repository registration token for %s/%s: %s", owner, repoName, err)
+		return fmt.Errorf("error creating a GitHub Actions repository remove token for %s/%s: %s", owner, repoName, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repoName))
@@ -49,9 +49,6 @@ func dataSourceGithubActionsRemoveTokenRead(d *schema.ResourceData, meta interfa
 	err = d.Set("expires_at", token.ExpiresAt.Unix())
 	if err != nil {
 		return err
-	}
-	if token.Token != nil {
-		log.Printf("tokenoutput: %s", *token.Token)
 	}
 
 	return nil
