@@ -13,6 +13,11 @@ func dataSourceGithubActionsRemoveToken() *schema.Resource {
 		Read: dataSourceGithubActionsRemoveTokenRead,
 
 		Schema: map[string]*schema.Schema{
+			"repository": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"token": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -28,14 +33,15 @@ func dataSourceGithubActionsRemoveToken() *schema.Resource {
 func dataSourceGithubActionsRemoveTokenRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
 
-	log.Printf("[DEBUG] Creating a GitHub Actions organization remove token for %s", owner)
-	token, _, err := client.Actions.CreateOrganizationRemoveToken(context.TODO(), owner)
+	log.Printf("[DEBUG] Creating a GitHub Actions repository registration token for %s/%s", owner, repoName)
+	token, _, err := client.Actions.CreateRegistrationToken(context.TODO(), owner, repoName)
 	if err != nil {
-		return fmt.Errorf("error creating a GitHub Actions organization remove token for %s: %s", owner, err)
+		return fmt.Errorf("error creating a GitHub Actions repository registration token for %s/%s: %s", owner, repoName, err)
 	}
 
-	d.SetId(owner)
+	d.SetId(fmt.Sprintf("%s/%s", owner, repoName))
 	err = d.Set("token", token.Token)
 	if err != nil {
 		return err
@@ -43,6 +49,9 @@ func dataSourceGithubActionsRemoveTokenRead(d *schema.ResourceData, meta interfa
 	err = d.Set("expires_at", token.ExpiresAt.Unix())
 	if err != nil {
 		return err
+	}
+	if token.Token != nil {
+		log.Printf("tokenoutput: %s", *token.Token)
 	}
 
 	return nil

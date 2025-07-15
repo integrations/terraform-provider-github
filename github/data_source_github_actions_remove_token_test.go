@@ -1,21 +1,32 @@
 package github
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubActionsRemoveTokenDataSource(t *testing.T) {
 
-	t.Run("get an organization remove token without error", func(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-		config := `
-			data "github_actions_remove_token" "test" {
+	t.Run("get a repository remove token without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+				auto_init = true
 			}
-		`
+
+			data "github_actions_remove_token" "test" {
+				repository = github_repository.test.id
+			}
+		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("data.github_actions_remove_token.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
 			resource.TestCheckResourceAttrSet("data.github_actions_remove_token.test", "token"),
 			resource.TestCheckResourceAttrSet("data.github_actions_remove_token.test", "expires_at"),
 		)
