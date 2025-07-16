@@ -5,7 +5,7 @@ description: |-
   Get a GitHub Actions organization remove token.
 ---
 
-# actions_regmove_token
+# actions_remove_token
 
 Use this data source to retrieve a GitHub Actions organization remove token. This token can then be used to remove a self-hosted runner.
 
