@@ -2,12 +2,12 @@
 layout: "github"
 page_title: "GitHub: actions_remove_token"
 description: |-
-  Get a GitHub Actions repository registration token.
+  Get a GitHub Actions repository remove token.
 ---
 
 # actions_remove_token
 
-Use this data source to retrieve a GitHub Actions repository registration token. This token can then be used to remove a self-hosted runner.
+Use this data source to retrieve a GitHub Actions repository remove token. This token can then be used to remove a self-hosted runner.
 
 ## Example Usage
 
@@ -19,7 +19,7 @@ data "github_actions_remove_token" "example" {
 
 ## Argument Reference
 
- * `repository` - (Required) Name of the repository to get a GitHub Actions registration token for.
+ * `repository` - (Required) Name of the repository to get a GitHub Actions remove token for.
 
 ## Attributes Reference
 
