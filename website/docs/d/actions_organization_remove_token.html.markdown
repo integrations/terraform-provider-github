@@ -7,7 +7,7 @@ description: |-
 
 # actions_regmove_token
 
-Use this data source to retrieve a GitHub Actions organization remove token. This token can then be used to register a self-hosted runner.
+Use this data source to retrieve a GitHub Actions organization remove token. This token can then be used to remove a self-hosted runner.
 
 ## Example Usage
 
