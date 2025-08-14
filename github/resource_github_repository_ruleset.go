@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -530,10 +530,10 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interfac
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var err error
 
-	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, *rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -558,7 +558,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var resp *github.Response
 
 	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
@@ -604,7 +604,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
 	if err != nil {
 		return err
 	}

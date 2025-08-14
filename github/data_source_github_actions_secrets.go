@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v74/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

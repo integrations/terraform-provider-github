@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -261,6 +261,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
 								},
 							},
 						},
@@ -512,10 +518,10 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 
 	ctx := context.Background()
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var err error
 
-	ruleset, _, err = client.Organizations.CreateOrganizationRuleset(ctx, owner, rulesetReq)
+	ruleset, _, err = client.Organizations.CreateRepositoryRuleset(ctx, owner, *rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -538,10 +544,10 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var resp *github.Response
 
-	ruleset, resp, err = client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
+	ruleset, resp, err = client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -583,7 +589,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	ruleset, _, err := client.Organizations.UpdateOrganizationRuleset(ctx, owner, rulesetID, rulesetReq)
+	ruleset, _, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, *rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -603,7 +609,7 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
-	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
+	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, owner, rulesetID)
 	return err
 }
 
@@ -621,7 +627,7 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta interf
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	ruleset, _, err := client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
+	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if ruleset == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
