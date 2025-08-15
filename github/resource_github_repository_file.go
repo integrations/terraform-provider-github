@@ -21,7 +21,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 		Update: resourceGithubRepositoryFileUpdate,
 		Delete: resourceGithubRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")
 
 				if len(parts) > 2 {
@@ -150,11 +150,11 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(*github.String(d.Get("content").(string))),
+		Content: []byte(*github.Ptr(d.Get("content").(string))),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = github.String(branch.(string))
+		opts.Branch = github.Ptr(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
@@ -188,7 +188,7 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	return opts, nil
 }
 
-func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -213,7 +213,7 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 							owner, repo, sourceBranchRefName, err)
 					}
-					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
@@ -271,14 +271,14 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	if err = d.Set("commit_sha", create.Commit.GetSHA()); err != nil {
+	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return err
 	}
 
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
-func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -389,7 +389,7 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -412,7 +412,7 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 							owner, repo, sourceBranchRefName, err)
 					}
-					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
@@ -449,7 +449,7 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
-func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -486,7 +486,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 							owner, repo, sourceBranchRefName, err)
 					}
-					d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{

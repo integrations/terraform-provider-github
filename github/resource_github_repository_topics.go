@@ -18,8 +18,8 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 		Update: resourceGithubRepositoryTopicsCreateOrUpdate,
 		Delete: resourceGithubRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("repository", d.Id())
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				_ = d.Set("repository", d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -43,7 +43,7 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 
 }
 
-func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -62,7 +62,7 @@ func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta i
 	return resourceGithubRepositoryTopicsRead(d, meta)
 }
 
-func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -85,11 +85,11 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("topics", flattenStringList(topics))
+	_ = d.Set("topics", flattenStringList(topics))
 	return nil
 }
 
-func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

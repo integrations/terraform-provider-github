@@ -40,12 +40,12 @@ func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 
 	var listOptions *github.ListOptions
 	for {
@@ -72,14 +72,14 @@ func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, me
 	return nil
 }
 
-func flattenAutolinkReferences(autoLinks []*github.Autolink) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenAutolinkReferences(autoLinks []*github.Autolink) []map[string]any {
+	results := make([]map[string]any, 0)
 	if autoLinks == nil {
 		return results
 	}
 
 	for _, autolink := range autoLinks {
-		linkMap := make(map[string]interface{})
+		linkMap := make(map[string]any)
 		linkMap["key_prefix"] = autolink.GetKeyPrefix()
 		linkMap["target_url_template"] = autolink.GetURLTemplate()
 		linkMap["is_alphanumeric"] = autolink.GetIsAlphanumeric()

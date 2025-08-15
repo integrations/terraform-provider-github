@@ -136,11 +136,12 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 				var out bytes.Buffer
 				w.Header().Set("Content-Type", "application/json")
 				if strings.Contains(body, "repository(owner:$owner, name:$name)") {
-					if tc.Expected == tc.Provided {
+					switch tc.Expected {
+					case tc.Provided:
 						t.Fatalf("Attempted to use node_id=%s as a repo name", tc.Provided)
-					} else if tc.Expected == "" {
+					case "":
 						action = "repo_no_match"
-					} else {
+					default:
 						action = "repo_match"
 					}
 				} else if strings.Contains(body, "node(id:$id)") {

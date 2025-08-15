@@ -954,19 +954,19 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 	}
 }
 
-func testGithubBranchProtectionStateDataV1() map[string]interface{} {
-	return map[string]interface{}{
+func testGithubBranchProtectionStateDataV1() map[string]any {
+	return map[string]any{
 		"blocks_creations":  true,
 		"push_restrictions": [...]string{"/example-user"},
 	}
 }
 
-func testGithubBranchProtectionStateDataV2() map[string]interface{} {
-	restrictions := []interface{}{map[string]interface{}{
+func testGithubBranchProtectionStateDataV2() map[string]any {
+	restrictions := []any{map[string]any{
 		"blocks_creations": true,
 		"push_allowances":  [...]string{"/example-user"},
 	}}
-	return map[string]interface{}{
+	return map[string]any{
 		"restrict_pushes": restrictions,
 	}
 }

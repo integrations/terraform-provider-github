@@ -13,7 +13,7 @@ import (
 )
 
 type MemberChange struct {
-	Old, New map[string]interface{}
+	Old, New map[string]any
 }
 
 func resourceGithubTeamMembers() *schema.Resource {
@@ -60,7 +60,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -73,7 +73,7 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta interface{}) e
 
 	members := d.Get("members").(*schema.Set)
 	for _, mMap := range members.List() {
-		memb := mMap.(map[string]interface{})
+		memb := mMap.(map[string]any)
 		username := memb["username"].(string)
 		role := memb["role"].(string)
 
@@ -96,7 +96,7 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubTeamMembersRead(d, meta)
 }
 
-func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -110,12 +110,12 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 	o, n := d.GetChange("members")
 	vals := make(map[string]*MemberChange)
 	for _, raw := range o.(*schema.Set).List() {
-		obj := raw.(map[string]interface{})
+		obj := raw.(map[string]any)
 		k := obj["username"].(string)
 		vals[k] = &MemberChange{Old: obj}
 	}
 	for _, raw := range n.(*schema.Set).List() {
-		obj := raw.(map[string]interface{})
+		obj := raw.(map[string]any)
 		k := obj["username"].(string)
 		if _, ok := vals[k]; !ok {
 			vals[k] = &MemberChange{}
@@ -174,7 +174,7 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubTeamMembersRead(d, meta)
 }
 
-func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	teamIdString := d.Get("team_id").(string)
@@ -217,13 +217,13 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 		} `graphql:"organization(login:$orgName)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"teamSlug": githubv4.String(teamSlug),
 		"orgName":  githubv4.String(orgName),
 		"after":    (*githubv4.String)(nil),
 	}
 
-	var teamMembersAndMaintainers []interface{}
+	var teamMembersAndMaintainers []any
 	for {
 		if err := client.Query(ctx, &q, variables); err != nil {
 			return err
@@ -231,7 +231,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 
 		// Add all members to the list
 		for _, member := range q.Organization.Team.Members.Edges {
-			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]interface{}{
+			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]any{
 				"username": member.Node.Login,
 				"role":     strings.ToLower(member.Role),
 			})
@@ -249,7 +249,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)
@@ -262,7 +262,7 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) e
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	for _, member := range members.List() {
-		mem := member.(map[string]interface{})
+		mem := member.(map[string]any)
 		username := mem["username"].(string)
 
 		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
@@ -276,7 +276,7 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubTeamMembersImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubTeamMembersImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	teamId, err := getTeamID(d.Id(), meta)
 	if err != nil {
 		return nil, err

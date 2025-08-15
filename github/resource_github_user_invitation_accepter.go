@@ -33,7 +33,7 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 	}
 }
 
-func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	invitationIdString := d.Get("invitation_id").(string)

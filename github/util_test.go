@@ -11,7 +11,7 @@ func TestAccValidateTeamIDFunc(t *testing.T) {
 	// warnings, errors := validateTeamIDFunc(interface{"1234567"})
 
 	cases := []struct {
-		TeamID   interface{}
+		TeamID   any
 		ErrCount int
 	}{
 		{
@@ -145,7 +145,7 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		var name interface{} = tc.Name
+		var name any = tc.Name
 		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
 
 		if tc.Error != (len(diags) != 0) {

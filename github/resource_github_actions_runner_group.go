@@ -95,7 +95,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]interface{}) {
+		for _, workflow := range workflows.([]any) {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
@@ -199,7 +199,7 @@ func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org 
 	return runnerGroup, resp, err
 }
 
-func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -298,7 +298,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -313,7 +313,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	selectedWorkflows := []string{}
 	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]interface{}) {
+		for _, workflow := range workflows.([]any) {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
@@ -356,7 +356,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
-func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

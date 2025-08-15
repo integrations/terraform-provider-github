@@ -44,7 +44,7 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
@@ -64,17 +64,17 @@ func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta
 	}
 
 	d.SetId(buildTwoPartID(owner, repoName))
-	d.Set("repository", repoName)
-	d.Set("property", results)
+	_ = d.Set("repository", repoName)
+	_ = d.Set("property", results)
 
 	return nil
 }
 
-func flattenRepositoryCustomProperties(customProperties []*github.CustomPropertyValue) ([]interface{}, error) {
+func flattenRepositoryCustomProperties(customProperties []*github.CustomPropertyValue) ([]any, error) {
 
-	results := make([]interface{}, 0)
+	results := make([]any, 0)
 	for _, prop := range customProperties {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["property_name"] = prop.PropertyName
 

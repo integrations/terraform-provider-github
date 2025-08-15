@@ -48,7 +48,7 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
@@ -65,9 +65,9 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta int
 	}
 
 	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
+		Name:        github.Ptr(d.Get("name").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		BaseRole:    github.Ptr(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	})
 
@@ -79,7 +79,7 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta int
 	return resourceGithubOrganizationCustomRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -129,7 +129,7 @@ func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta inter
 	return nil
 }
 
-func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -152,9 +152,9 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta int
 	}
 
 	update := &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
+		Name:        github.Ptr(d.Get("name").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		BaseRole:    github.Ptr(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	}
 
@@ -165,7 +165,7 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta int
 	return resourceGithubOrganizationCustomRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationCustomRoleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationCustomRoleDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name

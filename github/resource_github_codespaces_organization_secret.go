@@ -19,7 +19,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 		Update: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -82,7 +82,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -141,7 +141,7 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 	return resourceGithubCodespacesOrganizationSecretRead(d, meta)
 }
 
-func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -226,7 +226,7 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -236,7 +236,7 @@ func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, me
 	return err
 }
 
-func getCodespacesOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
+func getCodespacesOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

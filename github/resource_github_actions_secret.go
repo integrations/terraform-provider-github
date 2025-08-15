@@ -66,7 +66,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -107,7 +107,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 	return resourceGithubActionsSecretRead(d, meta)
 }
 
-func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -167,7 +167,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -182,7 +182,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 	return err
 }
 
-func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubActionsSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -223,7 +223,7 @@ func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{})
 	return []*schema.ResourceData{d}, nil
 }
 
-func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
+func getPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

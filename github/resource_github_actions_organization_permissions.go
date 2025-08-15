@@ -83,9 +83,9 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]interface{})
+	config := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -116,9 +116,9 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]int64, error) {
 	var enabled []int64
 
-	config := d.Get("enabled_repositories_config").([]interface{})
+	config := d.Get("enabled_repositories_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["repository_ids"].(type) {
 		case *schema.Set:
 			for _, value := range x.List() {
@@ -131,7 +131,7 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
@@ -192,7 +192,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -211,7 +211,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	// on initial import there might not be any value in the state, then we have to import the data
 	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
 	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
+	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
 
 	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected"
 	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
@@ -224,8 +224,8 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("allowed_actions_config", []any{
+				map[string]any{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
@@ -235,7 +235,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			}
 		}
 	} else {
-		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
+		if err = d.Set("allowed_actions_config", []any{}); err != nil {
 			return err
 		}
 	}
@@ -262,15 +262,15 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			repoList = append(repoList, *allRepos[index].ID)
 		}
 		if allRepos != nil {
-			if err = d.Set("enabled_repositories_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("enabled_repositories_config", []any{
+				map[string]any{
 					"repository_ids": repoList,
 				},
 			}); err != nil {
 				return err
 			}
 		} else {
-			if err = d.Set("enabled_repositories_config", []interface{}{}); err != nil {
+			if err = d.Set("enabled_repositories_config", []any{}); err != nil {
 				return err
 			}
 		}
@@ -286,7 +286,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -300,8 +300,8 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	_, _, err = client.Actions.EditActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
-			AllowedActions:      github.String("all"),
-			EnabledRepositories: github.String("all"),
+			AllowedActions:      github.Ptr("all"),
+			EnabledRepositories: github.Ptr("all"),
 		})
 	if err != nil {
 		return err

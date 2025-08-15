@@ -30,7 +30,7 @@ func dataSourceGithubActionsRegistrationToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsRegistrationTokenRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)

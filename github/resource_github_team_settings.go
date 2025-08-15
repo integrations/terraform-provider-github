@@ -48,13 +48,13 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:    true,
 							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
 							Default:     "ROUND_ROBIN",
-							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
 								algorithm, ok := v.(string)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
 								}
 
-								if !(algorithm == "ROUND_ROBIN" || algorithm == "LOAD_BALANCE") {
+								if algorithm != "ROUND_ROBIN" && algorithm != "LOAD_BALANCE" {
 									errs = append(errs, errors.New("review request delegation algorithm must be one of [\"ROUND_ROBIN\", \"LOAD_BALANCE\"]"))
 								}
 
@@ -66,7 +66,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateDiagFunc: toDiagFunc(func(v interface{}, key string) (we []string, errs []error) {
+							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
 								count, ok := v.(int)
 								if !ok {
 									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}
@@ -90,7 +90,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta interface{}) 
 
 }
 
-func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 	teamSlug := d.Get("team_slug").(string)
 
 	var query = queryTeamSettings{}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug":  githubv4.String(teamSlug),
 		"login": githubv4.String(orgName),
 	}
@@ -140,15 +140,15 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if query.Organization.Team.ReviewRequestDelegation {
-		reviewRequestDelegation := make(map[string]interface{})
+		reviewRequestDelegation := make(map[string]any)
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
-		if err = d.Set("review_request_delegation", []interface{}{reviewRequestDelegation}); err != nil {
+		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
 			return err
 		}
 	} else {
-		if err = d.Set("review_request_delegation", []interface{}{}); err != nil {
+		if err = d.Set("review_request_delegation", []any{}); err != nil {
 			return err
 		}
 	}
@@ -157,12 +157,12 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta interface{}) er
 
 }
 
-func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 	if d.HasChange("review_request_delegation") || d.IsNewResource() {
 
 		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		graphql := meta.(*Owner).v4client
-		if setting := d.Get("review_request_delegation").([]interface{}); len(setting) == 0 {
+		if setting := d.Get("review_request_delegation").([]any); len(setting) == 0 {
 			var mutation struct {
 				UpdateTeamReviewAssignment struct {
 					ClientMutationId githubv4.ID `graphql:"clientMutationId"`
@@ -171,7 +171,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 
 			return graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
 		} else {
-			settings := d.Get("review_request_delegation").([]interface{})[0].(map[string]interface{})
+			settings := d.Get("review_request_delegation").([]any)[0].(map[string]any)
 
 			var mutation struct {
 				UpdateTeamReviewAssignment struct {
@@ -193,7 +193,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta interface{}) 
 
 }
 
-func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	graphql := meta.(*Owner).v4client
 
@@ -207,7 +207,7 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta interface{}) 
 
 }
 
-func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	nodeId, slug, err := resolveTeamIDs(d.Id(), meta.(*Owner), context.Background())
 	if err != nil {
 		return nil, err

@@ -19,7 +19,7 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 		Update: resourceGithubDependabotOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubDependabotOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -82,7 +82,7 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -141,7 +141,7 @@ func resourceGithubDependabotOrganizationSecretCreateOrUpdate(d *schema.Resource
 	return resourceGithubDependabotOrganizationSecretRead(d, meta)
 }
 
-func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -226,7 +226,7 @@ func resourceGithubDependabotOrganizationSecretRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -236,7 +236,7 @@ func resourceGithubDependabotOrganizationSecretDelete(d *schema.ResourceData, me
 	return err
 }
 
-func getDependabotOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
+func getDependabotOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

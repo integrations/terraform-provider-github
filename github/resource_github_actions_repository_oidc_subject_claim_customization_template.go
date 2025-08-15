@@ -43,7 +43,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 	}
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 
@@ -63,7 +63,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 
 	if includeClaimKeys != nil {
 
-		includeClaimKeysVal := includeClaimKeys.([]interface{})
+		includeClaimKeysVal := includeClaimKeys.([]any)
 
 		claimsStr := make([]string, len(includeClaimKeysVal))
 
@@ -85,7 +85,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 	return resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	repository := d.Id()
@@ -111,7 +111,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 	return nil
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta any) error {
 	// Reset the repository to use the default claims
 	// https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#using-the-default-subject-claims
 	client := meta.(*Owner).v3client
@@ -120,7 +120,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 	owner := meta.(*Owner).name
 
 	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
-		UseDefault: github.Bool(true),
+		UseDefault: github.Ptr(true),
 	}
 
 	ctx := context.Background()

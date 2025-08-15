@@ -97,7 +97,7 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -119,7 +119,7 @@ func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta inte
 	return resourceGithubRepositoryEnvironmentRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -144,10 +144,10 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
-	d.Set("wait_timer", nil)
-	d.Set("can_admins_bypass", env.CanAdminsBypass)
+	_ = d.Set("repository", repoName)
+	_ = d.Set("environment", envName)
+	_ = d.Set("wait_timer", nil)
+	_ = d.Set("can_admins_bypass", env.CanAdminsBypass)
 
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
@@ -172,8 +172,8 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					}
 				}
 			}
-			if err = d.Set("reviewers", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("reviewers", []any{
+				map[string]any{
 					"teams": teams,
 					"users": users,
 				},
@@ -188,8 +188,8 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		if err = d.Set("deployment_branch_policy", []interface{}{
-			map[string]interface{}{
+		if err = d.Set("deployment_branch_policy", []any{
+			map[string]any{
 				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
@@ -197,13 +197,13 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 			return err
 		}
 	} else {
-		d.Set("deployment_branch_policy", []interface{}{})
+		_ = d.Set("deployment_branch_policy", []any{})
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -224,7 +224,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 	return resourceGithubRepositoryEnvironmentRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -240,31 +240,31 @@ func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta inte
 	return err
 }
 
-func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) github.CreateUpdateEnvironment {
+func createUpdateEnvironmentData(d *schema.ResourceData, meta any) github.CreateUpdateEnvironment {
 	data := github.CreateUpdateEnvironment{}
 
 	if v, ok := d.GetOk("wait_timer"); ok {
-		data.WaitTimer = github.Int(v.(int))
+		data.WaitTimer = github.Ptr(v.(int))
 	}
 
-	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
+	data.CanAdminsBypass = github.Ptr(d.Get("can_admins_bypass").(bool))
 
-	data.PreventSelfReview = github.Bool(d.Get("prevent_self_review").(bool))
+	data.PreventSelfReview = github.Ptr(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
 
 		for _, team := range expandReviewers(v, "teams") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.String("Team"),
-				ID:   github.Int64(team),
+				Type: github.Ptr("Team"),
+				ID:   github.Ptr(team),
 			})
 		}
 
 		for _, user := range expandReviewers(v, "users") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.String("User"),
-				ID:   github.Int64(user),
+				Type: github.Ptr("User"),
+				ID:   github.Ptr(user),
 			})
 		}
 
@@ -272,21 +272,21 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	}
 
 	if v, ok := d.GetOk("deployment_branch_policy"); ok {
-		policy := v.([]interface{})[0].(map[string]interface{})
+		policy := v.([]any)[0].(map[string]any)
 		data.DeploymentBranchPolicy = &github.BranchPolicy{
-			ProtectedBranches:    github.Bool(policy["protected_branches"].(bool)),
-			CustomBranchPolicies: github.Bool(policy["custom_branch_policies"].(bool)),
+			ProtectedBranches:    github.Ptr(policy["protected_branches"].(bool)),
+			CustomBranchPolicies: github.Ptr(policy["custom_branch_policies"].(bool)),
 		}
 	}
 
 	return data
 }
 
-func expandReviewers(v interface{}, target string) []int64 {
+func expandReviewers(v any, target string) []int64 {
 	res := make([]int64, 0)
-	m := v.([]interface{})[0]
+	m := v.([]any)[0]
 	if m != nil {
-		if v, ok := m.(map[string]interface{})[target]; ok {
+		if v, ok := m.(map[string]any)[target]; ok {
 			vL := v.(*schema.Set).List()
 			for _, v := range vL {
 				res = append(res, int64(v.(int)))

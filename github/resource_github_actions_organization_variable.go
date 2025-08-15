@@ -63,7 +63,7 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, met
 	return resourceGithubActionsOrganizationVariableRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -146,7 +146,7 @@ func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, met
 	return resourceGithubActionsOrganizationVariableRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -212,7 +212,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubActionsOrganizationVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationVariableDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

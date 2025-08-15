@@ -20,7 +20,7 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() 
 	}
 }
 
-func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name

@@ -40,7 +40,7 @@ func dataSourceGithubRef() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {

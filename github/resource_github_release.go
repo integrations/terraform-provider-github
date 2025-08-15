@@ -136,7 +136,7 @@ func resourceGithubRelease() *schema.Resource {
 	}
 }
 
-func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -152,23 +152,23 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 	generateReleaseNotes := d.Get("generate_release_notes").(bool)
 
 	req := &github.RepositoryRelease{
-		TagName:              github.String(tagName),
-		TargetCommitish:      github.String(targetCommitish),
-		Draft:                github.Bool(draft),
-		Prerelease:           github.Bool(prerelease),
-		GenerateReleaseNotes: github.Bool(generateReleaseNotes),
+		TagName:              github.Ptr(tagName),
+		TargetCommitish:      github.Ptr(targetCommitish),
+		Draft:                github.Ptr(draft),
+		Prerelease:           github.Ptr(prerelease),
+		GenerateReleaseNotes: github.Ptr(generateReleaseNotes),
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = github.String(v.(string))
+		req.Body = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("name"); ok {
-		req.Name = github.String(v.(string))
+		req.Name = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("discussion_category_name"); ok {
-		req.DiscussionCategoryName = github.String(v.(string))
+		req.DiscussionCategoryName = github.Ptr(v.(string))
 	}
 
 	var release *github.RepositoryRelease
@@ -198,7 +198,7 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
@@ -226,7 +226,7 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	repository := d.Get("repository").(string)
 	client := meta.(*Owner).v3client
@@ -249,7 +249,7 @@ func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, releaseIDStr, err := parseTwoPartID(d.Id(), "repository", "release")
 	if err != nil {
 		return []*schema.ResourceData{d}, err

@@ -36,7 +36,7 @@ func resourceGithubUserGpgKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	pubKey := d.Get("armored_public_key").(string)
@@ -52,7 +52,7 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
 
-func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -87,7 +87,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

@@ -54,7 +54,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -66,13 +66,13 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	var createData github.DeploymentBranchPolicyRequest
 	if v, ok := d.GetOk("branch_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("branch"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("branch"),
 		}
 	} else if v, ok := d.GetOk("tag_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("tag"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("tag"),
 		}
 	} else {
 		return fmt.Errorf("exactly one of %q and %q must be specified", "branch_pattern", "tag_pattern")
@@ -87,7 +87,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -119,14 +119,14 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 	}
 
 	if branchPolicy.GetType() == "branch" {
-		d.Set("branch_pattern", branchPolicy.GetName())
+		_ = d.Set("branch_pattern", branchPolicy.GetName())
 	} else {
-		d.Set("tag_pattern", branchPolicy.GetName())
+		_ = d.Set("tag_pattern", branchPolicy.GetName())
 	}
 	return nil
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -152,7 +152,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	}
 
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(pattern),
+		Name: github.Ptr(pattern),
 	}
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
@@ -163,7 +163,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -186,7 +186,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.Resourc
 	return nil
 }
 
-func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
 	oldBranchPattern, newBranchPattern := diff.GetChange("branch_pattern")
 
 	if oldBranchPattern != "" && newBranchPattern == "" {

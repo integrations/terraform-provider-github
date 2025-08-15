@@ -192,7 +192,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) error {
 	var mutate struct {
 		CreateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -270,13 +270,13 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
-func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error {
 	var query struct {
 		Node struct {
 			Node BranchProtectionRule `graphql:"... on BranchProtectionRule"`
 		} `graphql:"node(id: $id)"`
 	}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"id": d.Id(),
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -365,7 +365,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) error {
 	var mutate struct {
 		UpdateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -443,7 +443,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
-func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) error {
 	var mutate struct {
 		DeleteBranchProtectionRule struct { // Empty struct does not work
 			ClientMutationId githubv4.ID
@@ -460,7 +460,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 	return err
 }
 
-func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, pattern, err := parseTwoPartID(d.Id(), "repository", "pattern")
 	if err != nil {
 		return nil, err

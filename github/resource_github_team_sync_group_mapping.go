@@ -17,7 +17,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 		Update: resourceGithubTeamSyncGroupMappingUpdate,
 		Delete: resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("team_slug", d.Id()); err != nil {
 					return nil, err
 				}
@@ -65,7 +65,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta inter
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta inter
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -171,13 +171,13 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta inter
 	return err
 }
 
-func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}, error) {
+func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]any, error) {
 	if idpGroupList == nil {
-		return make([]interface{}, 0), nil
+		return make([]any, 0), nil
 	}
-	results := make([]interface{}, 0)
+	results := make([]any, 0)
 	for _, group := range idpGroupList.Groups {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 		result["group_id"] = group.GetGroupID()
 		result["group_name"] = group.GetGroupName()
 		result["group_description"] = group.GetGroupDescription()
@@ -197,14 +197,14 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 	if v, ok := d.GetOk("group"); ok {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
-			m := v.(map[string]interface{})
+			m := v.(map[string]any)
 			groupID := m["group_id"].(string)
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
 			group := &github.IDPGroup{
-				GroupID:          github.String(groupID),
-				GroupName:        github.String(groupName),
-				GroupDescription: github.String(groupDescription),
+				GroupID:          github.Ptr(groupID),
+				GroupName:        github.Ptr(groupName),
+				GroupDescription: github.Ptr(groupDescription),
 			}
 			groups = append(groups, group)
 		}

@@ -11,7 +11,7 @@ import (
 func TestAccGithubIssueLabels(t *testing.T) {
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		empty := []map[string]interface{}{}
+		empty := []map[string]any{}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -30,7 +30,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					},
 					// 2. Check if a label can be created
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]interface{}{
+						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]any{
 							"name":        "foo",
 							"color":       "000000",
 							"description": "foo",
@@ -39,7 +39,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					},
 					// 3. Check if a label can be recreated
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]interface{}{
+						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]any{
 							"name":        "Foo",
 							"color":       "000000",
 							"description": "foo",
@@ -49,16 +49,16 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					// 4. Check if multiple labels can be created
 					{
 						Config: testAccGithubIssueLabelsConfig(randomID, append(empty,
-							map[string]interface{}{
+							map[string]any{
 								"name":        "Foo",
 								"color":       "000000",
 								"description": "foo",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"name":        "bar",
 								"color":       "000000",
 								"description": "bar",
-							}, map[string]interface{}{
+							}, map[string]any{
 								"name":        "baz",
 								"color":       "000000",
 								"description": "baz",
@@ -92,7 +92,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 	})
 }
 
-func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]interface{}) string {
+func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]any) string {
 	resource := ""
 	if labels != nil {
 		dynamic := ""

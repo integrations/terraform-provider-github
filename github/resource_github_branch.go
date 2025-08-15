@@ -66,7 +66,7 @@ func resourceGithubBranch() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -108,7 +108,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -159,7 +159,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	client := meta.(*Owner).v3client
@@ -179,7 +179,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return nil, err

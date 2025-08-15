@@ -48,7 +48,7 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 		username,
 		orgName,
 		&github.Membership{
-			Role: github.String(roleName),
+			Role: github.Ptr(roleName),
 		},
 	)
 	if err != nil {
@@ -80,7 +80,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interfa
 	return resourceGithubMembershipRead(d, meta)
 }
 
-func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 		}
 
 		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
-			Role: github.String(downgradeTo),
+			Role: github.Ptr(downgradeTo),
 		})
 	} else {
 		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)

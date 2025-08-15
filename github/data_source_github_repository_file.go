@@ -71,7 +71,7 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -108,9 +108,9 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.Set("repository", repo)
+	_ = d.Set("repository", repo)
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	d.Set("file", file)
+	_ = d.Set("file", file)
 
 	// If the repo is a directory, then there is nothing else we can include in
 	// the schema.
@@ -123,8 +123,8 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.Set("content", content)
-	d.Set("sha", fc.GetSHA())
+	_ = d.Set("content", content)
+	_ = d.Set("sha", fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {

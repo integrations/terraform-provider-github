@@ -35,7 +35,7 @@ func dataSourceGithubMembership() *schema.Resource {
 	}
 }
 
-func dataSourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	username := d.Get("username").(string)
 
 	client := meta.(*Owner).v3client

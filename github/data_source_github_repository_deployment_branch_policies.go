@@ -44,7 +44,7 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -55,10 +55,10 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 		return nil
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 
 	for _, policy := range policies.BranchPolicies {
-		policyMap := make(map[string]interface{})
+		policyMap := make(map[string]any)
 		policyMap["id"] = strconv.FormatInt(*policy.ID, 10)
 		policyMap["name"] = policy.Name
 		results = append(results, policyMap)

@@ -18,7 +18,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
@@ -63,7 +63,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -94,7 +94,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta int
 	return resourceGithubTeamMembershipRead(d, meta)
 }
 
-func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
@@ -149,7 +149,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)

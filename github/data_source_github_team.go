@@ -88,7 +88,7 @@ func dataSourceGithubTeam() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	slug := d.Get("slug").(string)
 
 	client := meta.(*Owner).v3client
@@ -104,7 +104,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	var members []string
 	var repositories []string
-	var repositories_detailed []interface{}
+	var repositories_detailed []any
 
 	if !summaryOnly {
 		options := github.TeamListTeamMembersOptions{
@@ -146,7 +146,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 					} `graphql:"team(slug:$slug)"`
 				} `graphql:"organization(login:$owner)"`
 			}
-			variables := map[string]interface{}{
+			variables := map[string]any{
 				"owner":        githubv4.String(meta.(*Owner).name),
 				"slug":         githubv4.String(slug),
 				"memberCursor": (*githubv4.String)(nil),
@@ -168,7 +168,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		repositories_detailed = make([]interface{}, 0, resultsPerPage) //removed this from the loop
+		repositories_detailed = make([]any, 0, resultsPerPage) //removed this from the loop
 
 		for {
 			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
@@ -178,7 +178,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
-				repositories_detailed = append(repositories_detailed, map[string]interface{}{
+				repositories_detailed = append(repositories_detailed, map[string]any{
 					"repo_id":   v.GetID(),
 					"role_name": v.GetRoleName(),
 				})

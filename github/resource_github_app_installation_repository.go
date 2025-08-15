@@ -39,7 +39,7 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta 
 	return resourceGithubAppInstallationRepositoryRead(d, meta)
 }
 
-func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta in
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

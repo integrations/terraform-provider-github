@@ -19,7 +19,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -82,7 +82,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -141,7 +141,7 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 	return resourceGithubActionsOrganizationSecretRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -226,7 +226,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -236,7 +236,7 @@ func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta 
 	return err
 }
 
-func getOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
+func getOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

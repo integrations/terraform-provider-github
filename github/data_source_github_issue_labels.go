@@ -45,7 +45,7 @@ func dataSourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
@@ -57,7 +57,7 @@ func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(repository)
 
-	allLabels := make([]interface{}, 0)
+	allLabels := make([]any, 0)
 	for {
 		labels, resp, err := client.Issues.ListLabels(ctx, owner, repository, opts)
 		if err != nil {
@@ -85,15 +85,15 @@ func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func flattenLabels(labels []*github.Label) ([]interface{}, error) {
+func flattenLabels(labels []*github.Label) ([]any, error) {
 	if labels == nil {
-		return make([]interface{}, 0), nil
+		return make([]any, 0), nil
 	}
 
-	results := make([]interface{}, 0)
+	results := make([]any, 0)
 
 	for _, l := range labels {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["name"] = l.GetName()
 		result["color"] = l.GetColor()

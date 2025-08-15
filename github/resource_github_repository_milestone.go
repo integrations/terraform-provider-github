@@ -21,7 +21,7 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 		Update: resourceGithubRepositoryMilestoneUpdate,
 		Delete: resourceGithubRepositoryMilestoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
@@ -93,18 +93,18 @@ const (
 	layoutISO = "2006-01-02"
 )
 
-func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.Background()
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	milestone := &github.Milestone{
-		Title: github.String(d.Get("title").(string)),
+		Title: github.Ptr(d.Get("title").(string)),
 	}
 
 	if v, ok := d.GetOk("description"); ok && len(v.(string)) > 0 {
-		milestone.Description = github.String(v.(string))
+		milestone.Description = github.Ptr(v.(string))
 	}
 	if v, ok := d.GetOk("due_date"); ok && len(v.(string)) > 0 {
 		dueDate, err := time.Parse(layoutISO, v.(string))
@@ -117,7 +117,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 		}
 	}
 	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
-		milestone.State = github.String(v.(string))
+		milestone.State = github.Ptr(v.(string))
 	}
 
 	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, milestone)
@@ -130,7 +130,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interf
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -178,7 +178,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)
@@ -191,12 +191,12 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 	milestone := &github.Milestone{}
 	if d.HasChanges("title") {
 		_, n := d.GetChange("title")
-		milestone.Title = github.String(n.(string))
+		milestone.Title = github.Ptr(n.(string))
 	}
 
 	if d.HasChanges("description") {
 		_, n := d.GetChange("description")
-		milestone.Description = github.String(n.(string))
+		milestone.Description = github.Ptr(n.(string))
 	}
 
 	if d.HasChanges("due_date") {
@@ -213,7 +213,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 
 	if d.HasChanges("state") {
 		_, n := d.GetChange("state")
-		milestone.State = github.String(n.(string))
+		milestone.State = github.Ptr(n.(string))
 	}
 
 	_, _, err = conn.Issues.EditMilestone(ctx, owner, repoName, number, milestone)
@@ -224,7 +224,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interf
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta any) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)

@@ -23,7 +23,7 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	repoName := rawState["repository"].(string)
 	repoID, err := getRepositoryID(repoName, meta)
 	if err != nil {
@@ -60,15 +60,15 @@ func resourceGithubBranchProtectionV1() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	var blocksCreations bool = false
+func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	blocksCreations := false
 
 	if v, ok := rawState["blocks_creations"]; ok {
 		blocksCreations = v.(bool)
 	}
 
 	if v, ok := rawState["push_restrictions"]; ok {
-		rawState["restrict_pushes"] = []interface{}{map[string]interface{}{
+		rawState["restrict_pushes"] = []any{map[string]any{
 			"blocks_creations": blocksCreations,
 			"push_allowances":  v,
 		}}

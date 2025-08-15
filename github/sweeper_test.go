@@ -12,7 +12,7 @@ func TestMain(m *testing.M) {
 	resource.TestMain(m)
 }
 
-func sharedConfigForRegion(region string) (interface{}, error) {
+func sharedConfigForRegion(region string) (any, error) {
 	if os.Getenv("GITHUB_TOKEN") == "" {
 		return nil, fmt.Errorf("empty GITHUB_TOKEN")
 	}

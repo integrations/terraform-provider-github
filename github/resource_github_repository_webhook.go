@@ -19,7 +19,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Update: resourceGithubRepositoryWebhookUpdate,
 		Delete: resourceGithubRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id>")
@@ -84,7 +84,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		Active: &active,
 	}
 
-	config := d.Get("configuration").([]interface{})[0].(map[string]interface{})
+	config := d.Get("configuration").([]any)[0].(map[string]any)
 	if len(config) > 0 {
 		hook.Config = webhookConfigFromInterface(config)
 	}
@@ -92,7 +92,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 	return hook
 }
 
-func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -120,7 +120,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
 
-func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -163,11 +163,11 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from what we get from
 	// ResourceData
-	if len(d.Get("configuration").([]interface{})) > 0 {
-		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+	if len(d.Get("configuration").([]any)) > 0 {
+		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = github.String(currentSecret.(string))
+			hook.Config.Secret = github.Ptr(currentSecret.(string))
 		}
 	}
 
@@ -178,7 +178,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -198,7 +198,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryWebhookRead(d, meta)
 }
 
-func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

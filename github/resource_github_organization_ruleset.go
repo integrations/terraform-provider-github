@@ -509,7 +509,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -529,7 +529,7 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
-func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -562,20 +562,20 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", ruleset.Name)
-	d.Set("target", ruleset.GetTarget())
-	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
-	d.Set("rules", flattenRules(ruleset.Rules, true))
-	d.Set("node_id", ruleset.GetNodeID())
-	d.Set("ruleset_id", ruleset.ID)
+	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("name", ruleset.Name)
+	_ = d.Set("target", ruleset.GetTarget())
+	_ = d.Set("enforcement", ruleset.Enforcement)
+	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
+	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
+	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
+	_ = d.Set("node_id", ruleset.GetNodeID())
+	_ = d.Set("ruleset_id", ruleset.ID)
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -598,7 +598,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
-func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -613,7 +613,7 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 	return err
 }
 
-func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)

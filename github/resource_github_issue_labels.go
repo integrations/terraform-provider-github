@@ -59,7 +59,7 @@ func resourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -73,7 +73,7 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) err
 		PerPage: maxPerPage,
 	}
 
-	labels := make([]map[string]interface{}, 0)
+	labels := make([]map[string]any, 0)
 
 	for {
 		ls, resp, err := client.Issues.ListLabels(ctx, owner, repository, options)
@@ -81,7 +81,7 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) err
 			return err
 		}
 		for _, l := range ls {
-			labels = append(labels, map[string]interface{}{
+			labels = append(labels, map[string]any{
 				"name":        l.GetName(),
 				"color":       l.GetColor(),
 				"description": l.GetDescription(),
@@ -111,7 +111,7 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -124,20 +124,20 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] Old labels: %v", o)
 	log.Printf("[DEBUG] New labels: %v", n)
 
-	oMap := make(map[string]map[string]interface{})
-	nMap := make(map[string]map[string]interface{})
+	oMap := make(map[string]map[string]any)
+	nMap := make(map[string]map[string]any)
 	for _, raw := range o.(*schema.Set).List() {
-		m := raw.(map[string]interface{})
+		m := raw.(map[string]any)
 		name := strings.ToLower(m["name"].(string))
 		oMap[name] = m
 	}
 	for _, raw := range n.(*schema.Set).List() {
-		m := raw.(map[string]interface{})
+		m := raw.(map[string]any)
 		name := strings.ToLower(m["name"].(string))
 		nMap[name] = m
 	}
 
-	labels := make([]map[string]interface{}, 0)
+	labels := make([]map[string]any, 0)
 
 	// create
 	for name, n := range nMap {
@@ -145,15 +145,15 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interf
 			log.Printf("[DEBUG] Creating GitHub issue label %s/%s/%s", owner, repository, name)
 
 			label, _, err := client.Issues.CreateLabel(ctx, owner, repository, &github.Label{
-				Name:        github.String(n["name"].(string)),
-				Color:       github.String(n["color"].(string)),
-				Description: github.String(n["description"].(string)),
+				Name:        github.Ptr(n["name"].(string)),
+				Color:       github.Ptr(n["color"].(string)),
+				Description: github.Ptr(n["description"].(string)),
 			})
 			if err != nil {
 				return err
 			}
 
-			labels = append(labels, map[string]interface{}{
+			labels = append(labels, map[string]any{
 				"name":        label.GetName(),
 				"color":       label.GetColor(),
 				"description": label.GetDescription(),
@@ -181,15 +181,15 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interf
 				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
 
 				label, _, err := client.Issues.EditLabel(ctx, owner, repository, name, &github.Label{
-					Name:        github.String(n["name"].(string)),
-					Color:       github.String(n["color"].(string)),
-					Description: github.String(n["description"].(string)),
+					Name:        github.Ptr(n["name"].(string)),
+					Color:       github.Ptr(n["color"].(string)),
+					Description: github.Ptr(n["description"].(string)),
 				})
 				if err != nil {
 					return err
 				}
 
-				labels = append(labels, map[string]interface{}{
+				labels = append(labels, map[string]any{
 					"name":        label.GetName(),
 					"color":       label.GetColor(),
 					"description": label.GetDescription(),
@@ -211,7 +211,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interf
 	return nil
 }
 
-func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -225,7 +225,7 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta interface{}) e
 
 	// delete
 	for _, raw := range labels {
-		label := raw.(map[string]interface{})
+		label := raw.(map[string]any)
 		name := label["name"].(string)
 
 		log.Printf("[DEBUG] Deleting GitHub issue label %s/%s/%s", owner, repository, name)
@@ -238,7 +238,7 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(repository)
 
-	err := d.Set("label", make([]map[string]interface{}, 0))
+	err := d.Set("label", make([]map[string]any, 0))
 	if err != nil {
 		return err
 	}

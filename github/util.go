@@ -23,7 +23,7 @@ const (
 	maxPerPage = 100
 )
 
-func checkOrganization(meta interface{}) error {
+func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
 		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
 	}
@@ -58,7 +58,7 @@ func wrapErrors(errs []error) diag.Diagnostics {
 // --> nolint: oldFunc needs to be schema.SchemaValidateFunc to keep compatibility with
 // the old code until all uses of schema.SchemaValidateFunc are gone
 func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.SchemaValidateDiagFunc { //nolint:staticcheck
-	return func(i interface{}, path cty.Path) diag.Diagnostics {
+	return func(i any, path cty.Path) diag.Diagnostics {
 		warnings, errors := oldFunc(i, keyName)
 		var diags diag.Diagnostics
 
@@ -81,7 +81,7 @@ func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.Schema
 }
 
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
-	return func(v interface{}, k cty.Path) diag.Diagnostics {
+	return func(v any, k cty.Path) diag.Diagnostics {
 		errs := make([]error, 0)
 		value := v.(string)
 		valid := false
@@ -140,7 +140,7 @@ func buildChecksumID(v []string) string {
 	return fmt.Sprintf("%x", bs)
 }
 
-func expandStringList(configured []interface{}) []string {
+func expandStringList(configured []any) []string {
 	vs := make([]string, 0, len(configured))
 	for _, v := range configured {
 		val, ok := v.(string)
@@ -151,8 +151,8 @@ func expandStringList(configured []interface{}) []string {
 	return vs
 }
 
-func flattenStringList(v []string) []interface{} {
-	c := make([]interface{}, 0, len(v))
+func flattenStringList(v []string) []any {
+	c := make([]any, 0, len(v))
 	for _, s := range v {
 		c = append(c, s)
 	}
@@ -173,7 +173,7 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
-func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []error) {
+func validateTeamIDFunc(v any, keyName string) (we []string, errors []error) {
 	teamIDString, ok := v.(string)
 	if !ok {
 		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
@@ -191,7 +191,7 @@ func splitRepoFilePath(path string) (string, string) {
 	return parts[0], strings.Join(parts[1:], "/")
 }
 
-func getTeamID(teamIDString string, meta interface{}) (int64, error) {
+func getTeamID(teamIDString string, meta any) (int64, error) {
 	// Given a string that is either a team id or team slug, return the
 	// id of the team it is referring to.
 	ctx := context.Background()
@@ -211,7 +211,7 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 	return team.GetID(), nil
 }
 
-func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
+func getTeamSlug(teamIDString string, meta any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
 	ctx := context.Background()
@@ -245,7 +245,7 @@ func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
-func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
+func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 	errs := make([]error, 0)
 	name, ok := v.(string)
 	if !ok {
@@ -267,7 +267,7 @@ func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
 // doesn't exist.
 // resourceDescription represents a formatting string that represents the resource
 // args will be passed to resourceDescription in `log.Printf`
-func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...interface{}) error {
+func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
 	if ghErr, ok := err.(*github.ErrorResponse); ok {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			return nil

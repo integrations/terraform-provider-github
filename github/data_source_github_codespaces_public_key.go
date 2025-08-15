@@ -28,7 +28,7 @@ func dataSourceGithubCodespacesPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubCodespacesPublicKeyRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 	log.Printf("[INFO] Refreshing GitHub Codespaces Public Key from: %s/%s", owner, repository)

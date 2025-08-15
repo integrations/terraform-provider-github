@@ -205,7 +205,7 @@ func TestAccConfigMeta(t *testing.T) {
 				ViewerCanAdminister githubv4.Boolean
 			} `graphql:"organization(login: $login)"`
 		}
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			"login": githubv4.String(testOrganization),
 		}
 		err = client.Query(context.Background(), &query, variables)

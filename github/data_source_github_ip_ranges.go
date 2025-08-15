@@ -151,7 +151,7 @@ func dataSourceGithubIpRanges() *schema.Resource {
 	}
 }
 
-func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner)
 
 	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
@@ -236,9 +236,9 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 	if len(api.Packages) > 0 {
-		d.Set("packages", api.Packages)
-		d.Set("packages_ipv4", cidrPackagesIpv4)
-		d.Set("packages_ipv6", cidrPackagesIpv6)
+		_ = d.Set("packages", api.Packages)
+		_ = d.Set("packages_ipv4", cidrPackagesIpv4)
+		_ = d.Set("packages_ipv6", cidrPackagesIpv6)
 	}
 	if len(api.Pages) > 0 {
 		err = d.Set("pages", api.Pages)

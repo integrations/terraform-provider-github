@@ -57,7 +57,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	repoName := d.Get("repository").(string)
@@ -68,9 +68,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      github.String(key),
-		Title:    github.String(title),
-		ReadOnly: github.Bool(readOnly),
+		Key:      github.Ptr(key),
+		Title:    github.Ptr(title),
+		ReadOnly: github.Ptr(readOnly),
 	})
 
 	if err != nil {
@@ -84,7 +84,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -137,7 +137,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

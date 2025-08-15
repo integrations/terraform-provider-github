@@ -23,7 +23,7 @@ func resourceGithubTeam() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("name")
 			}),
 		),
@@ -103,7 +103,7 @@ func resourceGithubTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -116,8 +116,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 
 	newTeam := github.NewTeam{
 		Name:        name,
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -176,7 +176,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGithubTeamRead(d, meta)
 }
 
-func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -271,8 +271,8 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(parentTeamID.(string), meta)
@@ -299,7 +299,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
+			LDAPDN: github.Ptr(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {
@@ -311,7 +311,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGithubTeamRead(d, meta)
 }
 
-func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -353,7 +353,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
-func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubTeamImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	teamId, err := getTeamID(d.Id(), meta)
 	if err != nil {
 		return nil, err
@@ -367,7 +367,7 @@ func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	return []*schema.ResourceData{d}, nil
 }
 
-func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
+func removeDefaultMaintainer(teamSlug string, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
@@ -386,7 +386,7 @@ func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
 			} `graphql:"team(slug:$slug)"`
 		} `graphql:"organization(login:$login)"`
 	}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug":  githubv4.String(teamSlug),
 		"login": githubv4.String(orgName),
 	}

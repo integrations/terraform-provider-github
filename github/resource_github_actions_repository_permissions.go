@@ -72,9 +72,9 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]interface{})
+	config := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -102,7 +102,7 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) (*gith
 	return allowed, nil
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -157,7 +157,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -174,7 +174,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	// on initial import there might not be any value in the state, then we have to import the data
 	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
 	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
+	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
 
 	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
 	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
@@ -187,8 +187,8 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("allowed_actions_config", []any{
+				map[string]any{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
@@ -198,7 +198,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 			}
 		}
 	} else {
-		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
+		if err = d.Set("allowed_actions_config", []any{}); err != nil {
 			return err
 		}
 	}
@@ -216,7 +216,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -225,8 +225,8 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		AllowedActions: github.String("all"),
-		Enabled:        github.Bool(true),
+		AllowedActions: github.Ptr("all"),
+		Enabled:        github.Ptr(true),
 	}
 
 	_, _, err := client.Repositories.EditActionsPermissions(ctx,

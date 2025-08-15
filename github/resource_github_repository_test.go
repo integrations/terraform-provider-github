@@ -1085,9 +1085,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 	})
 
 	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []interface{}{map[string]interface{}{
+		input := []any{map[string]any{
 			"build_type": "workflow",
-			"source":     []interface{}{map[string]interface{}{}},
+			"source":     []any{map[string]any{}},
 		}}
 
 		pages := expandPages(input)
@@ -1103,9 +1103,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 	})
 
 	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []interface{}{map[string]interface{}{
+		input := []any{map[string]any{
 			"build_type": "legacy",
-			"source": []interface{}{map[string]interface{}{
+			"source": []any{map[string]any{
 				"branch": "main",
 				"path":   "/docs",
 			}},
@@ -1633,21 +1633,21 @@ func reconfigureVisibility(config, visibility string) string {
 	return newConfig
 }
 
-type resourceDataLike map[string]interface{}
+type resourceDataLike map[string]any
 
-func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+func (d resourceDataLike) GetOk(key string) (any, bool) {
 	v, ok := d[key]
 	return v, ok
 }
 
 func TestResourceGithubParseFullName(t *testing.T) {
-	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "myrepo/myorg"}))
 	assert.True(t, ok)
 	assert.Equal(t, "myrepo", repo)
 	assert.Equal(t, "myorg", org)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{}))
 	assert.False(t, ok)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
 	assert.False(t, ok)
 }
 

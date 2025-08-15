@@ -16,7 +16,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Update: resourceGithubEMUGroupMappingUpdate,
 		Delete: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				id, err := strconv.Atoi(d.Id())
 				if err != nil {
 					return nil, err
@@ -60,11 +60,11 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubEMUGroupMappingUpdate(d, meta)
 }
 
-func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta interface{
 	return resourceGithubEMUGroupMappingRead(d, meta)
 }
 
-func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func getInt64FromInterface(val interface{}) (int64, error) {
+func getInt64FromInterface(val any) (int64, error) {
 	var id64 int64
 	switch val := val.(type) {
 	case int64:

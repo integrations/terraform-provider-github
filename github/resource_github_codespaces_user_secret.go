@@ -18,7 +18,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 		Update: resourceGithubCodespacesUserSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -74,7 +74,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -126,7 +126,7 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubCodespacesUserSecretRead(d, meta)
 }
 
-func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -205,7 +205,7 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -214,7 +214,7 @@ func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta inter
 	return err
 }
 
-func getCodespacesUserPublicKeyDetails(meta interface{}) (keyId, pkValue string, err error) {
+func getCodespacesUserPublicKeyDetails(meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

@@ -35,7 +35,7 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -46,7 +46,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 
 	accessLevel := d.Get("access_level").(string)
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String(accessLevel),
+		AccessLevel: github.Ptr(accessLevel),
 	}
 
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
@@ -58,7 +58,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsRepositoryAccessLevelRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -74,14 +74,14 @@ func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, repoName)
 
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String("none"),
+		AccessLevel: github.Ptr("none"),
 	}
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
 

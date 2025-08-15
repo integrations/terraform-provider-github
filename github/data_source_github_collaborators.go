@@ -120,7 +120,7 @@ func dataSourceGithubCollaborators() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
@@ -160,7 +160,7 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	totalCollaborators := make([]interface{}, 0)
+	totalCollaborators := make([]any, 0)
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repo, options)
 		if err != nil {
@@ -188,15 +188,15 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, error) {
+func flattenGitHubCollaborators(collaborators []*github.User) ([]any, error) {
 	if collaborators == nil {
-		return make([]interface{}, 0), nil
+		return make([]any, 0), nil
 	}
 
-	results := make([]interface{}, 0)
+	results := make([]any, 0)
 
 	for _, c := range collaborators {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["login"] = c.GetLogin()
 		result["id"] = c.GetID()

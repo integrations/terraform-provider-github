@@ -112,7 +112,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 
 		_, resp, err := conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
 
-		if err != nil && resp.Response.StatusCode != 404 {
+		if err != nil && resp.StatusCode != 404 {
 			return err
 		}
 		return nil

@@ -151,7 +151,7 @@ func dataSourceGithubRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubReleaseRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := d.Get("owner").(string)
 
@@ -248,13 +248,13 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	assets := make([]interface{}, 0, len(release.Assets))
+	assets := make([]any, 0, len(release.Assets))
 	for _, releaseAsset := range release.Assets {
 		if releaseAsset == nil {
 			continue
 		}
 
-		assets = append(assets, map[string]interface{}{
+		assets = append(assets, map[string]any{
 			"id":                   releaseAsset.GetID(),
 			"url":                  releaseAsset.GetURL(),
 			"node_id":              releaseAsset.GetNodeID(),

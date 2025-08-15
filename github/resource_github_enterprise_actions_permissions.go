@@ -88,9 +88,9 @@ func resourceGithubActionsEnterprisePermissions() *schema.Resource {
 func resourceGithubActionsEnterpriseAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]interface{})
+	config := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -122,9 +122,9 @@ func resourceGithubActionsEnterpriseAllowedObject(d *schema.ResourceData) (*gith
 func resourceGithubActionsEnabledOrganizationsObject(d *schema.ResourceData) ([]int64, error) {
 	var enabled []int64
 
-	config := d.Get("enabled_organizations_config").([]interface{})
+	config := d.Get("enabled_organizations_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["organization_ids"].(type) {
 		case *schema.Set:
 			for _, value := range x.List() {
@@ -137,7 +137,7 @@ func resourceGithubActionsEnabledOrganizationsObject(d *schema.ResourceData) ([]
 	return enabled, nil
 }
 
-func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	ctx := context.Background()
@@ -189,7 +189,7 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsEnterprisePermissionsRead(d, meta)
 }
 
-func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -206,8 +206,8 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("allowed_actions_config", []any{
+				map[string]any{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
@@ -217,7 +217,7 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 			}
 		}
 	} else {
-		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
+		if err = d.Set("allowed_actions_config", []any{}); err != nil {
 			return err
 		}
 	}
@@ -244,15 +244,15 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 			orgList = append(orgList, *allOrgs[index].ID)
 		}
 		if allOrgs != nil {
-			if err = d.Set("enabled_organizations_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("enabled_organizations_config", []any{
+				map[string]any{
 					"organization_ids": orgList,
 				},
 			}); err != nil {
 				return err
 			}
 		} else {
-			if err = d.Set("enabled_organizations_config", []interface{}{}); err != nil {
+			if err = d.Set("enabled_organizations_config", []any{}); err != nil {
 				return err
 			}
 		}
@@ -271,7 +271,7 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -280,8 +280,8 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 	_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
 		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
-			AllowedActions:       github.String("all"),
-			EnabledOrganizations: github.String("all"),
+			AllowedActions:       github.Ptr("all"),
+			EnabledOrganizations: github.Ptr("all"),
 		})
 	if err != nil {
 		return err

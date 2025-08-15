@@ -66,7 +66,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	username := d.Get("username").(string)
@@ -93,7 +93,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
@@ -179,11 +179,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	username := d.Get("username").(string)

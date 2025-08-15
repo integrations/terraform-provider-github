@@ -44,7 +44,7 @@ func TestProvider(t *testing.T) {
 		// 	var _ terraform.ResourceProvider = Provider()
 		// }
 
-		var _ schema.Provider = *Provider()
+		var _ = *Provider()
 	})
 
 }

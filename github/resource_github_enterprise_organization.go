@@ -70,7 +70,7 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta any) error {
 	var mutate struct {
 		CreateEnterpriseOrganization struct {
 			Organization struct {
@@ -123,8 +123,8 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 			context.Background(),
 			data.Get("name").(string),
 			&github.Organization{
-				Description: github.String(description),
-				Name:        github.String(displayName),
+				Description: github.Ptr(description),
+				Name:        github.Ptr(displayName),
 			},
 		)
 		return err
@@ -133,7 +133,7 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 
 }
 
-func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta any) error {
 	var query struct {
 		Node struct {
 			Organization struct {
@@ -156,12 +156,12 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"id":     data.Id(),
 		"cursor": (*githubv4.String)(nil),
 	}
 
-	var adminLogins []interface{}
+	var adminLogins []any
 
 	for {
 		v4 := meta.(*Owner).v4client
@@ -219,7 +219,7 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 	return err
 }
 
-func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner)
 	v3 := owner.v3client
 
@@ -235,7 +235,7 @@ func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta 
 	return err
 }
 
-func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	parts := strings.Split(data.Id(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>/<org_name>")
@@ -248,7 +248,7 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 	if err != nil {
 		return nil, err
 	}
-	data.Set("enterprise_id", enterpriseId)
+	_ = data.Set("enterprise_id", enterpriseId)
 
 	orgId, err := getOrganizationId(ctx, v4, parts[1])
 	if err != nil {
@@ -270,7 +270,7 @@ func getEnterpriseId(ctx context.Context, v4 *githubv4.Client, enterpriseSlug st
 		} `graphql:"enterprise(slug: $enterpriseSlug)"`
 	}
 
-	err := v4.Query(ctx, &query, map[string]interface{}{"enterpriseSlug": githubv4.String(enterpriseSlug)})
+	err := v4.Query(ctx, &query, map[string]any{"enterpriseSlug": githubv4.String(enterpriseSlug)})
 	if err != nil {
 		return "", err
 	}
@@ -284,7 +284,7 @@ func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string)
 		} `graphql:"organization(login: $orgName)"`
 	}
 
-	err := v4.Query(ctx, &query, map[string]interface{}{"orgName": githubv4.String(orgName)})
+	err := v4.Query(ctx, &query, map[string]any{"orgName": githubv4.String(orgName)})
 	if err != nil {
 		return "", err
 	}
@@ -300,7 +300,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Description: github.String(data.Get("description").(string)),
+				Description: github.Ptr(data.Get("description").(string)),
 			},
 		)
 		return err
@@ -317,7 +317,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Name: github.String(data.Get("display_name").(string)),
+				Name: github.Ptr(data.Get("display_name").(string)),
 			},
 		)
 		return err
@@ -325,7 +325,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 	return nil
 }
 
-func removeUsers(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, toRemove []interface{}, orgName string) error {
+func removeUsers(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, toRemove []any, orgName string) error {
 	for _, user := range toRemove {
 		err := removeUser(ctx, v3, v4, user.(string), orgName)
 		if err != nil {
@@ -352,7 +352,7 @@ func removeUser(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, use
 	err := v4.Query(
 		ctx,
 		&query,
-		map[string]interface{}{
+		map[string]any{
 			"org":  githubv4.String(orgName),
 			"user": githubv4.String(user),
 		},
@@ -371,7 +371,7 @@ func removeUser(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, use
 		return err
 	}
 
-	membership.Role = github.String("member")
+	membership.Role = github.Ptr("member")
 	_, _, err = v3.Organizations.EditOrgMembership(ctx, user, orgName, membership)
 	return err
 }
@@ -389,7 +389,7 @@ func updateAdminList(ctx context.Context, data *schema.ResourceData, orgName str
 	return removeUsers(ctx, v3, v4, toRemove, orgName)
 }
 
-func addUsers(ctx context.Context, data *schema.ResourceData, v4 *githubv4.Client, toAdd []interface{}) error {
+func addUsers(ctx context.Context, data *schema.ResourceData, v4 *githubv4.Client, toAdd []any) error {
 	if len(toAdd) != 0 {
 		var mutate struct {
 			AddEnterpriseOrganizationMember struct {
@@ -436,7 +436,7 @@ func updateBillingEmail(ctx context.Context, data *schema.ResourceData, orgName 
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, meta any) error {
 	v3 := meta.(*Owner).v3client
 	v4 := meta.(*Owner).v4client
 	ctx := context.Background()
@@ -460,7 +460,7 @@ func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, meta 
 	return updateBillingEmail(ctx, data, orgName, v3)
 }
 
-func getUserIds(v4 *githubv4.Client, loginNames []interface{}) ([]githubv4.ID, error) {
+func getUserIds(v4 *githubv4.Client, loginNames []any) ([]githubv4.ID, error) {
 	var query struct {
 		User struct {
 			ID githubv4.String
@@ -470,7 +470,7 @@ func getUserIds(v4 *githubv4.Client, loginNames []interface{}) ([]githubv4.ID, e
 	var ret []githubv4.ID
 
 	for _, l := range loginNames {
-		err := v4.Query(context.Background(), &query, map[string]interface{}{"login": githubv4.String(l.(string))})
+		err := v4.Query(context.Background(), &query, map[string]any{"login": githubv4.String(l.(string))})
 		if err != nil {
 			return nil, err
 		}
@@ -479,14 +479,14 @@ func getUserIds(v4 *githubv4.Client, loginNames []interface{}) ([]githubv4.ID, e
 	return ret, nil
 }
 
-func stringChanges(oldValue interface{}, newValue interface{}) (string, string) {
+func stringChanges(oldValue any, newValue any) (string, string) {
 	oldString, _ := oldValue.(string)
 	newString, _ := newValue.(string)
 
 	return oldString, newString
 }
 
-func setChanges(oldValue interface{}, newValue interface{}) (*schema.Set, *schema.Set) {
+func setChanges(oldValue any, newValue any) (*schema.Set, *schema.Set) {
 	oldSet, _ := oldValue.(*schema.Set)
 	newSet, _ := newValue.(*schema.Set)
 

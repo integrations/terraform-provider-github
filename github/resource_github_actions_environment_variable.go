@@ -58,7 +58,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -82,7 +82,7 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
-func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -106,7 +106,7 @@ func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
-func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -130,17 +130,17 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	_ = d.Set("repository", repoName)
+	_ = d.Set("environment", envName)
+	_ = d.Set("variable_name", name)
+	_ = d.Set("value", variable.Value)
+	_ = d.Set("created_at", variable.CreatedAt.String())
+	_ = d.Set("updated_at", variable.UpdatedAt.String())
 
 	return nil
 }
 
-func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

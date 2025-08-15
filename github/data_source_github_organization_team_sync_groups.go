@@ -37,7 +37,7 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -48,7 +48,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 		},
 	}
 
-	groups := make([]interface{}, 0)
+	groups := make([]any, 0)
 	for {
 		idpGroupList, resp, err := client.Teams.ListIDPGroupsInOrganization(ctx, orgName, options)
 		if err != nil {

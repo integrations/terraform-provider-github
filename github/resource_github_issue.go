@@ -74,7 +74,7 @@ func resourceGithubIssue() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
@@ -83,11 +83,11 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta interface{})
 	milestone := d.Get("milestone_number").(int)
 
 	req := &github.IssueRequest{
-		Title: github.String(title),
+		Title: github.Ptr(title),
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = github.String(v.(string))
+		req.Body = github.Ptr(v.(string))
 	}
 
 	labels := expandStringList(d.Get("labels").(*schema.Set).List())
@@ -130,7 +130,7 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta interface{})
 	return resourceGithubIssueRead(d, meta)
 }
 
-func resourceGithubIssueRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	repoName, idNumber, err := parseTwoPartID(d.Id(), "repository", "issue_number")
 	if err != nil {
@@ -207,7 +207,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubIssueDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
@@ -217,7 +217,7 @@ func resourceGithubIssueDelete(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Deleting issue by closing: %d (%s/%s)", number, orgName, repoName)
 
-	request := &github.IssueRequest{State: github.String("closed")}
+	request := &github.IssueRequest{State: github.Ptr("closed")}
 
 	_, _, err := client.Issues.Edit(ctx, orgName, repoName, number, request)
 

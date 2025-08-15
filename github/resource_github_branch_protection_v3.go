@@ -215,7 +215,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -256,7 +256,7 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interfa
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -333,7 +333,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interfa
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
