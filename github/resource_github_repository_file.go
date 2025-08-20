@@ -465,6 +465,11 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	if *opts.Message == fmt.Sprintf("Add %s", file) {
+		m := fmt.Sprintf("Delete %s", file)
+		opts.Message = &m
+	}
+
 	if b, ok := d.GetOk("branch"); ok {
 		log.Printf("[DEBUG] Using explicitly set branch: %s", b.(string))
 		if err := checkRepositoryBranchExists(client, owner, repo, b.(string)); err != nil {
