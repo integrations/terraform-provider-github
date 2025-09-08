@@ -1,0 +1,57 @@
+name: 'Acceptance Tests'
+description: 'Acceptance Tests For `terraform-provider-github`'
+outputs:
+  failed:
+    description: 'Failed test cases (space-separated)'
+inputs:
+  RUN_ALLOWED:
+    description: 'Only runs specified tests (space-separated)'
+    required: false
+  RUN_ALL:
+    description: 'Forces running all available tests'
+    default: 'false'
+  TF_LOG:
+    description: 'TF_LOG environment variable used during test runs'
+    default: ''
+  GITHUB_OWNER:
+    description: 'GitHub Owner to run tests as'
+    required: false
+  GITHUB_BASE_URL:
+    description: 'GitHub base URL to run tests against'
+    default: https://api.github.com/
+  GITHUB_ORGANIZATION:
+    description: 'GitHub Organization to run tests as'
+    required: true
+  GITHUB_TEST_USER:
+    description: 'GitHub user to run tests as'
+    required: true
+  GITHUB_TEST_ORGANIZATION:
+    description: 'GitHub organization to support testing individual mode'
+    default: terraformtesting
+  GITHUB_TEST_OWNER:
+    description: 'GitHub owner to support testing organization mode'
+    default: github-terraform-test-user
+  GITHUB_TEST_USER_NAME:
+    description: 'Name of GitHub user to make commits with during test runs'
+    required: true
+  GITHUB_TEST_USER_TOKEN:
+    description: 'Authentication for GitHub user to run tests as'
+    required: true
+  GITHUB_TEST_USER_EMAIL:
+    description: 'E-mail for GitHub user to make commits with during test runs'
+    required: true
+  GITHUB_TEST_COLLABORATOR:
+    description: 'GitHub user whose grants will be managed during test runs'
+    required: true
+  GITHUB_TEST_COLLABORATOR_TOKEN:
+    description: 'Authentication for GitHub user whose grants will be managed during test runs'
+    required: true
+  GITHUB_TEMPLATE_REPOSITORY:
+    description: 'Template Repository used to test creation during test runs'
+    default: 'terraform-template-module'
+  GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID:
+    description: 'Template Repository Release ID used during test runs'
+    default: 25117183
+runs:
+  using: docker
+  image: Dockerfile
