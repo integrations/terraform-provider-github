@@ -4,9 +4,6 @@ outputs:
   failed:
     description: 'Failed test cases (space-separated)'
 inputs:
-  RUN_ALLOWED:
-    description: 'Only runs specified tests (space-separated)'
-    required: false
   RUN_ALL:
     description: 'Forces running all available tests'
     default: 'false'
