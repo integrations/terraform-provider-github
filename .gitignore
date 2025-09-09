@@ -36,3 +36,4 @@ terraform-provider-github
 
 # do not commit secrets
 .env
+*.pem
