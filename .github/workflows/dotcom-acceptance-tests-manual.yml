@@ -22,13 +22,14 @@ jobs:
         id: acceptance-tests-anonymous
         run: ./scripts/entrypoint.sh
         env:
-          RUN_ALL: 'false' # Forces running all available tests
-          TF_LOG: INFO # TF_LOG environment variable used during test runs
-          GITHUB_BASE_URL: https://api.github.com/ # GitHub base URL to run tests against
-          GITHUB_TEST_ORGANIZATION: terraformtesting # GitHub organization to support testing individual mode
-          GITHUB_TEST_OWNER: github-terraform-test-user # GitHub owner to support testing organization mode
-          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module # Template Repository used to test creation during test runs
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183 # Template Repository Release ID used during test runs
+          RUN_ALL: 'false'
+          TF_LOG: INFO
+          GITHUB_BASE_URL: https://api.github.com/
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_OWNER: stegayet
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN }}
       - name: Failed Acceptance Tests (Anonymous)
         if: ${{ failure() }}
         run: ./scripts/entrypoint.sh
@@ -36,10 +37,11 @@ jobs:
           RUN_ALL: 'false'
           TF_LOG: DEBUG
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_TEST_ORGANIZATION: terraformtesting
-          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_OWNER: stegayet
           GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN }}
 
 
   acceptance-tests-individual:
@@ -60,13 +62,13 @@ jobs:
         env:
           RUN_ALL: 'false'
           TF_LOG: INFO
-          GITHUB_OWNER: github-terraform-test-user # GitHub Owner to run tests as
+          GITHUB_OWNER: stegayet
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_TEST_ORGANIZATION: terraformtesting
-          GITHUB_TEST_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }} # Authentication for GitHub user to run tests as
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_OWNER: stegayet
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN }}
           GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152
       - name: Failed Acceptance Tests (Individual)
         id: acceptance-tests-individual
         run: ./scripts/entrypoint.sh
@@ -74,13 +76,13 @@ jobs:
         with:
           RUN_ALL: 'false'
           TF_LOG: DEBUG
-          GITHUB_OWNER: github-terraform-test-user
+          GITHUB_OWNER: stegayet
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_TEST_ORGANIZATION: terraformtesting
-          GITHUB_TEST_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_OWNER: stegayet
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN}}
           GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152
 
   acceptance-tests-organization:
     runs-on: ubuntu-latest
@@ -102,12 +104,12 @@ jobs:
           RUN_ALL: 'false'
           TF_LOG: INFO
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_ORGANIZATION: terraformtesting # GitHub Organization to run tests as
-          GITHUB_TEST_ORGANIZATION: terraformtesting
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
-          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN }}
+          GITHUB_TEST_OWNER: stegayet
           GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152
 
       - name: Failed Acceptance Tests (Organization)
         run: ./scripts/entrypoint.sh
@@ -116,9 +118,9 @@ jobs:
           RUN_ALL: 'false'
           TF_LOG: DEBUG
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_ORGANIZATION: terraformtesting
-          GITHUB_TEST_ORGANIZATION: terraformtesting
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
-          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.TEST_USER_TOKEN }}
+          GITHUB_TEST_OWNER: stegayet
           GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
-          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 245841152

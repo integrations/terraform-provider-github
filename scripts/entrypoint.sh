@@ -1,25 +1,5 @@
 #!/bin/bash -l
 
-# Parse Action inputs into environment variables
-export RUN_ALL=${INPUT_RUN_ALL}
-export TF_LOG=${INPUT_TF_LOG}
-export GITHUB_ORGANIZATION=${INPUT_GITHUB_ORGANIZATION}
-export GITHUB_BASE_URL=${INPUT_GITHUB_BASE_URL}
-export GITHUB_OWNER=${INPUT_GITHUB_OWNER}
-export GITHUB_TEST_USER=${INPUT_GITHUB_TEST_USER}
-export GITHUB_TEST_OWNER=${INPUT_GITHUB_TEST_OWNER}
-export GITHUB_TEST_ORGANIZATION=${INPUT_GITHUB_TEST_ORGANIZATION}
-export GITHUB_TEST_USER_TOKEN=${INPUT_GITHUB_TEST_USER_TOKEN}
-export GITHUB_TEST_USER_NAME=${INPUT_GITHUB_TEST_USER_NAME}
-export GITHUB_TEST_USER_EMAIL=${INPUT_GITHUB_TEST_USER_EMAIL}
-export GITHUB_TEST_COLLABORATOR=${INPUT_GITHUB_TEST_COLLABORATOR}
-export GITHUB_TEST_COLLABORATOR_TOKEN=${INPUT_GITHUB_TEST_COLLABORATOR_TOKEN}
-export GITHUB_TEMPLATE_REPOSITORY=${INPUT_GITHUB_TEMPLATE_REPOSITORY}
-export GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID=${INPUT_GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID}
-
-# Set GITHUB_TOKEN
-export GITHUB_TOKEN="${GITHUB_TEST_USER_TOKEN}"
-
 # Acceptance Test Functions
 
 generate_test_fixtures () {
@@ -49,7 +29,7 @@ test_cases_from_modified_files () {
 }
 
 all_test_cases () {
-  grep -nr "func Test" . | grep -v vendor | \
+  grep -nr "func Test" . | \
   cut -d ' ' -f 2 | cut -d "(" -f 1 | grep -e TestAcc -e TestProvider | \
   tr '\n' ' '
 }
@@ -79,11 +59,6 @@ main () {
     echo "No test cases eligible to run, exiting."
     return 0
   fi
-
-  # Setup Go Environment
-  go mod init
-  go mod tidy
-  go mod vendor
 
   # Pre-Sweeper
   go test -v -sweep="gh-region"
