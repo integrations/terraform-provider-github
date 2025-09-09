@@ -21,7 +21,7 @@ jobs:
         id: acceptance-tests-anonymous
         run: ./scripts/entrypoint.sh
         env:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: INFO
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
@@ -33,7 +33,7 @@ jobs:
         if: ${{ failure() }}
         run: ./scripts/entrypoint.sh
         with:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: DEBUG
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_TEST_ORGANIZATION: backmarket-sandbox-yli
@@ -59,7 +59,7 @@ jobs:
         id: acceptance-tests-individual
         run: ./scripts/entrypoint.sh
         env:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: INFO
           GITHUB_OWNER: stegayet
           GITHUB_BASE_URL: https://api.github.com/
@@ -73,7 +73,7 @@ jobs:
         run: ./scripts/entrypoint.sh
         if: ${{ failure() }}
         with:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: DEBUG
           GITHUB_OWNER: stegayet
           GITHUB_BASE_URL: https://api.github.com/
@@ -100,7 +100,7 @@ jobs:
         id: acceptance-tests-organization
         run: ./scripts/entrypoint.sh
         env:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: INFO
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_ORGANIZATION: backmarket-sandbox-yli
@@ -114,7 +114,7 @@ jobs:
         run: ./scripts/entrypoint.sh
         if: ${{ failure() }}
         with:
-          RUN_ALL: 'false'
+          RUN_ALL: 'true'
           TF_LOG: DEBUG
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_ORGANIZATION: backmarket-sandbox-yli
