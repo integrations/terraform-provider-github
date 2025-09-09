@@ -1,22 +1,20 @@
 name: GitHub Actions CI
 
 on:
-  push:
-    branches: [main]
-  pull_request: {}
+  pull_request:
 
 jobs:
   ci:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TEST_ORGANIZATION: 'kfcampbell-terraform-provider'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version-file: 'go.mod'
           cache: true
-      - run: make tools
-      - run: make lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8.0.0
+        with:
+          version: v2.4.0
       - run: make build
       - run: make test

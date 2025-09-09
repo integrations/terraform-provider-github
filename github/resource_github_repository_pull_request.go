@@ -296,7 +296,7 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta inte
 		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
 	}
 
-	return fmt.Errorf(strings.Join(errors, ", "))
+	return fmt.Errorf("%s", strings.Join(errors, ", "))
 }
 
 func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta interface{}) error {
