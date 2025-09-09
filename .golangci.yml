@@ -3,7 +3,6 @@
 
 run:
   deadline: 3m
-  modules-download-mode: vendor
 
 issues:
   max-per-linter: 0
