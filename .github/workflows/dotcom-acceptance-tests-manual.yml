@@ -20,14 +20,26 @@ jobs:
           cache: true
       - name: Acceptance Tests (Anonymous)
         id: acceptance-tests-anonymous
-        uses: ./github/actions/acceptance-tests
-        with:
-          TF_LOG: INFO
+        run: ./scripts/entrypoint.sh
+        env:
+          RUN_ALL: 'false' # Forces running all available tests
+          TF_LOG: INFO # TF_LOG environment variable used during test runs
+          GITHUB_BASE_URL: https://api.github.com/ # GitHub base URL to run tests against
+          GITHUB_TEST_ORGANIZATION: terraformtesting # GitHub organization to support testing individual mode
+          GITHUB_TEST_OWNER: github-terraform-test-user # GitHub owner to support testing organization mode
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module # Template Repository used to test creation during test runs
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183 # Template Repository Release ID used during test runs
       - name: Failed Acceptance Tests (Anonymous)
         if: ${{ failure() }}
-        uses: ./github/actions/acceptance-tests
+        run: ./scripts/entrypoint.sh
         with:
+          RUN_ALL: 'false'
           TF_LOG: DEBUG
+          GITHUB_BASE_URL: https://api.github.com/
+          GITHUB_TEST_ORGANIZATION: terraformtesting
+          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
 
 
   acceptance-tests-individual:
@@ -44,20 +56,31 @@ jobs:
           cache: true
       - name: Acceptance Tests (Individual)
         id: acceptance-tests-individual
-        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
-        with:
+        run: ./scripts/entrypoint.sh
+        env:
+          RUN_ALL: 'false'
           TF_LOG: INFO
-          GITHUB_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+          GITHUB_OWNER: github-terraform-test-user # GitHub Owner to run tests as
+          GITHUB_BASE_URL: https://api.github.com/
           GITHUB_TEST_ORGANIZATION: terraformtesting
+          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }} # Authentication for GitHub user to run tests as
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
       - name: Failed Acceptance Tests (Individual)
+        id: acceptance-tests-individual
+        run: ./scripts/entrypoint.sh
         if: ${{ failure() }}
-        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
         with:
+          RUN_ALL: 'false'
           TF_LOG: DEBUG
           GITHUB_OWNER: github-terraform-test-user
-          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+          GITHUB_BASE_URL: https://api.github.com/
           GITHUB_TEST_ORGANIZATION: terraformtesting
+          GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
 
   acceptance-tests-organization:
     runs-on: ubuntu-latest
@@ -74,18 +97,28 @@ jobs:
 
       - name: Acceptance Tests (Organization)
         id: acceptance-tests-organization
-        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
-        with:
+        run: ./scripts/entrypoint.sh
+        env:
+          RUN_ALL: 'false'
           TF_LOG: INFO
-          GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_BASE_URL: https://api.github.com/
+          GITHUB_ORGANIZATION: terraformtesting # GitHub Organization to run tests as
+          GITHUB_TEST_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
 
       - name: Failed Acceptance Tests (Organization)
-        uses: terraformtesting/acceptance-tests@66f4842d934555dde0f59bf1a00abd0fc710ece4 # v2.2.0
+        run: ./scripts/entrypoint.sh
         if: ${{ failure() }}
         with:
+          RUN_ALL: 'false'
           TF_LOG: DEBUG
+          GITHUB_BASE_URL: https://api.github.com/
           GITHUB_ORGANIZATION: terraformtesting
+          GITHUB_TEST_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
           GITHUB_TEST_OWNER: github-terraform-test-user
+          GITHUB_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID: 25117183
