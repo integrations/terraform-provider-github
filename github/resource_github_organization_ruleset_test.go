@@ -84,6 +84,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						pattern  = "test"
 					}
 
+					copilot_code_review {
+						review_on_push = true
+						review_draft_pull_requests = false
+					}
+
 					non_fast_forward = true
 				}
 			}
@@ -158,6 +163,14 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test", "enforcement",
 				"active",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_on_push",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests",
+				"false",
 			),
 		)
 
