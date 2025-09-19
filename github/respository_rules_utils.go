@@ -553,6 +553,29 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
 		}
 	}
+	// Copilot code review rule
+	if v, ok := rulesMap["copilot_code_review"].([]interface{}); ok && len(v) != 0 {
+		copilotCodeReviewMap := v[0].(map[string]interface{})
+		
+		// Create parameters map
+		paramsMap := map[string]interface{}{
+			"review_on_push":              copilotCodeReviewMap["review_on_push"].(bool),
+			"review_draft_pull_requests":  copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		}
+		
+		// Marshal to JSON
+		paramsJSON, err := json.Marshal(paramsMap)
+		if err != nil {
+			log.Printf("[INFO] Error marshalling copilot_code_review parameters: %v", err)
+		} else {
+			paramsRaw := json.RawMessage(paramsJSON)
+			rule := &github.RepositoryRule{
+				Type:       "copilot_code_review",
+				Parameters: &paramsRaw,
+			}
+			rulesSlice = append(rulesSlice, rule)
+		}
+	}
 
 	return rulesSlice
 }
@@ -759,7 +782,32 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]any)
 			rule["required_code_scanning_tool"] = requiredCodeScanningToolSlice
 			rulesMap[v.Type] = []map[string]any{rule}
+		
+		case "copilot_code_review":
+			// Handle copilot_code_review rule parameters
+			var params map[string]any
 
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			rule := make(map[string]any)
+			if reviewOnPush, ok := params["review_on_push"].(bool); ok {
+				rule["review_on_push"] = reviewOnPush
+			} else {
+				rule["review_on_push"] = false
+			}
+
+			if reviewDraftPRs, ok := params["review_draft_pull_requests"].(bool); ok {
+				rule["review_draft_pull_requests"] = reviewDraftPRs
+			} else {
+				rule["review_draft_pull_requests"] = false
+			}
+
+			rulesMap[v.Type] = []map[string]any{rule}
+		
 		case "file_path_restriction":
 			var params github.RuleFileParameters
 			err := json.Unmarshal(*v.Parameters, &params)

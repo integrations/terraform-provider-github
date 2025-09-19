@@ -300,6 +300,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
 									},
+									"automatic_copilot_code_review_enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Automatically request Copilot code review. Defaults to `false`.",
+									},
 								},
 							},
 						},
@@ -643,6 +649,28 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
+									},
+								},
+							},
+						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Request Copilot code review for new pull requests automatically if the author has access to Copilot code review.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull reques. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
 									},
 								},
 							},
