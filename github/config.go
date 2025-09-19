@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -35,6 +36,10 @@ type Owner struct {
 	StopContext    context.Context
 	IsOrganization bool
 }
+
+// GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
+// https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
+var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 
@@ -80,7 +85,7 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 		return nil, err
 	}
 
-	if uv4.String() != "https://api.github.com/" {
+	if uv4.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv4.String()) {
 		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	} else {
 		uv4.Path = path.Join(uv4.Path, "graphql")
@@ -96,7 +101,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		return nil, err
 	}
 
-	if uv3.String() != "https://api.github.com/" {
+	if uv3.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv3.String()) {
 		uv3.Path = uv3.Path + "api/v3/"
 	}
 

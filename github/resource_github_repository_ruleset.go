@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -249,6 +249,71 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
+								},
+							},
+						},
+						"merge_queue": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Merges must be performed via a merge queue.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"check_response_timeout_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          60,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "check_response_timeout_minutes"),
+										Description:      "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.",
+									},
+									"grouping_strategy": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "ALLGREEN",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.",
+									},
+									"max_entries_to_build": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.",
+									},
+									"max_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "The maximum number of PRs that will be merged together in a group. Defaults to `5`.",
+									},
+									"merge_method": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "MERGE",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+										Description:      "Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.",
+									},
+									"min_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          1,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "min_entries_to_merge"),
+										Description:      "The minimum number of PRs that will be merged together in a group. Defaults to `1`.",
+									},
+									"min_entries_to_merge_wait_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "min_entries_to_merge_wait_minutes"),
+										Description:      "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.",
+									},
 								},
 							},
 						},
@@ -405,6 +470,41 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "The pattern to match with.",
+									},
+								},
+							},
+						},
+						"required_code_scanning": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_code_scanning_tool": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Tools that must provide code scanning results for this rule to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+												},
+												"security_alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+												},
+												"tool": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of a code scanning tool",
+												},
+											},
+										},
 									},
 								},
 							},

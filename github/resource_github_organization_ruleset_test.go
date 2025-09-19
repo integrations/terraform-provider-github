@@ -69,6 +69,14 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						}
 					}
 
+					required_code_scanning {
+					  required_code_scanning_tool {
+						alerts_threshold = "errors"
+						security_alerts_threshold = "high_or_higher"
+						tool = "CodeQL"
+					  }
+					}
+
 					branch_name_pattern {
 						name     = "test"
 						negate   = false
