@@ -235,6 +235,8 @@ func resourceGithubActionsEnvironmentSecretImport(d *schema.ResourceData, meta i
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 
+	escapedEnvName := url.PathEscape(envName)
+
 	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 	if err != nil {
 		return nil, err
