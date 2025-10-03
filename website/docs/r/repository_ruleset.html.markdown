@@ -64,11 +64,11 @@ resource "github_repository_ruleset" "example" {
 
 * `target` - (Required) (String) Possible values are `branch` and `tag`.
 
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
+
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
-
-* `repository` - (Optional) (String) Name of the repository to apply rulset to.
 
 #### Rules ####
 

@@ -39,8 +39,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			},
 			"repository": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the repository to apply rulset to.",
+				Required:    true,
+				Description: "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
