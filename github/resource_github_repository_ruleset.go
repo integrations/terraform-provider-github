@@ -42,7 +42,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
-				Description:      "Name of the repository to apply rulset to.",
+				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
