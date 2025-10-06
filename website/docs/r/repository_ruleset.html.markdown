@@ -68,7 +68,7 @@ resource "github_repository_ruleset" "example" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
 
-* `repository` - (Required) (String) Name of the repository to apply rulset to.
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
