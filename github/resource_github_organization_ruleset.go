@@ -465,6 +465,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 											},
 										},
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Whether or not to allow repository and branch creation without the required workflows passing.",
+									},
 								},
 							},
 						},

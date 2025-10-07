@@ -178,6 +178,8 @@ The `rules` block supports the following:
 
 * `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
 
+* `do_not_enforce_on_create` - (Optional) (Boolean) Whether or not to allow repository and branch creation without the required workflows passing.
+
 #### rules.required_workflows.required_workflow ####
 
 * `repository_id` - (Required) (Number) The ID of the repository. Names, full names and repository URLs are not supported.
