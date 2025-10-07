@@ -21,7 +21,6 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -63,6 +62,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_workflows {
+						do_not_enforce_on_create = true
 						required_workflow {
 							path          = "path/to/workflow.yaml"
 							repository_id = 1234
@@ -116,11 +116,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Updates a ruleset name without error", func(t *testing.T) {
-
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
 
@@ -175,11 +173,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -257,7 +253,5 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
-
 }

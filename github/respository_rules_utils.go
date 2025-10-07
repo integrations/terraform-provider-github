@@ -374,8 +374,10 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
 		params := &github.RequiredWorkflowsRuleParameters{
-			RequiredWorkflows: requiredWorkflows,
+			DoNotEnforceOnCreate: doNotEnforceOnCreate,
+			RequiredWorkflows:    requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
