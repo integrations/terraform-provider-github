@@ -576,6 +576,13 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if ruleset == nil {
+		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
+			owner, repoName, rulesetID)
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
