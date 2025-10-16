@@ -574,6 +574,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 		}
+		return err
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
