@@ -172,16 +172,15 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	//
 	// If the resource is changed externally in the meantime then reading back
 	// the last update timestamp will return a result different than the
-	// timestamp we've persisted in the state. In that case, we can no longer
-	// trust that the value (which we don't see) is equal to what we've declared
-	// previously.
+	// timestamp we've persisted in the state. In this case, we can no longer
+	// trust that the value matches what is in the state file.
 	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
+	// To solve this, we must unset the values and allow Terraform to decide whether or
+	// not this resource should be modified or left as-is (ignore_changes).
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
+		d.Set("encrypted_value", "")
+		d.Set("plaintext_value", "")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return err
