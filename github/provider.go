@@ -133,6 +133,7 @@ func Provider() *schema.Provider {
 			"github_actions_organization_secret":                                    resourceGithubActionsOrganizationSecret(),
 			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
 			"github_actions_organization_secret_repositories":                       resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_organization_secret_repository":                         resourceGithubActionsOrganizationSecretRepository(),
 			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
