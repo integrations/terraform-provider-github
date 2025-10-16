@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {
+func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.RulesetTarget {
 	isOrgLevel := len(org) > 0
 
 	var source, sourceType string
@@ -22,7 +22,7 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rul
 		sourceType = "Repository"
 	}
 
-	return &github.Ruleset{
+	return &github.RulesetTarget{
 		Name:         d.Get("name").(string),
 		Target:       github.String(d.Get("target").(string)),
 		Source:       source,

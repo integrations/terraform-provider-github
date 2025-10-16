@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -112,6 +112,9 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 
 	v3client.BaseURL = uv3
 
+	//disabling go-github level retry check as retry check is performed at the transport layer of this provider
+	v3client.DisableRateLimitCheck = true
+
 	return v3client, nil
 }
 
@@ -156,7 +159,6 @@ func (c *Config) Meta() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	v4client, err := c.NewGraphQLClient(client)
 	if err != nil {
 		return nil, err
