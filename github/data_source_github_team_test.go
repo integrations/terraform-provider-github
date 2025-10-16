@@ -228,6 +228,60 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	})
 
+	t.Run("queries teams with notification settings", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test_enabled" {
+				name                 = "tf-acc-test-enabled-%s"
+				notification_setting = "notifications_enabled"
+			}
+
+			resource "github_team" "test_disabled" {
+				name                 = "tf-acc-test-disabled-%s"
+				notification_setting = "notifications_disabled"
+			}
+
+			data "github_team" "test_enabled" {
+				slug = github_team.test_enabled.slug
+			}
+
+			data "github_team" "test_disabled" {
+				slug = github_team.test_disabled.slug
+			}
+		`, randomID, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr("data.github_team.test_enabled", "notification_setting", "notifications_enabled"),
+			resource.TestCheckResourceAttr("data.github_team.test_disabled", "notification_setting", "notifications_disabled"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
 
 		config := fmt.Sprintf(`

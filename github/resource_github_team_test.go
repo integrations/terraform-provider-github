@@ -193,6 +193,83 @@ func TestAccGithubTeamRemovesDefaultMaintainer(t *testing.T) {
 
 }
 
+func TestAccGithubTeamNotificationSetting(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("creates teams with different notification settings", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test_default" {
+				name = "tf-acc-default-%s"
+			}
+
+			resource "github_team" "test_enabled" {
+				name                 = "tf-acc-enabled-%s"
+				notification_setting = "notifications_enabled"
+			}
+
+			resource "github_team" "test_disabled" {
+				name                 = "tf-acc-disabled-%s"
+				notification_setting = "notifications_disabled"
+			}
+		`, randomID, randomID, randomID)
+
+		configUpdated := fmt.Sprintf(`
+			resource "github_team" "test_default" {
+				name = "tf-acc-default-%s"
+			}
+
+			resource "github_team" "test_enabled" {
+				name                 = "tf-acc-enabled-%s"
+				notification_setting = "notifications_disabled"
+			}
+
+			resource "github_team" "test_disabled" {
+				name                 = "tf-acc-disabled-%s"
+				notification_setting = "notifications_enabled"
+			}
+		`, randomID, randomID, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("github_team.test_default", "notification_setting", "notifications_enabled"),
+							resource.TestCheckResourceAttr("github_team.test_enabled", "notification_setting", "notifications_enabled"),
+							resource.TestCheckResourceAttr("github_team.test_disabled", "notification_setting", "notifications_disabled"),
+						),
+					},
+					{
+						Config: configUpdated,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("github_team.test_default", "notification_setting", "notifications_enabled"),
+							resource.TestCheckResourceAttr("github_team.test_enabled", "notification_setting", "notifications_disabled"),
+							resource.TestCheckResourceAttr("github_team.test_disabled", "notification_setting", "notifications_enabled"),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+}
+
 func TestAccGithubTeamUpdateName(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
