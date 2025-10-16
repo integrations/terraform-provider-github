@@ -41,7 +41,6 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 			"encrypted_value": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ForceNew:         true,
 				Sensitive:        true,
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				ConflictsWith:    []string{"plaintext_value"},
@@ -50,7 +49,6 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 			"plaintext_value": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ForceNew:      true,
 				Sensitive:     true,
 				Description:   "Plaintext value of the secret to be encrypted.",
 				ConflictsWith: []string{"encrypted_value"},
