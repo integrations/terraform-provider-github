@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
+func TestAccGithubActionsRemoveTokenDataSource(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("get a repository registration token without error", func(t *testing.T) {
+	t.Run("get a repository remove token without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -21,15 +21,15 @@ func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
 				vulnerability_alerts = true
 			}
 
-			data "github_actions_registration_token" "test" {
+			data "github_actions_remove_token" "test" {
 				repository = github_repository.test.id
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_registration_token.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
-			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "token"),
-			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "expires_at"),
+			resource.TestCheckResourceAttr("data.github_actions_remove_token.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttrSet("data.github_actions_remove_token.test", "token"),
+			resource.TestCheckResourceAttrSet("data.github_actions_remove_token.test", "expires_at"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
