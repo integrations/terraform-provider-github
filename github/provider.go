@@ -298,8 +298,8 @@ func init() {
 			"Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
 		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
 			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
-			"Although, it is not possible to enable this setting on github.com " +
-			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
+			"While it is possible to enable this setting on github.com, " +
+			"github.com's best practices recommend using serialization to avoid hitting abuse rate limits" +
 			"Defaults to false if not set",
 		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
 			"Defaults to [500, 502, 503, 504]",
@@ -427,9 +427,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
-		if parallelRequests && isGithubDotCom {
-			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
-		}
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
 		config := Config{
