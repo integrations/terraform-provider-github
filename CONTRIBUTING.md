@@ -156,6 +156,7 @@ export GITHUB_BASE_URL=
 export GITHUB_TEST_OWNER=
 export GITHUB_TEST_ORGANIZATION=
 export GITHUB_TEST_USER_TOKEN=
+export GITHUB_TEST_PRE_RECEIVE_HOOK=
 ```
 
 See [this project](https://github.com/terraformtesting/acceptance-tests) for more information on our old system for automated testing.
