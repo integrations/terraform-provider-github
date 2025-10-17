@@ -604,7 +604,11 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset.
+	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
+	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
+	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
+	ruleset, _, err := client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
 	if err != nil {
 		return err
 	}
