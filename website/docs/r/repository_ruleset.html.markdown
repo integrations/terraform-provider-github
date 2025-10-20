@@ -52,6 +52,28 @@ resource "github_repository_ruleset" "example" {
 
   }
 }
+
+# Example with push ruleset
+resource "github_repository_ruleset" "example_push" {
+  name        = "example_push"
+  repository  = github_repository.example.name
+  target      = "push"
+  enforcement = "active"
+
+  rules {
+    file_path_restriction {
+      restricted_file_paths = [".github/workflows/*", "*.env"]
+    }
+    
+    max_file_size {
+      max_file_size = 104857600  # 100 MB in bytes
+    }
+    
+    file_extension_restriction {
+      restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
+    }
+  }
+}
 ```
 
 ## Argument Reference
