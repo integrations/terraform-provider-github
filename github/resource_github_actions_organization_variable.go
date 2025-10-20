@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsOrganizationVariable() *schema.Resource {
@@ -17,16 +17,16 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 		Update: resourceGithubActionsOrganizationVariableUpdate,
 		Delete: resourceGithubActionsOrganizationVariableDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -44,11 +44,11 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 				Description: "Date of 'actions_variable' update.",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:     true,
-				Description:  "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				ForceNew:         true,
+				Description:      "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
@@ -166,11 +166,21 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		return err
 	}
 
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
-	d.Set("visibility", *variable.Visibility)
+	if err = d.Set("variable_name", name); err != nil {
+		return err
+	}
+	if err = d.Set("value", variable.Value); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("visibility", *variable.Visibility); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 
@@ -195,7 +205,9 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		}
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

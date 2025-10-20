@@ -2,10 +2,11 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
@@ -287,6 +288,12 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 						ImportState:       true,
 						ImportStateVerify: true,
 						ImportStateId:     fmt.Sprintf("oof-%s/OOF-", randomID),
+					},
+					{
+						ResourceName:  "github_repository_autolink_reference.autolink",
+						ImportState:   true,
+						ImportStateId: fmt.Sprintf("oof-%s/OCTOCAT-", randomID),
+						ExpectError:   regexp.MustCompile(`cannot find autolink reference`),
 					},
 				},
 			})

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryAutolinkReference() *schema.Resource {
@@ -47,7 +47,9 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 					id = strconv.FormatInt(*autolink.ID, 10)
 				}
 
-				d.Set("repository", repository)
+				if err = d.Set("repository", repository); err != nil {
+					return nil, err
+				}
 				d.SetId(id)
 				return []*schema.ResourceData{d}, nil
 			},
@@ -68,11 +70,11 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Description: "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
 			},
 			"target_url_template": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*(:[0-9]+)?\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"),
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number",
+				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^http[s]?:\/\/[a-z0-9-.]*(:[0-9]+)?\/.*?<num>.*?$`), "must be a valid URL and contain <num> token"), "target_url_template"),
 			},
 			"is_alphanumeric": {
 				Type:        schema.TypeBool,
@@ -143,10 +145,18 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	// Set resource fields
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
-	d.Set("repository", repoName)
-	d.Set("key_prefix", autolinkRef.KeyPrefix)
-	d.Set("target_url_template", autolinkRef.URLTemplate)
-	d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric)
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("key_prefix", autolinkRef.KeyPrefix); err != nil {
+		return err
+	}
+	if err = d.Set("target_url_template", autolinkRef.URLTemplate); err != nil {
+		return err
+	}
+	if err = d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric); err != nil {
+		return err
+	}
 
 	return nil
 }

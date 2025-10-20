@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubCodespacesOrganizationSecretRepositories() *schema.Resource {
@@ -14,16 +14,16 @@ func resourceGithubCodespacesOrganizationSecretRepositories() *schema.Resource {
 		Update: resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate,
 		Delete: resourceGithubCodespaceOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the existing secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the existing secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,

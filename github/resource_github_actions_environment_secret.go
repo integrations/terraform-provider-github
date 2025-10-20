@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
@@ -32,20 +32,20 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Description: "Name of the environment.",
 			},
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Sensitive:     true,
-				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ConflictsWith: []string{"plaintext_value"},
-				ValidateFunc:  validation.StringIsBase64,
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				Sensitive:        true,
+				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				ConflictsWith:    []string{"plaintext_value"},
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -130,6 +130,14 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
+					d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -146,9 +154,15 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.Set("encrypted_value", d.Get("encrypted_value"))
-	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("created_at", secret.CreatedAt.String())
+	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+		return err
+	}
+	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return err
+	}
 
 	// This is a drift detection mechanism based on timestamps.
 	//
@@ -169,7 +183,9 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
-		d.Set("updated_at", secret.UpdatedAt.String())
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil

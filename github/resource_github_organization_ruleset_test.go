@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
@@ -54,12 +54,27 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
+					}
+
+					required_workflows {
+						required_workflow {
+							path          = "path/to/workflow.yaml"
+							repository_id = 1234
+						}
+					}
+
+					required_code_scanning {
+					  required_code_scanning_tool {
+						alerts_threshold = "errors"
+						security_alerts_threshold = "high_or_higher"
+						tool = "CodeQL"
+					  }
 					}
 
 					branch_name_pattern {
@@ -197,11 +212,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_status_checks {
-					
+
 						required_check {
 							context = "ci"
 						}
-						
+
 						strict_required_status_checks_policy = true
 					}
 

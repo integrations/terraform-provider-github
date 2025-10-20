@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryDeployKey() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 		Read:   resourceGithubRepositoryDeployKeyRead,
 		Delete: resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		// Deploy keys are defined immutable in the API. Updating results in force new.
@@ -118,11 +118,21 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("key", key.GetKey())
-	d.Set("read_only", key.GetReadOnly())
-	d.Set("repository", repoName)
-	d.Set("title", key.GetTitle())
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("key", key.GetKey()); err != nil {
+		return err
+	}
+	if err = d.Set("read_only", key.GetReadOnly()); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("title", key.GetTitle()); err != nil {
+		return err
+	}
 
 	return nil
 }

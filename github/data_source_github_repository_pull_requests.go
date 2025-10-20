@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 // Docs: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
@@ -31,22 +31,22 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 				Optional: true,
 			},
 			"sort_by": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "created",
-				ValidateFunc: validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "created",
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false), "sort_by"),
 			},
 			"sort_direction": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "asc",
-				ValidateFunc: validation.StringInSlice([]string{"asc", "desc"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "asc",
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"asc", "desc"}, false), "sort_direction"),
 			},
 			"state": {
-				Type:         schema.TypeString,
-				Default:      "open",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"open", "closed", "all"}, false),
+				Type:             schema.TypeString,
+				Default:          "open",
+				Optional:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"open", "closed", "all"}, false), "state"),
 			},
 			"results": {
 				Type:     schema.TypeList,
@@ -221,7 +221,9 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta int
 		direction,
 	}, "/"))
 
-	d.Set("results", results)
+	if err := d.Set("results", results); err != nil {
+		return err
+	}
 
 	return nil
 }

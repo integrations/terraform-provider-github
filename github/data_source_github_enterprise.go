@@ -3,7 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -11,6 +12,10 @@ func dataSourceGithubEnterprise() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubEnterpriseRead,
 		Schema: map[string]*schema.Schema{
+			"database_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -39,6 +44,7 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta interface{})
 	var query struct {
 		Enterprise struct {
 			ID          githubv4.String
+			DatabaseId  githubv4.Int
 			Name        githubv4.String
 			Description githubv4.String
 			CreatedAt   githubv4.String
@@ -59,10 +65,26 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta interface{})
 		return fmt.Errorf("could not find enterprise %v", slug)
 	}
 	data.SetId(string(query.Enterprise.ID))
-	data.Set("name", query.Enterprise.Name)
-	data.Set("description", query.Enterprise.Description)
-	data.Set("created_at", query.Enterprise.CreatedAt)
-	data.Set("url", query.Enterprise.Url)
+	err = data.Set("name", query.Enterprise.Name)
+	if err != nil {
+		return err
+	}
+	err = data.Set("description", query.Enterprise.Description)
+	if err != nil {
+		return err
+	}
+	err = data.Set("created_at", query.Enterprise.CreatedAt)
+	if err != nil {
+		return err
+	}
+	err = data.Set("url", query.Enterprise.Url)
+	if err != nil {
+		return err
+	}
+	err = data.Set("database_id", query.Enterprise.DatabaseId)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

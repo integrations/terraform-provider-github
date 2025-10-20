@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubCodespacesOrganizationSecrets() *schema.Resource {
@@ -72,7 +72,10 @@ func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, m
 	}
 
 	d.SetId(owner)
-	d.Set("secrets", all_secrets)
+	err := d.Set("secrets", all_secrets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

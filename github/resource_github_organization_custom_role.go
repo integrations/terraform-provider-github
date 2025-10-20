@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
@@ -16,7 +17,7 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 		Update: resourceGithubOrganizationCustomRoleUpdate,
 		Delete: resourceGithubOrganizationCustomRoleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -26,10 +27,10 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 				Description: "The organization custom repository role to create.",
 			},
 			"base_role": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The base role for the custom repository role.",
-				ValidateFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The base role for the custom repository role.",
+				ValidateDiagFunc: validateValueFunc([]string{"read", "triage", "write", "maintain"}),
 			},
 			"permissions": {
 				Type:        schema.TypeSet,
@@ -63,7 +64,7 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta int
 		permissionsStr[i] = v.(string)
 	}
 
-	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRoleOptions{
+	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRepoRoleOptions{
 		Name:        github.String(d.Get("name").(string)),
 		Description: github.String(d.Get("description").(string)),
 		BaseRole:    github.String(d.Get("base_role").(string)),
@@ -112,10 +113,18 @@ func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta inter
 		return nil
 	}
 
-	d.Set("name", role.Name)
-	d.Set("description", role.Description)
-	d.Set("base_role", role.BaseRole)
-	d.Set("permissions", role.Permissions)
+	if err = d.Set("name", role.Name); err != nil {
+		return err
+	}
+	if err = d.Set("description", role.Description); err != nil {
+		return err
+	}
+	if err = d.Set("base_role", role.BaseRole); err != nil {
+		return err
+	}
+	if err = d.Set("permissions", role.Permissions); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -129,15 +138,20 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
+	// convert d.Id() from string to int64
+	roleIDStr := d.Id()
+	roleID, err := strconv.ParseInt(roleIDStr, 10, 64)
+	if err != nil {
+		return fmt.Errorf("Error converting role ID %s to int64: %s", roleIDStr, err)
+	}
 
-	roleID := d.Id()
 	permissions := d.Get("permissions").(*schema.Set).List()
 	permissionsStr := make([]string, len(permissions))
 	for i, v := range permissions {
 		permissionsStr[i] = v.(string)
 	}
 
-	update := &github.CreateOrUpdateCustomRoleOptions{
+	update := &github.CreateOrUpdateCustomRepoRoleOptions{
 		Name:        github.String(d.Get("name").(string)),
 		Description: github.String(d.Get("description").(string)),
 		BaseRole:    github.String(d.Get("base_role").(string)),
@@ -145,7 +159,7 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta int
 	}
 
 	if _, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleID, update); err != nil {
-		return fmt.Errorf("error updating GitHub custom repository role %s (%s): %s", orgName, roleID, err)
+		return fmt.Errorf("error updating GitHub custom repository role %s (%d): %s", orgName, roleID, err)
 	}
 
 	return resourceGithubOrganizationCustomRoleRead(d, meta)
@@ -160,11 +174,15 @@ func resourceGithubOrganizationCustomRoleDelete(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
-	roleID := d.Id()
+	roleIDStr := d.Id()
+	roleID, err := strconv.ParseInt(roleIDStr, 10, 64)
+	if err != nil {
+		return fmt.Errorf("Error converting role ID %s to int64: %s", roleIDStr, err)
+	}
 
 	_, err = client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleID)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub custom repository role %s (%s): %s", orgName, roleID, err)
+		return fmt.Errorf("Error deleting GitHub custom repository role %s (%d): %s", orgName, roleID, err)
 	}
 
 	return nil

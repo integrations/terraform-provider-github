@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
@@ -83,18 +83,13 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
-	if err != nil {
-		return err
-	}
-
 	options := github.ListOptions{
 		PerPage: 100,
 	}
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListEnvVariables(context.TODO(), int(repo.GetID()), escapedEnvName, &options)
+		variables, resp, err := client.Actions.ListEnvVariables(context.TODO(), owner, repoName, escapedEnvName, &options)
 		if err != nil {
 			return err
 		}

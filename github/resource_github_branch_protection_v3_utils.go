@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
@@ -50,13 +50,13 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 
 		// TODO: Remove once contexts is fully deprecated.
 		// Flatten contexts
-		for _, c := range rsc.Contexts {
+		for _, c := range *rsc.Contexts {
 			// Parse into contexts
 			contexts = append(contexts, c)
 		}
 
 		// Flatten checks
-		for _, chk := range rsc.Checks {
+		for _, chk := range *rsc.Checks {
 			// Parse into checks
 			if chk.AppID != nil {
 				checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
@@ -195,6 +195,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
 				"dismissal_apps":                  schema.NewSet(schema.HashString, apps),
 				"require_code_owner_reviews":      rprr.RequireCodeOwnerReviews,
+				"require_last_push_approval":      rprr.RequireLastPushApproval,
 				"required_approving_review_count": rprr.RequiredApprovingReviewCount,
 				"bypass_pull_request_allowances":  bpra,
 			},
@@ -303,7 +304,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 				rscChecks = append(rscChecks, rscCheck)
 			}
 			// Assign after looping both checks and contexts
-			rsc.Checks = rscChecks
+			rsc.Checks = &rscChecks
 		}
 		return rsc, nil
 	}
@@ -351,6 +352,8 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
 			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
 			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
+			requireLastPushApproval := m["require_last_push_approval"].(bool)
+			rprr.RequireLastPushApproval = &requireLastPushApproval
 			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
 

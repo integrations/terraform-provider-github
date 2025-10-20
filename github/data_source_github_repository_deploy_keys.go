@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
@@ -73,7 +73,10 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta inter
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
-	d.Set("keys", results)
+	err := d.Set("keys", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

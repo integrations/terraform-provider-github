@@ -4,12 +4,12 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 
 	"github.com/shurcooL/githubv4"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubTeam() *schema.Resource {
@@ -68,10 +68,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Computed: true,
 			},
 			"membership_type": {
-				Type:         schema.TypeString,
-				Default:      "all",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"all", "immediate"}, false),
+				Type:             schema.TypeString,
+				Default:          "all",
+				Optional:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false), "membership_type"),
 			},
 			"summary_only": {
 				Type:     schema.TypeBool,
@@ -79,10 +79,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Default:  false,
 			},
 			"results_per_page": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(0, 100),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
 			},
 		},
 	}
@@ -168,13 +168,13 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		repositories_detailed = make([]interface{}, 0, resultsPerPage) //removed this from the loop
+
 		for {
 			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
 			if err != nil {
 				return err
 			}
-
-			repositories_detailed = make([]interface{}, 0, len(repository))
 
 			for _, v := range repository {
 				repositories = append(repositories, v.GetName())
@@ -192,14 +192,30 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
-	d.Set("name", team.GetName())
-	d.Set("members", members)
-	d.Set("repositories", repositories)
-	d.Set("repositories_detailed", repositories_detailed)
-	d.Set("description", team.GetDescription())
-	d.Set("privacy", team.GetPrivacy())
-	d.Set("permission", team.GetPermission())
-	d.Set("node_id", team.GetNodeID())
+	if err = d.Set("name", team.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("members", members); err != nil {
+		return err
+	}
+	if err = d.Set("repositories", repositories); err != nil {
+		return err
+	}
+	if err = d.Set("repositories_detailed", repositories_detailed); err != nil {
+		return err
+	}
+	if err = d.Set("description", team.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
+		return err
+	}
+	if err = d.Set("permission", team.GetPermission()); err != nil {
+		return err
+	}
+	if err = d.Set("node_id", team.GetNodeID()); err != nil {
+		return err
+	}
 
 	return nil
 }

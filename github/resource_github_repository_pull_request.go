@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryPullRequest() *schema.Resource {
@@ -23,7 +23,9 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 				if err != nil {
 					return nil, err
 				}
-				d.Set("base_repository", baseRepository)
+				if err := d.Set("base_repository", baseRepository); err != nil {
+					return nil, err
+				}
 
 				return []*schema.ResourceData{d}, nil
 			},
@@ -187,11 +189,18 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	d.Set("number", pullRequest.GetNumber())
+	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
+		return err
+	}
 
 	if head := pullRequest.GetHead(); head != nil {
-		d.Set("head_ref", head.GetRef())
-		d.Set("head_sha", head.GetSHA())
+		if err = d.Set("head_ref", head.GetRef()); err != nil {
+			return err
+		}
+
+		if err = d.Set("head_sha", head.GetSHA()); err != nil {
+			return err
+		}
 	} else {
 		// Totally unexpected condition. Better do that than segfault, I guess?
 		log.Printf("[INFO] Head branch missing, expected %s", d.Get("head_ref"))
@@ -200,8 +209,12 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interf
 	}
 
 	if base := pullRequest.GetBase(); base != nil {
-		d.Set("base_ref", base.GetRef())
-		d.Set("base_sha", base.GetSHA())
+		if err = d.Set("base_ref", base.GetRef()); err != nil {
+			return err
+		}
+		if err = d.Set("base_sha", base.GetSHA()); err != nil {
+			return err
+		}
 	} else {
 		// Seme logic as with the missing head branch.
 		log.Printf("[INFO] Base branch missing, expected %s", d.Get("base_ref"))
@@ -209,24 +222,44 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interf
 		return nil
 	}
 
-	d.Set("body", pullRequest.GetBody())
-	d.Set("title", pullRequest.GetTitle())
-	d.Set("draft", pullRequest.GetDraft())
-	d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify())
-	d.Set("number", pullRequest.GetNumber())
-	d.Set("state", pullRequest.GetState())
-	d.Set("opened_at", pullRequest.GetCreatedAt().Unix())
-	d.Set("updated_at", pullRequest.GetUpdatedAt().Unix())
+	if err = d.Set("body", pullRequest.GetBody()); err != nil {
+		return err
+	}
+	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
+		return err
+	}
+	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
+		return err
+	}
+	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
+		return err
+	}
+	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
+		return err
+	}
+	if err = d.Set("state", pullRequest.GetState()); err != nil {
+		return err
+	}
+	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
+		return err
+	}
 
 	if user := pullRequest.GetUser(); user != nil {
-		d.Set("opened_by", user.GetLogin())
+		if err = d.Set("opened_by", user.GetLogin()); err != nil {
+			return err
+		}
 	}
 
 	labels := []string{}
 	for _, label := range pullRequest.Labels {
 		labels = append(labels, label.GetName())
 	}
-	d.Set("labels", labels)
+	if err = d.Set("labels", labels); err != nil {
+		return err
+	}
 
 	return nil
 }

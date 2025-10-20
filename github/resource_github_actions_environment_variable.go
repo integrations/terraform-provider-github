@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
@@ -17,7 +17,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 		Update: resourceGithubActionsEnvironmentVariableUpdate,
 		Delete: resourceGithubActionsEnvironmentVariableDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -33,11 +33,11 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 				Description: "Name of the environment.",
 			},
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -73,12 +73,7 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 		Value: d.Get("value").(string),
 	}
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Actions.CreateEnvVariable(ctx, int(repo.GetID()), escapedEnvName, variable)
+	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
 	if err != nil {
 		return err
 	}
@@ -102,11 +97,7 @@ func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta
 		Value: d.Get("value").(string),
 	}
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
-	}
-	_, err = client.Actions.UpdateEnvVariable(ctx, int(repo.GetID()), escapedEnvName, variable)
+	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
 	if err != nil {
 		return err
 	}
@@ -126,12 +117,7 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 	}
 	escapedEnvName := url.PathEscape(envName)
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
-	}
-
-	variable, _, err := client.Actions.GetEnvVariable(ctx, int(repo.GetID()), escapedEnvName, name)
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -165,12 +151,7 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	}
 	escapedEnvName := url.PathEscape(envName)
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Actions.DeleteEnvVariable(ctx, int(repo.GetID()), escapedEnvName, name)
+	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 
 	return err
 }

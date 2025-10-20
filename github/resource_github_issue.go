@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubIssue() *schema.Resource {
@@ -17,7 +17,7 @@ func resourceGithubIssue() *schema.Resource {
 		Update: resourceGithubIssueCreateOrUpdate,
 		Delete: resourceGithubIssueDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -124,7 +124,9 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(buildTwoPartID(repoName, strconv.Itoa(issue.GetNumber())))
-	d.Set("issue_id", issue.GetID())
+	if err = d.Set("issue_id", issue.GetID()); err != nil {
+		return err
+	}
 	return resourceGithubIssueRead(d, meta)
 }
 
@@ -164,26 +166,44 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("number", number)
-	d.Set("title", issue.GetTitle())
-	d.Set("body", issue.GetBody())
-	d.Set("milestone_number", issue.GetMilestone().GetNumber())
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("number", number); err != nil {
+		return err
+	}
+	if err = d.Set("title", issue.GetTitle()); err != nil {
+		return err
+	}
+	if err = d.Set("body", issue.GetBody()); err != nil {
+		return err
+	}
+	if err = d.Set("milestone_number", issue.GetMilestone().GetNumber()); err != nil {
+		return err
+	}
 
 	var labels []string
 	for _, v := range issue.Labels {
 		labels = append(labels, v.GetName())
 	}
-	d.Set("labels", flattenStringList(labels))
+	if err = d.Set("labels", flattenStringList(labels)); err != nil {
+		return err
+	}
 
 	var assignees []string
 	for _, v := range issue.Assignees {
 		assignees = append(assignees, v.GetLogin())
 	}
-	d.Set("assignees", flattenStringList(assignees))
+	if err = d.Set("assignees", flattenStringList(assignees)); err != nil {
+		return err
+	}
 
-	d.Set("issue_id", issue.GetID())
+	if err = d.Set("issue_id", issue.GetID()); err != nil {
+		return err
+	}
 	return nil
 }
 

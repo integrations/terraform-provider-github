@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRepositoryDataSource(t *testing.T) {
@@ -139,6 +139,12 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"data.github_repository.test", "fork", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "allow_update_branch", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "delete_branch_on_merge", "true",
 			),
 		)
 

@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIpRangesDataSource(t *testing.T) {
@@ -17,6 +17,7 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "api.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "web.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "packages.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions.#"),
@@ -25,6 +26,7 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git_ipv4.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "api_ipv4.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "web_ipv4.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "packages_ipv4.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages_ipv4.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer_ipv4.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions_ipv4.#"),
@@ -33,6 +35,7 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "git_ipv6.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "api_ipv6.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "web_ipv6.#"),
+			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "packages_ipv6.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "pages_ipv6.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "importer_ipv6.#"),
 			resource.TestCheckResourceAttrSet("data.github_ip_ranges.test", "actions_ipv6.#"),

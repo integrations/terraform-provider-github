@@ -3,7 +3,7 @@ package github
 import (
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubAppToken() *schema.Resource {
@@ -56,7 +56,10 @@ func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	d.Set("token", token)
+	err = d.Set("token", token)
+	if err != nil {
+		return err
+	}
 	d.SetId("id")
 
 	return nil

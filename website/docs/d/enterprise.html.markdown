@@ -20,6 +20,7 @@ data "github_enterprise" "example" {
 ## Attributes Reference
 
 * `id` - The ID of the enterprise.
+* `database_id` - The database ID of the enterprise.
 * `slug` - The URL slug identifying the enterprise.
 * `name` - The name of the enterprise.
 * `description` - The description of the enterprise.

@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRef() *schema.Resource {
@@ -62,8 +62,14 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(buildTwoPartID(repoName, ref))
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("sha", *refData.Object.SHA)
+	err = d.Set("etag", resp.Header.Get("ETag"))
+	if err != nil {
+		return err
+	}
+	err = d.Set("sha", *refData.Object.SHA)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

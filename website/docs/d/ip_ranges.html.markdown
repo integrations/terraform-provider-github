@@ -35,6 +35,9 @@ data "github_ip_ranges" "test" {}
  * `api` - An Array of IP addresses in CIDR format for the GitHub API.
  * `api_ipv4` - A subset of the `api` array that contains IP addresses in IPv4 CIDR format.
  * `api_ipv6` - A subset of the `api` array that contains IP addresses in IPv6 CIDR format.
+ * `packages` - An Array of IP addresses in CIDR format specifying the A records for GitHub Packages.
+ * `packages_ipv4` - A subset of the `packages` array that contains IP addresses in IPv4 CIDR format.
+ * `packages_ipv6` - A subset of the `packages` array that contains IP addresses in IPv6 CIDR format.
  * `pages` - An Array of IP addresses in CIDR format specifying the A records for GitHub Pages.
  * `pages_ipv4` - A subset of the `pages` array that contains IP addresses in IPv4 CIDR format.
  * `pages_ipv6` - A subset of the `pages` array that contains IP addresses in IPv6 CIDR format.

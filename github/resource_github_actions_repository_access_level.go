@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
@@ -15,21 +15,21 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 		Update: resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
 		Delete: resourceGithubActionsRepositoryAccessLevelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"access_level": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Where the actions or reusable workflows of the repository may be used. Possible values are 'none', 'user', 'organization', or 'enterprise'.",
-				ValidateFunc: validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Where the actions or reusable workflows of the repository may be used. Possible values are 'none', 'user', 'organization', or 'enterprise'.",
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false), "access_level"),
 			},
 			"repository": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The GitHub repository.",
-				ValidateFunc: validation.StringLenBetween(1, 100),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The GitHub repository.",
+				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
 			},
 		},
 	}

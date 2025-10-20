@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v66/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryTeams() *schema.Resource {
@@ -96,7 +96,9 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(repoName)
-	d.Set("teams", all_teams)
+	if err := d.Set("teams", all_teams); err != nil {
+		return err
+	}
 
 	return nil
 }

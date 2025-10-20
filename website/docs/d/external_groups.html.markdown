@@ -1,11 +1,11 @@
 ---
 layout: "github"
-page_title: "GitHub: github_external_group"
+page_title: "GitHub: github_external_groups"
 description: |-
   Retrieve external groups belonging to an organization.
 ---
 
-# github\_external\_group
+# github\_external\_groups
 
 Use this data source to retrieve external groups belonging to an organization.
 

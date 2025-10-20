@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRefDataSource(t *testing.T) {
@@ -59,6 +59,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 
 	})
 
+	// TODO: This still fails on missing id attribute
 	t.Run("queries an invalid ref without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`

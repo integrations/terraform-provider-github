@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
@@ -17,12 +17,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("creates and manages files", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
+	
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
 			}
-
+	
 			resource "github_repository_file" "test" {
 				repository     = github_repository.test.name
 				branch         = "main"
@@ -33,7 +34,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email   = "terraform@example.com"
 			}
 		`, randomID)
-
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
@@ -59,6 +59,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -92,8 +95,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+			  name                 = "tf-acc-test-%s"
+			  auto_init            = true
+              vulnerability_alerts = true
 			}
 
 			resource "github_repository_file" "test" {
@@ -102,6 +106,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				file                = "README.md"
 				content             = "overwritten"
 				overwrite_on_create = false
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
 			}
 
 		`, randomID)
@@ -127,6 +134,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -167,8 +177,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
 			}
 
 			resource "github_branch" "test" {
@@ -218,6 +229,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -228,6 +242,90 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "tf-acc-test-%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+	
+			resource "github_repository_file" "test" {
+				repository        = github_repository.test.name
+				branch            = "does/not/exist"
+				file              = "test"
+				content           = "bar"
+				commit_message    = "Managed by Terraform"
+				commit_author     = "Terraform User"
+				commit_email      = "terraform@example.com"
+				autocreate_branch = false
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				"bar",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "sha",
+				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "ref",
+				"does/not/exist",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_author",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_email",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_message",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
+			),
+			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch", "true"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch_source_branch", "main"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "autocreate_branch_source_sha"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile(`unexpected status code: 404 Not Found`),
+					},
+					{
+						Config: strings.Replace(config,
+							"autocreate_branch = false",
+							"autocreate_branch = true", 1),
+						Check: check,
 					},
 				},
 			})

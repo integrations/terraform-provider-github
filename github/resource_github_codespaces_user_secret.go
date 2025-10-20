@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubCodespacesUserSecret() *schema.Resource {
@@ -19,27 +19,29 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 		Delete: resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("secret_name", d.Id())
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:          schema.TypeString,
-				ForceNew:      true,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"plaintext_value"},
-				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateFunc:  validation.StringIsBase64,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				Sensitive:        true,
+				ConflictsWith:    []string{"plaintext_value"},
+				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -141,9 +143,15 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	d.Set("encrypted_value", d.Get("encrypted_value"))
-	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("created_at", secret.CreatedAt.String())
+	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+		return err
+	}
+	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 
@@ -166,7 +174,9 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 		opt.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	// This is a drift detection mechanism based on timestamps.
 	//
@@ -187,7 +197,9 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
-		d.Set("updated_at", secret.UpdatedAt.String())
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil

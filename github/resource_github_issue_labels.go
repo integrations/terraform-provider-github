@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubIssueLabels() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubIssueLabels() *schema.Resource {
 		Update: resourceGithubIssueLabelsCreateOrUpdate,
 		Delete: resourceGithubIssueLabelsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

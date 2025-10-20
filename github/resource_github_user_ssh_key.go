@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubUserSshKey() *schema.Resource {
@@ -17,7 +17,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 		Read:   resourceGithubUserSshKeyRead,
 		Delete: resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -97,10 +97,18 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("title", key.GetTitle())
-	d.Set("key", key.GetKey())
-	d.Set("url", key.GetURL())
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("title", key.GetTitle()); err != nil {
+		return err
+	}
+	if err = d.Set("key", key.GetKey()); err != nil {
+		return err
+	}
+	if err = d.Set("url", key.GetURL()); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -5,15 +5,14 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubBranchDataSource(t *testing.T) {
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("queries an existing branch without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -22,14 +21,14 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 			}
 
 			data "github_branch" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 				branch = "main"
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
-				"data.github_branch.test", "id", regexp.MustCompile(randomID),
+				"data.github_branch.test", "ref", regexp.MustCompile("^refs/heads/main$"),
 			),
 		)
 
@@ -61,6 +60,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an invalid branch without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -69,14 +69,14 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 			}
 
 			data "github_branch" "test" {
-				repository = github_repository.test.id
+				repository = github_repository.test.name
 				branch = "xxxxxx"
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckNoResourceAttr(
-				"data.github_branch.test", "id",
+			resource.TestCheckResourceAttr(
+				"data.github_branch.test", "ref", "",
 			),
 		)
 

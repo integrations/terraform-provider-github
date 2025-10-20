@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepository() *schema.Resource {
@@ -87,6 +87,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"allow_auto_merge": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"allow_update_branch": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -305,7 +309,6 @@ func dataSourceGithubRepository() *schema.Resource {
 			"template": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
@@ -325,6 +328,10 @@ func dataSourceGithubRepository() *schema.Resource {
 			},
 			"repo_id": {
 				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"delete_branch_on_merge": {
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 		},
@@ -396,6 +403,8 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
 	d.Set("has_projects", repo.GetHasProjects())
+	d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+	d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
@@ -406,7 +415,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("error setting pages: %w", err)
 		}
 	} else {
-		d.Set("pages", flattenPages(nil))
+		err = d.Set("pages", flattenPages(nil))
+		if err != nil {
+			return err
+		}
 	}
 
 	if repo.License != nil {
@@ -422,14 +434,20 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		err = d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
 		})
+		if err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		err = d.Set("template", []interface{}{})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))

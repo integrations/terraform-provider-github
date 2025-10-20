@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryEnvironment() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 		Update: resourceGithubRepositoryEnvironmentUpdate,
 		Delete: resourceGithubRepositoryEnvironmentDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -39,11 +39,17 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 				Default:     true,
 				Description: "Can Admins bypass deployment protections",
 			},
+			"prevent_self_review": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Prevent users from approving workflows runs that they triggered.",
+			},
 			"wait_timer": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: validation.IntBetween(0, 43200),
-				Description:  "Amount of time to delay a job after the job is initially triggered.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 43200), "wait_timer"),
+				Description:      "Amount of time to delay a job after the job is initially triggered.",
 			},
 			"reviewers": {
 				Type:        schema.TypeList,
@@ -146,7 +152,9 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
 		case "wait_timer":
-			d.Set("wait_timer", pr.WaitTimer)
+			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
+				return err
+			}
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -164,22 +172,30 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					}
 				}
 			}
-			d.Set("reviewers", []interface{}{
+			if err = d.Set("reviewers", []interface{}{
 				map[string]interface{}{
 					"teams": teams,
 					"users": users,
 				},
-			})
+			}); err != nil {
+				return err
+			}
+
+			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
+				return err
+			}
 		}
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		d.Set("deployment_branch_policy", []interface{}{
+		if err = d.Set("deployment_branch_policy", []interface{}{
 			map[string]interface{}{
 				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	} else {
 		d.Set("deployment_branch_policy", []interface{}{})
 	}
@@ -232,6 +248,8 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	}
 
 	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
+
+	data.PreventSelfReview = github.Bool(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)

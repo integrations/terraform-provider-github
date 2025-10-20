@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1569,9 +1570,9 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	_, err := schema.ValidateFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", "topic")
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected topic validation failure: %s", err))
+	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topic"}})
+	if diags.HasError() {
+		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
 	}
 }
 
@@ -1579,12 +1580,12 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
-	_, err := schema.ValidateFunc(strings.Repeat("a", 51), "topic")
-	if len(err) != 1 {
-		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(err)))
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topic"}})
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
 	}
-	expectedFailure := "invalid value for topic (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
-	actualFailure := err[0].Error()
+	expectedFailure := "invalid value for topics (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
+	actualFailure := diags[0].Summary
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
@@ -1674,12 +1675,12 @@ func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) 
 	resource := resourceGithubRepository()
 	schema := resource.Schema["name"]
 
-	_, err := schema.ValidateFunc(strings.Repeat("a", 101), "name")
-	if len(err) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 101), cty.GetAttrPath("name"))
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
 	}
 	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := err[0].Error()
+	actualFailure := diags[0].Summary
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
@@ -1689,12 +1690,12 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["name"]
 
-	_, err := schema.ValidateFunc("test space", "name")
-	if len(err) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(err)))
+	diags := schema.ValidateDiagFunc("test space", cty.GetAttrPath("name"))
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
 	}
 	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := err[0].Error()
+	actualFailure := diags[0].Summary
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}

@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
@@ -20,27 +20,29 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("secret_name", d.Id())
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"encrypted_value": {
-				Type:          schema.TypeString,
-				ForceNew:      true,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"plaintext_value"},
-				Description:   "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateFunc:  validation.StringIsBase64,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				Sensitive:        true,
+				ConflictsWith:    []string{"plaintext_value"},
+				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -51,11 +53,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Description:   "Plaintext value of the secret to be encrypted.",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:     true,
-				Description:  "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				ForceNew:         true,
+				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
@@ -157,10 +159,18 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
-	d.Set("encrypted_value", d.Get("encrypted_value"))
-	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("created_at", secret.CreatedAt.String())
-	d.Set("visibility", secret.Visibility)
+	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+		return err
+	}
+	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("visibility", secret.Visibility); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 
@@ -185,7 +195,9 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		}
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	// This is a drift detection mechanism based on timestamps.
 	//
@@ -206,7 +218,9 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {
-		d.Set("updated_at", secret.UpdatedAt.String())
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil

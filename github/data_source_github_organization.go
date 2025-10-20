@@ -3,8 +3,8 @@ package github
 import (
 	"strconv"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -16,6 +16,11 @@ func dataSourceGithubOrganization() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"ignore_archived_repos": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
 			},
 			"orgname": {
 				Type:     schema.TypeString,
@@ -134,6 +139,11 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"summary_only": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -160,68 +170,100 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
 	}
 
-	var repoList []string
-	var allRepos []*github.Repository
+	summaryOnly := d.Get("summary_only").(bool)
+	if !summaryOnly {
+		var repoList []string
+		var allRepos []*github.Repository
 
-	for {
-		repos, resp, err := client3.Repositories.ListByOrg(ctx, name, opts)
-		if err != nil {
-			return err
+		for {
+			repos, resp, err := client3.Repositories.ListByOrg(ctx, name, opts)
+			if err != nil {
+				return err
+			}
+			allRepos = append(allRepos, repos...)
+
+			opts.Page = resp.NextPage
+
+			if resp.NextPage == 0 {
+				break
+			}
 		}
-		allRepos = append(allRepos, repos...)
 
-		opts.Page = resp.NextPage
+		ignoreArchiveRepos := d.Get("ignore_archived_repos").(bool)
+		for index := range allRepos {
+			repo := allRepos[index]
+			if ignoreArchiveRepos && repo.GetArchived() {
+				continue
+			}
 
-		if resp.NextPage == 0 {
-			break
+			repoList = append(repoList, repo.GetFullName())
 		}
-	}
-	for index := range allRepos {
-		repoList = append(repoList, allRepos[index].GetFullName())
-	}
 
-	var query struct {
-		Organization struct {
-			MembersWithRole struct {
-				Edges []struct {
-					Role githubv4.String
-					Node struct {
-						Id    githubv4.String
-						Login githubv4.String
-						Email githubv4.String
+		var query struct {
+			Organization struct {
+				MembersWithRole struct {
+					Edges []struct {
+						Role githubv4.String
+						Node struct {
+							Id    githubv4.String
+							Login githubv4.String
+							Email githubv4.String
+						}
 					}
-				}
-				PageInfo struct {
-					EndCursor   githubv4.String
-					HasNextPage bool
-				}
-			} `graphql:"membersWithRole(first: 100, after: $after)"`
-		} `graphql:"organization(login: $login)"`
-	}
-	variables := map[string]interface{}{
-		"login": githubv4.String(name),
-		"after": (*githubv4.String)(nil),
-	}
-	var members []string
-	var users []map[string]string
-	for {
-		err := client4.Query(ctx, &query, variables)
-		if err != nil {
-			return err
+					PageInfo struct {
+						EndCursor   githubv4.String
+						HasNextPage bool
+					}
+				} `graphql:"membersWithRole(first: 100, after: $after)"`
+			} `graphql:"organization(login: $login)"`
 		}
-		for _, edge := range query.Organization.MembersWithRole.Edges {
-			members = append(members, string(edge.Node.Login))
-			users = append(users, map[string]string{
-				"id":    string(edge.Node.Id),
-				"login": string(edge.Node.Login),
-				"email": string(edge.Node.Email),
-				"role":  string(edge.Role),
-			})
+		variables := map[string]interface{}{
+			"login": githubv4.String(name),
+			"after": (*githubv4.String)(nil),
 		}
-		if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
-			break
+		var members []string
+		var users []map[string]string
+		for {
+			err := client4.Query(ctx, &query, variables)
+			if err != nil {
+				return err
+			}
+			for _, edge := range query.Organization.MembersWithRole.Edges {
+				members = append(members, string(edge.Node.Login))
+				users = append(users, map[string]string{
+					"id":    string(edge.Node.Id),
+					"login": string(edge.Node.Login),
+					"email": string(edge.Node.Email),
+					"role":  string(edge.Role),
+				})
+			}
+			if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
+				break
+			}
+			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
-		variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
+
+		d.Set("repositories", repoList)
+		d.Set("members", members)
+		d.Set("users", users)
+		d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
+		d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
+		d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
+		d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
+		d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
+		d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
+		d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
+		d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
+		d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
+		d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
+		d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
+		d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
+		d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
+		d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
+		d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
+		d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
@@ -231,27 +273,6 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("node_id", organization.GetNodeID())
 	d.Set("description", organization.GetDescription())
 	d.Set("plan", planName)
-	d.Set("repositories", repoList)
-	d.Set("members", members)
-	d.Set("users", users)
-	d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
-	d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
-	d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
-	d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
-	d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
-	d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
-	d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
-	d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
-	d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
-	d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
-	d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
-	d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
-	d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
-	d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
-	d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
-	d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
-	d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
-	d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 
 	return nil
 }

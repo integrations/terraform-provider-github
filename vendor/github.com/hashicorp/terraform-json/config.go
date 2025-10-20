@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfjson
 
 import (
@@ -47,6 +50,9 @@ func (c *Config) UnmarshalJSON(b []byte) error {
 type ProviderConfig struct {
 	// The name of the provider, ie: "aws".
 	Name string `json:"name,omitempty"`
+
+	// The fully-specified name of the provider, ie: "registry.terraform.io/hashicorp/aws".
+	FullName string `json:"full_name,omitempty"`
 
 	// The alias of the provider, ie: "us-east-1".
 	Alias string `json:"alias,omitempty"`

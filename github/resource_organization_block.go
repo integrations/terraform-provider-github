@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceOrganizationBlock() *schema.Resource {
@@ -15,7 +15,7 @@ func resourceOrganizationBlock() *schema.Resource {
 		Read:   resourceOrganizationBlockRead,
 		Delete: resourceOrganizationBlockDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -87,8 +87,12 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 		return nil
 	}
 
-	d.Set("username", username)
-	d.Set("etag", resp.Header.Get("ETag"))
+	if err = d.Set("username", username); err != nil {
+		return err
+	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
 
 	return nil
 }
