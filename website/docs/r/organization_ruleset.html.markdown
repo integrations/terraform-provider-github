@@ -45,6 +45,15 @@ resource "github_organization_ruleset" "example" {
       operator = "starts_with"
       pattern  = "ex"
     }
+
+    required_workflows {
+      do_not_enforce_on_create = true
+      required_workflow {
+        repository_id = 1234
+        path          = ".github/workflows/ci.yml"
+        ref           = "main"
+      }
+    }
   }
 }
 ```
@@ -162,6 +171,8 @@ The `rules` block supports the following:
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
 
 #### rules.required_workflows ####
+
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
 * `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
 
