@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v57/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
@@ -19,7 +19,7 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("name")
 			}),
 		),
@@ -120,7 +120,7 @@ func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta interface
 	if err := resourceGithubCustomPropertiesCreate(d, meta); err != nil {
 		return err
 	}
-	return resourceGithubTeamRead(d, meta)
+	return resourceGithubCustomPropertiesRead(d, meta)
 }
 
 func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta interface{}) error {
