@@ -178,6 +178,74 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Updates a ruleset required workflow without error", func(t *testing.T) {
+		oldWorkflowName := fmt.Sprintf(`workflow-%[1]s`, randomID)
+		newWorkflowName := fmt.Sprintf(`%[1]s-renamed`, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test"
+				auto_init = true
+			}
+
+			resource "github_organization_ruleset" "test" {
+				name        = "test"
+				enforcement = "active"
+
+				rules {
+					required_workflows {
+						required_workflow {
+							path          = ".github/workflows/%s.yml"
+							ref           = "main"
+							repository_id = github_repository.test.node_id
+						}
+					}
+				}
+			}
+		`, oldWorkflowName)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_organization_ruleset.test.rules[0].required_workflows[0].required_workflow", "path",
+					oldWorkflowName,
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_organization_ruleset.test.rules[0].required_workflows[0].required_workflow", "path",
+					newWorkflowName,
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						// Rename the ruleset to something else
+						Config: strings.Replace(
+							config,
+							oldWorkflowName,
+							newWorkflowName, 1),
+						Check: checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
 	t.Run("Imports rulesets without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
