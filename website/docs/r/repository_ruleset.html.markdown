@@ -107,7 +107,7 @@ The `rules` block supports the following:
 * `file_path_restriction` - (Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [below for nested schema](#rules.file_path_restriction))
 
 * `max_file_size` - (Optional) (Block List, Max 1) Parameters to be used for the max_file_size rule. When enabled restricts the maximum size of a file that can be pushed to the repository. (See [below for nested schema](#rules.max_file_size))
-
+* `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_extension_restriction))
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
