@@ -31,7 +31,7 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 }
 
 func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
-	if baseURL != "https://api.github.com/" {
+	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) {
 		baseURL += "api/v3/"
 	}
 

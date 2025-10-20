@@ -20,7 +20,8 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
-				auto_init = false
+				auto_init = true
+				default_branch = "main"
 			}
 
 			resource "github_repository_environment" "example" {
@@ -36,7 +37,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 				conditions {
 					ref_name {
-						include = ["~ALL"]
+						include = ["refs/heads/main"]
 						exclude = []
 					}
 				}
@@ -55,6 +56,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 					required_signatures = false
 
+					merge_queue {
+						check_response_timeout_minutes    = 10
+						grouping_strategy                 = "ALLGREEN"
+						max_entries_to_build              = 5
+						max_entries_to_merge              = 5
+						merge_method                      = "MERGE"
+						min_entries_to_merge              = 1
+						min_entries_to_merge_wait_minutes = 60
+					}
+
 					pull_request {
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
@@ -70,6 +81,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						}
 
 						strict_required_status_checks_policy = true
+						do_not_enforce_on_create             = true
 					}
 
 					non_fast_forward = true
@@ -269,7 +281,8 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-import-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
-			  auto_init 	 = false
+			  auto_init    = true
+			  default_branch = "main"
 			}
 
 			resource "github_repository_environment" "example" {
@@ -285,7 +298,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 				conditions {
 					ref_name {
-						include = ["~ALL"]
+						include = ["refs/heads/main"]
 						exclude = []
 					}
 				}
@@ -312,6 +325,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						require_last_push_approval        = true
 					}
 
+					merge_queue {
+						check_response_timeout_minutes    = 30
+						grouping_strategy                 = "HEADGREEN"
+						max_entries_to_build              = 4
+						max_entries_to_merge              = 4
+						merge_method                      = "SQUASH"
+						min_entries_to_merge              = 2
+						min_entries_to_merge_wait_minutes = 10
+					}
+
 					required_status_checks {
 
 						required_check {
@@ -319,6 +342,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						}
 
 						strict_required_status_checks_policy = true
+						do_not_enforce_on_create             = true
 					}
 
 					non_fast_forward = true
@@ -438,6 +462,80 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with a paid plan in an organization", func(t *testing.T) {
 			testCase(t, organization)
 		})
+	})
+
+	t.Run("Creates repository ruleset with merge queue SQUASH method", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-merge-queue-%s"
+				auto_init = true
+				default_branch = "main"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "merge-queue-test"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["refs/heads/main"]
+						exclude = []
+					}
+				}
+
+				rules {
+					merge_queue {
+						check_response_timeout_minutes    = 30
+						grouping_strategy                 = "HEADGREEN"
+						max_entries_to_build              = 4
+						max_entries_to_merge              = 4
+						merge_method                      = "SQUASH"
+						min_entries_to_merge              = 2
+						min_entries_to_merge_wait_minutes = 10
+					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test", "name",
+				"merge-queue-test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test", "rules.0.merge_queue.0.merge_method",
+				"SQUASH",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
 	})
 
 }
