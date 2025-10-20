@@ -84,7 +84,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id`, or `repository_property`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -112,12 +112,83 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 								},
 							},
 						},
+						"repository_property": {
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
+							AtLeastOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
+							Description:  "Conditions to target repositories by property ",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "The repository properties and values to include. All of these properties must match for the condition to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+
+												"name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_values": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
+													Default:     "custom",
+												},
+											},
+										},
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "The repository properties and values to exclude. The condition will not pass if any of these properties match.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+
+												"name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_values": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													Description:  "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
+													Default:      "custom",
+													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 						"repository_name": {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_id"},
+							ExactlyOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
+							AtLeastOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -146,9 +217,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							ExactlyOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
+							AtLeastOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
+							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
@@ -224,6 +297,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
+									},
+									"automatic_copilot_code_review_enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Automatically request Copilot code review. Defaults to `false`.",
 									},
 								},
 							},
@@ -488,6 +567,28 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												},
 											},
 										},
+									},
+								},
+							},
+						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Request Copilot code review for new pull requests automatically if the author has access to Copilot code review.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull reques. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
 									},
 								},
 							},
