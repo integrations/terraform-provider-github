@@ -387,7 +387,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		})
 
 	})
-	t.Run("Creates repository rulesets with paid features without errors", func(t *testing.T) {
+	t.Run("Creates a push repository ruleset without errors", func(t *testing.T) {
 		if isPaidPlan != "true" {
 			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
 		}
