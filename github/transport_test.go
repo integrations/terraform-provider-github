@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v66/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -340,7 +340,125 @@ func TestRateLimitTransport_smart_lock(t *testing.T) {
 			t.Fatalf("Expected to succeed instantly, waited 100 milliseconds unsuccessfully")
 		}
 	})
+}
 
+func TestRetryTransport_retry_post_error(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "internal server error"
+}`,
+			StatusCode: 500,
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "internal server error"
+}`,
+			StatusCode: 500,
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "internal server error"
+}`,
+			StatusCode: 201,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
+		Name:        github.String("radek-example-48"),
+		Description: github.String(""),
+	})
+	if err == nil {
+		t.Fatal("Expected error not to be nil")
+	}
+
+	ghErr, ok := err.(*github.ErrorResponse)
+	if !ok {
+		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
+	}
+
+	expectedMessage := "internal server error"
+	if ghErr.Message != expectedMessage {
+		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
+	}
+}
+
+func TestRetryTransport_retry_post_success(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "internal server error"
+}`,
+			StatusCode: 500,
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "internal server error"
+}`,
+			StatusCode: 500,
+		},
+		{
+			ExpectedUri:    "/orgs/tada/repos",
+			ExpectedMethod: "POST",
+			ExpectedBody: []byte(`{"name":"radek-example-48","description":""}
+`),
+			ResponseBody: `{
+  "message": "Resource created"
+}`,
+			StatusCode: 201,
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
+		Name:        github.String("radek-example-48"),
+		Description: github.String(""),
+	})
+	if err != nil {
+		t.Fatalf("Expected error to be nil, got %v", err)
+	}
+
+	ghErr, _ := err.(*github.ErrorResponse)
+	if ghErr != nil {
+		t.Fatalf("Expected successful github call, got: %q", ghErr.Message)
+	}
 }
 
 type mockResponse struct {

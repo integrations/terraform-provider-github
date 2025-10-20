@@ -62,8 +62,6 @@ resource "github_issue" "test" {
 
 The following arguments are supported:
 
-* `owner` - (Required) Owner of the repository the issue belongs to
-
 * `repository` - (Required) The GitHub repository name
 
 * `title` - (Required) Title of the issue

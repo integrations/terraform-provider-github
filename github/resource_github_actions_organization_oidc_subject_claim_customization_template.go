@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
@@ -14,7 +14,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *s
 		Update: resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"include_claim_keys": {
@@ -76,7 +76,9 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(
 		return err
 	}
 
-	d.Set("include_claim_keys", template.IncludeClaimKeys)
+	if err = d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -23,7 +23,7 @@ func resourceGithubTeam() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("name")
 			}),
 		),
@@ -40,15 +40,16 @@ func resourceGithubTeam() *schema.Resource {
 				Description: "A description of the team.",
 			},
 			"privacy": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "secret",
-				Description:  "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
-				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "secret",
+				Description:      "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
+				ValidateDiagFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Default:     "",
 				Description: "The ID or slug of the parent team, if this is a nested team.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if d.Get("parent_team_id") == d.Get("parent_team_read_id") || d.Get("parent_team_id") == d.Get("parent_team_read_slug") {
@@ -209,21 +210,51 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("description", team.GetDescription())
-	d.Set("name", team.GetName())
-	d.Set("privacy", team.GetPrivacy())
-	if parent := team.Parent; parent != nil {
-		d.Set("parent_team_id", strconv.FormatInt(team.Parent.GetID(), 10))
-		d.Set("parent_team_read_id", strconv.FormatInt(team.Parent.GetID(), 10))
-		d.Set("parent_team_read_slug", parent.Slug)
-	} else {
-		d.Set("parent_team_id", "")
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
 	}
-	d.Set("ldap_dn", team.GetLDAPDN())
-	d.Set("slug", team.GetSlug())
-	d.Set("node_id", team.GetNodeID())
-	d.Set("members_count", team.GetMembersCount())
+	if err = d.Set("description", team.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("name", team.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
+		return err
+	}
+	if parent := team.Parent; parent != nil {
+		if err = d.Set("parent_team_id", strconv.FormatInt(team.Parent.GetID(), 10)); err != nil {
+			return err
+		}
+		if err = d.Set("parent_team_read_id", strconv.FormatInt(team.Parent.GetID(), 10)); err != nil {
+			return err
+		}
+		if err = d.Set("parent_team_read_slug", parent.Slug); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("parent_team_id", ""); err != nil {
+			return err
+		}
+		if err = d.Set("parent_team_read_id", ""); err != nil {
+			return err
+		}
+		if err = d.Set("parent_team_read_slug", ""); err != nil {
+			return err
+		}
+	}
+	if err = d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
+		return err
+	}
+	if err = d.Set("slug", team.GetSlug()); err != nil {
+		return err
+	}
+	if err = d.Set("node_id", team.GetNodeID()); err != nil {
+		return err
+	}
+	if err = d.Set("members_count", team.GetMembersCount()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -236,6 +267,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
@@ -248,6 +280,9 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 		editedTeam.ParentTeamID = &teamId
+		removeParentTeam = false
+	} else {
+		removeParentTeam = true
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -256,7 +291,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, false)
+	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
 	if err != nil {
 		return err
 	}
@@ -325,7 +360,9 @@ func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	}
 
 	d.SetId(strconv.FormatInt(teamId, 10))
-	d.Set("create_default_maintainer", false)
+	if err = d.Set("create_default_maintainer", false); err != nil {
+		return nil, err
+	}
 
 	return []*schema.ResourceData{d}, nil
 }

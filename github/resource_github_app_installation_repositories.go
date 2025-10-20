@@ -5,8 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubAppInstallationRepositories() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 		Update: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
 		Delete: resourceGithubAppInstallationRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -110,8 +110,12 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta 
 	}
 
 	if len(reposNameIDs) > 0 {
-		d.Set("installation_id", installationIDString)
-		d.Set("selected_repositories", repoNames)
+		if err = d.Set("installation_id", installationIDString); err != nil {
+			return err
+		}
+		if err = d.Set("selected_repositories", repoNames); err != nil {
+			return err
+		}
 		return nil
 	}
 

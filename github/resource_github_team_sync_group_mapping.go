@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubTeamSyncGroupMapping() *schema.Resource {
@@ -18,7 +18,9 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 		Delete: resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("team_slug", d.Id())
+				if err := d.Set("team_slug", d.Id()); err != nil {
+					return nil, err
+				}
 				d.SetId(fmt.Sprintf("teams/%s/team-sync/group-mappings", d.Id()))
 				return []*schema.ResourceData{d}, nil
 			},
@@ -121,10 +123,12 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	if err := d.Set("group", groups); err != nil {
+	if err = d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %s", err)
 	}
-	d.Set("etag", resp.Header.Get("ETag"))
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return fmt.Errorf("error setting etag: %s", err)
+	}
 
 	return nil
 }

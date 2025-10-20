@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v66/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubDependabotSecrets() *schema.Resource {
@@ -96,7 +96,10 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(repoName)
-	d.Set("secrets", all_secrets)
+	err := d.Set("secrets", all_secrets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

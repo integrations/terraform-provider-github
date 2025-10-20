@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v66/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
@@ -76,7 +76,10 @@ func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, me
 	}
 
 	d.SetId(owner)
-	d.Set("variables", all_variables)
+	err := d.Set("variables", all_variables)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

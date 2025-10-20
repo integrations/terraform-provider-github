@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryEnvironments() *schema.Resource {
@@ -60,7 +60,10 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta int
 	}
 
 	d.SetId(repoName)
-	d.Set("environments", results)
+	err := d.Set("environments", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

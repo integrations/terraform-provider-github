@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRunnerGroup() *schema.Resource {
@@ -19,10 +19,15 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		Update: resourceGithubActionsRunnerGroupUpdate,
 		Delete: resourceGithubActionsRunnerGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the runner group.",
+			},
 			"allows_public_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -69,10 +74,10 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Description: "GitHub API URL for the runner group's repositories.",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The visibility of the runner group.",
-				ValidateFunc: validation.StringInSlice([]string{"all", "selected", "private"}, false),
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The visibility of the runner group.",
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "selected", "private"}, false), "visibility"),
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,
@@ -142,18 +147,43 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
-	d.Set("default", runnerGroup.GetDefault())
-	d.Set("id", runnerGroup.GetID())
-	d.Set("inherited", runnerGroup.GetInherited())
-	d.Set("name", runnerGroup.GetName())
-	d.Set("runners_url", runnerGroup.GetRunnersURL())
-	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
-	d.Set("visibility", runnerGroup.GetVisibility())
-	d.Set("selected_repository_ids", selectedRepositoryIDs) // Note: runnerGroup has no method to get selected repository IDs
-	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
-	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+
+	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
+		return err
+	}
+	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
+		return err
+	}
+	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err = d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
+		return err
+	}
+	if err = d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil { // Note: runnerGroup has no method to get selected repository IDs
+		return err
+	}
+	if err = d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err = d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
 
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
@@ -205,17 +235,39 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories())
-	d.Set("default", runnerGroup.GetDefault())
-	d.Set("id", runnerGroup.GetID())
-	d.Set("inherited", runnerGroup.GetInherited())
-	d.Set("name", runnerGroup.GetName())
-	d.Set("runners_url", runnerGroup.GetRunnersURL())
-	d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL())
-	d.Set("visibility", runnerGroup.GetVisibility())
-	d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows())
-	d.Set("selected_workflows", runnerGroup.SelectedWorkflows)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
+		return err
+	}
+	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
+		return err
+	}
+	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err = d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
+		return err
+	}
+	if err = d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err = d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err = d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
@@ -239,7 +291,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		options.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

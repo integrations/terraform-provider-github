@@ -29,13 +29,13 @@ locals {
 }
 
 resource "github_repository" "writers" {
-  name = "writers"
+  name      = "writers"
   auto_init = true
 }
 
 resource "github_team_repository" "writers" {
-  count = length(local.teams)
-  team_id = local.teams[count.index]
-  repository = github_repository.writers.name 
+  count      = length(local.teams)
+  team_id    = local.teams[count.index]
+  repository = github_repository.writers.name
   permission = "push"
 }

@@ -5,7 +5,7 @@ description: |-
   Creates a GitHub repository ruleset.
 ---
 
-# github_repository_ruleset (Resource)
+# github_repository_ruleset
 
 Creates a GitHub repository ruleset.
 
@@ -13,7 +13,7 @@ This resource allows you to create and manage rulesets on the repository level. 
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "Example repository"
@@ -49,7 +49,7 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-    
+
   }
 }
 ```
@@ -74,7 +74,6 @@ resource "github_repository_ruleset" "example" {
 
 The `rules` block supports the following:
 
-
 * `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applied to rulesets with target `branch`. (see [below for nested schema](#rules.branch_name_pattern))
 
 * `commit_author_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.commit_author_email_pattern))
@@ -89,6 +88,8 @@ The `rules` block supports the following:
 
 * `non_fast_forward` - (Optional) (Boolean) Prevent users with push access from force pushing to branches.
 
+* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue.
+
 * `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rules.pull_request))
 
 * `required_deployments` - (Optional) (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#rules.required_deployments))
@@ -101,8 +102,10 @@ The `rules` block supports the following:
 
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applied to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
 
+* `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
+
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
-  
+
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
 
 #### rules.branch_name_pattern ####
@@ -115,7 +118,6 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-
 #### rules.commit_author_email_pattern ####
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
@@ -125,7 +127,6 @@ The `rules` block supports the following:
 * `name` - (Optional) (String) How this rule will appear to users.
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
-
 
 #### rules.commit_message_pattern ####
 
@@ -137,7 +138,6 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-
 #### rules.committer_email_pattern ####
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
@@ -148,6 +148,21 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
+#### rules.merge_queue ####
+
+* `check_response_timeout_minutes` - (Required) (Number)Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.
+
+* `grouping_strategy` - (Required) (String)When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.
+
+* `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+
+* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+
+* `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
+
+* `min_entries_to_merge` - (Required) (Number) The minimum number of PRs that will be merged together in a group. Defaults to `1`.
+
+* `min_entries_to_merge_wait_minutes` - (Required) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.
 
 #### rules.pull_request ####
 
@@ -161,11 +176,9 @@ The `rules` block supports the following:
 
 * `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
 
-
 #### rules.required_deployments ####
 
 * `required_deployment_environments` - (Required) (List of String) The environments that must be successfully deployed to before branches can be merged.
-
 
 #### rules.required_status_checks ####
 
@@ -173,13 +186,13 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
-#### required_status_checks.required_check ####
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
+
+#### rules.required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
-* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
-
-
+* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from. It's a GitHub App ID, which can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app).
 
 #### rules.tag_name_pattern ####
 
@@ -191,16 +204,33 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
+#### rules.required_code_scanning ####
 
+* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_code_scanning_tool))
+
+#### rules.required_code_scanning.required_code_scanning_tool ####
+
+* `alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.
+
+* `security_alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.
+
+* `tool` - (Required) (String) The name of a code scanning tool.
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
 * `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
 
+~> Note: at the time of writing this, the following actor types correspond to the following actor IDs:
+
+* `OrganizationAdmin` -> `1`
+* `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
+  * `maintain` -> `2`
+  * `write` -> `4`
+  * `admin` -> `5`
 
 #### conditions ####
 
@@ -216,13 +246,11 @@ The `rules` block supports the following:
 
 The following additional attributes are exported:
 
-
 * `etag` (String)
 
 * `node_id` (String) GraphQL global node id for use with v4 API.
 
 * `ruleset_id` (Number) GitHub ID for the ruleset.
-
 
 ## Import
 

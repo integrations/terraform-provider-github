@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
@@ -42,7 +42,11 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 	ctx := context.Background()
 
 	orgName := meta.(*Owner).name
-	options := &github.ListCursorOptions{PerPage: maxPerPage}
+	options := &github.ListIDPGroupsOptions{
+		ListCursorOptions: github.ListCursorOptions{
+			PerPage: maxPerPage,
+		},
+	}
 
 	groups := make([]interface{}, 0)
 	for {

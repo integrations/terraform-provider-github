@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
@@ -26,7 +26,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			}
 
 			resource "github_issue_label" "test" {
-			  repository  = github_repository.test.id
+			  repository  = github_repository.test.name
 			  name        = "foo"
 			  color       = "000000"
 			  description = "%s"

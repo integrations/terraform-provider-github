@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubMembership() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubMembership() *schema.Resource {
 		Update: resourceGithubMembershipCreateOrUpdate,
 		Delete: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -28,11 +28,11 @@ func resourceGithubMembership() *schema.Resource {
 				Description:      "The user to add to the organization.",
 			},
 			"role": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
-				Default:      "member",
-				Description:  "The role of the user within the organization. Must be one of 'member' or 'admin'.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"member", "admin"}),
+				Default:          "member",
+				Description:      "The role of the user within the organization. Must be one of 'member' or 'admin'.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -115,9 +115,15 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("username", username)
-	d.Set("role", membership.GetRole())
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("username", username); err != nil {
+		return err
+	}
+	if err = d.Set("role", membership.GetRole()); err != nil {
+		return err
+	}
 
 	return nil
 }

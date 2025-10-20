@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -75,7 +75,10 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(string(query.Repository.ID))
-	d.Set("rules", rules)
+	err := d.Set("rules", rules)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

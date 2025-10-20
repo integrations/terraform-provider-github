@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryMilestone() *schema.Resource {
@@ -26,13 +26,19 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
 				}
-				d.Set("owner", parts[0])
-				d.Set("repository", parts[1])
+				if err := d.Set("owner", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repository", parts[1]); err != nil {
+					return nil, err
+				}
 				number, err := strconv.Atoi(parts[2])
 				if err != nil {
 					return nil, err
 				}
-				d.Set("number", number)
+				if err := d.Set("number", number); err != nil {
+					return nil, err
+				}
 				d.SetId(fmt.Sprintf("%s/%s/%d", parts[0], parts[1], number))
 
 				return []*schema.ResourceData{d}, nil
@@ -68,9 +74,9 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ValidateFunc: validation.StringInSlice([]string{
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"open", "closed",
-				}, true),
+				}, true), "state"),
 				Default:     "open",
 				Description: "The state of the milestone. Either 'open' or 'closed'. Default: 'open'.",
 			},
@@ -151,12 +157,22 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("title", milestone.GetTitle())
-	d.Set("description", milestone.GetDescription())
-	d.Set("number", milestone.GetNumber())
-	d.Set("state", milestone.GetState())
+	if err = d.Set("title", milestone.GetTitle()); err != nil {
+		return err
+	}
+	if err = d.Set("description", milestone.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("number", milestone.GetNumber()); err != nil {
+		return err
+	}
+	if err = d.Set("state", milestone.GetState()); err != nil {
+		return err
+	}
 	if dueOn := milestone.GetDueOn(); !dueOn.IsZero() {
-		d.Set("due_date", milestone.GetDueOn().Format(layoutISO))
+		if err := d.Set("due_date", milestone.GetDueOn().Format(layoutISO)); err != nil {
+			return err
+		}
 	}
 
 	return nil

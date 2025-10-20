@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsRegistrationToken() *schema.Resource {
@@ -42,8 +42,14 @@ func dataSourceGithubActionsRegistrationTokenRead(d *schema.ResourceData, meta i
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repoName))
-	d.Set("token", token.Token)
-	d.Set("expires_at", token.ExpiresAt.Unix())
+	err = d.Set("token", token.Token)
+	if err != nil {
+		return err
+	}
+	err = d.Set("expires_at", token.ExpiresAt.Unix())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -92,3 +92,37 @@ The following arguments are supported:
 * `node_id` - GraphQL global node id for use with v4 API
 
 * `repo_id` - GitHub ID for the repository
+
+* `repository_license` - An Array of GitHub repository licenses. Each `repository_license` block consists of the fields documented below.
+
+___
+
+The `repository_license` block consists of:
+
+* `content` - Content of the license file, encoded by encoding scheme mentioned below.
+* `download_url` - The URL to download the raw content of the license file.
+* `encoding` - The encoding used for the content (e.g., "base64").
+* `git_url` - The URL to access information about the license file as a Git blob.
+* `html_url` - The URL to view the license file on GitHub.
+* `license` - `license` block consists of the fields documented below.
+* `name` - The name of the license file (e.g., "LICENSE").
+* `path` - The path to the license file within the repository.
+* `sha` - The SHA hash of the license file.
+* `size` - The size of the license file in bytes.
+* `type` - The type of the content, (e.g., "file").
+* `url` - The URL to access information about the license file on GitHub.
+
+The `license` block consists of:
+
+* `body` - The text of the license.
+* `conditions` - Conditions associated with the license.
+* `description` - A description of the license.
+* `featured` - Indicates if the license is featured.
+* `html_url` - The URL to view the license details on GitHub.
+* `implementation` - Details about the implementation of the license.
+* `key` - A key representing the license type (e.g., "apache-2.0").
+* `limitations` - Limitations associated with the license.
+* `name` - The name of the license (e.g., "Apache License 2.0").
+* `permissions` - Permissions associated with the license.
+* `spdx_id` - The SPDX identifier for the license (e.g., "Apache-2.0").
+* `url` - The URL to access information about the license on GitHub.

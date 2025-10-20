@@ -24,7 +24,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository name.
 
-* `branch` - (Required) The repository branch to create.
+* `branch` - (Required) The repository branch to retrieve.
 
 ## Attribute Reference
 

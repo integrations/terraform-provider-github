@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryBranches() *schema.Resource {
@@ -100,8 +100,14 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interfa
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", orgName, repoName))
-	d.Set("repository", repoName)
-	d.Set("branches", results)
+	err := d.Set("repository", repoName)
+	if err != nil {
+		return err
+	}
+	err = d.Set("branches", results)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

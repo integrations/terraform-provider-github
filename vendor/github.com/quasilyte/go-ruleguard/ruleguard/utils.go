@@ -9,6 +9,8 @@ import (
 	"regexp/syntax"
 	"strconv"
 	"strings"
+
+	"golang.org/x/exp/typeparams"
 )
 
 var invalidType = types.Typ[types.Invalid]
@@ -271,7 +273,7 @@ func isTypeExpr(info *types.Info, x ast.Expr) bool {
 
 	case *ast.Ident:
 		// Identifier may be a type expression if object
-		// it reffers to is a type name.
+		// it refers to is a type name.
 		_, ok := info.ObjectOf(x).(*types.TypeName)
 		return ok
 
@@ -294,4 +296,9 @@ func identOf(e ast.Expr) *ast.Ident {
 	default:
 		return nil
 	}
+}
+
+func isTypeParam(typ types.Type) bool {
+	_, ok := typ.(*typeparams.TypeParam)
+	return ok
 }

@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubRepositories() *schema.Resource {
@@ -18,10 +18,10 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Required: true,
 			},
 			"sort": {
-				Type:         schema.TypeString,
-				Default:      "updated",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"stars", "fork", "updated"}, false),
+				Type:             schema.TypeString,
+				Default:          "updated",
+				Optional:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false), "sort"),
 			},
 			"include_repo_id": {
 				Type:     schema.TypeBool,
@@ -29,10 +29,10 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Optional: true,
 			},
 			"results_per_page": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(0, 100),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 1000), "results_per_page"),
 			},
 			"full_names": {
 				Type: schema.TypeList,
@@ -79,10 +79,19 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(query)
-	d.Set("full_names", fullNames)
-	d.Set("names", names)
+	err = d.Set("full_names", fullNames)
+	if err != nil {
+		return err
+	}
+	err = d.Set("names", names)
+	if err != nil {
+		return err
+	}
 	if includeRepoId {
-		d.Set("repo_ids", repoIDs)
+		err = d.Set("repo_ids", repoIDs)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

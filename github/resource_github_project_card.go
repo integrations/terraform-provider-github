@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubProjectCard() *schema.Resource {
@@ -92,7 +92,9 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	d.Set("card_id", card.GetID())
+	if err = d.Set("card_id", card.GetID()); err != nil {
+		return err
+	}
 	d.SetId(card.GetNodeID())
 
 	return resourceGithubProjectCardRead(d, meta)
@@ -127,9 +129,15 @@ func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) err
 		return unconvertibleIdErr(columnIDStr, err)
 	}
 
-	d.Set("note", card.GetNote())
-	d.Set("column_id", columnIDStr)
-	d.Set("card_id", card.GetID())
+	if err = d.Set("note", card.GetNote()); err != nil {
+		return err
+	}
+	if err = d.Set("column_id", columnIDStr); err != nil {
+		return err
+	}
+	if err = d.Set("card_id", card.GetID()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -192,7 +200,9 @@ func resourceGithubProjectCardImport(d *schema.ResourceData, meta interface{}) (
 	}
 
 	d.SetId(card.GetNodeID())
-	d.Set("card_id", cardID)
+	if err = d.Set("card_id", cardID); err != nil {
+		return []*schema.ResourceData{d}, err
+	}
 
 	return []*schema.ResourceData{d}, nil
 

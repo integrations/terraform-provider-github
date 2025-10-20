@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
@@ -145,6 +145,49 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_organization_permissions.test", "allowed_actions_config.#", "1",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("test not setting of organization allowed actions without error", func(t *testing.T) {
+
+		allowedActions := "selected"
+		enabledRepositories := "all"
+
+		config := fmt.Sprintf(`
+
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions = "%s"
+				enabled_repositories = "%s"
+			}
+		`, allowedActions, enabledRepositories)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_organization_permissions.test", "allowed_actions", allowedActions,
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_organization_permissions.test", "enabled_repositories", enabledRepositories,
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_organization_permissions.test", "allowed_actions_config.#", "0",
 			),
 		)
 

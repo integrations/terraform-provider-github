@@ -7,6 +7,64 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+func TestGHECDataResidencyMatch(t *testing.T) {
+	testCases := []struct {
+		url         string
+		matches     bool
+		description string
+	}{
+		{
+			url:         "https://customer.ghe.com",
+			matches:     true,
+			description: "GHEC data residency URL with customer name",
+		},
+		{
+			url:         "https://customer-name.ghe.com",
+			matches:     true,
+			description: "GHEC data residency URL with hyphenated name",
+		},
+		{
+			url:         "https://api.github.com",
+			matches:     false,
+			description: "GitHub.com API URL",
+		},
+		{
+			url:         "https://github.com",
+			matches:     false,
+			description: "GitHub.com URL",
+		},
+		{
+			url:         "https://example.com",
+			matches:     false,
+			description: "Generic URL",
+		},
+		{
+			url:         "http://customer.ghe.com",
+			matches:     false,
+			description: "Non-HTTPS GHEC URL",
+		},
+		{
+			url:         "https://customer.ghe.com/api/v3",
+			matches:     false,
+			description: "GHEC URL with path",
+		},
+		{
+			url:         "https://ghe.com",
+			matches:     false,
+			description: "GHEC domain without subdomain",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			matches := GHECDataResidencyMatch.MatchString(tc.url)
+			if matches != tc.matches {
+				t.Errorf("URL %q: expected match=%v, got %v", tc.url, tc.matches, matches)
+			}
+		})
+	}
+}
+
 func TestAccConfigMeta(t *testing.T) {
 
 	// FIXME: Skip test runs during travis lint checking
@@ -24,7 +82,7 @@ func TestAccConfigMeta(t *testing.T) {
 
 		ctx := context.Background()
 		client := meta.(*Owner).v3client
-		_, _, err = client.APIMeta(ctx)
+		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
@@ -51,7 +109,32 @@ func TestAccConfigMeta(t *testing.T) {
 
 		ctx := context.Background()
 		client := meta.(*Owner).v3client
-		_, _, err = client.APIMeta(ctx)
+		_, _, err = client.Meta.Get(ctx)
+		if err != nil {
+			t.Fatalf("failed to validate returned client without error: %s", err.Error())
+		}
+
+	})
+
+	t.Run("returns a v3 REST API client with max retries", func(t *testing.T) {
+
+		config := Config{
+			Token:   testToken,
+			BaseURL: "https://api.github.com/",
+			RetryableErrors: map[int]bool{
+				500: true,
+				502: true,
+			},
+			MaxRetries: 3,
+		}
+		meta, err := config.Meta()
+		if err != nil {
+			t.Fatalf("failed to return meta without error: %s", err.Error())
+		}
+
+		ctx := context.Background()
+		client := meta.(*Owner).v3client
+		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}

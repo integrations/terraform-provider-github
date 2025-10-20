@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
@@ -14,16 +14,16 @@ func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 		Update: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
 		Delete: resourceGithubDependabotOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the existing secret.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the existing secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
@@ -55,7 +55,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *sch
 
 	ids := selectedRepositories.(*schema.Set).List()
 	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, id.(int64))
+		selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
 	}
 
 	_, err = client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)
@@ -97,7 +97,9 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(d *schema.Resour
 		opt.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
@@ -80,7 +80,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	environmentName := d.Get("environment_name").(string)
 	name := d.Get("name").(string)
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name})
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.String("branch")})
 	if err != nil {
 		return err
 	}
@@ -122,10 +122,18 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("environment_name", environmentName)
-	d.Set("name", policy.Name)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("environment_name", environmentName); err != nil {
+		return err
+	}
+	if err = d.Set("name", policy.Name); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -157,8 +165,12 @@ func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData
 	}
 
 	d.SetId(id)
-	d.Set("repository", repoName)
-	d.Set("environment_name", environmentName)
+	if err = d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err = d.Set("environment_name", environmentName); err != nil {
+		return nil, err
+	}
 
 	err = resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 	if err != nil {

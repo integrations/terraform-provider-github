@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborator() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		Update: resourceGithubRepositoryCollaboratorUpdate,
 		Delete: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		// editing repository collaborators are not supported by github api so forcing new on any changes
@@ -69,14 +69,16 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
+
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+
 	ctx := context.Background()
 
 	_, _, err := client.Repositories.AddCollaborator(ctx,
 		owner,
-		repoName,
+		repoNameWithoutOwner,
 		username,
 		&github.RepositoryAddCollaboratorOptions{
 			Permission: d.Get("permission").(string),
@@ -94,15 +96,15 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
 	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
 	if err != nil {
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, ctx, owner, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -121,10 +123,18 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 		permissionName := getPermission(invitation.GetPermissions())
 
-		d.Set("repository", repoName)
-		d.Set("username", username)
-		d.Set("permission", permissionName)
-		d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID()))
+		if err = d.Set("repository", repoName); err != nil {
+			return err
+		}
+		if err = d.Set("username", username); err != nil {
+			return err
+		}
+		if err = d.Set("permission", permissionName); err != nil {
+			return err
+		}
+		if err = d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID())); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -135,16 +145,22 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
-			owner, repoName, opt)
+			owner, repoNameWithoutOwner, opt)
 		if err != nil {
 			return err
 		}
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
-				d.Set("repository", repoName)
-				d.Set("username", c.GetLogin())
-				d.Set("permission", getPermission(c.GetRoleName()))
+				if err = d.Set("repository", repoName); err != nil {
+					return err
+				}
+				if err = d.Set("username", c.GetLogin()); err != nil {
+					return err
+				}
+				if err = d.Set("permission", getPermission(c.GetRoleName())); err != nil {
+					return err
+				}
 				return nil
 			}
 		}
@@ -170,22 +186,23 @@ func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta int
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
+
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, ctx, owner, repoName, username)
+	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
 		return err
 	} else if invitation != nil {
-		_, err = client.Repositories.DeleteInvitation(ctx, owner, repoName, invitation.GetID())
+		_, err = client.Repositories.DeleteInvitation(ctx, owner, repoNameWithoutOwner, invitation.GetID())
 		return err
 	}
 
-	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoName, username)
+	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoNameWithoutOwner, username)
 	return err
 }
 
@@ -209,4 +226,15 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 		opt.Page = resp.NextPage
 	}
 	return nil, nil
+}
+
+func parseRepoName(repoName string, defaultOwner string) (string, string) {
+	// GitHub replaces '/' with '-' for a repo name, so it is safe to assume that if repo name contains '/'
+	// then first part will be the owner name and second part will be the repo name
+	if strings.Contains(repoName, "/") {
+		parts := strings.Split(repoName, "/")
+		return parts[0], parts[1]
+	} else {
+		return defaultOwner, repoName
+	}
 }

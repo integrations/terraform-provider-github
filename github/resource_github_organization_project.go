@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationProject() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubOrganizationProject() *schema.Resource {
 		Update: resourceGithubOrganizationProjectUpdate,
 		Delete: resourceGithubOrganizationProjectDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -106,11 +106,19 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
-		orgName, project.GetNumber()))
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("name", project.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("body", project.GetBody()); err != nil {
+		return err
+	}
+	if err = d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
+		orgName, project.GetNumber())); err != nil {
+		return err
+	}
 
 	return nil
 }

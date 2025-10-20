@@ -3,6 +3,8 @@ package github
 import (
 	"testing"
 	"unicode"
+
+	"github.com/hashicorp/go-cty/cty"
 )
 
 func TestAccValidateTeamIDFunc(t *testing.T) {
@@ -58,9 +60,9 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 	validationFunc := validateValueFunc([]string{"valid_one", "valid_two"})
 
 	for _, tc := range cases {
-		_, errors := validationFunc(tc.Value, "test_arg")
+		diags := validationFunc(tc.Value, cty.Path{cty.GetAttrStep{Name: "test_arg"}})
 
-		if len(errors) != tc.ErrCount {
+		if len(diags) != tc.ErrCount {
 			t.Fatalf("Expected 1 validation error")
 		}
 	}
@@ -144,13 +146,13 @@ func TestAccGithubUtilValidateSecretName(t *testing.T) {
 
 	for _, tc := range cases {
 		var name interface{} = tc.Name
-		_, errors := validateSecretNameFunc(name, "")
+		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
 
-		if tc.Error != (len(errors) != 0) {
+		if tc.Error != (len(diags) != 0) {
 			if tc.Error {
 				t.Fatalf("expected error, got none (%s)", tc.Name)
 			} else {
-				t.Fatalf("unexpected error(s): %s (%s)", errors, tc.Name)
+				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
 			}
 		}
 	}

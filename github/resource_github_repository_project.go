@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryProject() *schema.Resource {
@@ -24,7 +24,9 @@ func resourceGithubRepositoryProject() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<project_id>")
 				}
-				d.Set("repository", parts[0])
+				if err := d.Set("repository", parts[0]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},
@@ -113,11 +115,19 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", project.GetName())
-	d.Set("body", project.GetBody())
-	d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		owner, d.Get("repository"), project.GetNumber()))
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("name", project.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("body", project.GetBody()); err != nil {
+		return err
+	}
+	if err := d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
+		owner, d.Get("repository"), project.GetNumber())); err != nil {
+		return err
+	}
 
 	return nil
 }

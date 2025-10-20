@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubTeamRepository() *schema.Resource {
@@ -139,14 +139,22 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
 	if d.Get("team_id") == "" {
 		// If team_id is empty, that means we are importing the resource.
 		// Set the team_id to be the id of the team.
-		d.Set("team_id", teamIdString)
+		if err = d.Set("team_id", teamIdString); err != nil {
+			return err
+		}
 	}
-	d.Set("repository", repo.GetName())
-	d.Set("permission", getPermission(repo.GetRoleName()))
+	if err = d.Set("repository", repo.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("permission", getPermission(repo.GetRoleName())); err != nil {
+		return err
+	}
 
 	return nil
 }

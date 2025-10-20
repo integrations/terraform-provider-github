@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -22,7 +22,9 @@ func resourceGithubRepository() *schema.Resource {
 		Delete: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("auto_init", false)
+				if err := d.Set("auto_init", false); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -32,10 +34,10 @@ func resourceGithubRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"),
-				Description:  "The name of the repository.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				Description:      "The name of the repository.",
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -55,11 +57,11 @@ func resourceGithubRepository() *schema.Resource {
 				Deprecated:    "use visibility instead",
 			},
 			"visibility": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true, // is affected by "private"
-				ValidateFunc: validation.StringInSlice([]string{"public", "private", "internal"}, false),
-				Description:  "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true, // is affected by "private"
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false), "visibility"),
+				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
 			},
 			"security_and_analysis": {
 				Type:        schema.TypeList,
@@ -77,10 +79,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "status"),
+										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
 									},
 								},
 							},
@@ -93,10 +95,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning"),
+										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 									},
 								},
 							},
@@ -109,10 +111,10 @@ func resourceGithubRepository() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"enabled", "disabled"}, false),
-										Description:  "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_push_protection"),
+										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 									},
 								},
 							},
@@ -204,6 +206,12 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Automatically delete head branch after a pull request is merged. Defaults to 'false'.",
 			},
+			"web_commit_signoff_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Require contributors to sign off on web-based commits. Defaults to 'false'.",
+			},
 			"auto_init": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -266,11 +274,11 @@ func resourceGithubRepository() *schema.Resource {
 							},
 						},
 						"build_type": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "legacy",
-							Description:  "The type the page should be sourced.",
-							ValidateFunc: validateValueFunc([]string{"legacy", "workflow"}),
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "legacy",
+							Description:      "The type the page should be sourced.",
+							ValidateDiagFunc: validateValueFunc([]string{"legacy", "workflow"}),
 						},
 						"cname": {
 							Type:        schema.TypeString,
@@ -305,8 +313,8 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
+					Type:             schema.TypeString,
+					ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"), "topics"),
 				},
 			},
 			"vulnerability_alerts": {
@@ -469,30 +477,51 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
-	return &github.Repository{
-		Name:                github.String(d.Get("name").(string)),
-		Description:         github.String(d.Get("description").(string)),
-		Homepage:            github.String(d.Get("homepage_url").(string)),
-		Visibility:          github.String(calculateVisibility(d)),
-		HasDownloads:        github.Bool(d.Get("has_downloads").(bool)),
-		HasIssues:           github.Bool(d.Get("has_issues").(bool)),
-		HasDiscussions:      github.Bool(d.Get("has_discussions").(bool)),
-		HasProjects:         github.Bool(d.Get("has_projects").(bool)),
-		HasWiki:             github.Bool(d.Get("has_wiki").(bool)),
-		IsTemplate:          github.Bool(d.Get("is_template").(bool)),
-		AllowMergeCommit:    github.Bool(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:    github.Bool(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:    github.Bool(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:      github.Bool(d.Get("allow_auto_merge").(bool)),
-		DeleteBranchOnMerge: github.Bool(d.Get("delete_branch_on_merge").(bool)),
-		AutoInit:            github.Bool(d.Get("auto_init").(bool)),
-		LicenseTemplate:     github.String(d.Get("license_template").(string)),
-		GitignoreTemplate:   github.String(d.Get("gitignore_template").(string)),
-		Archived:            github.Bool(d.Get("archived").(bool)),
-		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
-		AllowUpdateBranch:   github.Bool(d.Get("allow_update_branch").(bool)),
-		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
+	repository := &github.Repository{
+		Name:                     github.String(d.Get("name").(string)),
+		Description:              github.String(d.Get("description").(string)),
+		Homepage:                 github.String(d.Get("homepage_url").(string)),
+		Visibility:               github.String(calculateVisibility(d)),
+		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
+		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
+		HasDiscussions:           github.Bool(d.Get("has_discussions").(bool)),
+		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
+		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
+		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
+		AllowMergeCommit:         github.Bool(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
+		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
+		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
+		WebCommitSignoffRequired: github.Bool(d.Get("web_commit_signoff_required").(bool)),
+		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
+		LicenseTemplate:          github.String(d.Get("license_template").(string)),
+		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
+		Archived:                 github.Bool(d.Get("archived").(bool)),
+		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
+		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
 	}
+
+	// only configure merge commit if we are in commit merge strategy
+	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
+	if ok {
+		if allowMergeCommit {
+			repository.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
+			repository.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+		}
+	}
+
+	// only configure squash commit if we are in squash merge strategy
+	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
+	if ok {
+		if allowSquashMerge {
+			repository.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
+			repository.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
+		}
+	}
+
+	return repository
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
@@ -521,24 +550,6 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	if ok {
 		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
-		}
-	}
-
-	// only configure merge commit if we are in commit merge strategy
-	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
-	if ok {
-		if allowMergeCommit {
-			repoReq.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
-			repoReq.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
-		}
-	}
-
-	// only configure squash commit if we are in squash merge strategy
-	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
-	if ok {
-		if allowSquashMerge {
-			repoReq.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
-			repoReq.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
 		}
 	}
 
@@ -676,6 +687,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 		d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		d.Set("has_downloads", repo.GetHasDownloads())
 		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
 		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
@@ -694,14 +706,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if repo.TemplateRepository != nil {
-		d.Set("template", []interface{}{
+		if err = d.Set("template", []interface{}{
 			map[string]interface{}{
 				"owner":      repo.TemplateRepository.Owner.Login,
 				"repository": repo.TemplateRepository.Name,
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	} else {
-		d.Set("template", []interface{}{})
+		if err = d.Set("template", []interface{}{}); err != nil {
+			return err
+		}
 	}
 
 	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
@@ -709,10 +725,14 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("error reading repository vulnerability alerts: %v", err)
 		}
-		d.Set("vulnerability_alerts", vulnerabilityAlerts)
+		if err = d.Set("vulnerability_alerts", vulnerabilityAlerts); err != nil {
+			return err
+		}
 	}
 
-	d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis()))
+	if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -731,6 +751,11 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	// handle visibility updates separately from other fields
 	repoReq.Visibility = nil
+
+	if !d.HasChange("security_and_analysis") {
+		repoReq.SecurityAndAnalysis = nil
+		log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
+	}
 
 	// The documentation for `default_branch` states: "This can only be set
 	// after a repository has already been created". However, for backwards
@@ -846,7 +871,9 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
 			return nil
 		} else {
-			d.Set("archived", true)
+			if err := d.Set("archived", true); err != nil {
+				return err
+			}
 			repoReq := resourceGithubRepositoryObject(d)
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
@@ -946,6 +973,42 @@ func flattenPages(pages *github.Pages) []interface{} {
 	return []interface{}{pagesMap}
 }
 
+func flattenRepositoryLicense(repositorylicense *github.RepositoryLicense) []interface{} {
+	if repositorylicense == nil {
+		return []interface{}{}
+	}
+
+	licenseMap := make(map[string]interface{})
+	licenseMap["key"] = repositorylicense.GetLicense().GetKey()
+	licenseMap["name"] = repositorylicense.GetLicense().GetName()
+	licenseMap["url"] = repositorylicense.GetLicense().GetURL()
+	licenseMap["spdx_id"] = repositorylicense.GetLicense().GetSPDXID()
+	licenseMap["html_url"] = repositorylicense.GetLicense().GetHTMLURL()
+	licenseMap["featured"] = repositorylicense.GetLicense().GetFeatured()
+	licenseMap["description"] = repositorylicense.GetLicense().GetDescription()
+	licenseMap["implementation"] = repositorylicense.GetLicense().GetImplementation()
+	licenseMap["permissions"] = repositorylicense.GetLicense().GetPermissions()
+	licenseMap["conditions"] = repositorylicense.GetLicense().GetConditions()
+	licenseMap["limitations"] = repositorylicense.GetLicense().GetLimitations()
+	licenseMap["body"] = repositorylicense.GetLicense().GetBody()
+
+	repositorylicenseMap := make(map[string]interface{})
+	repositorylicenseMap["license"] = []interface{}{licenseMap}
+	repositorylicenseMap["name"] = repositorylicense.GetName()
+	repositorylicenseMap["path"] = repositorylicense.GetPath()
+	repositorylicenseMap["sha"] = repositorylicense.GetSHA()
+	repositorylicenseMap["size"] = repositorylicense.GetSize()
+	repositorylicenseMap["url"] = repositorylicense.GetURL()
+	repositorylicenseMap["html_url"] = repositorylicense.GetHTMLURL()
+	repositorylicenseMap["git_url"] = repositorylicense.GetGitURL()
+	repositorylicenseMap["download_url"] = repositorylicense.GetDownloadURL()
+	repositorylicenseMap["type"] = repositorylicense.GetType()
+	repositorylicenseMap["content"] = repositorylicense.GetContent()
+	repositorylicenseMap["encoding"] = repositorylicense.GetEncoding()
+
+	return []interface{}{repositorylicenseMap}
+}
+
 func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis) []interface{} {
 	if securityAndAnalysis == nil {
 		return []interface{}{}
@@ -991,9 +1054,11 @@ func resourceGithubParseFullName(resourceDataLike interface {
 	return parts[0], parts[1], true
 }
 
-func customDiffFunction(diff *schema.ResourceDiff, v interface{}) error {
+func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	if diff.HasChange("name") {
-		diff.SetNewComputed("full_name")
+		if err := diff.SetNewComputed("full_name"); err != nil {
+			return err
+		}
 	}
 	return nil
 }

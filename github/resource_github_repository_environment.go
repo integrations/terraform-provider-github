@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryEnvironment() *schema.Resource {
@@ -18,7 +18,7 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 		Update: resourceGithubRepositoryEnvironmentUpdate,
 		Delete: resourceGithubRepositoryEnvironmentDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -33,11 +33,23 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 				ForceNew:    true,
 				Description: "The name of the environment.",
 			},
+			"can_admins_bypass": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Can Admins bypass deployment protections",
+			},
+			"prevent_self_review": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Prevent users from approving workflows runs that they triggered.",
+			},
 			"wait_timer": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: validation.IntBetween(0, 43200),
-				Description:  "Amount of time to delay a job after the job is initially triggered.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 43200), "wait_timer"),
+				Description:      "Amount of time to delay a job after the job is initially triggered.",
 			},
 			"reviewers": {
 				Type:        schema.TypeList,
@@ -91,7 +103,7 @@ func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
@@ -112,7 +124,7 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	if err != nil {
 		return err
 	}
@@ -129,15 +141,20 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 				return nil
 			}
 		}
+		return err
 	}
 
 	d.Set("repository", repoName)
 	d.Set("environment", envName)
+	d.Set("wait_timer", nil)
+	d.Set("can_admins_bypass", env.CanAdminsBypass)
 
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
 		case "wait_timer":
-			d.Set("wait_timer", pr.WaitTimer)
+			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
+				return err
+			}
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -155,22 +172,32 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					}
 				}
 			}
-			d.Set("reviewers", []interface{}{
+			if err = d.Set("reviewers", []interface{}{
 				map[string]interface{}{
 					"teams": teams,
 					"users": users,
 				},
-			})
+			}); err != nil {
+				return err
+			}
+
+			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
+				return err
+			}
 		}
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		d.Set("deployment_branch_policy", []interface{}{
+		if err = d.Set("deployment_branch_policy", []interface{}{
 			map[string]interface{}{
 				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
-		})
+		}); err != nil {
+			return err
+		}
+	} else {
+		d.Set("deployment_branch_policy", []interface{}{})
 	}
 
 	return nil
@@ -182,7 +209,7 @@ func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta inte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	updateData := createUpdateEnvironmentData(d, meta)
 
 	ctx := context.Background()
@@ -202,7 +229,7 @@ func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta inte
 
 	owner := meta.(*Owner).name
 	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.QueryEscape(envName)
+	escapedEnvName := url.PathEscape(envName)
 	if err != nil {
 		return err
 	}
@@ -219,6 +246,10 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	if v, ok := d.GetOk("wait_timer"); ok {
 		data.WaitTimer = github.Int(v.(int))
 	}
+
+	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
+
+	data.PreventSelfReview = github.Bool(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)

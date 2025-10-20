@@ -23,7 +23,8 @@ data "github_rest_api" "example" {
 
 ## Attributes Reference
 
+ * `id`       - The GitHub API Request ID
  * `code`     - A response status code.
  * `status`   - A response status string.
- * `headers`  - A map of response headers.
- * `body`     - A map of response body.
+ * `headers`  - A JSON string containing response headers.
+ * `body`     - A JSON string containing response body.

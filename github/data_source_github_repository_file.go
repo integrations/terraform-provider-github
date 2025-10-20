@@ -8,13 +8,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryFile() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryFileRead,
+		ReadContext: dataSourceGithubRepositoryFileRead,
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -70,12 +71,12 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	owner := meta.(*Owner).name
 	repo := d.Get("repository").(string)
+	diags := make(diag.Diagnostics, 0)
 
 	// checking if repo has a slash in it, which means that full_name was passed
 	// split and replace owner and repo
@@ -95,7 +96,7 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 		opts.Ref = branch.(string)
 	}
 
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
@@ -104,42 +105,63 @@ func dataSourceGithubRepositoryFileRead(d *schema.ResourceData, meta interface{}
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
+	}
+
+	d.Set("repository", repo)
+	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	d.Set("file", file)
+
+	// If the repo is a directory, then there is nothing else we can include in
+	// the schema.
+	if dc != nil {
+		return nil
 	}
 
 	content, err := fc.GetContent()
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
 	d.Set("content", content)
-	d.Set("repository", repo)
-	d.Set("file", file)
 	d.Set("sha", fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	parsedQuery, err := url.ParseQuery(parsedUrl.RawQuery)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	ref := parsedQuery["ref"][0]
-	d.Set("ref", ref)
+	if err = d.Set("ref", ref); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unable to set ref",
+			Detail:   fmt.Sprintf("Unable to set ref: %s", err),
+		})
+	}
 
 	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
 	commit, err := getFileCommit(client, owner, repo, file, ref)
 	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.Set("commit_sha", commit.GetSHA())
-	d.Set("commit_author", commit.Commit.GetCommitter().GetName())
-	d.Set("commit_email", commit.Commit.GetCommitter().GetEmail())
-	d.Set("commit_message", commit.GetCommit().GetMessage())
+	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("commit_author", commit.Commit.GetCommitter().GetName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("commit_email", commit.Commit.GetCommitter().GetEmail()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
+		return diag.FromErr(err)
+	}
 
-	return nil
+	return diags
 }

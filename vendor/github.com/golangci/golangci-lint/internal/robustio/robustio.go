@@ -22,7 +22,7 @@ func Rename(oldpath, newpath string) error {
 	return rename(oldpath, newpath)
 }
 
-// ReadFile is like ioutil.ReadFile, but on Windows retries errors that may
+// ReadFile is like os.ReadFile, but on Windows retries errors that may
 // occur if the file is concurrently replaced.
 //
 // (See golang.org/issue/31247 and golang.org/issue/32188.)
@@ -42,9 +42,9 @@ func RemoveAll(path string) error {
 // in this package attempt to mitigate.
 //
 // Errors considered ephemeral include:
-// 	- syscall.ERROR_ACCESS_DENIED
-// 	- syscall.ERROR_FILE_NOT_FOUND
-// 	- internal/syscall/windows.ERROR_SHARING_VIOLATION
+//   - syscall.ERROR_ACCESS_DENIED
+//   - syscall.ERROR_FILE_NOT_FOUND
+//   - internal/syscall/windows.ERROR_SHARING_VIOLATION
 //
 // This set may be expanded in the future; programs must not rely on the
 // non-ephemerality of any given error.

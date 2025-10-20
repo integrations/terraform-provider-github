@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsVariable() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubActionsVariable() *schema.Resource {
 		Update: resourceGithubActionsVariableUpdate,
 		Delete: resourceGithubActionsVariableDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -26,11 +26,11 @@ func resourceGithubActionsVariable() *schema.Resource {
 				Description: "Name of the repository.",
 			},
 			"variable_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Name of the variable.",
-				ValidateFunc: validateSecretNameFunc,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the variable.",
+				ValidateDiagFunc: validateSecretNameFunc,
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -114,11 +114,21 @@ func resourceGithubActionsVariableRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("variable_name", variableName)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("variable_name", variableName); err != nil {
+		return err
+	}
+	if err = d.Set("value", variable.Value); err != nil {
+		return err
+	}
+	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return err
+	}
+	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return err
+	}
 
 	return nil
 }

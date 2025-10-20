@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubBranch() *schema.Resource {
@@ -86,7 +86,9 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 				orgName, repoName, sourceBranchRefName, err)
 		}
-		d.Set("source_sha", *ref.Object.SHA)
+		if err = d.Set("source_sha", *ref.Object.SHA); err != nil {
+			return err
+		}
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
@@ -138,11 +140,21 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("branch", branchName)
-	d.Set("ref", *ref.Ref)
-	d.Set("sha", *ref.Object.SHA)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("branch", branchName); err != nil {
+		return err
+	}
+	if err = d.Set("ref", *ref.Ref); err != nil {
+		return err
+	}
+	if err = d.Set("sha", *ref.Object.SHA); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -182,7 +194,9 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 		d.SetId(buildTwoPartID(repoName, branchName))
 	}
 
-	d.Set("source_branch", sourceBranch)
+	if err = d.Set("source_branch", sourceBranch); err != nil {
+		return nil, err
+	}
 
 	err = resourceGithubBranchRead(d, meta)
 	if err != nil {
@@ -191,7 +205,7 @@ func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*sc
 
 	// resourceGithubBranchRead calls d.SetId("") if the branch does not exist
 	if d.Id() == "" {
-		return nil, fmt.Errorf("repository %s does not have a branch named %s.", repoName, branchName)
+		return nil, fmt.Errorf("repository %s does not have a branch named %s", repoName, branchName)
 	}
 
 	return []*schema.ResourceData{d}, nil

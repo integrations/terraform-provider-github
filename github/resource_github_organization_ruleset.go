@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
@@ -34,8 +34,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
+				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -44,15 +44,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "The actors that can bypass the rules in this ruleset.",
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
 							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset",
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
@@ -83,7 +84,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for a repository ruleset ref name condition.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -112,10 +113,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_id"},
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -144,10 +146,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							ConflictsWith: []string{"conditions.0.repository_name"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
@@ -416,6 +417,77 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "The pattern to match with.",
+									},
+								},
+							},
+						},
+						"required_workflows": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_workflow": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Actions workflows that are required. Several can be defined.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"repository_id": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "The repository in which the workflow is defined.",
+												},
+												"path": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The path to the workflow YAML definition file.",
+												},
+												"ref": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Default:     "master",
+													Description: "The ref (branch or tag) of the workflow file to use.",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"required_code_scanning": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_code_scanning_tool": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Tools that must provide code scanning results for this rule to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+												},
+												"security_alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+												},
+												"tool": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of a code scanning tool.",
+												},
+											},
+										},
 									},
 								},
 							},

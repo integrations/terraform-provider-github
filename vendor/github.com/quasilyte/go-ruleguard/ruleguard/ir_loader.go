@@ -8,7 +8,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"io/ioutil"
+	"os"
 	"regexp"
 
 	"github.com/quasilyte/gogrep"
@@ -144,7 +144,7 @@ func (l *irLoader) loadBundle(bundle ir.BundleImport) error {
 }
 
 func (l *irLoader) loadExternFile(prefix, pkgPath, filename string) (*goRuleSet, error) {
-	src, err := ioutil.ReadFile(filename)
+	src, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (l *irLoader) compileFilterFuncs(filename string, irfile *ir.File) error {
 	if err != nil {
 		// If this ever happens, user will get unexpected error
 		// lines for it; but we should trust that 99.9% errors
-		// should be catched at irconv phase so we get a valid Go
+		// should be caught at irconv phase so we get a valid Go
 		// source here as well?
 		return fmt.Errorf("parse custom decls: %w", err)
 	}
@@ -699,6 +699,8 @@ func (l *irLoader) newFilter(filter ir.FilterExpr, info *filterInfo) (matchFilte
 		result.fn = makeConstFilter(result.src, filter.Value.(string))
 	case ir.FilterVarObjectIsGlobalOp:
 		result.fn = makeObjectIsGlobalFilter(result.src, filter.Value.(string))
+	case ir.FilterVarObjectIsVariadicParamOp:
+		result.fn = makeObjectIsVariadicParamFilter(result.src, filter.Value.(string))
 	case ir.FilterVarConstSliceOp:
 		result.fn = makeConstSliceFilter(result.src, filter.Value.(string))
 	case ir.FilterVarAddressableOp:

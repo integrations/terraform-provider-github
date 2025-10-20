@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryWebhooks() *schema.Resource {
@@ -77,8 +77,12 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
-	d.Set("repository", repository)
-	d.Set("webhooks", results)
+	if err := d.Set("repository", repository); err != nil {
+		return err
+	}
+	if err := d.Set("webhooks", results); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -96,7 +100,7 @@ func flattenGitHubWebhooks(hooks []*github.Hook) []map[string]interface{} {
 		result["id"] = hook.ID
 		result["type"] = hook.Type
 		result["name"] = hook.Name
-		result["url"] = hook.Config["url"]
+		result["url"] = hook.URL
 		result["active"] = hook.Active
 
 		results = append(results, result)

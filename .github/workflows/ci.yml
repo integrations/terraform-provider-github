@@ -8,11 +8,14 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TEST_ORGANIZATION: 'kfcampbell-terraform-provider'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
+          cache: true
       - run: make tools
       - run: make lint
       - run: make website-lint

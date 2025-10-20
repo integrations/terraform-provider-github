@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRelease() *schema.Resource {
@@ -80,6 +81,56 @@ func resourceGithubRelease() *schema.Resource {
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"release_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the release.",
+			},
+			"node_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The node ID of the release.",
+			},
+			"created_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time the release was created.",
+			},
+			"published_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time the release was published.",
+			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the release.",
+			},
+			"html_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The HTML URL for the release.",
+			},
+			"assets_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the release assets.",
+			},
+			"upload_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the uploaded assets of release.",
+			},
+			"zipball_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the zipball of the release.",
+			},
+			"tarball_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL for the tarball of the release.",
 			},
 		},
 	}
@@ -162,6 +213,13 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing release ID %d for repository %s from state, because it no longer exists on GitHub", releaseID, repository)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 	transformResponseToResourceData(d, release, repository)
@@ -213,7 +271,9 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	d.Set("repository", *repository.Name)
+	if err = d.Set("repository", *repository.Name); err != nil {
+		return []*schema.ResourceData{d}, err
+	}
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, *repository.Name, releaseID)
 	if release == nil || err != nil {
@@ -226,23 +286,23 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*s
 
 func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) {
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
-	d.Set("release_id", release.GetID())
-	d.Set("node_id", release.GetNodeID())
-	d.Set("repository", repository)
-	d.Set("tag_name", release.GetTagName())
-	d.Set("target_commitish", release.GetTargetCommitish())
-	d.Set("name", release.GetName())
-	d.Set("body", release.GetBody())
-	d.Set("draft", release.GetDraft())
-	d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
-	d.Set("prerelease", release.GetPrerelease())
-	d.Set("discussion_category_name", release.GetDiscussionCategoryName())
-	d.Set("created_at", release.GetCreatedAt())
-	d.Set("published_at", release.GetPublishedAt())
-	d.Set("url", release.GetURL())
-	d.Set("html_url", release.GetHTMLURL())
-	d.Set("assets_url", release.GetAssetsURL())
-	d.Set("upload_url", release.GetUploadURL())
-	d.Set("zipball_url", release.GetZipballURL())
-	d.Set("tarball_url", release.GetTarballURL())
+	_ = d.Set("release_id", release.GetID())
+	_ = d.Set("node_id", release.GetNodeID())
+	_ = d.Set("repository", repository)
+	_ = d.Set("tag_name", release.GetTagName())
+	_ = d.Set("target_commitish", release.GetTargetCommitish())
+	_ = d.Set("name", release.GetName())
+	_ = d.Set("body", release.GetBody())
+	_ = d.Set("draft", release.GetDraft())
+	_ = d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
+	_ = d.Set("prerelease", release.GetPrerelease())
+	_ = d.Set("discussion_category_name", release.GetDiscussionCategoryName())
+	_ = d.Set("created_at", release.GetCreatedAt().String())
+	_ = d.Set("published_at", release.GetPublishedAt().String())
+	_ = d.Set("url", release.GetURL())
+	_ = d.Set("html_url", release.GetHTMLURL())
+	_ = d.Set("assets_url", release.GetAssetsURL())
+	_ = d.Set("upload_url", release.GetUploadURL())
+	_ = d.Set("zipball_url", release.GetZipballURL())
+	_ = d.Set("tarball_url", release.GetTarballURL())
 }

@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubIssueLabel() *schema.Resource {
@@ -16,7 +16,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 		Update: resourceGithubIssueLabelCreateOrUpdate,
 		Delete: resourceGithubIssueLabelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -167,12 +167,24 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("repository", repoName)
-	d.Set("name", name)
-	d.Set("color", githubLabel.GetColor())
-	d.Set("description", githubLabel.GetDescription())
-	d.Set("url", githubLabel.GetURL())
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return err
+	}
+	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+	if err = d.Set("name", name); err != nil {
+		return err
+	}
+	if err = d.Set("color", githubLabel.GetColor()); err != nil {
+		return err
+	}
+	if err = d.Set("description", githubLabel.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("url", githubLabel.GetURL()); err != nil {
+		return err
+	}
 
 	return nil
 }

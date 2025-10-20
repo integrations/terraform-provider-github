@@ -174,7 +174,9 @@ func parseDetectingNode(fset *token.FileSet, src string) (ast.Node, error) {
 		if len(cl.Elts) == 1 {
 			return cl.Elts[0], nil
 		}
-		return ExprSlice(cl.Elts), nil
+		slice := &NodeSlice{}
+		slice.assignExprSlice(cl.Elts)
+		return slice, nil
 	}
 
 	// then try as statements
@@ -185,7 +187,9 @@ func parseDetectingNode(fset *token.FileSet, src string) (ast.Node, error) {
 		if len(bl.List) == 1 {
 			return bl.List[0], nil
 		}
-		return stmtSlice(bl.List), nil
+		slice := &NodeSlice{}
+		slice.assignStmtSlice(bl.List)
+		return slice, nil
 	}
 	// Statements is what covers most cases, so it will give
 	// the best overall error message. Show positions
@@ -199,7 +203,9 @@ func parseDetectingNode(fset *token.FileSet, src string) (ast.Node, error) {
 		if len(f.Decls) == 1 {
 			return f.Decls[0], nil
 		}
-		return declSlice(f.Decls), nil
+		slice := &NodeSlice{}
+		slice.assignDeclSlice(f.Decls)
+		return slice, nil
 	}
 
 	// try as a whole file

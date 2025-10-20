@@ -2,15 +2,15 @@ package github
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -22,6 +22,9 @@ type Config struct {
 	Insecure         bool
 	WriteDelay       time.Duration
 	ReadDelay        time.Duration
+	RetryDelay       time.Duration
+	RetryableErrors  map[int]bool
+	MaxRetries       int
 	ParallelRequests bool
 }
 
@@ -34,15 +37,23 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, parallelRequests bool) *http.Client {
+// GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
+// https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
+var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
+
+func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
-	client.Transport = logging.NewTransport("GitHub", client.Transport)
+	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
 	}, client.Transport)
+
+	if maxRetries > 0 {
+		client.Transport = NewRetryTransport(client.Transport, WithRetryDelay(retryDelay), WithRetryableErrors(retryableErrors), WithMaxRetries(maxRetries))
+	}
 
 	return client
 }
@@ -55,7 +66,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) Anonymous() bool {
@@ -64,7 +75,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.ParallelRequests)
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
@@ -74,7 +85,7 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 		return nil, err
 	}
 
-	if uv4.String() != "https://api.github.com/" {
+	if uv4.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv4.String()) {
 		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	} else {
 		uv4.Path = path.Join(uv4.Path, "graphql")
@@ -90,7 +101,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		return nil, err
 	}
 
-	if uv3.String() != "https://api.github.com/" {
+	if uv3.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv3.String()) {
 		uv3.Path = uv3.Path + "api/v3/"
 	}
 
@@ -108,6 +119,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
 	if owner.name == "" {
+		if c.Anonymous() {
+			return owner, nil
+		}
 		// Discover authenticated user
 		user, _, err := owner.v3client.Users.Get(ctx, "")
 		if err != nil {
@@ -128,7 +142,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 }
 
 // Meta returns the meta parameter that is passed into subsequent resources
-// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/helper/schema#ConfigureFunc
+// https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 func (c *Config) Meta() (interface{}, error) {
 
 	var client *http.Client
@@ -151,18 +165,13 @@ func (c *Config) Meta() (interface{}, error) {
 	var owner Owner
 	owner.v4client = v4client
 	owner.v3client = v3client
+	owner.StopContext = context.Background()
 
-	if c.Anonymous() {
-		log.Printf("[INFO] No token present; configuring anonymous owner.")
-		return &owner, nil
-	} else {
-		_, err = c.ConfigureOwner(&owner)
-		if err != nil {
-			return &owner, err
-		}
-		log.Printf("[INFO] Token present; configuring authenticated owner: %s", owner.name)
-		return &owner, nil
+	_, err = c.ConfigureOwner(&owner)
+	if err != nil {
+		return &owner, err
 	}
+	return &owner, nil
 }
 
 type previewHeaderInjectorTransport struct {

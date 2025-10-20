@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -24,6 +24,7 @@ type ActorUser struct {
 
 type DismissalActorTypes struct {
 	Actor struct {
+		App  Actor     `graphql:"... on App"`
 		Team Actor     `graphql:"... on Team"`
 		User ActorUser `graphql:"... on User"`
 	}
@@ -143,10 +144,6 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 		data.AllowsForcePushes = v.(bool)
 	}
 
-	if v, ok := d.GetOk(PROTECTION_BLOCKS_CREATIONS); ok {
-		data.BlocksCreations = v.(bool)
-	}
-
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {
 		data.IsAdminEnforced = v.(bool)
 	}
@@ -189,7 +186,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSALS]; ok {
 				data.RestrictsReviewDismissals = v.(bool)
 			}
-			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
+			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
 				for _, v := range vL {
@@ -210,7 +207,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 				}
 			}
-			if v, ok := m[PROTECTION_REQUIRES_LAST_PUSH_APPROVAL]; ok {
+			if v, ok := m[PROTECTION_REQUIRE_LAST_PUSH_APPROVAL]; ok {
 				data.RequireLastPushApproval = v.(bool)
 			}
 		}
@@ -238,14 +235,32 @@ func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (Bra
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		pushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			pushActorIDs = append(pushActorIDs, v.(string))
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
-		if len(pushActorIDs) > 0 {
-			data.PushActorIDs = pushActorIDs
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
 			data.RestrictsPushes = true
+
+			m := v.(map[string]interface{})
+			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
+				data.BlocksCreations = v.(bool)
+			}
+			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
+				pushActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					pushActorIDs = append(pushActorIDs, v.(string))
+				}
+				if len(pushActorIDs) > 0 {
+					data.PushActorIDs = pushActorIDs
+				}
+			}
 		}
 	}
 
@@ -282,7 +297,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}
 			}
 
 			m := v.(map[string]interface{})
-			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSERS]; ok {
+			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
 				for _, v := range vL {
@@ -307,14 +322,32 @@ func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		pushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			pushActorIDs = append(pushActorIDs, v.(string))
+		vL := v.([]interface{})
+		if len(vL) > 1 {
+			return BranchProtectionResourceData{},
+				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
-		if len(pushActorIDs) > 0 {
-			data.PushActorIDs = pushActorIDs
+		for _, v := range vL {
+			if v == nil {
+				break
+			}
+
 			data.RestrictsPushes = true
+
+			m := v.(map[string]interface{})
+			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
+				data.BlocksCreations = v.(bool)
+			}
+			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
+				pushActorIDs := make([]string, 0)
+				vL := v.(*schema.Set).List()
+				for _, v := range vL {
+					pushActorIDs = append(pushActorIDs, v.(string))
+				}
+				if len(pushActorIDs) > 0 {
+					data.PushActorIDs = pushActorIDs
+				}
+			}
 		}
 	}
 
@@ -340,7 +373,7 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 	for _, a := range actors {
 		IsID := false
 		for _, v := range data.ReviewDismissalActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) {
+			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
 				dismissalActors = append(dismissalActors, v)
 				IsID = true
 				break
@@ -353,6 +386,10 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 			}
 			if a.Actor.User.Login != "" {
 				dismissalActors = append(dismissalActors, "/"+string(a.Actor.User.Login))
+				continue
+			}
+			if a.Actor.App != (Actor{}) {
+				dismissalActors = append(dismissalActors, a.Actor.App.ID.(string))
 			}
 		}
 	}
@@ -469,9 +506,9 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 			PROTECTION_REQUIRES_CODE_OWNER_REVIEWS:     protection.RequiresCodeOwnerReviews,
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
 			PROTECTION_RESTRICTS_REVIEW_DISMISSALS:     protection.RestrictsReviewDismissals,
-			PROTECTION_RESTRICTS_REVIEW_DISMISSERS:     dismissalActors,
+			PROTECTION_REVIEW_DISMISSAL_ALLOWANCES:     dismissalActors,
 			PROTECTION_PULL_REQUESTS_BYPASSERS:         bypassPullRequestActors,
-			PROTECTION_REQUIRES_LAST_PUSH_APPROVAL:     protection.RequireLastPushApproval,
+			PROTECTION_REQUIRE_LAST_PUSH_APPROVAL:      protection.RequireLastPushApproval,
 		},
 	}
 
@@ -493,14 +530,22 @@ func setStatusChecks(protection BranchProtectionRule) interface{} {
 	return statusChecks
 }
 
-func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
+func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
 	if !protection.RestrictsPushes {
 		return nil
 	}
+
 	pushAllowances := protection.PushAllowances.Nodes
 	pushActors := setPushActorIDs(pushAllowances, data, meta)
 
-	return pushActors
+	restrictsPushes := []interface{}{
+		map[string]interface{}{
+			PROTECTION_BLOCKS_CREATIONS: protection.BlocksCreations,
+			PROTECTION_PUSH_ALLOWANCES:  pushActors,
+		},
+	}
+
+	return restrictsPushes
 }
 
 func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
@@ -561,7 +606,7 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{})
 		}
 	}
 
-	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'.", pattern)
+	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'", pattern)
 }
 
 func getActorIds(data []string, meta interface{}) ([]string, error) {

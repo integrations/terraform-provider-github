@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/google/go-github/v66/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -26,6 +26,16 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The ID of the enterprise.",
+			},
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The node ID of the organization.",
+			},
+			"database_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The database ID of the organization.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -128,6 +138,7 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 		Node struct {
 			Organization struct {
 				ID                       githubv4.ID
+				DatabaseId               githubv4.Int
 				Name                     githubv4.String
 				Login                    githubv4.String
 				Description              githubv4.String
@@ -195,6 +206,11 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta in
 	}
 
 	err = data.Set("billing_email", query.Node.Organization.OrganizationBillingEmail)
+	if err != nil {
+		return err
+	}
+
+	err = data.Set("database_id", query.Node.Organization.DatabaseId)
 	if err != nil {
 		return err
 	}

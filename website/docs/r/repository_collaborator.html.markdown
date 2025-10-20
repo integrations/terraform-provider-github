@@ -48,6 +48,9 @@ resource "github_repository_collaborator" "a_repo_collaborator" {
 The following arguments are supported:
 
 * `repository` - (Required) The GitHub repository
+
+~> Note: The owner of the repository can be passed as part of the repository name  e.g. `owner-org-name/repo-name`. If owner is not supplied as part of the repository name, it may also be supplied by setting the environment variable `GITHUB_OWNER`.
+
 * `username` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
             Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories.
