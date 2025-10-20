@@ -542,9 +542,31 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["min_entries_to_merge"] = params.MinEntriesToMerge
 			rule["min_entries_to_merge_wait_minutes"] = params.MinEntriesToMergeWaitMinutes
 			rulesMap[v.Type] = []map[string]interface{}{rule}
-		}
-	}
 
+		case "required_code_scanning":
+			var params github.RequiredCodeScanningRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredCodeScanningToolSlice := make([]map[string]interface{}, 0)
+			for _, tool := range params.RequiredCodeScanningTools {
+				requiredCodeScanningToolSlice = append(requiredCodeScanningToolSlice, map[string]interface{}{
+					"alerts_threshold":          tool.AlertsThreshold,
+					"security_alerts_threshold": tool.SecurityAlertsThreshold,
+					"tool":                      tool.Tool,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["required_code_scanning_tool"] = requiredCodeScanningToolSlice
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+		}
+
+	}
 	return []interface{}{rulesMap}
 }
 
