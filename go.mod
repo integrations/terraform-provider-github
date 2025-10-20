@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/client9/misspell v0.3.4
-	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/google/go-github/v66 v66.0.1-0.20241027130611-9e5757d5a766
 	github.com/google/uuid v1.6.0
