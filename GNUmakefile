@@ -24,11 +24,11 @@ lint:
 	golangci-lint run ./...
 
 test:
-	go test ./...
+	CGO_ENABLED=0 go test ./...
 	# commenting this out for release tooling, please run testacc instead
 
 testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
 test-compile:
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -36,7 +36,7 @@ test-compile:
 		echo "  make test-compile TEST=./$(PKG_NAME)"; \
 		exit 1; \
 	fi
-	go test -c $(TEST) $(TESTARGS)
+	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
 vet:
 	@echo "go vet ."
