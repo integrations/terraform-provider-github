@@ -206,7 +206,7 @@ The `rules` block supports the following:
 
 #### rules.required_code_scanning ####
 
-* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_code_scanning_tool))
+* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_code_scanning.required_code_scanning_tool))
 
 #### rules.required_code_scanning.required_code_scanning_tool ####
 
