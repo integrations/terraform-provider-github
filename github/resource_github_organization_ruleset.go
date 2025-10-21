@@ -64,8 +64,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -261,6 +261,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
 								},
 							},
 						},
@@ -428,6 +434,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"required_workflow": {
 										Type:        schema.TypeSet,
 										MinItems:    1,
