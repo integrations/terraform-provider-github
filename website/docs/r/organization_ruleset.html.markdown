@@ -45,6 +45,15 @@ resource "github_organization_ruleset" "example" {
       operator = "starts_with"
       pattern  = "ex"
     }
+
+    required_workflows {
+      do_not_enforce_on_create = true
+      required_workflow {
+        repository_id = 1234
+        path          = ".github/workflows/ci.yml"
+        ref           = "main"
+      }
+    }
   }
 }
 ```
@@ -155,6 +164,8 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
+
 #### required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
@@ -162,6 +173,8 @@ The `rules` block supports the following:
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
 
 #### rules.required_workflows ####
+
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
 * `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
 
