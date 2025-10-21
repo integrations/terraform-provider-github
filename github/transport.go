@@ -91,7 +91,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	if arlErr, ok := ghErr.(*github.AbuseRateLimitError); ok {
 		rlt.nextRequestDelay = 0
 		retryAfter := arlErr.GetRetryAfter()
-		log.Printf("[DEBUG] Abuse detection mechanism triggered, sleeping for %s before retrying",
+		log.Printf("[WARN] Abuse detection mechanism triggered, sleeping for %s before retrying",
 			retryAfter)
 		time.Sleep(retryAfter)
 		rlt.smartLock(false)
@@ -101,7 +101,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	if rlErr, ok := ghErr.(*github.RateLimitError); ok {
 		rlt.nextRequestDelay = 0
 		retryAfter := time.Until(rlErr.Rate.Reset.Time)
-		log.Printf("[DEBUG] Rate limit %d reached, sleeping for %s (until %s) before retrying",
+		log.Printf("[WARN] Rate limit %d reached, sleeping for %s (until %s) before retrying",
 			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
 		time.Sleep(retryAfter)
 		rlt.smartLock(false)
