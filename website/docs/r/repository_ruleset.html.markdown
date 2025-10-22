@@ -96,13 +96,13 @@ resource "github_repository_ruleset" "example_push" {
 
 The `rules` block supports the following:
 
-* `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applied to rulesets with target `branch`. (see [below for nested schema](#rules.branch_name_pattern))
+* `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applied to rulesets with target `branch`. (see [below for nested schema](#rulesbranch_name_pattern))
 
-* `commit_author_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.commit_author_email_pattern))
+* `commit_author_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rulescommit_author_email_pattern))
 
-* `commit_message_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.commit_message_pattern))
+* `commit_message_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rulescommit_message_pattern))
 
-* `committer_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.committer_email_pattern))
+* `committer_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rulescommitter_email_pattern))
 
 * `creation` - (Optional) (Boolean) Only allow users with bypass permission to create matching refs.
 
@@ -112,19 +112,19 @@ The `rules` block supports the following:
 
 * `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue.
 
-* `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rules.pull_request))
+* `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rulespull_request))
 
-* `required_deployments` - (Optional) (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#rules.required_deployments))
+* `required_deployments` - (Optional) (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#rulesrequired_deployments))
 
 * `required_linear_history` - (Optional) (Boolean) Prevent merge commits from being pushed to matching branches.
 
 * `required_signatures` - (Optional) (Boolean) Commits pushed to matching branches must have verified signatures.
 
-* `required_status_checks` - (Optional) (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#rules.required_status_checks))
+* `required_status_checks` - (Optional) (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#rulesrequired_status_checks))
 
-* `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applied to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
+* `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applied to rulesets with target `tag`. (see [below for nested schema](#rulestag_name_pattern))
 
-* `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
+* `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rulesrequired_code_scanning))
 
 * `file_path_restriction` - (Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [below for nested schema](#rules.file_path_restriction))
 
@@ -208,7 +208,7 @@ The `rules` block supports the following:
 
 #### rules.required_status_checks ####
 
-* `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rules.required_status_checks.required_check))
+* `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checksrequired_check))
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
@@ -232,7 +232,7 @@ The `rules` block supports the following:
 
 #### rules.required_code_scanning ####
 
-* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_code_scanning.required_code_scanning_tool))
+* `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_code_scanningrequired_code_scanning_tool))
 
 #### rules.required_code_scanning.required_code_scanning_tool ####
 
@@ -256,11 +256,11 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
+* `actor_id` - (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
 
-* `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
+* `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`.
 
-* `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
+* `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.
 
 ~> Note: at the time of writing this, the following actor types correspond to the following actor IDs:
 

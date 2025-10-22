@@ -567,6 +567,114 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Removes bypass actors when removed from configuration", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-bypass-%s"
+				description  = "Terraform acceptance tests %[1]s"
+				auto_init    = true
+			}
+
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-%[1]s"
+				description = "Terraform acc test team"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-bypass"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				bypass_actors {
+					actor_id    = github_team.test.id
+					actor_type  = "Team"
+					bypass_mode = "pull_request"
+				}
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					pull_request {
+						dismiss_stale_reviews_on_push     = false
+						require_code_owner_review         = true
+						require_last_push_approval        = false
+						required_approving_review_count   = 1
+						required_review_thread_resolution = false
+					}
+				}
+			}
+		`, randomID)
+
+		configWithoutBypass := strings.Replace(
+			config,
+			`bypass_actors {
+					actor_id    = github_team.test.id
+					actor_type  = "Team"
+					bypass_mode = "pull_request"
+				}
+
+				`,
+			"",
+			1,
+		)
+
+		checks := map[string]resource.TestCheckFunc{
+			"with_bypass": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "bypass_actors.#",
+					"1",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "bypass_actors.0.actor_type",
+					"Team",
+				),
+			),
+			"without_bypass": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "bypass_actors.#",
+					"0",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["with_bypass"],
+					},
+					{
+						Config: configWithoutBypass,
+						Check:  checks["without_bypass"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("bypass actors require organization resources")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 }
 
 func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName string) resource.ImportStateIdFunc {
