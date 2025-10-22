@@ -34,8 +34,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
@@ -57,20 +57,21 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
-							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. Required for `Integration`, `RepositoryRole`, and `Team` actor types. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. When `actor_type` is `DeployKey`, this should be set to `null`.",
+							Optional:    true,
+							Default:     nil,
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, `DeployKey`.",
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests. `pull_request` is not applicable for the `DeployKey` actor type. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					}},
 			},
@@ -509,6 +510,59 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								},
 							},
 						},
+						"file_path_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_paths": {
+										Type:        schema.TypeList,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file paths that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"max_file_size": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file size.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_size": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed size of a file in bytes.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "A list of file extensions.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -576,6 +630,13 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if ruleset == nil {
+		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
+			owner, repoName, rulesetID)
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
@@ -604,7 +665,11 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset.
+	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
+	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
+	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
+	ruleset, _, err := client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
 	if err != nil {
 		return err
 	}
