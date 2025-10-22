@@ -303,6 +303,23 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				target      = "branch"
 				enforcement = "active"
 
+				bypass_actors {
+					actor_type = "DeployKey"
+					bypass_mode = "always"
+				}
+
+				bypass_actors {
+					actor_id    = 5
+					actor_type  = "RepositoryRole"
+					bypass_mode = "always"
+				}
+
+				bypass_actors {
+					actor_id    = 1
+					actor_type  = "OrganizationAdmin"
+					bypass_mode = "always"
+				}
+
 				conditions {
 					ref_name {
 						include = ["~ALL"]
@@ -323,39 +340,46 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						dismiss_stale_reviews_on_push     = true
 						require_last_push_approval        = true
 					}
-
-					bypass_actors {
-						actor_type = "DeployKey"
-						bypass_mode = "always"
-					}
-
-					bypass_actors {
-						actor_id    = 5
-						actor_type  = "RepositoryRole"
-						bypass_mode = "always"
-					}
-
-					bypass_actors {
-						actor_id    = 0
-						actor_type  = "OrganizationAdmin"
-						bypass_mode = "always"
-					}
 				}
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
-				"0",
+				"github_organization_ruleset.test", "bypass_actors.#",
+				"3",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				"DeployKey",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+				"always",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.actor_id",
 				"5",
 			),
 			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				"RepositoryRole",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.bypass_mode",
+				"always",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.actor_id",
+				"1",
+			),
+			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
-				"0",
+				"OrganizationAdmin",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.bypass_mode",
+				"always",
 			),
 		)
 
@@ -367,6 +391,179 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
+	t.Run("Creates organization ruleset with all bypass_modes", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-bypass-modes-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				bypass_actors {
+					actor_id    = 1
+					actor_type  = "OrganizationAdmin"
+					bypass_mode = "always"
+				}
+
+				bypass_actors {
+					actor_id    = 5
+					actor_type  = "RepositoryRole"
+					bypass_mode = "pull_request"
+				}
+
+				bypass_actors {
+					actor_id    = 2
+					actor_type  = "RepositoryRole"
+					bypass_mode = "exempt"
+				}
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.#",
+				"3",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.0.actor_id",
+				"1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				"OrganizationAdmin",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+				"always",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.actor_id",
+				"5",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				"RepositoryRole",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.1.bypass_mode",
+				"pull_request",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.actor_id",
+				"2",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
+				"RepositoryRole",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test", "bypass_actors.2.bypass_mode",
+				"exempt",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
+	t.Run("Updates organization ruleset bypass_mode without error", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-bypass-update-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				bypass_actors {
+					actor_id    = 1
+					actor_type  = "OrganizationAdmin"
+					bypass_mode = "always"
+				}
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		configUpdated := strings.Replace(
+			config,
+			`bypass_mode = "always"`,
+			`bypass_mode = "exempt"`,
+			1,
+		)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+					"always",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+					"exempt",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: configUpdated,
+						Check:  checks["after"],
 					},
 				},
 			})
