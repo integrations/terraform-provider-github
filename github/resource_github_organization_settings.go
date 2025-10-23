@@ -172,6 +172,101 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 	}
 }
 
+// buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured
+func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *github.Organization {
+	settings := &github.Organization{}
+
+	// Required field
+	if billingEmail, ok := d.GetOk("billing_email"); ok {
+		settings.BillingEmail = github.String(billingEmail.(string))
+	}
+
+	// Optional string fields - only set if explicitly configured
+	if company, ok := d.GetOk("company"); ok {
+		settings.Company = github.String(company.(string))
+	}
+	if email, ok := d.GetOk("email"); ok {
+		settings.Email = github.String(email.(string))
+	}
+	if twitterUsername, ok := d.GetOk("twitter_username"); ok {
+		settings.TwitterUsername = github.String(twitterUsername.(string))
+	}
+	if location, ok := d.GetOk("location"); ok {
+		settings.Location = github.String(location.(string))
+	}
+	if name, ok := d.GetOk("name"); ok {
+		settings.Name = github.String(name.(string))
+	}
+	if description, ok := d.GetOk("description"); ok {
+		settings.Description = github.String(description.(string))
+	}
+	if blog, ok := d.GetOk("blog"); ok {
+		settings.Blog = github.String(blog.(string))
+	}
+
+	// Boolean fields - only set if explicitly configured
+	if hasOrgProjects, ok := d.GetOk("has_organization_projects"); ok {
+		settings.HasOrganizationProjects = github.Bool(hasOrgProjects.(bool))
+	}
+	if hasRepoProjects, ok := d.GetOk("has_repository_projects"); ok {
+		settings.HasRepositoryProjects = github.Bool(hasRepoProjects.(bool))
+	}
+	if defaultRepoPermission, ok := d.GetOk("default_repository_permission"); ok {
+		settings.DefaultRepoPermission = github.String(defaultRepoPermission.(string))
+	}
+	if membersCanCreateRepos, ok := d.GetOk("members_can_create_repositories"); ok {
+		settings.MembersCanCreateRepos = github.Bool(membersCanCreateRepos.(bool))
+	}
+	if _, exists := d.GetOkExists("members_can_create_private_repositories"); exists {
+		settings.MembersCanCreatePrivateRepos = github.Bool(d.Get("members_can_create_private_repositories").(bool))
+	}
+	if membersCanCreatePublicRepos, ok := d.GetOk("members_can_create_public_repositories"); ok {
+		settings.MembersCanCreatePublicRepos = github.Bool(membersCanCreatePublicRepos.(bool))
+	}
+	if membersCanCreatePages, ok := d.GetOk("members_can_create_pages"); ok {
+		settings.MembersCanCreatePages = github.Bool(membersCanCreatePages.(bool))
+	}
+	if membersCanCreatePublicPages, ok := d.GetOk("members_can_create_public_pages"); ok {
+		settings.MembersCanCreatePublicPages = github.Bool(membersCanCreatePublicPages.(bool))
+	}
+	if membersCanCreatePrivatePages, ok := d.GetOk("members_can_create_private_pages"); ok {
+		settings.MembersCanCreatePrivatePages = github.Bool(membersCanCreatePrivatePages.(bool))
+	}
+	if membersCanForkPrivateRepos, ok := d.GetOk("members_can_fork_private_repositories"); ok {
+		settings.MembersCanForkPrivateRepos = github.Bool(membersCanForkPrivateRepos.(bool))
+	}
+	if webCommitSignoffRequired, ok := d.GetOk("web_commit_signoff_required"); ok {
+		settings.WebCommitSignoffRequired = github.Bool(webCommitSignoffRequired.(bool))
+	}
+	if advancedSecurityEnabled, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
+		settings.AdvancedSecurityEnabledForNewRepos = github.Bool(advancedSecurityEnabled.(bool))
+	}
+	if dependabotAlertsEnabled, ok := d.GetOk("dependabot_alerts_enabled_for_new_repositories"); ok {
+		settings.DependabotAlertsEnabledForNewRepos = github.Bool(dependabotAlertsEnabled.(bool))
+	}
+	if dependabotSecurityUpdatesEnabled, ok := d.GetOk("dependabot_security_updates_enabled_for_new_repositories"); ok {
+		settings.DependabotSecurityUpdatesEnabledForNewRepos = github.Bool(dependabotSecurityUpdatesEnabled.(bool))
+	}
+	if dependencyGraphEnabled, ok := d.GetOk("dependency_graph_enabled_for_new_repositories"); ok {
+		settings.DependencyGraphEnabledForNewRepos = github.Bool(dependencyGraphEnabled.(bool))
+	}
+	if secretScanningEnabled, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
+		settings.SecretScanningEnabledForNewRepos = github.Bool(secretScanningEnabled.(bool))
+	}
+	if secretScanningPushProtectionEnabled, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
+		settings.SecretScanningPushProtectionEnabledForNewRepos = github.Bool(secretScanningPushProtectionEnabled.(bool))
+	}
+
+	// Enterprise-specific field
+	if isEnterprise {
+		if _, exists := d.GetOkExists("members_can_create_internal_repositories"); exists {
+			settings.MembersCanCreateInternalRepos = github.Bool(d.Get("members_can_create_internal_repositories").(bool))
+		}
+	}
+
+	return settings
+}
+
 func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
@@ -181,120 +276,21 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	org := meta.(*Owner).name
 
-	settings := github.Organization{
-		BillingEmail:                       github.String(d.Get("billing_email").(string)),
-		Company:                            github.String(d.Get("company").(string)),
-		Email:                              github.String(d.Get("email").(string)),
-		TwitterUsername:                    github.String(d.Get("twitter_username").(string)),
-		Location:                           github.String(d.Get("location").(string)),
-		Name:                               github.String(d.Get("name").(string)),
-		Description:                        github.String(d.Get("description").(string)),
-		HasOrganizationProjects:            github.Bool(d.Get("has_organization_projects").(bool)),
-		HasRepositoryProjects:              github.Bool(d.Get("has_repository_projects").(bool)),
-		DefaultRepoPermission:              github.String(d.Get("default_repository_permission").(string)),
-		MembersCanCreateRepos:              github.Bool(d.Get("members_can_create_repositories").(bool)),
-		MembersCanCreatePrivateRepos:       github.Bool(d.Get("members_can_create_private_repositories").(bool)),
-		MembersCanCreatePublicRepos:        github.Bool(d.Get("members_can_create_public_repositories").(bool)),
-		MembersCanCreatePages:              github.Bool(d.Get("members_can_create_pages").(bool)),
-		MembersCanCreatePublicPages:        github.Bool(d.Get("members_can_create_public_pages").(bool)),
-		MembersCanCreatePrivatePages:       github.Bool(d.Get("members_can_create_private_pages").(bool)),
-		MembersCanForkPrivateRepos:         github.Bool(d.Get("members_can_fork_private_repositories").(bool)),
-		WebCommitSignoffRequired:           github.Bool(d.Get("web_commit_signoff_required").(bool)),
-		Blog:                               github.String(d.Get("blog").(string)),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(d.Get("advanced_security_enabled_for_new_repositories").(bool)),
-		DependabotAlertsEnabledForNewRepos: github.Bool(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool)),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool)),
-		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
-		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
-	}
-
-	enterpriseSettings := github.Organization{
-		BillingEmail:                       github.String(d.Get("billing_email").(string)),
-		Company:                            github.String(d.Get("company").(string)),
-		Email:                              github.String(d.Get("email").(string)),
-		TwitterUsername:                    github.String(d.Get("twitter_username").(string)),
-		Location:                           github.String(d.Get("location").(string)),
-		Name:                               github.String(d.Get("name").(string)),
-		Description:                        github.String(d.Get("description").(string)),
-		HasOrganizationProjects:            github.Bool(d.Get("has_organization_projects").(bool)),
-		HasRepositoryProjects:              github.Bool(d.Get("has_repository_projects").(bool)),
-		DefaultRepoPermission:              github.String(d.Get("default_repository_permission").(string)),
-		MembersCanCreateRepos:              github.Bool(d.Get("members_can_create_repositories").(bool)),
-		MembersCanCreateInternalRepos:      github.Bool(d.Get("members_can_create_internal_repositories").(bool)),
-		MembersCanCreatePrivateRepos:       github.Bool(d.Get("members_can_create_private_repositories").(bool)),
-		MembersCanCreatePublicRepos:        github.Bool(d.Get("members_can_create_public_repositories").(bool)),
-		MembersCanCreatePages:              github.Bool(d.Get("members_can_create_pages").(bool)),
-		MembersCanCreatePublicPages:        github.Bool(d.Get("members_can_create_public_pages").(bool)),
-		MembersCanCreatePrivatePages:       github.Bool(d.Get("members_can_create_private_pages").(bool)),
-		MembersCanForkPrivateRepos:         github.Bool(d.Get("members_can_fork_private_repositories").(bool)),
-		WebCommitSignoffRequired:           github.Bool(d.Get("web_commit_signoff_required").(bool)),
-		Blog:                               github.String(d.Get("blog").(string)),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(d.Get("advanced_security_enabled_for_new_repositories").(bool)),
-		DependabotAlertsEnabledForNewRepos: github.Bool(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool)),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool)),
-		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
-		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
-	}
-
-	enterpriseSettingsNoFork := github.Organization{
-		BillingEmail:                       github.String(d.Get("billing_email").(string)),
-		Company:                            github.String(d.Get("company").(string)),
-		Email:                              github.String(d.Get("email").(string)),
-		TwitterUsername:                    github.String(d.Get("twitter_username").(string)),
-		Location:                           github.String(d.Get("location").(string)),
-		Name:                               github.String(d.Get("name").(string)),
-		Description:                        github.String(d.Get("description").(string)),
-		HasOrganizationProjects:            github.Bool(d.Get("has_organization_projects").(bool)),
-		HasRepositoryProjects:              github.Bool(d.Get("has_repository_projects").(bool)),
-		DefaultRepoPermission:              github.String(d.Get("default_repository_permission").(string)),
-		MembersCanCreateRepos:              github.Bool(d.Get("members_can_create_repositories").(bool)),
-		MembersCanCreateInternalRepos:      github.Bool(d.Get("members_can_create_internal_repositories").(bool)),
-		MembersCanCreatePrivateRepos:       github.Bool(d.Get("members_can_create_private_repositories").(bool)),
-		MembersCanCreatePublicRepos:        github.Bool(d.Get("members_can_create_public_repositories").(bool)),
-		MembersCanCreatePages:              github.Bool(d.Get("members_can_create_pages").(bool)),
-		MembersCanCreatePublicPages:        github.Bool(d.Get("members_can_create_public_pages").(bool)),
-		MembersCanCreatePrivatePages:       github.Bool(d.Get("members_can_create_private_pages").(bool)),
-		WebCommitSignoffRequired:           github.Bool(d.Get("web_commit_signoff_required").(bool)),
-		Blog:                               github.String(d.Get("blog").(string)),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(d.Get("advanced_security_enabled_for_new_repositories").(bool)),
-		DependabotAlertsEnabledForNewRepos: github.Bool(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool)),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool)),
-		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
-		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
-	}
-
-	orgPlan, _, err := client.Organizations.Edit(ctx, org, nil)
+	orgInfo, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
 		return err
 	}
 
-	if orgPlan.GetPlan().GetName() == "enterprise" {
-		if _, ok := d.GetOk("members_can_fork_private_repositories"); !ok {
-			orgSettings, _, err := client.Organizations.Edit(ctx, org, &enterpriseSettingsNoFork)
-			if err != nil {
-				return err
-			}
-			id := strconv.FormatInt(orgSettings.GetID(), 10)
-			d.SetId(id)
-		} else if _, ok := d.GetOk("members_can_fork_private_repositories"); ok {
-			orgSettings, _, err := client.Organizations.Edit(ctx, org, &enterpriseSettings)
-			if err != nil {
-				return err
-			}
-			id := strconv.FormatInt(orgSettings.GetID(), 10)
-			d.SetId(id)
-		}
-	} else {
-		orgSettings, _, err := client.Organizations.Edit(ctx, org, &settings)
-		if err != nil {
-			return err
-		}
-		id := strconv.FormatInt(orgSettings.GetID(), 10)
-		d.SetId(id)
+	// Build settings using helper function
+	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
+	settings := buildOrganizationSettings(d, isEnterprise)
+
+	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
+	if err != nil {
+		return err
 	}
+	id := strconv.FormatInt(orgSettings.GetID(), 10)
+	d.SetId(id)
 
 	return resourceGithubOrganizationSettingsRead(d, meta)
 }
@@ -404,114 +400,28 @@ func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta inter
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	org := meta.(*Owner).name
 
-	// This will set org settings to default values
-	settings := github.Organization{
-		BillingEmail:                       github.String("email@example.com"),
-		Company:                            github.String(""),
-		Email:                              github.String(""),
-		TwitterUsername:                    github.String(""),
-		Location:                           github.String(""),
-		Name:                               github.String(""),
-		Description:                        github.String(""),
-		HasOrganizationProjects:            github.Bool(true),
-		HasRepositoryProjects:              github.Bool(true),
-		DefaultRepoPermission:              github.String("read"),
-		MembersCanCreateRepos:              github.Bool(true),
-		MembersCanCreatePrivateRepos:       github.Bool(true),
-		MembersCanCreatePublicRepos:        github.Bool(true),
-		MembersCanCreatePages:              github.Bool(false),
-		MembersCanCreatePublicPages:        github.Bool(true),
-		MembersCanCreatePrivatePages:       github.Bool(true),
-		MembersCanForkPrivateRepos:         github.Bool(false),
-		WebCommitSignoffRequired:           github.Bool(false),
-		Blog:                               github.String(""),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(false),
-		DependabotAlertsEnabledForNewRepos: github.Bool(false),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(false),
-		DependencyGraphEnabledForNewRepos:              github.Bool(false),
-		SecretScanningEnabledForNewRepos:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(false),
-	}
-
-	enterpriseSettings := github.Organization{
-		BillingEmail:                       github.String("email@example.com"),
-		Company:                            github.String(""),
-		Email:                              github.String(""),
-		TwitterUsername:                    github.String(""),
-		Location:                           github.String(""),
-		Name:                               github.String(""),
-		Description:                        github.String(""),
-		HasOrganizationProjects:            github.Bool(true),
-		HasRepositoryProjects:              github.Bool(true),
-		DefaultRepoPermission:              github.String("read"),
-		MembersCanCreateRepos:              github.Bool(true),
-		MembersCanCreatePrivateRepos:       github.Bool(true),
-		MembersCanCreateInternalRepos:      github.Bool(true),
-		MembersCanCreatePublicRepos:        github.Bool(true),
-		MembersCanCreatePages:              github.Bool(false),
-		MembersCanCreatePublicPages:        github.Bool(true),
-		MembersCanCreatePrivatePages:       github.Bool(true),
-		MembersCanForkPrivateRepos:         github.Bool(false),
-		WebCommitSignoffRequired:           github.Bool(false),
-		Blog:                               github.String(""),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(false),
-		DependabotAlertsEnabledForNewRepos: github.Bool(false),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(false),
-		DependencyGraphEnabledForNewRepos:              github.Bool(false),
-		SecretScanningEnabledForNewRepos:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(false),
-	}
-
-	enterpriseSettingsNoFork := github.Organization{
-		BillingEmail:                       github.String("email@example.com"),
-		Company:                            github.String(""),
-		Email:                              github.String(""),
-		TwitterUsername:                    github.String(""),
-		Location:                           github.String(""),
-		Name:                               github.String(""),
-		Description:                        github.String(""),
-		HasOrganizationProjects:            github.Bool(true),
-		HasRepositoryProjects:              github.Bool(true),
-		DefaultRepoPermission:              github.String("read"),
-		MembersCanCreateRepos:              github.Bool(true),
-		MembersCanCreatePrivateRepos:       github.Bool(true),
-		MembersCanCreateInternalRepos:      github.Bool(true),
-		MembersCanCreatePublicRepos:        github.Bool(true),
-		MembersCanCreatePages:              github.Bool(false),
-		MembersCanCreatePublicPages:        github.Bool(true),
-		MembersCanCreatePrivatePages:       github.Bool(true),
-		WebCommitSignoffRequired:           github.Bool(false),
-		Blog:                               github.String(""),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(false),
-		DependabotAlertsEnabledForNewRepos: github.Bool(false),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(false),
-		DependencyGraphEnabledForNewRepos:              github.Bool(false),
-		SecretScanningEnabledForNewRepos:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(false),
-	}
-
 	log.Printf("[DEBUG] Reverting Organization Settings to default values: %s", org)
-	orgPlan, _, err := client.Organizations.Edit(ctx, org, nil)
+
+	// Get organization info to determine if it's enterprise
+	orgInfo, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
 		return err
 	}
-	if orgPlan.GetPlan().GetName() == "enterprise" {
-		if _, ok := d.GetOk("members_can_fork_private_repositories"); !ok {
-			_, _, err := client.Organizations.Edit(ctx, org, &enterpriseSettingsNoFork)
-			if err != nil {
-				return err
-			}
-		} else if _, ok := d.GetOk("members_can_fork_private_repositories"); ok {
-			_, _, err := client.Organizations.Edit(ctx, org, &enterpriseSettings)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		_, _, err := client.Organizations.Edit(ctx, org, &settings)
-		if err != nil {
-			return err
-		}
+
+	// Build minimal settings with only required fields
+	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
+	defaultSettings := &github.Organization{
+		BillingEmail: github.String("email@example.com"),
+	}
+
+	// Only add enterprise-specific fields if it's an enterprise org
+	if isEnterprise {
+		defaultSettings.MembersCanCreateInternalRepos = github.Bool(true)
+	}
+
+	_, _, err = client.Organizations.Edit(ctx, org, defaultSettings)
+	if err != nil {
+		return err
 	}
 
 	return nil
