@@ -27,7 +27,7 @@ resource "github_repository_ruleset" "example" {
 
   conditions {
     ref_name {
-      include = ["~ALL"]
+      include = ["~ALL", "refs/heads/main"]
       exclude = []
     }
   }
