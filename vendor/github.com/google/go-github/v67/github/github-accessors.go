@@ -4294,6 +4294,102 @@ func (c *ContributorStats) GetTotal() int {
 	return *c.Total
 }
 
+// GetCustomModelTrainingDate returns the CustomModelTrainingDate field if it's non-nil, zero value otherwise.
+func (c *CopilotDotcomChatModel) GetCustomModelTrainingDate() string {
+	if c == nil || c.CustomModelTrainingDate == nil {
+		return ""
+	}
+	return *c.CustomModelTrainingDate
+}
+
+// GetCustomModelTrainingDate returns the CustomModelTrainingDate field if it's non-nil, zero value otherwise.
+func (c *CopilotDotcomPullRequestsModel) GetCustomModelTrainingDate() string {
+	if c == nil || c.CustomModelTrainingDate == nil {
+		return ""
+	}
+	return *c.CustomModelTrainingDate
+}
+
+// GetCustomModelTrainingDate returns the CustomModelTrainingDate field if it's non-nil, zero value otherwise.
+func (c *CopilotIDEChatModel) GetCustomModelTrainingDate() string {
+	if c == nil || c.CustomModelTrainingDate == nil {
+		return ""
+	}
+	return *c.CustomModelTrainingDate
+}
+
+// GetCustomModelTrainingDate returns the CustomModelTrainingDate field if it's non-nil, zero value otherwise.
+func (c *CopilotIDECodeCompletionsModel) GetCustomModelTrainingDate() string {
+	if c == nil || c.CustomModelTrainingDate == nil {
+		return ""
+	}
+	return *c.CustomModelTrainingDate
+}
+
+// GetCopilotDotcomChat returns the CopilotDotcomChat field.
+func (c *CopilotMetrics) GetCopilotDotcomChat() *CopilotDotcomChat {
+	if c == nil {
+		return nil
+	}
+	return c.CopilotDotcomChat
+}
+
+// GetCopilotDotcomPullRequests returns the CopilotDotcomPullRequests field.
+func (c *CopilotMetrics) GetCopilotDotcomPullRequests() *CopilotDotcomPullRequests {
+	if c == nil {
+		return nil
+	}
+	return c.CopilotDotcomPullRequests
+}
+
+// GetCopilotIDEChat returns the CopilotIDEChat field.
+func (c *CopilotMetrics) GetCopilotIDEChat() *CopilotIDEChat {
+	if c == nil {
+		return nil
+	}
+	return c.CopilotIDEChat
+}
+
+// GetCopilotIDECodeCompletions returns the CopilotIDECodeCompletions field.
+func (c *CopilotMetrics) GetCopilotIDECodeCompletions() *CopilotIDECodeCompletions {
+	if c == nil {
+		return nil
+	}
+	return c.CopilotIDECodeCompletions
+}
+
+// GetTotalActiveUsers returns the TotalActiveUsers field if it's non-nil, zero value otherwise.
+func (c *CopilotMetrics) GetTotalActiveUsers() int {
+	if c == nil || c.TotalActiveUsers == nil {
+		return 0
+	}
+	return *c.TotalActiveUsers
+}
+
+// GetTotalEngagedUsers returns the TotalEngagedUsers field if it's non-nil, zero value otherwise.
+func (c *CopilotMetrics) GetTotalEngagedUsers() int {
+	if c == nil || c.TotalEngagedUsers == nil {
+		return 0
+	}
+	return *c.TotalEngagedUsers
+}
+
+// GetSince returns the Since field if it's non-nil, zero value otherwise.
+func (c *CopilotMetricsListOptions) GetSince() time.Time {
+	if c == nil || c.Since == nil {
+		return time.Time{}
+	}
+	return *c.Since
+}
+
+// GetUntil returns the Until field if it's non-nil, zero value otherwise.
+func (c *CopilotMetricsListOptions) GetUntil() time.Time {
+	if c == nil || c.Until == nil {
+		return time.Time{}
+	}
+	return *c.Until
+}
+
 // GetSeatBreakdown returns the SeatBreakdown field.
 func (c *CopilotOrganizationDetails) GetSeatBreakdown() *CopilotSeatBreakdown {
 	if c == nil {
@@ -4356,22 +4452,6 @@ func (c *CopilotSeatDetails) GetUpdatedAt() Timestamp {
 		return Timestamp{}
 	}
 	return *c.UpdatedAt
-}
-
-// GetSince returns the Since field if it's non-nil, zero value otherwise.
-func (c *CopilotUsageSummaryListOptions) GetSince() time.Time {
-	if c == nil || c.Since == nil {
-		return time.Time{}
-	}
-	return *c.Since
-}
-
-// GetUntil returns the Until field if it's non-nil, zero value otherwise.
-func (c *CopilotUsageSummaryListOptions) GetUntil() time.Time {
-	if c == nil || c.Until == nil {
-		return time.Time{}
-	}
-	return *c.Until
 }
 
 // GetCompletedAt returns the CompletedAt field if it's non-nil, zero value otherwise.
@@ -9302,6 +9382,38 @@ func (i *InstallationPermissions) GetChecks() string {
 	return *i.Checks
 }
 
+// GetCodespaces returns the Codespaces field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetCodespaces() string {
+	if i == nil || i.Codespaces == nil {
+		return ""
+	}
+	return *i.Codespaces
+}
+
+// GetCodespacesLifecycleAdmin returns the CodespacesLifecycleAdmin field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetCodespacesLifecycleAdmin() string {
+	if i == nil || i.CodespacesLifecycleAdmin == nil {
+		return ""
+	}
+	return *i.CodespacesLifecycleAdmin
+}
+
+// GetCodespacesMetadata returns the CodespacesMetadata field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetCodespacesMetadata() string {
+	if i == nil || i.CodespacesMetadata == nil {
+		return ""
+	}
+	return *i.CodespacesMetadata
+}
+
+// GetCodespacesSecrets returns the CodespacesSecrets field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetCodespacesSecrets() string {
+	if i == nil || i.CodespacesSecrets == nil {
+		return ""
+	}
+	return *i.CodespacesSecrets
+}
+
 // GetContentReferences returns the ContentReferences field if it's non-nil, zero value otherwise.
 func (i *InstallationPermissions) GetContentReferences() string {
 	if i == nil || i.ContentReferences == nil {
@@ -9318,12 +9430,28 @@ func (i *InstallationPermissions) GetContents() string {
 	return *i.Contents
 }
 
+// GetDependabotSecrets returns the DependabotSecrets field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetDependabotSecrets() string {
+	if i == nil || i.DependabotSecrets == nil {
+		return ""
+	}
+	return *i.DependabotSecrets
+}
+
 // GetDeployments returns the Deployments field if it's non-nil, zero value otherwise.
 func (i *InstallationPermissions) GetDeployments() string {
 	if i == nil || i.Deployments == nil {
 		return ""
 	}
 	return *i.Deployments
+}
+
+// GetDiscussions returns the Discussions field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetDiscussions() string {
+	if i == nil || i.Discussions == nil {
+		return ""
+	}
+	return *i.Discussions
 }
 
 // GetEmails returns the Emails field if it's non-nil, zero value otherwise.
@@ -9364,6 +9492,14 @@ func (i *InstallationPermissions) GetMembers() string {
 		return ""
 	}
 	return *i.Members
+}
+
+// GetMergeQueues returns the MergeQueues field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetMergeQueues() string {
+	if i == nil || i.MergeQueues == nil {
+		return ""
+	}
+	return *i.MergeQueues
 }
 
 // GetMetadata returns the Metadata field if it's non-nil, zero value otherwise.
@@ -9508,6 +9644,22 @@ func (i *InstallationPermissions) GetPullRequests() string {
 		return ""
 	}
 	return *i.PullRequests
+}
+
+// GetRepositoryAdvisories returns the RepositoryAdvisories field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetRepositoryAdvisories() string {
+	if i == nil || i.RepositoryAdvisories == nil {
+		return ""
+	}
+	return *i.RepositoryAdvisories
+}
+
+// GetRepositoryCustomProperties returns the RepositoryCustomProperties field if it's non-nil, zero value otherwise.
+func (i *InstallationPermissions) GetRepositoryCustomProperties() string {
+	if i == nil || i.RepositoryCustomProperties == nil {
+		return ""
+	}
+	return *i.RepositoryCustomProperties
 }
 
 // GetRepositoryHooks returns the RepositoryHooks field if it's non-nil, zero value otherwise.
@@ -22958,6 +23110,14 @@ func (s *SecretScanningAlertLocationDetails) GetPath() string {
 	return *s.Path
 }
 
+// GetPullRequestCommentURL returns the PullRequestCommentURL field if it's non-nil, zero value otherwise.
+func (s *SecretScanningAlertLocationDetails) GetPullRequestCommentURL() string {
+	if s == nil || s.PullRequestCommentURL == nil {
+		return ""
+	}
+	return *s.PullRequestCommentURL
+}
+
 // GetStartColumn returns the StartColumn field if it's non-nil, zero value otherwise.
 func (s *SecretScanningAlertLocationDetails) GetStartColumn() int {
 	if s == nil || s.StartColumn == nil {
@@ -26492,6 +26652,14 @@ func (w *WorkflowJobEvent) GetAction() string {
 		return ""
 	}
 	return *w.Action
+}
+
+// GetDeployment returns the Deployment field.
+func (w *WorkflowJobEvent) GetDeployment() *Deployment {
+	if w == nil {
+		return nil
+	}
+	return w.Deployment
 }
 
 // GetInstallation returns the Installation field.
