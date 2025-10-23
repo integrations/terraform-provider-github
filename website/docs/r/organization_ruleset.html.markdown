@@ -172,6 +172,8 @@ The `rules` block supports the following:
 
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
 
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
+
 #### rules.required_workflows ####
 
 * `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
