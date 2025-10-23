@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 	"fmt"
 
+	"github.com/ProtonMail/gopenpgp/v2/crypto"
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -121,6 +123,24 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description: "Enable overwriting existing files, defaults to \"false\"",
 				Default:     false,
 			},
+			"use_contents_api": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable to modify github files with the github contents API, rather than git.",
+				Default:     true,
+			},
+			"pgp_signing_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "PGP signing key used to sign commits.",
+				Sensitive:   true,
+			},
+			"pgp_signing_key_passphrase": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Passphrase to unlock PGP signing key used to sign commits.",
+				Sensitive:   true,
+			},
 			"autocreate_branch": {
 				Type:             schema.TypeBool,
 				Optional:         true,
@@ -146,6 +166,56 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceGithubRepositoryFileCreateCommitOptions(d *schema.ResourceData) (*github.CreateCommitOptions, error) {
+	opts := &github.CreateCommitOptions{}
+
+	pgpSigningKey, hasPgpSigningKey := d.GetOk("pgp_signing_key")
+
+	if hasPgpSigningKey {
+		privateKeyObj, err := crypto.NewKeyFromArmored(pgpSigningKey.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		isLocked, err := privateKeyObj.IsLocked()
+		if err != nil {
+			return nil, err
+		}
+		if isLocked {
+			pgpSigningKeyPassphrase, hasPgpSigningKeyPassphrase := d.GetOk("pgp_signing_key_passphrase")
+			if hasPgpSigningKeyPassphrase {
+				privateKeyObj, err = privateKeyObj.Unlock([]byte(pgpSigningKeyPassphrase.(string)))
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, fmt.Errorf("cannot unlock pgp_signing_key, configure pgp_signing_key_passphrase")
+			}
+		}
+
+		signingKeyRing, err := crypto.NewKeyRing(privateKeyObj)
+		if err != nil {
+			return nil, err
+		}
+
+		opts.Signer = github.MessageSignerFunc(func(w io.Writer, r io.Reader) error {
+			signature, err := signingKeyRing.SignDetachedStream(r)
+			if err != nil {
+				return err
+			}
+			armoredSignature, err := signature.GetArmored()
+			if err != nil {
+				return err
+			}
+
+			_, err = w.Write([]byte(armoredSignature))
+			return err
+		})
+	}
+
+	return opts, nil
 }
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
@@ -265,14 +335,65 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	// Create a new or overwritten file
-	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return err
-	}
+	modifyWithApi := d.Get("use_contents_api")
+	if modifyWithApi.(bool) {
+		create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+		if err != nil {
+			return err
+		}
+		d.Set("commit_sha", create.Commit.GetSHA())
+	} else {
+		commitOpts, err := resourceGithubRepositoryFileCreateCommitOptions(d)
+		if err != nil {
+			return err
+		}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	if err = d.Set("commit_sha", create.Commit.GetSHA()); err != nil {
-		return err
+		ref, _, err := client.Git.GetRef(ctx, owner, repo, "refs/heads/"+*opts.Branch)
+		if err != nil {
+			return err
+		}
+
+		tree, _, err := client.Git.CreateTree(
+			ctx, owner, repo, *ref.Object.SHA, []*github.TreeEntry{
+				{
+					Path:    github.String(d.Get("file").(string)),
+					Type:    github.String("blob"),
+					Content: github.String(d.Get("content").(string)),
+					Mode:    github.String("100644"),
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		parent, _, err := client.Repositories.GetCommit(ctx, owner, repo, *ref.Object.SHA, nil)
+		if err != nil {
+			return err
+		}
+		// This is not always populated, but is needed.
+		parent.Commit.SHA = parent.SHA
+
+		commit := github.Commit{
+			Author:    opts.Author,
+			Committer: opts.Committer,
+			Message:   opts.Message,
+			Tree:      tree,
+			Parents: []*github.Commit{
+				parent.Commit,
+			},
+		}
+		newCommit, _, err := client.Git.CreateCommit(ctx, owner, repo, &commit, commitOpts)
+		if err != nil {
+			return err
+		}
+
+		ref.Object.SHA = newCommit.SHA
+		_, _, err = client.Git.UpdateRef(ctx, owner, repo, ref, false)
+		if err != nil {
+			return err
+		}
+		d.Set("commit_sha", newCommit.SHA)
 	}
 
 	return resourceGithubRepositoryFileRead(d, meta)
@@ -437,13 +558,65 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta interface{}
 		opts.Message = &m
 	}
 
-	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return err
-	}
+	modifyWithApi := d.Get("use_contents_api")
+	if modifyWithApi.(bool) {
+		create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+		if err != nil {
+			return err
+		}
+		d.Set("commit_sha", create.GetSHA())
+	} else {
+		commitOpts, err := resourceGithubRepositoryFileCreateCommitOptions(d)
+		if err != nil {
+			return err
+		}
 
-	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
-		return err
+		ref, _, err := client.Git.GetRef(ctx, owner, repo, "refs/heads/"+*opts.Branch)
+		if err != nil {
+			return err
+		}
+
+		tree, _, err := client.Git.CreateTree(
+			ctx, owner, repo, *ref.Object.SHA, []*github.TreeEntry{
+				{
+					Path:    github.String(d.Get("file").(string)),
+					Type:    github.String("blob"),
+					Content: github.String(d.Get("content").(string)),
+					Mode:    github.String("100644"),
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		parent, _, err := client.Repositories.GetCommit(ctx, owner, repo, *ref.Object.SHA, nil)
+		if err != nil {
+			return err
+		}
+		// This is not always populated, but is needed.
+		parent.Commit.SHA = parent.SHA
+
+		commit := github.Commit{
+			Author:    opts.Author,
+			Committer: opts.Committer,
+			Message:   opts.Message,
+			Tree:      tree,
+			Parents: []*github.Commit{
+				parent.Commit,
+			},
+		}
+		newCommit, _, err := client.Git.CreateCommit(ctx, owner, repo, &commit, commitOpts)
+		if err != nil {
+			return err
+		}
+
+		ref.Object.SHA = newCommit.SHA
+		_, _, err = client.Git.UpdateRef(ctx, owner, repo, ref, false)
+		if err != nil {
+			return err
+		}
+		d.Set("commit_sha", newCommit.SHA)
 	}
 
 	return resourceGithubRepositoryFileRead(d, meta)
@@ -503,9 +676,82 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 		opts.Branch = &branch
 	}
 
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return nil
+	modifyWithApi := d.Get("use_contents_api")
+	if modifyWithApi.(bool) {
+		_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+		if err != nil {
+			return nil
+		}
+	} else {
+		commitOpts, err := resourceGithubRepositoryFileCreateCommitOptions(d)
+		if err != nil {
+			return err
+		}
+
+		ref, _, err := client.Git.GetRef(ctx, owner, repo, "refs/heads/"+*opts.Branch)
+		if err != nil {
+			return err
+		}
+
+		tree, _, err := client.Git.CreateTree(
+			ctx, owner, repo, *ref.Object.SHA, []*github.TreeEntry{
+				{
+					Path: github.String(d.Get("file").(string)),
+					Type: github.String("blob"),
+					Mode: github.String("100644"),
+					SHA:  nil,
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		parent, _, err := client.Repositories.GetCommit(ctx, owner, repo, *ref.Object.SHA, nil)
+		if err != nil {
+			return err
+		}
+		// This is not always populated, but is needed.
+		parent.Commit.SHA = parent.SHA
+
+		commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
+		commitEmail, hasCommitEmail := d.GetOk("commit_email")
+
+		if hasCommitAuthor && !hasCommitEmail {
+			return fmt.Errorf("cannot set commit_author without setting commit_email")
+		}
+
+		if hasCommitEmail && !hasCommitAuthor {
+			return fmt.Errorf("cannot set commit_email without setting commit_author")
+		}
+
+		if hasCommitAuthor && hasCommitEmail {
+			name := commitAuthor.(string)
+			mail := commitEmail.(string)
+			opts.Author = &github.CommitAuthor{Name: &name, Email: &mail}
+			opts.Committer = &github.CommitAuthor{Name: &name, Email: &mail}
+		}
+
+		commit := github.Commit{
+			Author:    opts.Author,
+			Committer: opts.Committer,
+			Message:   opts.Message,
+			Tree:      tree,
+			Parents: []*github.Commit{
+				parent.Commit,
+			},
+		}
+		newCommit, _, err := client.Git.CreateCommit(ctx, owner, repo, &commit, commitOpts)
+		if err != nil {
+			return err
+		}
+
+		ref.Object.SHA = newCommit.SHA
+		_, _, err = client.Git.UpdateRef(ctx, owner, repo, ref, false)
+		if err != nil {
+			return err
+		}
+		d.Set("commit_sha", newCommit.SHA)
 	}
 
 	return nil
