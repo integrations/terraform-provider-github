@@ -40,7 +40,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The repository of the webhook.",
+				Description: "The repository name of the webhook, not including the organization, which will be inferred.",
 			},
 			"events": {
 				Type:        schema.TypeSet,
