@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -52,20 +52,21 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
-							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
+							Optional:    true,
+							Default:     nil,
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -261,6 +262,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
 								},
 							},
 						},
@@ -428,6 +435,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"required_workflow": {
 										Type:        schema.TypeSet,
 										MinItems:    1,

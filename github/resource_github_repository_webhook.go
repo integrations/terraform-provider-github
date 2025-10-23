@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -40,7 +40,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The repository of the webhook.",
+				Description: "The repository name of the webhook, not including the organization, which will be inferred.",
 			},
 			"events": {
 				Type:        schema.TypeSet,
