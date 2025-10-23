@@ -37,7 +37,6 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
-				ForceNew:         true,
 				Optional:         true,
 				Sensitive:        true,
 				ConflictsWith:    []string{"plaintext_value"},
@@ -46,7 +45,6 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
-				ForceNew:      true,
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"encrypted_value"},
@@ -56,7 +54,6 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:         true,
 				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
