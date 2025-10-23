@@ -1,8 +1,6 @@
 module github.com/integrations/terraform-provider-github/v6
 
-go 1.21
-
-toolchain go1.22.4
+go 1.23.0
 
 require (
 	github.com/client9/misspell v0.3.4
@@ -15,7 +13,7 @@ require (
 	github.com/shurcooL/githubv4 v0.0.0-20221126192849-0b5c4c7994eb
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.32.0
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.27.0
 )
 
 require (
