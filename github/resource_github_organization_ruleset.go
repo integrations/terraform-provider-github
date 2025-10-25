@@ -566,6 +566,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 				return nil
 			}
 		}
+		return err
 	}
 
 	d.Set("etag", resp.Header.Get("ETag"))
