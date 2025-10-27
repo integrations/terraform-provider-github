@@ -56,6 +56,42 @@ resource "github_organization_ruleset" "example" {
     }
   }
 }
+
+# Example with push ruleset  
+resource "github_organization_ruleset" "example_push" {
+  name        = "example_push"
+  target      = "push"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+    repository_name {
+      include = ["~ALL"] 
+      exclude = []
+    }
+  }
+
+  rules {
+    file_path_restriction {
+      restricted_file_paths = [".github/workflows/*", "*.env"]
+    }
+    
+    max_file_size {
+      max_file_size = 104857600  # 100 MB in bytes
+    }
+    
+    max_file_path_length {
+      max_file_path_length = 255
+    }
+    
+    file_extension_restriction {
+      restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
+    }
+  }
+}
 ```
 
 ## Argument Reference
@@ -66,7 +102,7 @@ resource "github_organization_ruleset" "example" {
 
 * `rules` - (Required) (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#rules))
 
-* `target` - (Required) (String) Possible values are `branch` and `tag`.
+* `target` - (Required) (String) Possible values are `branch`, `tag` and `push`.
 
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
@@ -103,6 +139,14 @@ The `rules` block supports the following:
 * `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
 
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
+
+* `file_path_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include changes to specified file paths from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_path_restriction))
+
+* `max_file_size` - (Optional) (Block List, Max: 1) Prevent commits that include files with a specified file size from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.max_file_size))
+
+* `max_file_path_length` - (Optional) (Block List, Max: 1) Prevent commits that include file paths that exceed a specified character limit from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.max_file_path_length))
+
+* `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_extension_restriction))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
@@ -209,6 +253,22 @@ The `rules` block supports the following:
 * `name` - (Optional) (String) How this rule will appear to users.
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
+
+#### rules.file_path_restriction ####
+
+* `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
+
+#### rules.max_file_size ####
+
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+
+#### rules.max_file_path_length ####
+
+* `max_file_path_length` - (Required) (Integer) The maximum number of characters allowed in file paths.
+
+#### rules.file_extension_restriction ####
+
+* `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
 
 #### bypass_actors ####
 
