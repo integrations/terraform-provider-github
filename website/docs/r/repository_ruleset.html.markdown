@@ -69,6 +69,10 @@ resource "github_repository_ruleset" "example_push" {
       max_file_size = 104857600  # 100 MB in bytes
     }
     
+    max_file_path_length {
+      max_file_path_length = 255
+    }
+    
     file_extension_restriction {
       restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
     }
@@ -129,6 +133,9 @@ The `rules` block supports the following:
 * `file_path_restriction` - (Optional) (Block List, Max 1) Parameters to be used for the file_path_restriction rule. When enabled restricts access to files within the repository. (See [below for nested schema](#rules.file_path_restriction))
 
 * `max_file_size` - (Optional) (Block List, Max 1) Parameters to be used for the max_file_size rule. When enabled restricts the maximum size of a file that can be pushed to the repository. (See [below for nested schema](#rules.max_file_size))
+
+* `max_file_path_length` - (Optional) (Block List, Max: 1) Prevent commits that include file paths that exceed a specified character limit from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.max_file_path_length))
+
 * `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_extension_restriction))
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
@@ -249,6 +256,10 @@ The `rules` block supports the following:
 #### rules.max_file_size ####
 
 * `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+
+#### rules.max_file_path_length ####
+
+* `max_file_path_length` - (Required) (Integer) The maximum number of characters allowed in file paths.
 
 #### rules.file_extension_restriction ####
 
