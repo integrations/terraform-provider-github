@@ -444,7 +444,7 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	// max_file_path_length rule
 	if v, ok := rulesMap["max_file_path_length"].([]interface{}); ok && len(v) != 0 {
 		maxFilePathLengthMap := v[0].(map[string]interface{})
-		maxFilePathLength := int(maxFilePathLengthMap["max_file_path_length"].(int))
+		maxFilePathLength := maxFilePathLengthMap["max_file_path_length"].(int)
 		params := &github.RuleMaxFilePathLengthParameters{
 			MaxFilePathLength: maxFilePathLength,
 		}
