@@ -27,6 +27,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			},
 		},
 
+		// Schema migration added in v6.7.1 to handle the addition of destroy_on_drift field
+		// Resources created before v6.7.0 need the field populated with default value
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubActionsOrganizationSecretMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,
