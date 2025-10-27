@@ -441,6 +441,17 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 
 	}
 
+	// max_file_path_length rule
+	if v, ok := rulesMap["max_file_path_length"].([]interface{}); ok && len(v) != 0 {
+		maxFilePathLengthMap := v[0].(map[string]interface{})
+		maxFilePathLength := int(maxFilePathLengthMap["max_file_path_length"].(int))
+		params := &github.RuleMaxFilePathLengthParameters{
+			MaxFilePathLength: maxFilePathLength,
+		}
+		rulesSlice = append(rulesSlice, github.NewMaxFilePathLengthRule(params))
+
+	}
+
 	// file_extension_restriction rule
 	if v, ok := rulesMap["file_extension_restriction"].([]interface{}); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]interface{})
@@ -650,6 +661,17 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			}
 			rule := make(map[string]interface{})
 			rule["max_file_size"] = params.MaxFileSize
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "max_file_path_length":
+			var params github.RuleMaxFilePathLengthParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["max_file_path_length"] = params.MaxFilePathLength
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 
 		case "file_extension_restriction":
