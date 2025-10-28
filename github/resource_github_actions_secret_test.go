@@ -364,6 +364,75 @@ func TestAccGithubActionsSecret(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
+	t.Run("updates destroy_on_drift field without recreation", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config1 := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+			}
+
+			resource "github_actions_secret" "test" {
+				repository        = github_repository.test.name
+				secret_name       = "test_destroy_on_drift_update"
+				plaintext_value   = "test_value"
+				destroy_on_drift  = true
+			}
+		`, randomID)
+
+		config2 := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+			}
+
+			resource "github_actions_secret" "test" {
+				repository        = github_repository.test.name
+				secret_name       = "test_destroy_on_drift_update"
+				plaintext_value   = "test_value"
+				destroy_on_drift  = false
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config1,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_actions_secret.test", "destroy_on_drift", "true"),
+							resource.TestCheckResourceAttr(
+								"github_actions_secret.test", "plaintext_value", "test_value"),
+						),
+					},
+					{
+						Config: config2,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_actions_secret.test", "destroy_on_drift", "false"),
+							resource.TestCheckResourceAttr(
+								"github_actions_secret.test", "plaintext_value", "test_value"),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
 
 // Unit tests for drift detection behavior
