@@ -136,6 +136,8 @@ func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// WIP
+	if err := d.Set("property_name", d.Id()); err != nil {
+		return nil, err
+	}
 	return []*schema.ResourceData{d}, nil
 }
