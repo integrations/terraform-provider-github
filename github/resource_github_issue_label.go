@@ -197,7 +197,6 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err := client.Issues.DeleteLabel(ctx,
-		orgName, repoName, name)
-	return err
+	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
+	return handleArchivedRepoDelete(err, "issue label", name, orgName, repoName)
 }

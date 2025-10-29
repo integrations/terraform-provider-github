@@ -18,6 +18,8 @@ This resource is authoritative. For adding a label to a repo in a non-authoritat
 
 If you change the case of a label's name, its' color, or description, this resource will edit the existing label to match the new values. However, if you change the name of a label, this resource will create a new label with the new name and delete the old label. Beware that this will remove the label from any issues it was previously attached to.
 
+~> **Note:** When a repository is archived, Terraform will skip deletion of issue labels to avoid API errors, as archived repositories are read-only. The labels will be removed from Terraform state without attempting to delete them from GitHub.
+
 ## Example Usage
 
 ```hcl
