@@ -360,6 +360,7 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return true
