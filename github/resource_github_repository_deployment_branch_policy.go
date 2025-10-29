@@ -42,6 +42,10 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
