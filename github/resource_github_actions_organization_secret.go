@@ -228,11 +228,10 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
-	}
-
-	// Always update the timestamp to prevent repeated drift detection
-	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-		return err
+	} else if !ok {
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil
