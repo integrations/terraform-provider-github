@@ -333,6 +333,11 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "A string of the form 'orgname/reponame'.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The owner of the repository.",
+			},
 			"html_url": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -683,6 +688,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("topics", flattenStringList(repo.Topics))
 	d.Set("node_id", repo.GetNodeID())
 	d.Set("repo_id", repo.GetID())
+	d.Set("owner", repo.GetOwner().GetLogin())
 
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
