@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -233,9 +234,9 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 				"Try deleting team repository again.",
 				repoName, newRepoName)
 			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
-			return err
+			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName)
 		}
 	}
 
-	return err
+	return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName)
 }
