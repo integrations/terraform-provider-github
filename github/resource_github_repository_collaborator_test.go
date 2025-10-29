@@ -160,7 +160,7 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
 
 		// Note: This test requires GITHUB_TEST_COLLABORATOR to be set to a valid GitHub username
-		testCollaborator := os.Getenv("GITHUB_TEST_COLLABORATOR") 
+		testCollaborator := os.Getenv("GITHUB_TEST_COLLABORATOR")
 		if testCollaborator == "" {
 			t.Skip("GITHUB_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
 		}
