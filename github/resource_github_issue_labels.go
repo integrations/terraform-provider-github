@@ -189,6 +189,10 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta interface{}) e
 
 		_, err := client.Issues.DeleteLabel(ctx, owner, repository, name)
 		if err != nil {
+			if isArchivedRepositoryError(err) {
+				log.Printf("[INFO] Skipping deletion of remaining issue labels from archived repository %s/%s", owner, repository)
+				break // Skip deleting remaining labels
+			}
 			return err
 		}
 	}
