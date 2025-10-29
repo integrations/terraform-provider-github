@@ -675,6 +675,95 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Updates ruleset without bypass actors defined", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-no-bypass-%s"
+				description  = "Terraform acceptance tests %[1]s"
+				auto_init    = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-no-bypass"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					deletion = true
+				}
+			}
+		`, randomID)
+
+		configUpdated := strings.Replace(
+			config,
+			"deletion = true",
+			"deletion = false",
+			1,
+		)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "rules.0.deletion",
+					"true",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "bypass_actors.#",
+					"0",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "rules.0.deletion",
+					"false",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "bypass_actors.#",
+					"0",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: configUpdated,
+						Check:  checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 	t.Run("Creates repository ruleset with all bypass_modes", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
