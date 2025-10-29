@@ -17,16 +17,10 @@ func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsSecretCreateOrUpdate,
 		Read:   resourceGithubActionsSecretRead,
-		Update: resourceGithubActionsSecretCreateOrUpdate,
 		Delete: resourceGithubActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsSecretImport,
 		},
-
-		// Schema migration added to handle the addition of destroy_on_drift field
-		// Resources created before this field was added need it populated with default value
-		SchemaVersion: 1,
-		MigrateState:  resourceGithubActionsSecretMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -67,12 +61,6 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Date of 'actions_secret' update.",
-			},
-			"destroy_on_drift": {
-				Type:        schema.TypeBool,
-				Default:     true,
-				Optional:    true,
-				Description: "Boolean indicating whether to recreate the secret if it's modified outside of Terraform. When `true` (default), Terraform will delete and recreate the secret if it detects external changes. When `false`, Terraform will acknowledge external changes but not recreate the secret.",
 			},
 		},
 	}
@@ -167,15 +155,13 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	// The only solution to enforce consistency between is to mark the resource
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
-	destroyOnDrift := d.Get("destroy_on_drift").(bool)
-	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
+	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
-	}
-
-	// Always update the timestamp to prevent repeated drift detection
-	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-		return err
+	} else if !ok {
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil
