@@ -43,10 +43,13 @@ resource "github_actions_secret" "example_secret" {
 
 The following arguments are supported:
 
-* `repository`      - (Required) Name of the repository
-* `secret_name`     - (Required) Name of the secret
-* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
+* `repository`        - (Required) Name of the repository
+* `secret_name`       - (Required) Name of the secret
+* `encrypted_value`   - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+* `plaintext_value`   - (Optional) Plaintext value of the secret to be encrypted
+* `destroy_on_drift`  - (Optional) Boolean indicating whether to recreate the secret if it's modified outside of Terraform. 
+                        When `true` (default), Terraform will delete and recreate the secret if it detects external changes. 
+                        When `false`, Terraform will acknowledge external changes but not recreate the secret. Defaults to `true`.
 
 ## Attributes Reference
 
