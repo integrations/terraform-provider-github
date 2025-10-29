@@ -20,6 +20,8 @@ and those labels easily conflict with custom ones.
 This resource will first check if the label exists, and then issue an update,
 otherwise it will create.
 
+~> **Note:** When a repository is archived, Terraform will skip deletion of issue labels to avoid API errors, as archived repositories are read-only. The labels will be removed from Terraform state without attempting to delete them from GitHub.
+
 ## Example Usage
 
 ```hcl
