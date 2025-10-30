@@ -643,6 +643,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 		}
+		return err
 	}
 
 	if ruleset == nil {
