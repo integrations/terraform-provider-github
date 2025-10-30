@@ -71,6 +71,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				},
 				Set:         schema.HashInt,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "An array of repository ids that can access the organization secret.",
 			},
 			"created_at": {
@@ -84,9 +85,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Description: "Date of 'actions_secret' update.",
 			},
 			"destroy_on_drift": {
-				Type:     schema.TypeBool,
-				Default:  true,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Default:     true,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Boolean indicating whether to recreate the secret if it's modified outside of Terraform. When `true` (default), Terraform will delete and recreate the secret if it detects external changes. When `false`, Terraform will acknowledge external changes but not recreate the secret.",
 			},
 		},
 	}
