@@ -133,6 +133,7 @@ func Provider() *schema.Provider {
 			"github_actions_organization_secret":                                    resourceGithubActionsOrganizationSecret(),
 			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
 			"github_actions_organization_secret_repositories":                       resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_organization_secret_repository":                         resourceGithubActionsOrganizationSecretRepository(),
 			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
@@ -159,9 +160,15 @@ func Provider() *schema.Provider {
 			"github_membership":                                                     resourceGithubMembership(),
 			"github_organization_block":                                             resourceOrganizationBlock(),
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
+			"github_organization_custom_properties":                                 resourceGithubOrganizationCustomProperties(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
-			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
+			"github_organization_repository_role":                                   resourceGithubOrganizationRepositoryRole(),
+			"github_organization_role":                                              resourceGithubOrganizationRole(),
+			"github_organization_role_team":                                         resourceGithubOrganizationRoleTeam(),
+			"github_organization_role_user":                                         resourceGithubOrganizationRoleUser(),
+			"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
+			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
 			"github_project_card":                                                   resourceGithubProjectCard(),
@@ -232,8 +239,16 @@ func Provider() *schema.Provider {
 			"github_membership":                                                     dataSourceGithubMembership(),
 			"github_organization":                                                   dataSourceGithubOrganization(),
 			"github_organization_custom_role":                                       dataSourceGithubOrganizationCustomRole(),
+			"github_organization_custom_properties":                                 dataSourceGithubOrganizationCustomProperties(),
 			"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
 			"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
+			"github_organization_repository_role":                                   dataSourceGithubOrganizationRepositoryRole(),
+			"github_organization_repository_roles":                                  dataSourceGithubOrganizationRepositoryRoles(),
+			"github_organization_role":                                              dataSourceGithubOrganizationRole(),
+			"github_organization_role_teams":                                        dataSourceGithubOrganizationRoleTeams(),
+			"github_organization_role_users":                                        dataSourceGithubOrganizationRoleUsers(),
+			"github_organization_roles":                                             dataSourceGithubOrganizationRoles(),
+			"github_organization_security_managers":                                 dataSourceGithubOrganizationSecurityManagers(),
 			"github_organization_team_sync_groups":                                  dataSourceGithubOrganizationTeamSyncGroups(),
 			"github_organization_teams":                                             dataSourceGithubOrganizationTeams(),
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
@@ -299,8 +314,8 @@ func init() {
 			"Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
 		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
 			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
-			"Although, it is not possible to enable this setting on github.com " +
-			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
+			"While it is possible to enable this setting on github.com, " +
+			"github.com's best practices recommend using serialization to avoid hitting abuse rate limits" +
 			"Defaults to false if not set",
 		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
 			"Defaults to [500, 502, 503, 504]",
@@ -428,9 +443,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
-		if parallelRequests && isGithubDotCom {
-			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
-		}
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
 		config := Config{

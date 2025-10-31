@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -44,7 +44,11 @@ func expandBypassActors(input []interface{}) []*github.BypassActor {
 		inputMap := v.(map[string]interface{})
 		actor := &github.BypassActor{}
 		if v, ok := inputMap["actor_id"].(int); ok {
-			actor.ActorID = github.Int64(int64(v))
+			if v == 0 {
+				actor.ActorID = nil
+			} else {
+				actor.ActorID = github.Int64(int64(v))
+			}
 		}
 
 		if v, ok := inputMap["actor_type"].(string); ok {
@@ -375,7 +379,8 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		}
 
 		params := &github.RequiredWorkflowsRuleParameters{
-			RequiredWorkflows: requiredWorkflows,
+			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
+			RequiredWorkflows:    requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
@@ -410,6 +415,54 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 			RequiredCodeScanningTools: requiredCodeScanningTools,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredCodeScanningRule(params))
+	}
+
+	// file_path_restriction rule
+	if v, ok := rulesMap["file_path_restriction"].([]interface{}); ok && len(v) != 0 {
+		filePathRestrictionMap := v[0].(map[string]interface{})
+		restrictedFilePaths := make([]string, 0)
+		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]interface{}) {
+			restrictedFilePaths = append(restrictedFilePaths, path.(string))
+		}
+		params := &github.RuleFileParameters{
+			RestrictedFilePaths: &restrictedFilePaths,
+		}
+		rulesSlice = append(rulesSlice, github.NewFilePathRestrictionRule(params))
+	}
+
+	// max_file_size rule
+	if v, ok := rulesMap["max_file_size"].([]interface{}); ok && len(v) != 0 {
+		maxFileSizeMap := v[0].(map[string]interface{})
+		maxFileSize := int64(maxFileSizeMap["max_file_size"].(float64))
+		params := &github.RuleMaxFileSizeParameters{
+			MaxFileSize: maxFileSize,
+		}
+		rulesSlice = append(rulesSlice, github.NewMaxFileSizeRule(params))
+
+	}
+
+	// max_file_path_length rule
+	if v, ok := rulesMap["max_file_path_length"].([]interface{}); ok && len(v) != 0 {
+		maxFilePathLengthMap := v[0].(map[string]interface{})
+		maxFilePathLength := maxFilePathLengthMap["max_file_path_length"].(int)
+		params := &github.RuleMaxFilePathLengthParameters{
+			MaxFilePathLength: maxFilePathLength,
+		}
+		rulesSlice = append(rulesSlice, github.NewMaxFilePathLengthRule(params))
+
+	}
+
+	// file_extension_restriction rule
+	if v, ok := rulesMap["file_extension_restriction"].([]interface{}); ok && len(v) != 0 {
+		fileExtensionRestrictionMap := v[0].(map[string]interface{})
+		restrictedFileExtensions := make([]string, 0)
+		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]interface{}) {
+			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+		}
+		params := &github.RuleFileExtensionRestrictionParameters{
+			RestrictedFileExtensions: restrictedFileExtensions,
+		}
+		rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
 	}
 
 	return rulesSlice
@@ -524,6 +577,51 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
 
+		case "workflows":
+			var params github.RequiredWorkflowsRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredWorkflowsSlice := make([]map[string]interface{}, 0)
+			for _, check := range params.RequiredWorkflows {
+				requiredWorkflowsSlice = append(requiredWorkflowsSlice, map[string]interface{}{
+					"repository_id": check.RepositoryID,
+					"path":          check.Path,
+					"ref":           check.Ref,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
+			rule["required_workflow"] = requiredWorkflowsSlice
+			rulesMap["required_workflows"] = []map[string]interface{}{rule}
+
+		case "code_scanning":
+			var params github.RequiredCodeScanningRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredCodeScanningSlice := make([]map[string]interface{}, 0)
+			for _, check := range params.RequiredCodeScanningTools {
+				requiredCodeScanningSlice = append(requiredCodeScanningSlice, map[string]interface{}{
+					"alerts_threshold":          check.AlertsThreshold,
+					"security_alerts_threshold": check.SecurityAlertsThreshold,
+					"tool":                      check.Tool,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["required_code_scanning_tool"] = requiredCodeScanningSlice
+			rulesMap["required_code_scanning"] = []map[string]interface{}{rule}
+
 		case "merge_queue":
 			var params github.MergeQueueRuleParameters
 
@@ -542,6 +640,56 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["min_entries_to_merge"] = params.MinEntriesToMerge
 			rule["min_entries_to_merge_wait_minutes"] = params.MinEntriesToMergeWaitMinutes
 			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "file_path_restriction":
+			var params github.RuleFileParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["restricted_file_paths"] = params.GetRestrictedFilePaths()
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "max_file_size":
+			var params github.RuleMaxFileSizeParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["max_file_size"] = params.MaxFileSize
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "max_file_path_length":
+			var params github.RuleMaxFilePathLengthParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["max_file_path_length"] = params.MaxFilePathLength
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "file_extension_restriction":
+			var params github.RuleFileExtensionRestrictionParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["restricted_file_extensions"] = params.RestrictedFileExtensions
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		default:
+			// Handle unknown rule types (like Copilot code review, etc.) gracefully
+			// Log the unknown rule type but don't cause Terraform to fail or see a diff
+			log.Printf("[DEBUG] Ignoring unknown repository rule type: %s. This rule was likely added outside of Terraform (e.g., via GitHub UI) and is not yet supported by the provider.", v.Type)
+			// Note: We intentionally don't add this to rulesMap to avoid causing diffs for rules that aren't managed by Terraform
 		}
 	}
 

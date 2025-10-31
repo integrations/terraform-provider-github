@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -49,8 +49,13 @@ func resourceGithubBranch() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"ref": {
 				Type:        schema.TypeString,
