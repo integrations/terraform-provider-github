@@ -65,8 +65,11 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return err
 		}
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
+
+		if defaultBranch != *repository.DefaultBranch {
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+				return err
+			}
 		}
 	} else {
 		repository := &github.Repository{
@@ -152,8 +155,11 @@ func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return err
 		}
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
+
+		if defaultBranch != *repository.DefaultBranch {
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+				return err
+			}
 		}
 	} else {
 		repository := &github.Repository{
