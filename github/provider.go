@@ -188,6 +188,7 @@ func Provider() *schema.Provider {
 			"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
 			"github_repository_project":                                             resourceGithubRepositoryProject(),
 			"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
+			"github_repository_pre_receive_hook":                                    resourceGithubRepositoryPreReceiveHook(),
 			"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
 			"github_repository_topics":                                              resourceGithubRepositoryTopics(),
 			"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),

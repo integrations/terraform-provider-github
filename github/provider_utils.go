@@ -75,6 +75,12 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
 }
 
+func skipUnlessEnterpriseServer(t *testing.T) {
+	if os.Getenv("GITHUB_BASE_URL") == "" || os.Getenv("GITHUB_BASE_URL") == "https://api.github.com/" {
+		t.Skipf("Skipping %s which requires GitHub Enterprise Server", t.Name())
+	}
+}
+
 func testAccCheckOrganization() error {
 
 	baseURL := os.Getenv("GITHUB_BASE_URL")
@@ -129,6 +135,13 @@ func testOwnerFunc() string {
 		owner = os.Getenv("GITHUB_TEST_OWNER")
 	}
 	return owner
+}
+
+func testPreReceiveHookFunc() string {
+	hookName := os.Getenv("GITHUB_TEST_PRE_RECEIVE_HOOK")
+	log.Printf("[INFO] Selecting pre-receive hook name '%s' from GITHUB_TEST_PRE_RECEIVE_HOOK environment variable", hookName)
+
+	return hookName
 }
 
 const anonymous = "anonymous"
