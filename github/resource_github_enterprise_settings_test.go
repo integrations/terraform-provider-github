@@ -8,9 +8,9 @@ import (
 )
 
 func TestAccGithubEnterpriseSettings(t *testing.T) {
-	
+
 	t.Run("creates basic enterprise settings without error", func(t *testing.T) {
-		
+
 		config := fmt.Sprintf(`
 		resource "github_enterprise_settings" "test" {
 			enterprise_slug = "%s"
@@ -56,7 +56,7 @@ func TestAccGithubEnterpriseSettings(t *testing.T) {
 	})
 
 	t.Run("creates enterprise settings with selected actions without error", func(t *testing.T) {
-		
+
 		config := fmt.Sprintf(`
 		resource "github_enterprise_settings" "test" {
 			enterprise_slug = "%s"
@@ -113,7 +113,7 @@ func TestAccGithubEnterpriseSettings(t *testing.T) {
 	})
 
 	t.Run("updates enterprise settings without error", func(t *testing.T) {
-		
+
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 			resource "github_enterprise_settings" "test" {
@@ -182,7 +182,7 @@ func TestAccGithubEnterpriseSettings(t *testing.T) {
 	})
 
 	t.Run("updates from all to selected actions policy", func(t *testing.T) {
-		
+
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 			resource "github_enterprise_settings" "test" {
@@ -256,7 +256,7 @@ func TestAccGithubEnterpriseSettings(t *testing.T) {
 	})
 
 	t.Run("imports enterprise settings without error", func(t *testing.T) {
-		
+
 		config := fmt.Sprintf(`
 		resource "github_enterprise_settings" "test" {
 			enterprise_slug = "%s"
