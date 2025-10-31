@@ -544,3 +544,153 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 	})
 
 }
+
+func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("handles computed status checks without churn", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				auto_init = true
+			}
+
+			resource "github_branch_protection_v3" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+
+				required_status_checks {
+					strict = true
+					checks = [
+						"ci/test",
+						"ci/build"
+					]
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.checks.#", "2",
+			),
+			resource.TestCheckTypeSetElemAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/test",
+			),
+			resource.TestCheckTypeSetElemAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/build",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					// Re-apply the same config to test for churn
+					{
+						Config:   config,
+						Check:    check,
+						PlanOnly: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("handles computed status contexts without churn", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				auto_init = true
+			}
+
+			resource "github_branch_protection_v3" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+
+				required_status_checks {
+					strict = true
+					contexts = [
+						"ci/test",
+						"ci/build"
+					]
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.#", "1",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.contexts.#", "2",
+			),
+			resource.TestCheckTypeSetElemAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/test",
+			),
+			resource.TestCheckTypeSetElemAttr(
+				"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/build",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					// Re-apply the same config to test for churn
+					{
+						Config:   config,
+						Check:    check,
+						PlanOnly: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
