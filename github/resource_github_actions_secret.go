@@ -143,12 +143,6 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
-	}
-	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
-	}
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 		return err
 	}
@@ -164,14 +158,35 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 	// timestamp we've persisted in the state. In that case, we can no longer
 	// trust that the value (which we don't see) is equal to what we've declared
 	// previously.
-	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
 	destroyOnDrift := d.Get("destroy_on_drift").(bool)
-	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
+	storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+	
+	if hasStoredUpdatedAt && storedUpdatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
+		
+		if destroyOnDrift {
+			// Original behavior: mark for recreation
+			d.SetId("")
+			return nil
+		} else {
+			// Alternative approach: set sensitive values to empty to trigger update plan
+			// This tells Terraform that the current state is unknown and needs reconciliation
+			if err = d.Set("encrypted_value", ""); err != nil {
+				return err
+			}
+			if err = d.Set("plaintext_value", ""); err != nil {
+				return err
+			}
+			log.Printf("[INFO] Detected drift but destroy_on_drift=false, clearing sensitive values to trigger update")
+		}
+	} else {
+		// No drift detected, preserve the configured values in state
+		if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+			return err
+		}
+		if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+			return err
+		}
 	}
 
 	// Always update the timestamp to prevent repeated drift detection
