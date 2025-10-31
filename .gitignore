@@ -29,6 +29,7 @@ website/node_modules
 testdata/
 website/vendor
 terraform-provider-github
+.tool-versions
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
