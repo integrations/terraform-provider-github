@@ -268,15 +268,9 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 		}
 	})
 
-	t.Run("destroy_on_drift requires ForceNew due to Update function", func(t *testing.T) {
-		// Test that destroy_on_drift field has ForceNew: true 
-		// This is required because we have an Update function defined  
+	t.Run("destroy_on_drift field defaults", func(t *testing.T) {
+		// Test that destroy_on_drift defaults to true for backward compatibility
 		schema := resourceGithubActionsOrganizationSecret().Schema["destroy_on_drift"]
-		if !schema.ForceNew {
-			t.Error("destroy_on_drift field must have ForceNew: true when Update function is defined, to avoid 'Provider produced inconsistent result' errors")
-		}
-
-		// Test that it defaults to true
 		if schema.Default != true {
 			t.Error("destroy_on_drift should default to true for backward compatibility")
 		}

@@ -16,7 +16,6 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Read:   resourceGithubActionsOrganizationSecretRead,
-		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
