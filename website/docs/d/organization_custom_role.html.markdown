@@ -7,7 +7,7 @@ description: |-
 
 # github\_organization\_custom\_role
 
-~> **Note:** This data source is deprecated, please use the `github_organizationrepository_role` data source instead.
+~> **Note:** This data source is deprecated, please use the `github_organization_repository_role` data source instead.
 
 Use this data source to retrieve information about a custom role in a GitHub Organization.
 
