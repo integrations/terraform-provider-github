@@ -184,7 +184,6 @@ func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports an organization variable without error", func(t *testing.T) {

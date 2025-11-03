@@ -38,7 +38,9 @@ type SSAAnalyzerResult struct {
 // BuildDefaultAnalyzers returns the default list of analyzers
 func BuildDefaultAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
+		newConversionOverflowAnalyzer("G115", "Type conversion which leads to integer overflow"),
 		newSliceBoundsAnalyzer("G602", "Possible slice bounds out of range"),
+		newHardCodedNonce("G407", "Use of hardcoded IV/nonce for encryption"),
 	}
 }
 
@@ -60,6 +62,10 @@ func newIssue(analyzerID string, desc string, fileSet *token.FileSet,
 	pos token.Pos, severity, confidence issue.Score,
 ) *issue.Issue {
 	file := fileSet.File(pos)
+	// This can occur when there is a compilation issue into the code.
+	if file == nil {
+		return &issue.Issue{}
+	}
 	line := file.Line(pos)
 	col := file.Position(pos).Column
 

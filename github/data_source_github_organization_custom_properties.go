@@ -44,7 +44,7 @@ func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -56,16 +56,16 @@ func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, me
 
 	propertyAttributes, _, err := client.Organizations.GetCustomProperty(ctx, orgName, d.Get("property_name").(string))
 	if err != nil {
-		return fmt.Errorf("error querying GitHub custom properties %s: %s", orgName, err)
+		return fmt.Errorf("error querying GitHub custom properties %s: %w", orgName, err)
 	}
 
 	d.SetId("org-custom-properties")
-	d.Set("allowed_values", propertyAttributes.AllowedValues)
-	d.Set("default_value", propertyAttributes.DefaultValue)
-	d.Set("description", propertyAttributes.Description)
-	d.Set("property_name", propertyAttributes.PropertyName)
-	d.Set("required", propertyAttributes.Required)
-	d.Set("value_type", propertyAttributes.ValueType)
+	_ = d.Set("allowed_values", propertyAttributes.AllowedValues)
+	_ = d.Set("default_value", propertyAttributes.DefaultValue)
+	_ = d.Set("description", propertyAttributes.Description)
+	_ = d.Set("property_name", propertyAttributes.PropertyName)
+	_ = d.Set("required", propertyAttributes.Required)
+	_ = d.Set("value_type", propertyAttributes.ValueType)
 
 	return nil
 }

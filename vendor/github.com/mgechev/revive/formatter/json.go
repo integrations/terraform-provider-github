@@ -12,14 +12,14 @@ type JSON struct {
 	Metadata lint.FormatterMetadata
 }
 
-// Name returns the name of the formatter
+// Name returns the name of the formatter.
 func (*JSON) Name() string {
 	return "json"
 }
 
-// jsonObject defines a JSON object of an failure
+// jsonObject defines a JSON object of an failure.
 type jsonObject struct {
-	Severity     lint.Severity
+	Severity     lint.Severity `json:"Severity"`
 	lint.Failure `json:",inline"`
 }
 
