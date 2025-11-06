@@ -63,7 +63,12 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -210,5 +215,5 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
-	return err
+	return handleArchivedRepoDelete(err, "repository webhook", d.Id(), owner, repoName)
 }
