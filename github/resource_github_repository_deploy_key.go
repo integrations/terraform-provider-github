@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -153,11 +153,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interf
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteKey(ctx, owner, repoName, id)
-	if err != nil {
-		return err
-	}
-
-	return err
+	return handleArchivedRepoDelete(err, "repository deploy key", idString, owner, repoName)
 }
 
 func suppressDeployKeyDiff(k, oldV, newV string, d *schema.ResourceData) bool {

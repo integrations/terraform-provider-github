@@ -10,6 +10,8 @@ description: |-
 This resource allows you to create and manage webhooks for repositories within your
 GitHub organization or personal account.
 
+~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing webhook modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
 ## Example Usage
 
 ```hcl

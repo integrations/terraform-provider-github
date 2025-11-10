@@ -8,12 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubProjectCard() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
+
 		Create: resourceGithubProjectCardCreate,
 		Read:   resourceGithubProjectCardRead,
 		Update: resourceGithubProjectCardUpdate,
@@ -184,7 +186,6 @@ func resourceGithubProjectCardDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceGithubProjectCardImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-
 	cardIDStr := d.Id()
 	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
 	if err != nil {
@@ -205,5 +206,4 @@ func resourceGithubProjectCardImport(d *schema.ResourceData, meta interface{}) (
 	}
 
 	return []*schema.ResourceData{d}, nil
-
 }
