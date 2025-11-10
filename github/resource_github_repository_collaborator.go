@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -196,14 +196,14 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	// Delete any pending invitations
 	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
-		return err
+		return handleArchivedRepoDelete(err, "repository collaborator invitation", username, owner, repoNameWithoutOwner)
 	} else if invitation != nil {
 		_, err = client.Repositories.DeleteInvitation(ctx, owner, repoNameWithoutOwner, invitation.GetID())
-		return err
+		return handleArchivedRepoDelete(err, "repository collaborator invitation", username, owner, repoNameWithoutOwner)
 	}
 
 	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoNameWithoutOwner, username)
-	return err
+	return handleArchivedRepoDelete(err, "repository collaborator", username, owner, repoNameWithoutOwner)
 }
 
 func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
