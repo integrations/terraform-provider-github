@@ -15,6 +15,8 @@ account.
 
 This resource allows you to add/remove repository deploy keys.
 
+~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing deploy key modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
 Further documentation on GitHub repository deploy keys:
 - [About deploy keys](https://developer.github.com/guides/managing-deploy-keys/#deploy-keys)
 

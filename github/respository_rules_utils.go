@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -36,7 +36,18 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rul
 
 func expandBypassActors(input []interface{}) []*github.BypassActor {
 	if len(input) == 0 {
-		return nil
+		// IMPORTANT:
+		// Always return an empty slice ([]), not nil.
+		// If this function returns nil, go-github serializes the field as `"bypass_actors": null`,
+		// which causes GitHub API to reject the request with:
+		//   422 "Invalid property /bypass_actors: data cannot be null."
+		//
+		// According to the GitHub REST API specification:
+		//   - The "bypass_actors" field must be an array (even if empty).
+		//   - Sending `null` is invalid; sending `[]` explicitly clears the list.
+		// Reference:
+		//   https://docs.github.com/en/rest/repos/rules#get-a-repository-ruleset
+		return []*github.BypassActor{}
 	}
 	bypassActors := make([]*github.BypassActor, 0)
 
@@ -441,6 +452,17 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 
 	}
 
+	// max_file_path_length rule
+	if v, ok := rulesMap["max_file_path_length"].([]interface{}); ok && len(v) != 0 {
+		maxFilePathLengthMap := v[0].(map[string]interface{})
+		maxFilePathLength := maxFilePathLengthMap["max_file_path_length"].(int)
+		params := &github.RuleMaxFilePathLengthParameters{
+			MaxFilePathLength: maxFilePathLength,
+		}
+		rulesSlice = append(rulesSlice, github.NewMaxFilePathLengthRule(params))
+
+	}
+
 	// file_extension_restriction rule
 	if v, ok := rulesMap["file_extension_restriction"].([]interface{}); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]interface{})
@@ -640,6 +662,45 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule := make(map[string]interface{})
 			rule["restricted_file_paths"] = params.GetRestrictedFilePaths()
 			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "max_file_size":
+			var params github.RuleMaxFileSizeParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["max_file_size"] = params.MaxFileSize
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "max_file_path_length":
+			var params github.RuleMaxFilePathLengthParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["max_file_path_length"] = params.MaxFilePathLength
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "file_extension_restriction":
+			var params github.RuleFileExtensionRestrictionParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]interface{})
+			rule["restricted_file_extensions"] = params.RestrictedFileExtensions
+			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		default:
+			// Handle unknown rule types (like Copilot code review, etc.) gracefully
+			// Log the unknown rule type but don't cause Terraform to fail or see a diff
+			log.Printf("[DEBUG] Ignoring unknown repository rule type: %s. This rule was likely added outside of Terraform (e.g., via GitHub UI) and is not yet supported by the provider.", v.Type)
+			// Note: We intentionally don't add this to rulesMap to avoid causing diffs for rules that aren't managed by Terraform
 		}
 	}
 

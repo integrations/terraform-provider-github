@@ -10,7 +10,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -501,12 +501,8 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 		opts.Branch = &branch
 	}
 
-	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+	return handleArchivedRepoDelete(err, "repository file", file, owner, repo)
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {

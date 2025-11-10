@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -48,7 +48,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -197,7 +202,6 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err := client.Issues.DeleteLabel(ctx,
-		orgName, repoName, name)
-	return err
+	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
+	return handleArchivedRepoDelete(err, "issue label", name, orgName, repoName)
 }

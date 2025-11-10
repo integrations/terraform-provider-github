@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -26,6 +26,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		// Schema migration added in v6.7.1 to handle the addition of destroy_on_drift field
+		// Resources created before v6.7.0 need the field populated with default value
+		SchemaVersion: 1,
+		MigrateState:  resourceGithubActionsOrganizationSecretMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
@@ -223,10 +228,11 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
-	} else if !ok {
-		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-			return err
-		}
+	}
+
+	// Always update the timestamp to prevent repeated drift detection
+	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+		return err
 	}
 
 	return nil

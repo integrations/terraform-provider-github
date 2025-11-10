@@ -3,9 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -158,4 +159,85 @@ func testAccGithubIssueLabelsAddLabel(repository, label string) error {
 
 	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.String(label)})
 	return err
+}
+
+func TestAccGithubIssueLabelsArchived(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+
+		repoName := fmt.Sprintf("tf-acc-test-labels-archive-%s", randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "%s"
+				auto_init = true
+			}
+
+			resource "github_issue_labels" "test" {
+				repository = github_repository.test.name
+				label {
+					name = "archived-label-1"
+					color = "ff0000"
+					description = "First test label"
+				}
+				label {
+					name = "archived-label-2" 
+					color = "00ff00"
+					description = "Second test label"
+				}
+			}
+		`, repoName)
+
+		archivedConfig := strings.Replace(config,
+			`auto_init = true`,
+			`auto_init = true
+				archived = true`, 1)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_issue_labels.test", "label.#",
+								"2",
+							),
+						),
+					},
+					{
+						Config: archivedConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "archived",
+								"true",
+							),
+						),
+					},
+					// This step should succeed - the labels should be removed from state
+					// without trying to actually delete them from the archived repo
+					{
+						Config: fmt.Sprintf(`
+							resource "github_repository" "test" {
+								name = "%s"
+								auto_init = true
+								archived = true
+							}
+						`, repoName),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
