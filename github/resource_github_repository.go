@@ -176,6 +176,11 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Set to 'true' to allow auto-merging pull requests on the repository.",
 			},
+			"allow_forking": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to 'true' to allow forking on the repository. Only applicable for organization-owned repositories. If an enterprise has disabled forking within its organizations, the ability to fork will be disabled regardless of this setting. Can only be set for private and internal repositories.",
+			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -508,6 +513,15 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
 	}
 
+	// only configure allow_forking if explicitly set and repository is not public
+	// (public repositories can always be forked, so the setting doesn't apply)
+	if _, ok := d.GetOk("allow_forking"); ok {
+		visibility := calculateVisibility(d)
+		if visibility != "public" {
+			repository.AllowForking = github.Bool(d.Get("allow_forking").(bool))
+		}
+	}
+
 	// only configure merge commit if we are in commit merge strategy
 	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
 	if ok {
@@ -692,6 +706,10 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
 		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		// Only set allow_forking for private/internal repos (public repos can always be forked)
+		if repo.GetVisibility() != "public" {
+			d.Set("allow_forking", repo.GetAllowForking())
+		}
 		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
