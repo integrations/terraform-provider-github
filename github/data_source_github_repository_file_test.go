@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -294,6 +294,8 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"commit_message": {Type: schema.TypeString},
 			"content":        {Type: schema.TypeString},
 			"id":             {Type: schema.TypeString},
+			"sha":            {Type: schema.TypeString},
+			"ref":            {Type: schema.TypeString},
 		}
 
 		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
@@ -366,6 +368,8 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"commit_message": {Type: schema.TypeString},
 			"content":        {Type: schema.TypeString},
 			"id":             {Type: schema.TypeString},
+			"sha":            {Type: schema.TypeString},
+			"ref":            {Type: schema.TypeString},
 		}
 
 		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
@@ -408,8 +412,8 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckNoResourceAttr(
-				"data.github_repository_file.test", "id",
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "id", "",
 			),
 		)
 

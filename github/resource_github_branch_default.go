@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -39,7 +39,12 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}

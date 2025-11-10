@@ -8,12 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryProject() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
+
 		Create: resourceGithubRepositoryProjectCreate,
 		Read:   resourceGithubRepositoryProjectRead,
 		Update: resourceGithubRepositoryProjectUpdate,
@@ -56,7 +58,12 @@ func resourceGithubRepositoryProject() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}

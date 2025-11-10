@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -34,8 +34,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
@@ -57,20 +57,21 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
-							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
+							Optional:    true,
+							Default:     nil,
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					}},
 			},
@@ -249,6 +250,71 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
+								},
+							},
+						},
+						"merge_queue": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Merges must be performed via a merge queue.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"check_response_timeout_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          60,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "check_response_timeout_minutes"),
+										Description:      "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.",
+									},
+									"grouping_strategy": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "ALLGREEN",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.",
+									},
+									"max_entries_to_build": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.",
+									},
+									"max_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "The maximum number of PRs that will be merged together in a group. Defaults to `5`.",
+									},
+									"merge_method": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "MERGE",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+										Description:      "Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.",
+									},
+									"min_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          1,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "min_entries_to_merge"),
+										Description:      "The minimum number of PRs that will be merged together in a group. Defaults to `1`.",
+									},
+									"min_entries_to_merge_wait_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          5,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "min_entries_to_merge_wait_minutes"),
+										Description:      "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.",
+									},
 								},
 							},
 						},
@@ -409,6 +475,109 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								},
 							},
 						},
+						"required_code_scanning": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_code_scanning_tool": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Tools that must provide code scanning results for this rule to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+												},
+												"security_alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+												},
+												"tool": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of a code scanning tool",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"file_path_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_paths": {
+										Type:        schema.TypeList,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file paths that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"max_file_size": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file size.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_size": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed size of a file in bytes.",
+									},
+								},
+							},
+						},
+						"max_file_path_length": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file path length.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_path_length": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed length of a file path.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "A list of file extensions.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -476,6 +645,13 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if ruleset == nil {
+		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
+			owner, repoName, rulesetID)
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("etag", resp.Header.Get("ETag"))
 	d.Set("name", ruleset.Name)
 	d.Set("target", ruleset.GetTarget())
@@ -504,7 +680,16 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	var ruleset *github.Ruleset
+	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
+	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
+	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
+	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
+	if d.HasChange("bypass_actors") {
+		ruleset, _, err = client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
+	} else {
+		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	}
 	if err != nil {
 		return err
 	}

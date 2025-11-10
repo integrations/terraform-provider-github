@@ -81,7 +81,7 @@ Setting a `processId` of 0 allows a dropdown to select the process of the provid
 
 0. Add a sleep call (e.g. `time.Sleep(10 * time.Second)`) in the [`func providerConfigure(p *schema.Provider) schema.ConfigureFunc`](https://github.com/integrations/terraform-provider-github/blob/cec7e175c50bb091feecdc96ba117067c35ee351/github/provider.go#L274C1-L274C64) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
 
-0. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin`.
+0. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin/`.
 
 0. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#using-a-local-version-of-the-provider) section.
 
@@ -99,7 +99,7 @@ Manual testing should be performed on each PR opened in order to validate the pr
 Build the provider and specify the output directory:
 
 ```sh
-$ go build -gcflags="all=-N -l" -o ~/go/bin
+$ go build -gcflags="all=-N -l" -o ~/go/bin/
 ```
 
 This enables verifying your locally built provider using examples available in the `examples/` directory.
@@ -148,6 +148,9 @@ export GITHUB_OWNER=
 
 # enable testing of enterprise appliances
 export GITHUB_BASE_URL=
+
+# enable testing of GitHub Paid features, these normally also require an organization e.g. repository push rulesets
+export GITHUB_PAID_FEATURES=true
 
 # leverage helper accounts for tests requiring them
 # examples include:

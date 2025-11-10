@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -34,8 +34,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
+				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -52,20 +52,21 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
-							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
+							Optional:    true,
+							Default:     nil,
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -261,6 +262,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.",
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+										Default:     false,
+									},
 								},
 							},
 						},
@@ -428,6 +435,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Choose which Actions workflows must pass before branches can be merged into a branch that matches this rule.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"required_workflow": {
 										Type:        schema.TypeSet,
 										MinItems:    1,
@@ -452,6 +464,109 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Description: "The ref (branch or tag) of the workflow file to use.",
 												},
 											},
+										},
+									},
+								},
+							},
+						},
+						"required_code_scanning": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_code_scanning_tool": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "Tools that must provide code scanning results for this rule to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+												},
+												"security_alerts_threshold": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+												},
+												"tool": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of a code scanning tool.",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"file_path_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_paths": {
+										Type:        schema.TypeList,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file paths that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"max_file_size": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file size.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_size": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed size of a file in bytes.",
+									},
+								},
+							},
+						},
+						"max_file_path_length": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file path length.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_path_length": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed length of a file path.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file extensions that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
 										},
 									},
 								},

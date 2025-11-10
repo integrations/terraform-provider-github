@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -40,7 +40,7 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The repository of the webhook.",
+				Description: "The repository name of the webhook, not including the organization, which will be inferred.",
 			},
 			"events": {
 				Type:        schema.TypeSet,
@@ -63,7 +63,12 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -210,5 +215,5 @@ func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interfac
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
-	return err
+	return handleArchivedRepoDelete(err, "repository webhook", d.Id(), owner, repoName)
 }
