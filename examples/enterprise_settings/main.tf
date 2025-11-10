@@ -22,70 +22,101 @@ variable "enterprise_slug" {
   type        = string
 }
 
-# Basic Enterprise Settings with minimal configuration
-resource "github_enterprise_settings" "basic" {
+# Basic Enterprise Actions Permissions - Allow all actions for all organizations
+resource "github_enterprise_actions_permissions" "basic" {
+  enterprise_slug = var.enterprise_slug
+  
+  enabled_organizations = "all"
+  allowed_actions      = "all"
+}
+
+# Basic Enterprise Workflow Permissions - Restrictive settings
+resource "github_enterprise_actions_workflow_permissions" "basic" {
   enterprise_slug = var.enterprise_slug
 
-  # Allow all actions for all organizations
-  actions_enabled_organizations = "all"
-  actions_allowed_actions       = "all"
-
-  # Use restrictive workflow permissions
   default_workflow_permissions     = "read"
   can_approve_pull_request_reviews = false
 }
 
-# Advanced Enterprise Settings with selective permissions  
-resource "github_enterprise_settings" "advanced" {
+# Advanced Enterprise Actions Permissions - Selective configuration
+resource "github_enterprise_actions_permissions" "advanced" {
+  enterprise_slug = var.enterprise_slug
+  
+  enabled_organizations = "selected"
+  allowed_actions      = "selected"
+  
+  # Configure allowed actions when "selected" policy is used
+  allowed_actions_config {
+    github_owned_allowed = true
+    verified_allowed     = true
+    patterns_allowed = [
+      "actions/cache@*",
+      "actions/checkout@*", 
+      "actions/setup-node@*",
+      "actions/setup-python@*",
+      "actions/upload-artifact@*",
+      "actions/download-artifact@*",
+      "my-org/custom-action@v1"
+    ]
+  }
+  
+  # Configure enabled organizations when "selected" policy is used
+  enabled_organizations_config {
+    organization_ids = [123456, 789012] # Replace with actual org IDs
+  }
+}
+
+# Advanced Enterprise Workflow Permissions - Permissive settings
+resource "github_enterprise_actions_workflow_permissions" "advanced" {
   enterprise_slug = var.enterprise_slug
 
-  # Enable actions for selected organizations only
-  actions_enabled_organizations = "selected"
-  
-  # Allow only selected actions
-  actions_allowed_actions = "selected"
-  
-  # Only allow GitHub-owned and verified actions
-  actions_github_owned_allowed = true
-  actions_verified_allowed     = true
-  
-  # Allow specific action patterns
-  actions_patterns_allowed = [
-    "actions/cache@*",
-    "actions/checkout@*", 
-    "actions/setup-node@*",
-    "actions/setup-python@*",
-    "actions/upload-artifact@*",
-    "actions/download-artifact@*",
-    "my-org/custom-action@v1"
-  ]
-
-  # Grant write permissions to workflows
   default_workflow_permissions     = "write"
   can_approve_pull_request_reviews = true
 }
 
-output "basic_enterprise_settings" {
-  description = "Basic enterprise settings configuration"
+# Security Analysis Settings - Enable security features for new repositories
+resource "github_enterprise_security_analysis_settings" "example" {
+  enterprise_slug = var.enterprise_slug
+  
+  advanced_security_enabled_for_new_repositories             = true
+  secret_scanning_enabled_for_new_repositories               = true
+  secret_scanning_push_protection_enabled_for_new_repositories = true
+  secret_scanning_validity_checks_enabled                   = true
+  secret_scanning_push_protection_custom_link               = "https://octokit.com/security-help"
+}
+
+output "basic_enterprise_actions" {
+  description = "Basic enterprise actions permissions configuration"
   value = {
-    enterprise_slug                  = github_enterprise_settings.basic.enterprise_slug
-    actions_enabled_organizations    = github_enterprise_settings.basic.actions_enabled_organizations
-    actions_allowed_actions         = github_enterprise_settings.basic.actions_allowed_actions
-    default_workflow_permissions    = github_enterprise_settings.basic.default_workflow_permissions
-    can_approve_pull_request_reviews = github_enterprise_settings.basic.can_approve_pull_request_reviews
+    enterprise_slug       = github_enterprise_actions_permissions.basic.enterprise_slug
+    enabled_organizations = github_enterprise_actions_permissions.basic.enabled_organizations
+    allowed_actions      = github_enterprise_actions_permissions.basic.allowed_actions
   }
 }
 
-output "advanced_enterprise_settings" {
-  description = "Advanced enterprise settings configuration"
+output "basic_enterprise_workflow" {
+  description = "Basic enterprise workflow permissions configuration"
   value = {
-    enterprise_slug                  = github_enterprise_settings.advanced.enterprise_slug
-    actions_enabled_organizations    = github_enterprise_settings.advanced.actions_enabled_organizations
-    actions_allowed_actions         = github_enterprise_settings.advanced.actions_allowed_actions
-    actions_github_owned_allowed    = github_enterprise_settings.advanced.actions_github_owned_allowed
-    actions_verified_allowed        = github_enterprise_settings.advanced.actions_verified_allowed
-    actions_patterns_allowed        = github_enterprise_settings.advanced.actions_patterns_allowed
-    default_workflow_permissions    = github_enterprise_settings.advanced.default_workflow_permissions
-    can_approve_pull_request_reviews = github_enterprise_settings.advanced.can_approve_pull_request_reviews
+    enterprise_slug                  = github_enterprise_actions_workflow_permissions.basic.enterprise_slug
+    default_workflow_permissions     = github_enterprise_actions_workflow_permissions.basic.default_workflow_permissions
+    can_approve_pull_request_reviews = github_enterprise_actions_workflow_permissions.basic.can_approve_pull_request_reviews
+  }
+}
+
+output "advanced_enterprise_actions" {
+  description = "Advanced enterprise actions permissions configuration"
+  value = {
+    enterprise_slug       = github_enterprise_actions_permissions.advanced.enterprise_slug
+    enabled_organizations = github_enterprise_actions_permissions.advanced.enabled_organizations
+    allowed_actions      = github_enterprise_actions_permissions.advanced.allowed_actions
+  }
+}
+
+output "advanced_enterprise_workflow" {
+  description = "Advanced enterprise workflow permissions configuration"
+  value = {
+    enterprise_slug                  = github_enterprise_actions_workflow_permissions.advanced.enterprise_slug
+    default_workflow_permissions     = github_enterprise_actions_workflow_permissions.advanced.default_workflow_permissions
+    can_approve_pull_request_reviews = github_enterprise_actions_workflow_permissions.advanced.can_approve_pull_request_reviews
   }
 }
