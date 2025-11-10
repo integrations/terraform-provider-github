@@ -197,8 +197,7 @@ func resourceGithubRepository() *schema.Resource {
 			"allow_forking": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Set to 'true' to allow private forks.",
+				Description: "Set to 'true' to allow forking on the repository. Only applicable for organization-owned repositories. If an enterprise has disabled forking within its organizations, the ability to fork will be disabled regardless of this setting. Can only be set for private and internal repositories.",
 			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
@@ -521,7 +520,6 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
-		AllowForking:             github.Bool(d.Get("allow_forking").(bool)),
 		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
 		WebCommitSignoffRequired: github.Bool(d.Get("web_commit_signoff_required").(bool)),
 		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
@@ -531,6 +529,15 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
 		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
 		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
+	}
+
+	// only configure allow_forking if explicitly set and repository is not public
+	// (public repositories can always be forked, so the setting doesn't apply)
+	if _, ok := d.GetOk("allow_forking"); ok {
+		visibility := calculateVisibility(d)
+		if visibility != "public" {
+			repository.AllowForking = github.Bool(d.Get("allow_forking").(bool))
+		}
 	}
 
 	// only configure merge commit if we are in commit merge strategy
@@ -770,7 +777,10 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
 		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-		d.Set("allow_forking", repo.GetAllowForking())
+		// Only set allow_forking for private/internal repos (public repos can always be forked)
+		if repo.GetVisibility() != "public" {
+			d.Set("allow_forking", repo.GetAllowForking())
+		}
 		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
