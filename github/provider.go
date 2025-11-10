@@ -202,9 +202,11 @@ func Provider() *schema.Provider {
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
+			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"github_actions_environment_public_key":                                 dataSourceGithubActionsEnvironmentPublicKey(),
 			"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
 			"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
 			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
