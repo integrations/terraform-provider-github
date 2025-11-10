@@ -11,7 +11,9 @@ on:
       - opened
 jobs:
   respond-to-issue:
-    if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' }}
+    if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && 
+      github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' && 
+      github.repository == 'integrations/terraform-provider-github' }}
     runs-on: ubuntu-latest
     steps:
       - name: Determine issue or PR number

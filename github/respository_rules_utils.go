@@ -36,7 +36,18 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rul
 
 func expandBypassActors(input []interface{}) []*github.BypassActor {
 	if len(input) == 0 {
-		return nil
+		// IMPORTANT:
+		// Always return an empty slice ([]), not nil.
+		// If this function returns nil, go-github serializes the field as `"bypass_actors": null`,
+		// which causes GitHub API to reject the request with:
+		//   422 "Invalid property /bypass_actors: data cannot be null."
+		//
+		// According to the GitHub REST API specification:
+		//   - The "bypass_actors" field must be an array (even if empty).
+		//   - Sending `null` is invalid; sending `[]` explicitly clears the list.
+		// Reference:
+		//   https://docs.github.com/en/rest/repos/rules#get-a-repository-ruleset
+		return []*github.BypassActor{}
 	}
 	bypassActors := make([]*github.BypassActor, 0)
 
