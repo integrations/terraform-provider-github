@@ -39,14 +39,18 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
 }
 
-func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -55,21 +59,24 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{})
 
 	ctx := context.Background()
 
-	if rename {
-		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-		if err != nil {
-			return err
-		}
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
-		}
-	} else {
-		repository := &github.Repository{
-			DefaultBranch: &defaultBranch,
-		}
+	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
 
-		if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
-			return err
+	if *repository.DefaultBranch != defaultBranch {
+		if rename {
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+				return err
+			}
+		} else {
+			repository := &github.Repository{
+				DefaultBranch: &defaultBranch,
+			}
+
+			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -78,8 +85,7 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta interface{})
 	return resourceGithubBranchDefaultRead(d, meta)
 }
 
-func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -116,8 +122,7 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -132,8 +137,7 @@ func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta interface{})
 	return err
 }
 
-func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
