@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAccProviders map[string]*schema.Provider
@@ -181,6 +182,36 @@ func TestAccProviderConfigure(t *testing.T) {
 				{
 					Config:             config,
 					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+
+	})
+
+	t.Run("can be configured with max per page", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			provider "github" {
+				token = "%s"
+				owner = "%s"
+				max_per_page = 999
+			}`,
+			testToken, testOwnerFunc(),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+					Check: func(_ *terraform.State) error {
+						if maxPerPage != 999 {
+							return fmt.Errorf("max_per_page should be set to 999, got %d", maxPerPage)
+						}
+						return nil
+					},
 				},
 			},
 		})
