@@ -1814,7 +1814,7 @@ func TestAccGithubRepository_fork(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("forks a repository without error", func(t *testing.T) {
-		 config := fmt.Sprintf(`
+		config := fmt.Sprintf(`
 			  resource "github_repository" "forked" {
 					name         = "terraform-provider-github-%s"
 					description  = "Terraform acceptance test - forked repository %[1]s"
@@ -1824,53 +1824,53 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			  }
 		 `, randomID)
 
-		 check := resource.ComposeTestCheckFunc(
-			  resource.TestCheckResourceAttr(
-					"github_repository.forked", "fork",
-					"true",
-			  ),
-			  resource.TestCheckResourceAttrSet(
-					"github_repository.forked", "html_url",
-			  ),
-			  resource.TestCheckResourceAttrSet(
-					"github_repository.forked", "ssh_clone_url",
-			  ),
-			  resource.TestCheckResourceAttrSet(
-					"github_repository.forked", "git_clone_url",
-			  ),
-			  resource.TestCheckResourceAttrSet(
-					"github_repository.forked", "http_clone_url",
-			  ),
-		 )
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.forked", "fork",
+				"true",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository.forked", "html_url",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository.forked", "ssh_clone_url",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository.forked", "git_clone_url",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository.forked", "http_clone_url",
+			),
+		)
 
-		 testCase := func(t *testing.T, mode string) {
-			  resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						 {
-							  Config: config,
-							  Check:  check,
-						 },
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
 					},
-			  })
-		 }
+				},
+			})
+		}
 
-		 t.Run("with an individual account", func(t *testing.T) {
+		t.Run("with an individual account", func(t *testing.T) {
 			testCase(t, individual)
-	    })
+		})
 
-		 t.Run("with an organization account", func(t *testing.T) {
-			  testCase(t, organization)
-		 })
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 
-		 t.Run("with an anonymous account", func(t *testing.T) {
+		t.Run("with an anonymous account", func(t *testing.T) {
 			t.Skip("anonymous account not supported for this operation")
-	    })
+		})
 	})
 
 	t.Run("can update forked repository properties", func(t *testing.T) {
-		 initialConfig := fmt.Sprintf(`
+		initialConfig := fmt.Sprintf(`
 			  resource "github_repository" "forked_update" {
 					name         = "terraform-provider-github-update-%s"
 					description  = "Initial description for forked repo"
@@ -1882,7 +1882,7 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			  }
 		 `, randomID)
 
-		 updatedConfig := fmt.Sprintf(`
+		updatedConfig := fmt.Sprintf(`
 			  resource "github_repository" "forked_update" {
 					name         = "terraform-provider-github-update-%s"
 					description  = "Updated description for forked repo"
@@ -1894,63 +1894,63 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			  }
 		 `, randomID)
 
-		 checks := map[string]resource.TestCheckFunc{
-			  "before": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "description",
-						 "Initial description for forked repo",
-					),
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "has_wiki",
-						 "true",
-					),
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "has_issues",
-						 "false",
-					),
-			  ),
-			  "after": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "description",
-						 "Updated description for forked repo",
-					),
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "has_wiki",
-						 "false",
-					),
-					resource.TestCheckResourceAttr(
-						 "github_repository.forked_update", "has_issues",
-						 "true",
-					),
-			  ),
-		 }
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "description",
+					"Initial description for forked repo",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "has_wiki",
+					"true",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "has_issues",
+					"false",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "description",
+					"Updated description for forked repo",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "has_wiki",
+					"false",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.forked_update", "has_issues",
+					"true",
+				),
+			),
+		}
 
-		 testCase := func(t *testing.T, mode string) {
+		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				 PreCheck:  func() { skipUnlessMode(t, mode) },
-				 Providers: testAccProviders,
-				 Steps: []resource.TestStep{
-					  {
-							Config: initialConfig,
-							Check:  checks["before"],
-					  },
-					  {
-							Config: updatedConfig,
-							Check:  checks["after"],
-					  },
-					  {
-							ResourceName:      "github_repository.forked_update",
-							ImportState:       true,
-							ImportStateVerify: true,
-							ImportStateVerifyIgnore: []string{ "auto_init"},
-					  },
-				 },
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: initialConfig,
+						Check:  checks["before"],
+					},
+					{
+						Config: updatedConfig,
+						Check:  checks["after"],
+					},
+					{
+						ResourceName:            "github_repository.forked_update",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"auto_init"},
+					},
+				},
 			})
-	  }
+		}
 
-	  t.Run("with an individual account", func(t *testing.T) {
-		testCase(t, individual)
-  		})
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
@@ -1958,6 +1958,6 @@ func TestAccGithubRepository_fork(t *testing.T) {
 
 		t.Run("with an anonymous account", func(t *testing.T) {
 			t.Skip("anonymous account not supported for this operation")
-	  })
+		})
 	})
 }
