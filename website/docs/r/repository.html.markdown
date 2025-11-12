@@ -47,6 +47,18 @@ resource "github_repository" "example" {
 }
 ```
 
+## Example Usage with Repository Forking
+
+```hcl
+resource "github_repository" "forked_repo" {
+  name         = "forked-repository"
+  description  = "This is a fork of another repository"
+  fork         = true
+  source_owner = "some-org"
+  source_repo  = "original-repository"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -56,6 +68,12 @@ The following arguments are supported:
 * `description` - (Optional) A description of the repository.
 
 * `homepage_url` - (Optional) URL of a page describing the project.
+
+* `fork` - (Optional) Set to `true` to create a fork of an existing repository. When set to `true`, both `source_owner` and `source_repo` must also be specified.
+
+* `source_owner` - (Optional) The GitHub username or organization that owns the repository being forked. Required when `fork` is `true`.
+
+* `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
 * `private` - (Optional) Set to `true` to create a private repository.
   Repositories are created as public (e.g. open source) by default.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -109,6 +109,11 @@ func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	if wantedCustomPropertyValue == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.SetId(buildThreePartID(owner, repoName, propertyName))
 	d.Set("repository", repoName)
 	d.Set("property_name", propertyName)
@@ -154,7 +159,7 @@ func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Clien
 	}
 
 	if wantedCustomProperty == nil {
-		return nil, fmt.Errorf("could not find a custom property with name: %s", propertyName)
+		return nil, nil
 	}
 
 	wantedPropertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(wantedCustomProperty)

@@ -15,6 +15,7 @@ Resolves #ISSUE_NUMBER
 * 
 
 ### Pull request checklist
+- [ ] Schema migrations have been created if needed ([example](https://github.com/integrations/terraform-provider-github/pull/2820/files))
 - [ ] Tests for the changes have been added (for bug fixes / features)
 - [ ] Docs have been reviewed and added / updated if needed (for bug fixes / features)
 
