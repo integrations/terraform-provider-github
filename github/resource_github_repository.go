@@ -785,6 +785,20 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	// When the organization has "Require sign off on web-based commits" enabled,
+	// the API doesn't allow you to send `web_commit_signoff_required` in order to
+	// update the repository with this field or it will throw a 422 error.
+	// As a workaround, we check if the organization requires it, and if so,
+	// we remove the field from the request.
+	if d.HasChange("web_commit_signoff_required") && meta.(*Owner).IsOrganization {
+		organization, _, err := client.Organizations.Get(ctx, owner)
+		if err == nil {
+			if organization != nil && organization.GetWebCommitSignoffRequired() {
+				repoReq.WebCommitSignoffRequired = nil
+			}
+		}
+	}
+
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return err
@@ -886,6 +900,8 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 			repoReq := resourceGithubRepositoryObject(d)
+			// Always remove `web_commit_signoff_required` when archiving, to avoid 422 error
+			repoReq.WebCommitSignoffRequired = nil
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return err

@@ -15,4 +15,4 @@ jobs:
       - name: Run Labeler
         uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
         with:
-          sync-labels: true # Whether or not to remove labels when matching files are reverted or no longer changed by the PR
+          sync-labels: false # Whether or not to remove labels when matching files are reverted or no longer changed by the PR
