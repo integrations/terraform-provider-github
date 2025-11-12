@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -322,7 +322,10 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 			log.Printf("[DEBUG] Removing user %s from repo: %s.", has.username, repoName)
 			_, err := client.Repositories.RemoveCollaborator(ctx, owner, repoName, has.username)
 			if err != nil {
-				return err
+				err = handleArchivedRepoDelete(err, "repository collaborator", has.username, owner, repoName)
+				if err != nil {
+					return err
+				}
 			}
 		} else if wantPermission != has.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
@@ -350,7 +353,10 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 			log.Printf("[DEBUG] Deleting invite for user %s from repo: %s.", has.username, repoName)
 			_, err := client.Repositories.DeleteInvitation(ctx, owner, repoName, has.invitationID)
 			if err != nil {
-				return err
+				err = handleArchivedRepoDelete(err, "repository collaborator invitation", has.username, owner, repoName)
+				if err != nil {
+					return err
+				}
 			}
 		} else if wantPermission != has.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating invite for user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
@@ -469,7 +475,10 @@ func matchTeamCollaborators(repoName string, want []interface{}, has []teamColla
 		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
 		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
 		if err != nil {
-			return err
+			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %d", team.teamID), owner, repoName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

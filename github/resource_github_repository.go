@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -320,6 +320,7 @@ func resourceGithubRepository() *schema.Resource {
 			"vulnerability_alerts": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
@@ -359,7 +360,12 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
 				Type:     schema.TypeString,
@@ -412,7 +418,6 @@ func resourceGithubRepository() *schema.Resource {
 }
 
 func calculateVisibility(d *schema.ResourceData) string {
-
 	if value, ok := d.GetOk("visibility"); ok {
 		return value.(string)
 	}
@@ -619,6 +624,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -769,6 +779,20 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	// When the organization has "Require sign off on web-based commits" enabled,
+	// the API doesn't allow you to send `web_commit_signoff_required` in order to
+	// update the repository with this field or it will throw a 422 error.
+	// As a workaround, we check if the organization requires it, and if so,
+	// we remove the field from the request.
+	if d.HasChange("web_commit_signoff_required") && meta.(*Owner).IsOrganization {
+		organization, _, err := client.Organizations.Get(ctx, owner)
+		if err == nil {
+			if organization != nil && organization.GetWebCommitSignoffRequired() {
+				repoReq.WebCommitSignoffRequired = nil
+			}
+		}
+	}
+
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return err
@@ -817,12 +841,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if d.HasChange("vulnerability_alerts") {
-		updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
-		if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
-			updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
-		}
-
-		_, err = updateVulnerabilityAlerts(ctx, owner, repoName)
+		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -875,6 +894,8 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 			repoReq := resourceGithubRepositoryObject(d)
+			// Always remove `web_commit_signoff_required` when archiving, to avoid 422 error
+			repoReq.WebCommitSignoffRequired = nil
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return err
@@ -957,13 +978,19 @@ func flattenPages(pages *github.Pages) []interface{} {
 		return []interface{}{}
 	}
 
-	sourceMap := make(map[string]interface{})
-	sourceMap["branch"] = pages.GetSource().GetBranch()
-	sourceMap["path"] = pages.GetSource().GetPath()
-
 	pagesMap := make(map[string]interface{})
-	pagesMap["source"] = []interface{}{sourceMap}
-	pagesMap["build_type"] = pages.GetBuildType()
+	buildType := pages.GetBuildType()
+	pagesMap["build_type"] = buildType
+
+	if buildType == "legacy" {
+		sourceMap := make(map[string]interface{})
+		sourceMap["branch"] = pages.GetSource().GetBranch()
+		sourceMap["path"] = pages.GetSource().GetPath()
+		pagesMap["source"] = []interface{}{sourceMap}
+	} else {
+		pagesMap["source"] = nil
+	}
+
 	pagesMap["url"] = pages.GetURL()
 	pagesMap["status"] = pages.GetStatus()
 	pagesMap["cname"] = pages.GetCNAME()
@@ -1038,7 +1065,8 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 // resourceGithubParseFullName will return "myorg", "myrepo", true when full_name is "myorg/myrepo".
 func resourceGithubParseFullName(resourceDataLike interface {
 	GetOk(string) (interface{}, bool)
-}) (string, string, bool) {
+},
+) (string, string, bool) {
 	x, ok := resourceDataLike.GetOk("full_name")
 	if !ok {
 		return "", "", false
@@ -1061,4 +1089,14 @@ func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interfac
 		}
 	}
 	return nil
+}
+
+func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
+	updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
+	if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
+		updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+	}
+
+	_, err := updateVulnerabilityAlerts(ctx, owner, repoName)
+	return err
 }
