@@ -5,19 +5,134 @@ on:
     branches: [main]
   pull_request: {}
 
+permissions:
+  contents: read # for actions/checkout
+
+env:
+  test_stacks_directory: test_tf_stacks
+
 jobs:
   ci:
+    name: Continuous Integration
     runs-on: ubuntu-latest
     env:
-      GITHUB_TEST_ORGANIZATION: 'kfcampbell-terraform-provider'
+      GITHUB_TEST_ORGANIZATION: kfcampbell-terraform-provider
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
           cache: true
       - run: make tools
       - run: make lint
       - run: make website-lint
       - run: make build
       - run: make test
+
+  generate-matrix:
+    name: Generate matrix for test stacks
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has-tests: ${{ steps.set-matrix.outputs.has-tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          if [ -d "${{ env.test_stacks_directory }}" ]; then
+            # find all directories and validate their names
+            VALID_TESTS=()
+            INVALID_TESTS=()
+
+            while IFS= read -r dir; do
+              dirname=$(basename "$dir")
+              # validate that directory name only contains alphanumeric, hyphens, underscores, and dots
+              if [[ "$dirname" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+                VALID_TESTS+=("$dirname")
+              else
+                INVALID_TESTS+=("$dirname")
+              fi
+            done < <(find ${{ env.test_stacks_directory }} -mindepth 1 -maxdepth 1 -type d)
+
+            # report invalid directory names if any
+            if [ ${#INVALID_TESTS[@]} -gt 0 ]; then
+              echo "::warning::Invalid test directory names found (must contain only alphanumeric, hyphens, underscores, and dots):"
+              printf ' - %s (will be skipped)\n' "${INVALID_TESTS[@]}"
+            fi
+
+            # create JSON array from valid tests
+            if [ ${#VALID_TESTS[@]} -gt 0 ]; then
+              TESTS=$(printf '%s\n' "${VALID_TESTS[@]}" | jq -R -s -c 'split("\n")[:-1]')
+              echo "matrix=${TESTS}" >> $GITHUB_OUTPUT
+              echo "has-tests=true" >> $GITHUB_OUTPUT
+              echo "Found valid test directories: ${TESTS}"
+            else
+              echo "matrix=[]" >> $GITHUB_OUTPUT
+              echo "has-tests=false" >> $GITHUB_OUTPUT
+              echo "No valid test directories found"
+            fi
+          else
+            echo "Test directory ${{ env.test_stacks_directory }} does not exist"
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "has-tests=false" >> $GITHUB_OUTPUT
+          fi
+
+  tests:
+    name: Run tests for Terraform test stacks
+    needs: [ci, generate-matrix]
+    if: ${{ needs.generate-matrix.outputs.has-tests == 'true' }} # only run if there are some test stacks
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tests: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build provider
+        run: go build -o terraform-provider-github
+
+      - name: Setup dev overrides
+        run: |
+          ROOT_DIR=$(pwd)
+          cat > ~/.terraformrc << EOF
+          provider_installation {
+            dev_overrides {
+              "integrations/github" = "${ROOT_DIR}"
+            }
+            direct {}
+          }
+          EOF
+
+      - name: Verify dev overrides setup
+        run: cat ~/.terraformrc
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.x
+
+      - name: Check Terraform version
+        run: terraform version
+
+      - name: Terraform init
+        continue-on-error: true # continue even if init fails
+        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ matrix.tests }} init
+
+      - name: Terraform validate
+        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ matrix.tests }} validate
+
+      - name: Clean up
+        run: rm -f ~/.terraformrc terraform-provider-github
