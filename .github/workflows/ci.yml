@@ -5,11 +5,11 @@ on:
     branches: [main]
   pull_request: {}
 
+permissions:
+  contents: read
+
 env:
   test_stacks_directory: 'test-stacks'
-
-  permissions:
-    contents: read
 
 jobs:
   ci:
