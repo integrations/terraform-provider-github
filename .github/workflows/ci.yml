@@ -8,6 +8,9 @@ on:
 env:
   test_stacks_directory: 'test-stacks'
 
+  permissions:
+    contents: read
+
 jobs:
   ci:
     name: Continuous Integration
@@ -46,8 +49,6 @@ jobs:
     name: Run Terraform Tests
     needs: [ci, generate-matrix]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     strategy:
       fail-fast: false
