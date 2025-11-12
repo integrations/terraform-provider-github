@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsEnvironmentVariableCreate,
+		Create: resourceGithubActionsEnvironmentVariableCreateOrUpdate,
 		Read:   resourceGithubActionsEnvironmentVariableRead,
-		Update: resourceGithubActionsEnvironmentVariableUpdate,
+		Update: resourceGithubActionsEnvironmentVariableCreateOrUpdate,
 		Delete: resourceGithubActionsEnvironmentVariableDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -58,7 +58,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -73,33 +73,22 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 		Value: d.Get("value").(string),
 	}
 
+	// Try to create the variable first
 	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
 	if err != nil {
-		return err
-	}
-
-	d.SetId(buildThreePartID(repoName, envName, name))
-	return resourceGithubActionsEnvironmentVariableRead(d, meta)
-}
-
-func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	name := d.Get("variable_name").(string)
-
-	variable := &github.ActionsVariable{
-		Name:  name,
-		Value: d.Get("value").(string),
-	}
-
-	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
-	if err != nil {
-		return err
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusConflict {
+				// Variable already exists, try to update instead
+				_, err = client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	d.SetId(buildThreePartID(repoName, envName, name))
