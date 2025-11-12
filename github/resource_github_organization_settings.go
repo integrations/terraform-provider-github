@@ -173,93 +173,126 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 }
 
 // buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured
+// For updates, it only includes fields that have actually changed to avoid API validation errors
 func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *github.Organization {
 	settings := &github.Organization{}
 
-	// Required field
+	// Check if this is an update (has ID) or create (no ID)
+	isUpdate := d.Id() != ""
+
+	// Helper function to check if field should be included
+	shouldInclude := func(fieldName string) bool {
+		if !isUpdate {
+			// For creates, include if explicitly configured
+			_, ok := d.GetOk(fieldName)
+			return ok
+		}
+		// For updates, only include if the field has changed
+		return d.HasChange(fieldName)
+	}
+
+	// Required field - always include if configured (API requires it even if unchanged)
 	if billingEmail, ok := d.GetOk("billing_email"); ok {
 		settings.BillingEmail = github.String(billingEmail.(string))
 	}
 
-	// Optional string fields - only set if explicitly configured
-	if company, ok := d.GetOk("company"); ok {
-		settings.Company = github.String(company.(string))
+	// Optional string fields - only set if should be included
+	if shouldInclude("company") {
+		if company, ok := d.GetOk("company"); ok {
+			settings.Company = github.String(company.(string))
+		}
 	}
-	if email, ok := d.GetOk("email"); ok {
-		settings.Email = github.String(email.(string))
+	if shouldInclude("email") {
+		if email, ok := d.GetOk("email"); ok {
+			settings.Email = github.String(email.(string))
+		}
 	}
-	if twitterUsername, ok := d.GetOk("twitter_username"); ok {
-		settings.TwitterUsername = github.String(twitterUsername.(string))
+	if shouldInclude("twitter_username") {
+		if twitterUsername, ok := d.GetOk("twitter_username"); ok {
+			settings.TwitterUsername = github.String(twitterUsername.(string))
+		}
 	}
-	if location, ok := d.GetOk("location"); ok {
-		settings.Location = github.String(location.(string))
+	if shouldInclude("location") {
+		if location, ok := d.GetOk("location"); ok {
+			settings.Location = github.String(location.(string))
+		}
 	}
-	if name, ok := d.GetOk("name"); ok {
-		settings.Name = github.String(name.(string))
+	if shouldInclude("name") {
+		if name, ok := d.GetOk("name"); ok {
+			settings.Name = github.String(name.(string))
+		}
 	}
-	if description, ok := d.GetOk("description"); ok {
-		settings.Description = github.String(description.(string))
+	if shouldInclude("description") {
+		if description, ok := d.GetOk("description"); ok {
+			settings.Description = github.String(description.(string))
+		}
 	}
-	if blog, ok := d.GetOk("blog"); ok {
-		settings.Blog = github.String(blog.(string))
+	if shouldInclude("blog") {
+		if blog, ok := d.GetOk("blog"); ok {
+			settings.Blog = github.String(blog.(string))
+		}
 	}
 
-	// Boolean fields - only set if explicitly configured
-	if hasOrgProjects, ok := d.GetOk("has_organization_projects"); ok {
-		settings.HasOrganizationProjects = github.Bool(hasOrgProjects.(bool))
+	// Boolean fields - only set if should be included
+	// Use d.Get() instead of d.GetOk() when shouldInclude() returns true,
+	// because we already know the field should be included, and d.Get() correctly handles false values
+	if shouldInclude("has_organization_projects") {
+		settings.HasOrganizationProjects = github.Bool(d.Get("has_organization_projects").(bool))
 	}
-	if hasRepoProjects, ok := d.GetOk("has_repository_projects"); ok {
-		settings.HasRepositoryProjects = github.Bool(hasRepoProjects.(bool))
+	if shouldInclude("has_repository_projects") {
+		settings.HasRepositoryProjects = github.Bool(d.Get("has_repository_projects").(bool))
 	}
-	if defaultRepoPermission, ok := d.GetOk("default_repository_permission"); ok {
-		settings.DefaultRepoPermission = github.String(defaultRepoPermission.(string))
+	if shouldInclude("default_repository_permission") {
+		if defaultRepoPermission, ok := d.GetOk("default_repository_permission"); ok {
+			settings.DefaultRepoPermission = github.String(defaultRepoPermission.(string))
+		}
 	}
-	if membersCanCreateRepos, ok := d.GetOk("members_can_create_repositories"); ok {
-		settings.MembersCanCreateRepos = github.Bool(membersCanCreateRepos.(bool))
+	if shouldInclude("members_can_create_repositories") {
+		settings.MembersCanCreateRepos = github.Bool(d.Get("members_can_create_repositories").(bool))
 	}
-	if _, exists := d.GetOkExists("members_can_create_private_repositories"); exists {
+	if shouldInclude("members_can_create_private_repositories") {
 		settings.MembersCanCreatePrivateRepos = github.Bool(d.Get("members_can_create_private_repositories").(bool))
 	}
-	if membersCanCreatePublicRepos, ok := d.GetOk("members_can_create_public_repositories"); ok {
-		settings.MembersCanCreatePublicRepos = github.Bool(membersCanCreatePublicRepos.(bool))
+	if shouldInclude("members_can_create_public_repositories") {
+		settings.MembersCanCreatePublicRepos = github.Bool(d.Get("members_can_create_public_repositories").(bool))
 	}
-	if membersCanCreatePages, ok := d.GetOk("members_can_create_pages"); ok {
-		settings.MembersCanCreatePages = github.Bool(membersCanCreatePages.(bool))
+	if shouldInclude("members_can_create_pages") {
+		settings.MembersCanCreatePages = github.Bool(d.Get("members_can_create_pages").(bool))
 	}
-	if membersCanCreatePublicPages, ok := d.GetOk("members_can_create_public_pages"); ok {
-		settings.MembersCanCreatePublicPages = github.Bool(membersCanCreatePublicPages.(bool))
+	if shouldInclude("members_can_create_public_pages") {
+		settings.MembersCanCreatePublicPages = github.Bool(d.Get("members_can_create_public_pages").(bool))
 	}
-	if membersCanCreatePrivatePages, ok := d.GetOk("members_can_create_private_pages"); ok {
-		settings.MembersCanCreatePrivatePages = github.Bool(membersCanCreatePrivatePages.(bool))
+	if shouldInclude("members_can_create_private_pages") {
+		settings.MembersCanCreatePrivatePages = github.Bool(d.Get("members_can_create_private_pages").(bool))
 	}
-	if membersCanForkPrivateRepos, ok := d.GetOk("members_can_fork_private_repositories"); ok {
-		settings.MembersCanForkPrivateRepos = github.Bool(membersCanForkPrivateRepos.(bool))
+	if shouldInclude("members_can_fork_private_repositories") {
+		settings.MembersCanForkPrivateRepos = github.Bool(d.Get("members_can_fork_private_repositories").(bool))
 	}
-	if webCommitSignoffRequired, ok := d.GetOk("web_commit_signoff_required"); ok {
-		settings.WebCommitSignoffRequired = github.Bool(webCommitSignoffRequired.(bool))
+	if shouldInclude("web_commit_signoff_required") {
+		settings.WebCommitSignoffRequired = github.Bool(d.Get("web_commit_signoff_required").(bool))
 	}
-	if advancedSecurityEnabled, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
-		settings.AdvancedSecurityEnabledForNewRepos = github.Bool(advancedSecurityEnabled.(bool))
+	if shouldInclude("advanced_security_enabled_for_new_repositories") {
+		settings.AdvancedSecurityEnabledForNewRepos = github.Bool(d.Get("advanced_security_enabled_for_new_repositories").(bool))
 	}
-	if dependabotAlertsEnabled, ok := d.GetOk("dependabot_alerts_enabled_for_new_repositories"); ok {
-		settings.DependabotAlertsEnabledForNewRepos = github.Bool(dependabotAlertsEnabled.(bool))
+	if shouldInclude("dependabot_alerts_enabled_for_new_repositories") {
+		settings.DependabotAlertsEnabledForNewRepos = github.Bool(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool))
 	}
-	if dependabotSecurityUpdatesEnabled, ok := d.GetOk("dependabot_security_updates_enabled_for_new_repositories"); ok {
-		settings.DependabotSecurityUpdatesEnabledForNewRepos = github.Bool(dependabotSecurityUpdatesEnabled.(bool))
+	if shouldInclude("dependabot_security_updates_enabled_for_new_repositories") {
+		settings.DependabotSecurityUpdatesEnabledForNewRepos = github.Bool(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool))
 	}
-	if dependencyGraphEnabled, ok := d.GetOk("dependency_graph_enabled_for_new_repositories"); ok {
-		settings.DependencyGraphEnabledForNewRepos = github.Bool(dependencyGraphEnabled.(bool))
+	if shouldInclude("dependency_graph_enabled_for_new_repositories") {
+		settings.DependencyGraphEnabledForNewRepos = github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool))
 	}
-	if secretScanningEnabled, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
-		settings.SecretScanningEnabledForNewRepos = github.Bool(secretScanningEnabled.(bool))
+	if shouldInclude("secret_scanning_enabled_for_new_repositories") {
+		settings.SecretScanningEnabledForNewRepos = github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool))
 	}
-	if secretScanningPushProtectionEnabled, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
-		settings.SecretScanningPushProtectionEnabledForNewRepos = github.Bool(secretScanningPushProtectionEnabled.(bool))
+	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
+		settings.SecretScanningPushProtectionEnabledForNewRepos = github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
 
 	// Enterprise-specific field
 	if isEnterprise {
-		if _, exists := d.GetOkExists("members_can_create_internal_repositories"); exists {
+		if shouldInclude("members_can_create_internal_repositories") {
 			settings.MembersCanCreateInternalRepos = github.Bool(d.Get("members_can_create_internal_repositories").(bool))
 		}
 	}
@@ -285,8 +318,99 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
 	settings := buildOrganizationSettings(d, isEnterprise)
 
+	// Debug: Log the settings being sent to the API with detailed field information
+	log.Printf("[DEBUG] Built settings for org %s (enterprise: %v)", org, isEnterprise)
+	if settings.BillingEmail != nil {
+		log.Printf("[DEBUG]   BillingEmail: %s", *settings.BillingEmail)
+	}
+	if settings.Company != nil {
+		log.Printf("[DEBUG]   Company: %s", *settings.Company)
+	}
+	if settings.Email != nil {
+		log.Printf("[DEBUG]   Email: %s", *settings.Email)
+	}
+	if settings.TwitterUsername != nil {
+		log.Printf("[DEBUG]   TwitterUsername: %s", *settings.TwitterUsername)
+	}
+	if settings.Location != nil {
+		log.Printf("[DEBUG]   Location: %s", *settings.Location)
+	}
+	if settings.Name != nil {
+		log.Printf("[DEBUG]   Name: %s", *settings.Name)
+	}
+	if settings.Description != nil {
+		log.Printf("[DEBUG]   Description: %s", *settings.Description)
+	}
+	if settings.Blog != nil {
+		log.Printf("[DEBUG]   Blog: %s", *settings.Blog)
+	}
+	if settings.HasOrganizationProjects != nil {
+		log.Printf("[DEBUG]   HasOrganizationProjects: %v", *settings.HasOrganizationProjects)
+	}
+	if settings.HasRepositoryProjects != nil {
+		log.Printf("[DEBUG]   HasRepositoryProjects: %v", *settings.HasRepositoryProjects)
+	}
+	if settings.DefaultRepoPermission != nil {
+		log.Printf("[DEBUG]   DefaultRepoPermission: %s", *settings.DefaultRepoPermission)
+	}
+	if settings.MembersCanCreateRepos != nil {
+		log.Printf("[DEBUG]   MembersCanCreateRepos: %v", *settings.MembersCanCreateRepos)
+	}
+	if settings.MembersCanCreatePrivateRepos != nil {
+		log.Printf("[DEBUG]   MembersCanCreatePrivateRepos: %v", *settings.MembersCanCreatePrivateRepos)
+	}
+	if settings.MembersCanCreatePublicRepos != nil {
+		log.Printf("[DEBUG]   MembersCanCreatePublicRepos: %v", *settings.MembersCanCreatePublicRepos)
+	}
+	if settings.MembersCanCreateInternalRepos != nil {
+		log.Printf("[DEBUG]   MembersCanCreateInternalRepos: %v", *settings.MembersCanCreateInternalRepos)
+	}
+	if settings.MembersCanCreatePages != nil {
+		log.Printf("[DEBUG]   MembersCanCreatePages: %v", *settings.MembersCanCreatePages)
+	}
+	if settings.MembersCanCreatePublicPages != nil {
+		log.Printf("[DEBUG]   MembersCanCreatePublicPages: %v", *settings.MembersCanCreatePublicPages)
+	}
+	if settings.MembersCanCreatePrivatePages != nil {
+		log.Printf("[DEBUG]   MembersCanCreatePrivatePages: %v", *settings.MembersCanCreatePrivatePages)
+	}
+	if settings.MembersCanForkPrivateRepos != nil {
+		log.Printf("[DEBUG]   MembersCanForkPrivateRepos: %v", *settings.MembersCanForkPrivateRepos)
+	}
+	if settings.WebCommitSignoffRequired != nil {
+		log.Printf("[DEBUG]   WebCommitSignoffRequired: %v", *settings.WebCommitSignoffRequired)
+	}
+	if settings.AdvancedSecurityEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   AdvancedSecurityEnabledForNewRepos: %v", *settings.AdvancedSecurityEnabledForNewRepos)
+	}
+	if settings.DependabotAlertsEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   DependabotAlertsEnabledForNewRepos: %v", *settings.DependabotAlertsEnabledForNewRepos)
+	}
+	if settings.DependabotSecurityUpdatesEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   DependabotSecurityUpdatesEnabledForNewRepos: %v", *settings.DependabotSecurityUpdatesEnabledForNewRepos)
+	}
+	if settings.DependencyGraphEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   DependencyGraphEnabledForNewRepos: %v", *settings.DependencyGraphEnabledForNewRepos)
+	}
+	if settings.SecretScanningEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   SecretScanningEnabledForNewRepos: %v", *settings.SecretScanningEnabledForNewRepos)
+	}
+	if settings.SecretScanningPushProtectionEnabledForNewRepos != nil {
+		log.Printf("[DEBUG]   SecretScanningPushProtectionEnabledForNewRepos: %v", *settings.SecretScanningPushProtectionEnabledForNewRepos)
+	}
+
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
 	if err != nil {
+		// Log detailed error information for debugging
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			log.Printf("[DEBUG] GitHub API Error: Status=%d, Message=%s", ghErr.Response.StatusCode, ghErr.Message)
+			if len(ghErr.Errors) > 0 {
+				for i, apiErr := range ghErr.Errors {
+					log.Printf("[DEBUG]   Error[%d]: Resource=%s, Field=%s, Code=%s, Message=%s",
+						i, apiErr.Resource, apiErr.Field, apiErr.Code, apiErr.Message)
+				}
+			}
+		}
 		return err
 	}
 	id := strconv.FormatInt(orgSettings.GetID(), 10)
