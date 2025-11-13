@@ -8,7 +8,7 @@ Package github provides a client for using the GitHub API.
 
 Usage:
 
-	import "github.com/google/go-github/v67/github"	// with go modules enabled (GO111MODULE=on or outside GOPATH)
+	import "github.com/google/go-github/v68/github"	// with go modules enabled (GO111MODULE=on or outside GOPATH)
 	import "github.com/google/go-github/github"     // with go modules disabled
 
 Construct a new GitHub client, then use the various services on the client to
@@ -156,8 +156,8 @@ bool, and int values. For example:
 
 	// create a new private repository named "foo"
 	repo := &github.Repository{
-		Name:    github.String("foo"),
-		Private: github.Bool(true),
+		Name:    github.Ptr("foo"),
+		Private: github.Ptr(true),
 	}
 	client.Repositories.Create(ctx, "", repo)
 
