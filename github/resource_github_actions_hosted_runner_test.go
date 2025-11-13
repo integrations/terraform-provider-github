@@ -22,7 +22,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-%s"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 
@@ -42,7 +42,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "image.0.id",
-				"ubuntu-latest",
+				"2306",
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "image.0.source",
@@ -56,6 +56,21 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 			resource.TestCheckResourceAttrSet(
 				"github_actions_hosted_runner.test", "platform",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "image.0.size_gb",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "machine_size_details.0.id",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "machine_size_details.0.memory_gb",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "machine_size_details.0.storage_gb",
 			),
 		)
 
@@ -96,14 +111,14 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-optional-%s"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 
-				size             = "8-core"
-				runner_group_id  = github_actions_runner_group.test.id
-				maximum_runners  = 5
-				enable_static_ip = true
+				size              = "8-core"
+				runner_group_id   = github_actions_runner_group.test.id
+				maximum_runners   = 5
+				public_ip_enabled = true
 			}
 		`, randomID, randomID)
 
@@ -121,7 +136,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				"5",
 			),
 			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "enable_static_ip",
+				"github_actions_hosted_runner.test", "public_ip_enabled",
 				"true",
 			),
 		)
@@ -155,7 +170,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-update-%s"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 
@@ -175,11 +190,11 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-update-%s-updated"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 
-				size            = "8-core"
+				size            = "4-core"
 				runner_group_id = github_actions_runner_group.test.id
 				maximum_runners = 5
 			}
@@ -207,7 +222,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
-				"8-core",
+				"4-core",
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "maximum_runners",
@@ -248,7 +263,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-import-%s"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 
@@ -301,7 +316,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				name = "tf-acc-test-delete-%s"
 				
 				image {
-					id     = "ubuntu-latest"
+					id     = "2306"
 					source = "github"
 				}
 

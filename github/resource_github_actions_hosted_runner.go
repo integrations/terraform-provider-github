@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsHostedRunner() *schema.Resource {
@@ -21,15 +25,27 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name of the hosted runner.",
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.All(
+					validation.StringLenBetween(1, 64),
+					validation.StringMatch(
+						regexp.MustCompile(`^[a-zA-Z0-9._-]+$`),
+						"name may only contain alphanumeric characters, '.', '-', and '_'",
+					),
+				),
+				Description: "Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.",
 			},
 			"image": {
 				Type:     schema.TypeList,
 				Required: true,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -42,16 +58,22 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "github",
-							Description: "The image source.",
+							Description: "The image source (github, partner, or custom).",
+						},
+						"size_gb": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The size of the image in GB.",
 						},
 					},
 				},
-				Description: "Image configuration for the hosted runner.",
+				Description: "Image configuration for the hosted runner. Cannot be changed after creation.",
 			},
 			"size": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Machine size (e.g., '4-core', '8-core').",
+				ForceNew:    true,
+				Description: "Machine size (e.g., '4-core', '8-core'). Cannot be changed after creation.",
 			},
 			"runner_group_id": {
 				Type:        schema.TypeInt,
@@ -61,17 +83,29 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			"maximum_runners": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Computed:    true,
 				Description: "Maximum number of runners to scale up to.",
 			},
-			"enable_static_ip": {
+			"public_ip_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Whether to enable static IP.",
+				Description: "Whether to enable static public IP.",
 			},
-			// Computed fields
+			"image_version": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The version of the runner image to deploy. This is relevant only for runners using custom images.",
+			},
+			"image_gen": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     false,
+				Description: "Whether this runner should be used to generate custom images. Cannot be changed after creation.",
+			},
 			"id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The hosted runner ID.",
 			},
@@ -85,11 +119,68 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 				Computed:    true,
 				Description: "Platform of the runner.",
 			},
+			"machine_size_details": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Machine size ID.",
+						},
+						"cpu_cores": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Number of CPU cores.",
+						},
+						"memory_gb": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Memory in GB.",
+						},
+						"storage_gb": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Storage in GB.",
+						},
+					},
+				},
+				Description: "Detailed machine size specifications.",
+			},
+			"public_ips": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether this IP range is enabled.",
+						},
+						"prefix": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "IP address prefix.",
+						},
+						"length": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Subnet length.",
+						},
+					},
+				},
+				Description: "List of public IP ranges assigned to this runner.",
+			},
+			"last_active_on": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Timestamp when the runner was last active.",
+			},
 		},
 	}
 }
 
-// expandImage converts the Terraform image configuration to a map for API calls
 func expandImage(imageList []interface{}) map[string]interface{} {
 	if len(imageList) == 0 {
 		return nil
@@ -108,7 +199,6 @@ func expandImage(imageList []interface{}) map[string]interface{} {
 	return result
 }
 
-// flattenImage converts the API image response to Terraform format
 func flattenImage(image map[string]interface{}) []interface{} {
 	if image == nil {
 		return []interface{}{}
@@ -121,8 +211,61 @@ func flattenImage(image map[string]interface{}) []interface{} {
 	if source, ok := image["source"].(string); ok {
 		result["source"] = source
 	}
+	if size, ok := image["size"].(float64); ok {
+		result["size_gb"] = int(size)
+	}
 
 	return []interface{}{result}
+}
+
+func flattenMachineSizeDetails(details map[string]interface{}) []interface{} {
+	if details == nil {
+		return []interface{}{}
+	}
+
+	result := make(map[string]interface{})
+	if id, ok := details["id"].(string); ok {
+		result["id"] = id
+	}
+	if cpuCores, ok := details["cpu_cores"].(float64); ok {
+		result["cpu_cores"] = int(cpuCores)
+	}
+	if memoryGB, ok := details["memory_gb"].(float64); ok {
+		result["memory_gb"] = int(memoryGB)
+	}
+	if storageGB, ok := details["storage_gb"].(float64); ok {
+		result["storage_gb"] = int(storageGB)
+	}
+
+	return []interface{}{result}
+}
+
+func flattenPublicIPs(ips []interface{}) []interface{} {
+	if ips == nil {
+		return []interface{}{}
+	}
+
+	result := make([]interface{}, 0, len(ips))
+	for _, ip := range ips {
+		ipMap, ok := ip.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		ipResult := make(map[string]interface{})
+		if enabled, ok := ipMap["enabled"].(bool); ok {
+			ipResult["enabled"] = enabled
+		}
+		if prefix, ok := ipMap["prefix"].(string); ok {
+			ipResult["prefix"] = prefix
+		}
+		if length, ok := ipMap["length"].(float64); ok {
+			ipResult["length"] = int(length)
+		}
+		result = append(result, ipResult)
+	}
+
+	return result
 }
 
 func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interface{}) error {
@@ -147,8 +290,16 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 		payload["maximum_runners"] = v.(int)
 	}
 
-	if v, ok := d.GetOk("enable_static_ip"); ok {
+	if v, ok := d.GetOk("public_ip_enabled"); ok {
 		payload["enable_static_ip"] = v.(bool)
+	}
+
+	if v, ok := d.GetOk("image_version"); ok {
+		payload["image_version"] = v.(string)
+	}
+
+	if v, ok := d.GetOk("image_gen"); ok {
+		payload["image_gen"] = v.(bool)
 	}
 
 	// Create HTTP request
@@ -160,10 +311,19 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 	var runner map[string]interface{}
 	resp, err := client.Do(ctx, req, &runner)
 	if err != nil {
-		return err
+		// Handle accepted error (202) which means the runner is being created asynchronously
+		if _, ok := err.(*github.AcceptedError); ok {
+			log.Printf("[INFO] Hosted runner is being created asynchronously")
+			// Continue processing if we have runner data
+			if runner == nil {
+				return fmt.Errorf("runner information not available after accepted status")
+			}
+		} else {
+			return err
+		}
 	}
 
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+	if resp != nil && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -219,8 +379,10 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 	if image, ok := runner["image"].(map[string]interface{}); ok {
 		d.Set("image", flattenImage(image))
 	}
-	if size, ok := runner["size"].(string); ok {
-		d.Set("size", size)
+	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]interface{}); ok {
+		if sizeID, ok := machineSizeDetails["id"].(string); ok {
+			d.Set("size", sizeID)
+		}
 	}
 	if runnerGroupID, ok := runner["runner_group_id"].(float64); ok {
 		d.Set("runner_group_id", int(runnerGroupID))
@@ -228,8 +390,17 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 	if maxRunners, ok := runner["maximum_runners"].(float64); ok {
 		d.Set("maximum_runners", int(maxRunners))
 	}
-	if staticIP, ok := runner["enable_static_ip"].(bool); ok {
-		d.Set("enable_static_ip", staticIP)
+	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
+		d.Set("public_ip_enabled", publicIPEnabled)
+	}
+	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]interface{}); ok {
+		d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails))
+	}
+	if publicIPs, ok := runner["public_ips"].([]interface{}); ok {
+		d.Set("public_ips", flattenPublicIPs(publicIPs))
+	}
+	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
+		d.Set("last_active_on", lastActiveOn)
 	}
 
 	return nil
@@ -247,17 +418,11 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 
 	runnerID := d.Id()
 
-	// Build update payload
+	// Build update payload (only fields that can be updated per API docs)
 	payload := make(map[string]interface{})
 
 	if d.HasChange("name") {
 		payload["name"] = d.Get("name").(string)
-	}
-	if d.HasChange("image") {
-		payload["image"] = expandImage(d.Get("image").([]interface{}))
-	}
-	if d.HasChange("size") {
-		payload["size"] = d.Get("size").(string)
 	}
 	if d.HasChange("runner_group_id") {
 		payload["runner_group_id"] = d.Get("runner_group_id").(int)
@@ -265,8 +430,11 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 	if d.HasChange("maximum_runners") {
 		payload["maximum_runners"] = d.Get("maximum_runners").(int)
 	}
-	if d.HasChange("enable_static_ip") {
-		payload["enable_static_ip"] = d.Get("enable_static_ip").(bool)
+	if d.HasChange("public_ip_enabled") {
+		payload["enable_static_ip"] = d.Get("public_ip_enabled").(bool)
+	}
+	if d.HasChange("image_version") {
+		payload["image_version"] = d.Get("image_version").(string)
 	}
 
 	// Create PATCH request
@@ -278,10 +446,16 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 	var runner map[string]interface{}
 	resp, err := client.Do(ctx, req, &runner)
 	if err != nil {
-		return err
+		// Handle accepted error (202) which means the update is being processed asynchronously
+		if _, ok := err.(*github.AcceptedError); ok {
+			log.Printf("[INFO] Hosted runner update is being processed asynchronously")
+			// Continue to read the current state
+		} else {
+			return err
+		}
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp != nil && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
@@ -312,61 +486,59 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta interf
 			// Already deleted
 			return nil
 		}
+		// Handle accepted error (202) which means the deletion is being processed asynchronously
+		if _, ok := err.(*github.AcceptedError); ok {
+			log.Printf("[DEBUG] Hosted runner %s deletion accepted, polling for completion", runnerID)
+			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
+		}
 		return err
 	}
 
 	// Handle async deletion (202 Accepted)
-	if resp.StatusCode == http.StatusAccepted {
+	if resp != nil && resp.StatusCode == http.StatusAccepted {
 		log.Printf("[DEBUG] Hosted runner %s deletion accepted, polling for completion", runnerID)
-		return waitForRunnerDeletion(client, orgName, runnerID, ctx)
+		return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
 	}
 
 	return nil
 }
 
-// waitForRunnerDeletion polls the API until the runner is deleted or times out
-func waitForRunnerDeletion(client *http.Client, orgName, runnerID string, ctx context.Context) error {
-	timeout := time.After(10 * time.Minute)
-	interval := 30 * time.Second
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	attempts := 0
-	maxInterval := 2 * time.Minute
-
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for hosted runner %s to be deleted after 10 minutes", runnerID)
-		case <-ticker.C:
-			attempts++
-
-			// Check if runner still exists
+func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName, runnerID string, timeout time.Duration) error {
+	conf := &retry.StateChangeConf{
+		Pending: []string{"deleting", "active"}, // Any state that is NOT the target state
+		Target:  []string{"deleted"},            // The state we are waiting for
+		Refresh: func() (interface{}, string, error) {
+			// This function is called to check the resource's status
 			req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 			if err != nil {
-				return err
+				return nil, "", err // This error stops the poller
 			}
 
 			resp, err := client.Do(ctx, req, nil)
+
+			// 404 Not Found means it's successfully deleted
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				log.Printf("[DEBUG] Hosted runner %s successfully deleted", runnerID)
+				return "deleted", "deleted", nil
+			}
+
 			if err != nil {
-				// If 404, runner is deleted successfully
-				if resp != nil && resp.StatusCode == http.StatusNotFound {
-					log.Printf("[DEBUG] Hosted runner %s successfully deleted after %d attempts", runnerID, attempts)
-					return nil
-				}
-				return err
+				// Return the error - StateChangeConf will continue retrying as long as we're in a Pending state
+				// If this is a transient error, it will be retried; if fatal, it will stop the poller
+				log.Printf("[DEBUG] Error checking runner status (will retry): %v", err)
+				return nil, "deleting", err
 			}
 
-			// Runner still exists, continue polling with exponential backoff
-			log.Printf("[DEBUG] Hosted runner %s still exists, continuing to poll (attempt %d)", runnerID, attempts)
-
-			// Increase interval with exponential backoff, capped at maxInterval
-			newInterval := time.Duration(float64(interval) * 1.5)
-			if newInterval > maxInterval {
-				newInterval = maxInterval
-			}
-			interval = newInterval
-			ticker.Reset(interval)
-		}
+			// If it's not 404, we assume it's still being deleted
+			log.Printf("[DEBUG] Hosted runner %s still exists, continuing to poll", runnerID)
+			return "deleting", "deleting", nil
+		},
+		Timeout:    timeout,          // Use the timeout from the resource schema
+		Delay:      10 * time.Second, // Initial delay before first check
+		MinTimeout: 5 * time.Second,  // Minimum time to wait between checks
 	}
+
+	// Run the poller - this will block until "deleted" is returned, an error occurs, or it times out
+	_, err := conf.WaitForStateContext(ctx)
+	return err
 }
