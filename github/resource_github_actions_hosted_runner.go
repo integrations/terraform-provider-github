@@ -206,9 +206,14 @@ func flattenImage(image map[string]interface{}) []interface{} {
 	}
 
 	result := make(map[string]interface{})
+
+	// Handle id as either string or number
 	if id, ok := image["id"].(string); ok {
 		result["id"] = id
+	} else if id, ok := image["id"].(float64); ok {
+		result["id"] = fmt.Sprintf("%.0f", id)
 	}
+
 	if source, ok := image["source"].(string); ok {
 		result["source"] = source
 	}
@@ -386,6 +391,10 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 
 	if publicIPs, ok := runner["public_ips"].([]interface{}); ok {
 		d.Set("public_ips", flattenPublicIPs(publicIPs))
+	}
+
+	if imageGen, ok := runner["image_gen"].(bool); ok {
+		d.Set("image_gen", imageGen)
 	}
 
 	return nil

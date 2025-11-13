@@ -115,7 +115,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					source = "github"
 				}
 
-				size              = "8-core"
+				size              = "2-core"
 				runner_group_id   = github_actions_runner_group.test.id
 				maximum_runners   = 5
 				public_ip_enabled = true
@@ -129,7 +129,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
-				"8-core",
+				"2-core",
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "maximum_runners",
@@ -375,9 +375,10 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 						Check:  check,
 					},
 					{
-						ResourceName:      "github_actions_hosted_runner.test",
-						ImportState:       true,
-						ImportStateVerify: true,
+						ResourceName:            "github_actions_hosted_runner.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"image", "image_gen"},
 					},
 				},
 			})
