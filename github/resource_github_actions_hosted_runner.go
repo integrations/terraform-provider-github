@@ -55,10 +55,11 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 							Description: "The image ID.",
 						},
 						"source": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "github",
-							Description: "The image source (github, partner, or custom).",
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "github",
+							ValidateFunc: validation.StringInSlice([]string{"github", "partner", "custom"}, false),
+							Description:  "The image source (github, partner, or custom).",
 						},
 						"size_gb": {
 							Type:        schema.TypeInt,
@@ -72,8 +73,7 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			"size": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "Machine size (e.g., '4-core', '8-core'). Cannot be changed after creation.",
+				Description: "Machine size (e.g., '4-core', '8-core'). Can be updated to scale the runner.",
 			},
 			"runner_group_id": {
 				Type:        schema.TypeInt,
@@ -81,10 +81,11 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 				Description: "The runner group ID.",
 			},
 			"maximum_runners": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: "Maximum number of runners to scale up to.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  "Maximum number of runners to scale up to.",
 			},
 			"public_ip_enabled": {
 				Type:        schema.TypeBool,
@@ -309,29 +310,22 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 	}
 
 	var runner map[string]interface{}
-	resp, err := client.Do(ctx, req, &runner)
+	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		// Handle accepted error (202) which means the runner is being created asynchronously
-		if _, ok := err.(*github.AcceptedError); ok {
-			log.Printf("[INFO] Hosted runner is being created asynchronously")
-			// Continue processing if we have runner data
-			if runner == nil {
-				return fmt.Errorf("runner information not available after accepted status")
-			}
-		} else {
+		if _, ok := err.(*github.AcceptedError); !ok {
 			return err
 		}
 	}
 
-	if resp != nil && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	if runner == nil {
+		return fmt.Errorf("no runner data returned from API")
 	}
 
 	// Set the ID
 	if id, ok := runner["id"].(float64); ok {
 		d.SetId(strconv.Itoa(int(id)))
 	} else {
-		return fmt.Errorf("failed to get runner ID from response")
+		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
 	}
 
 	return resourceGithubActionsHostedRunnerRead(d, meta)
@@ -345,9 +339,8 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
-
 	runnerID := d.Id()
+	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
 	// Create GET request
 	req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
@@ -356,51 +349,43 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 	}
 
 	var runner map[string]interface{}
-	resp, err := client.Do(ctx, req, &runner)
+	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
-			d.SetId("")
-			return nil
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
 
-	// Set computed attributes
-	if name, ok := runner["name"].(string); ok {
-		d.Set("name", name)
-	}
-	if status, ok := runner["status"].(string); ok {
-		d.Set("status", status)
-	}
-	if platform, ok := runner["platform"].(string); ok {
-		d.Set("platform", platform)
-	}
+	d.Set("name", runner["name"])
+	d.Set("status", runner["status"])
+	d.Set("platform", runner["platform"])
+	d.Set("last_active_on", runner["last_active_on"])
+	d.Set("public_ip_enabled", runner["public_ip_enabled"])
+
 	if image, ok := runner["image"].(map[string]interface{}); ok {
 		d.Set("image", flattenImage(image))
 	}
+
 	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]interface{}); ok {
-		if sizeID, ok := machineSizeDetails["id"].(string); ok {
-			d.Set("size", sizeID)
-		}
+		d.Set("size", machineSizeDetails["id"])
+		d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails))
 	}
+
 	if runnerGroupID, ok := runner["runner_group_id"].(float64); ok {
 		d.Set("runner_group_id", int(runnerGroupID))
 	}
+
 	if maxRunners, ok := runner["maximum_runners"].(float64); ok {
 		d.Set("maximum_runners", int(maxRunners))
 	}
-	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
-		d.Set("public_ip_enabled", publicIPEnabled)
-	}
-	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]interface{}); ok {
-		d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails))
-	}
+
 	if publicIPs, ok := runner["public_ips"].([]interface{}); ok {
 		d.Set("public_ips", flattenPublicIPs(publicIPs))
-	}
-	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
-		d.Set("last_active_on", lastActiveOn)
 	}
 
 	return nil
@@ -414,15 +399,16 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
-
 	runnerID := d.Id()
+	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
-	// Build update payload (only fields that can be updated per API docs)
 	payload := make(map[string]interface{})
 
 	if d.HasChange("name") {
 		payload["name"] = d.Get("name").(string)
+	}
+	if d.HasChange("size") {
+		payload["size"] = d.Get("size").(string)
 	}
 	if d.HasChange("runner_group_id") {
 		payload["runner_group_id"] = d.Get("runner_group_id").(int)
@@ -437,6 +423,10 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 		payload["image_version"] = d.Get("image_version").(string)
 	}
 
+	if len(payload) == 0 {
+		return resourceGithubActionsHostedRunnerRead(d, meta)
+	}
+
 	// Create PATCH request
 	req, err := client.NewRequest("PATCH", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), payload)
 	if err != nil {
@@ -444,19 +434,11 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 	}
 
 	var runner map[string]interface{}
-	resp, err := client.Do(ctx, req, &runner)
+	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		// Handle accepted error (202) which means the update is being processed asynchronously
-		if _, ok := err.(*github.AcceptedError); ok {
-			log.Printf("[INFO] Hosted runner update is being processed asynchronously")
-			// Continue to read the current state
-		} else {
+		if _, ok := err.(*github.AcceptedError); !ok {
 			return err
 		}
-	}
-
-	if resp != nil && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return resourceGithubActionsHostedRunnerRead(d, meta)
@@ -483,20 +465,15 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta interf
 	resp, err := client.Do(ctx, req, nil)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			// Already deleted
 			return nil
 		}
-		// Handle accepted error (202) which means the deletion is being processed asynchronously
 		if _, ok := err.(*github.AcceptedError); ok {
-			log.Printf("[DEBUG] Hosted runner %s deletion accepted, polling for completion", runnerID)
 			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
 		}
 		return err
 	}
 
-	// Handle async deletion (202 Accepted)
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		log.Printf("[DEBUG] Hosted runner %s deletion accepted, polling for completion", runnerID)
 		return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
 	}
 
@@ -505,40 +482,30 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta interf
 
 func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName, runnerID string, timeout time.Duration) error {
 	conf := &retry.StateChangeConf{
-		Pending: []string{"deleting", "active"}, // Any state that is NOT the target state
-		Target:  []string{"deleted"},            // The state we are waiting for
+		Pending: []string{"deleting", "active"},
+		Target:  []string{"deleted"},
 		Refresh: func() (interface{}, string, error) {
-			// This function is called to check the resource's status
 			req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 			if err != nil {
-				return nil, "", err // This error stops the poller
+				return nil, "", err
 			}
 
 			resp, err := client.Do(ctx, req, nil)
-
-			// 404 Not Found means it's successfully deleted
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Hosted runner %s successfully deleted", runnerID)
 				return "deleted", "deleted", nil
 			}
 
 			if err != nil {
-				// Return the error - StateChangeConf will continue retrying as long as we're in a Pending state
-				// If this is a transient error, it will be retried; if fatal, it will stop the poller
-				log.Printf("[DEBUG] Error checking runner status (will retry): %v", err)
 				return nil, "deleting", err
 			}
 
-			// If it's not 404, we assume it's still being deleted
-			log.Printf("[DEBUG] Hosted runner %s still exists, continuing to poll", runnerID)
 			return "deleting", "deleting", nil
 		},
-		Timeout:    timeout,          // Use the timeout from the resource schema
-		Delay:      10 * time.Second, // Initial delay before first check
-		MinTimeout: 5 * time.Second,  // Minimum time to wait between checks
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
-	// Run the poller - this will block until "deleted" is returned, an error occurs, or it times out
 	_, err := conf.WaitForStateContext(ctx)
 	return err
 }

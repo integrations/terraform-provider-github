@@ -66,7 +66,7 @@ The following arguments are supported:
 * `image` - (Required) Image configuration for the hosted runner. Cannot be changed after creation. Block supports:
   * `id` - (Required) The image ID. For GitHub-owned images, use numeric IDs like "2306" for Ubuntu Latest 24.04. To get available images, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/images/github-owned`.
   * `source` - (Optional) The image source. Valid values are "github", "partner", or "custom". Defaults to "github".
-* `size` - (Required) Machine size for the hosted runner (e.g., "4-core", "8-core"). Cannot be changed after creation. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.
+* `size` - (Required) Machine size for the hosted runner (e.g., "4-core", "8-core"). Can be updated to scale the runner. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.
 * `runner_group_id` - (Required) The ID of the runner group to assign this runner to.
 * `maximum_runners` - (Optional) Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs.
 * `public_ip_enabled` - (Optional) Whether to enable static public IP for the runner. Note there are account limits. To list limits, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/limits`. Defaults to false.
@@ -129,7 +129,8 @@ $ terraform import github_actions_hosted_runner.example 123456
 ## Notes
 
 * This resource is **organization-only** and cannot be used with individual accounts.
-* The `image` and `size` fields cannot be changed after the runner is created. Changing these will force recreation of the runner.
+* The `image` field cannot be changed after the runner is created. Changing it will force recreation of the runner.
+* The `size` field can be updated to scale the runner up or down as needed.
 * Image IDs for GitHub-owned images are numeric strings (e.g., "2306" for Ubuntu Latest 24.04), not names like "ubuntu-latest".
 * Deletion of hosted runners is asynchronous. The provider will poll for up to 10 minutes (configurable via timeouts) to confirm deletion.
 * Runner creation and updates may take several minutes as GitHub provisions the infrastructure.

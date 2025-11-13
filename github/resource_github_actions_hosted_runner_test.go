@@ -252,6 +252,89 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
+	t.Run("updates size field", func(t *testing.T) {
+		configBefore := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-size-%s"
+				
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				size            = "4-core"
+				runner_group_id = github_actions_runner_group.test.id
+			}
+		`, randomID, randomID)
+
+		configAfter := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-size-%s"
+				
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				size            = "8-core"
+				runner_group_id = github_actions_runner_group.test.id
+			}
+		`, randomID, randomID)
+
+		checkBefore := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"4-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
+				"4",
+			),
+		)
+
+		checkAfter := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"8-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
+				"8",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: configBefore,
+						Check:  checkBefore,
+					},
+					{
+						Config: configAfter,
+						Check:  checkAfter,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("imports hosted runner", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
