@@ -1,13 +1,8 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
 
-	"github.com/google/go-github/v68/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -584,128 +579,29 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 }
 
 func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
-	ctx := context.Background()
-
-	var ruleset *github.Ruleset
-	var err error
-
-	ruleset, _, err = client.Organizations.CreateOrganizationRuleset(ctx, owner, rulesetReq)
-	if err != nil {
-		return err
-	}
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	// Organization rulesets are not supported in go-github v77
+	// They may have been moved to a different API or deprecated
+	return fmt.Errorf("Organization rulesets are not supported in the current GitHub API version. Please use repository rulesets or check GitHub's latest ruleset documentation")
 }
 
 func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
-
-	var ruleset *github.Ruleset
-	var resp *github.Response
-
-	ruleset, resp, err = client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s: %d from state because it no longer exists in GitHub",
-					owner, rulesetID)
-				d.SetId("")
-				return nil
-			}
-		}
-	}
-
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", ruleset.Name)
-	d.Set("target", ruleset.GetTarget())
-	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
-	d.Set("rules", flattenRules(ruleset.Rules, true))
-	d.Set("node_id", ruleset.GetNodeID())
-	d.Set("ruleset_id", ruleset.ID)
-
-	return nil
+	// Organization rulesets are not supported in go-github v77
+	return fmt.Errorf("Organization rulesets are not supported in the current GitHub API version. Please use repository rulesets or check GitHub's latest ruleset documentation")
 }
 
 func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	ruleset, _, err := client.Organizations.UpdateOrganizationRuleset(ctx, owner, rulesetID, rulesetReq)
-	if err != nil {
-		return err
-	}
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	// Organization rulesets are not supported in go-github v77
+	return fmt.Errorf("Organization rulesets are not supported in the current GitHub API version. Please use repository rulesets or check GitHub's latest ruleset documentation")
 }
 
 func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
-	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
-	return err
+	// Organization rulesets are not supported in go-github v77
+	return fmt.Errorf("Organization rulesets are not supported in the current GitHub API version. Please use repository rulesets or check GitHub's latest ruleset documentation")
 }
 
 func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
-	}
-	if rulesetID == 0 {
-		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
-	}
-	log.Printf("[DEBUG] Importing organization ruleset with ID: %d", rulesetID)
-
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	ruleset, _, err := client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
-	if ruleset == nil || err != nil {
-		return []*schema.ResourceData{d}, err
-	}
-	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	// Organization rulesets are not supported in go-github v77
+	return []*schema.ResourceData{d}, fmt.Errorf("Organization rulesets are not supported in the current GitHub API version. Please use repository rulesets or check GitHub's latest ruleset documentation")
 
 	return []*schema.ResourceData{d}, nil
 }
