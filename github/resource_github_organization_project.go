@@ -7,14 +7,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v68/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationProject() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
-
 		Create: resourceGithubOrganizationProjectCreate,
 		Read:   resourceGithubOrganizationProjectRead,
 		Update: resourceGithubOrganizationProjectUpdate,
@@ -24,20 +22,36 @@ func resourceGithubOrganizationProject() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the project.",
+				Description: "The title of the project.",
 			},
-			"body": {
+			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The body of the project.",
+				Description: "The description of the project.",
+			},
+			"public": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether the project should be public or private.",
 			},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "URL of the project.",
+			},
+			"number": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The number of the project.",
+			},
+			"node_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The node ID of the project.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -53,25 +67,10 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
-	ctx := context.Background()
-
-	project, _, err := client.Organizations.CreateProject(ctx,
-		orgName,
-		&github.ProjectOptions{
-			Name: &name,
-			Body: &body,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	d.SetId(strconv.FormatInt(project.GetID(), 10))
-
-	return resourceGithubOrganizationProjectRead(d, meta)
+	// Projects V2 API doesn't support creating projects via REST API
+	// Projects must be created through the GitHub web interface
+	// This resource can only import and manage existing projects
+	return fmt.Errorf("Projects V2 cannot be created via the REST API. Please create the project through the GitHub web interface and import it using terraform import")
 }
 
 func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interface{}) error {
@@ -83,16 +82,13 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	projectNumber, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
 
-	project, resp, err := client.Projects.GetProject(ctx, projectID)
+	project, resp, err := client.Projects.GetOrganizationProject(ctx, orgName, projectNumber)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -111,10 +107,19 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return err
 	}
-	if err = d.Set("name", project.GetName()); err != nil {
+	if err = d.Set("title", project.GetTitle()); err != nil {
 		return err
 	}
-	if err = d.Set("body", project.GetBody()); err != nil {
+	if err = d.Set("description", project.GetDescription()); err != nil {
+		return err
+	}
+	if err = d.Set("public", project.GetPublic()); err != nil {
+		return err
+	}
+	if err = d.Set("number", project.GetNumber()); err != nil {
+		return err
+	}
+	if err = d.Set("node_id", project.GetNodeID()); err != nil {
 		return err
 	}
 	if err = d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
@@ -126,47 +131,13 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Owner).v3client
-
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
-
-	options := github.ProjectOptions{
-		Name: &name,
-		Body: &body,
-	}
-
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
-		return err
-	}
-
-	return resourceGithubOrganizationProjectRead(d, meta)
+	// Projects V2 API doesn't support updating projects via REST API
+	// Projects must be updated through the GitHub web interface
+	return fmt.Errorf("Projects V2 cannot be updated via the REST API. Please update the project through the GitHub web interface")
 }
 
 func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interface{}) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Owner).v3client
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	_, err = client.Projects.DeleteProject(ctx, projectID)
-	return err
+	// Projects V2 API doesn't support deleting projects via REST API
+	// Projects must be deleted through the GitHub web interface
+	return fmt.Errorf("Projects V2 cannot be deleted via the REST API. Please delete the project through the GitHub web interface")
 }

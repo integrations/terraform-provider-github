@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v68/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+// TODO: Fix tests after migrating to Projects V2 API
 
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
 	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
