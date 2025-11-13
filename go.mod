@@ -1,14 +1,14 @@
 module github.com/integrations/terraform-provider-github/v6
 
-go 1.21
+go 1.24.0
 
-toolchain go1.22.4
+toolchain go1.24.10
 
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/golangci/golangci-lint v1.59.1
-	github.com/google/go-github/v68 v68.0.0
+	github.com/google/go-github/v77 v77.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
@@ -87,7 +87,7 @@ require (
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
 	github.com/golangci/revgrep v0.5.3 // indirect
 	github.com/golangci/unconvert v0.0.0-20240309020433-c5143eacb3ed // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gordonklaus/ineffassign v0.1.0 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
