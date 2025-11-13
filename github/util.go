@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const (
+var (
 	// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 	maxPerPage = 100
 )

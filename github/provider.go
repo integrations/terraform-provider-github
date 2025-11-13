@@ -122,6 +122,13 @@ func Provider() *schema.Provider {
 					},
 				},
 			},
+			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
+			"max_per_page": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", "100"),
+				Description: descriptions["max_per_page"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -324,6 +331,8 @@ func init() {
 			"Defaults to [500, 502, 503, 504]",
 		"max_retries": "Number of times to retry a request after receiving an error status code" +
 			"Defaults to 3",
+		"max_per_page": "Number of items per page for pagination" +
+			"Defaults to 100",
 	}
 }
 
@@ -443,6 +452,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
 		}
+
+		_maxPerPage := d.Get("max_per_page").(int)
+		if _maxPerPage <= 0 {
+			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+		}
+		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		maxPerPage = _maxPerPage
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
