@@ -180,4 +180,580 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
+	t.Run("handles boolean false values correctly", func(t *testing.T) {
+		config := `
+		resource "github_organization_settings" "test" {
+			billing_email = "test@example.com"
+			members_can_create_private_repositories = false
+			members_can_create_internal_repositories = false
+			members_can_fork_private_repositories = false
+			web_commit_signoff_required = false
+			advanced_security_enabled_for_new_repositories = false
+			dependabot_alerts_enabled_for_new_repositories = false
+			dependabot_security_updates_enabled_for_new_repositories = false
+			dependency_graph_enabled_for_new_repositories = false
+			secret_scanning_enabled_for_new_repositories = false
+			secret_scanning_push_protection_enabled_for_new_repositories = false
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"billing_email", "test@example.com",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_internal_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_fork_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"web_commit_signoff_required", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"advanced_security_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_alerts_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_security_updates_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependency_graph_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_enabled_for_new_repositories", "false",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+		t.Run("run with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+		t.Run("run with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+		t.Run("run with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("handles mixed boolean values correctly", func(t *testing.T) {
+		config := `
+		resource "github_organization_settings" "test" {
+			billing_email = "test@example.com"
+			members_can_create_private_repositories = false
+			members_can_create_internal_repositories = true
+			members_can_fork_private_repositories = false
+			web_commit_signoff_required = true
+			advanced_security_enabled_for_new_repositories = false
+			dependabot_alerts_enabled_for_new_repositories = true
+			dependabot_security_updates_enabled_for_new_repositories = false
+			dependency_graph_enabled_for_new_repositories = true
+			secret_scanning_enabled_for_new_repositories = false
+			secret_scanning_push_protection_enabled_for_new_repositories = true
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"billing_email", "test@example.com",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_internal_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_fork_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"web_commit_signoff_required", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"advanced_security_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_alerts_enabled_for_new_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_security_updates_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependency_graph_enabled_for_new_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_enabled_for_new_repositories", "true",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+		t.Run("run with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+		t.Run("run with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+		t.Run("run with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("handles minimal configuration without errors", func(t *testing.T) {
+		config := `
+		resource "github_organization_settings" "test" {
+			billing_email = "test@example.com"
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"billing_email", "test@example.com",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+		t.Run("run with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+		t.Run("run with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+		t.Run("run with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("comprehensive parameter testing", func(t *testing.T) {
+		t.Run("test all string fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				company = "Test Company"
+				email = "contact@test.com"
+				twitter_username = "testorg"
+				location = "Test City, Country"
+				name = "Test Organization"
+				description = "Test organization description"
+				blog = "https://test.com/blog"
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "company", "Test Company"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "email", "contact@test.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "twitter_username", "testorg"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "location", "Test City, Country"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "name", "Test Organization"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "description", "Test organization description"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "blog", "https://test.com/blog"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test all security boolean fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				advanced_security_enabled_for_new_repositories = true
+				dependabot_alerts_enabled_for_new_repositories = true
+				dependabot_security_updates_enabled_for_new_repositories = true
+				dependency_graph_enabled_for_new_repositories = true
+				secret_scanning_enabled_for_new_repositories = true
+				secret_scanning_push_protection_enabled_for_new_repositories = true
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "advanced_security_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_alerts_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_security_updates_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependency_graph_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "true"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test repository creation fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				members_can_create_private_repositories = true
+				members_can_create_internal_repositories = true
+				members_can_create_pages = true
+				members_can_create_public_pages = true
+				members_can_create_private_pages = true
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_internal_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "true"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test other boolean fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				web_commit_signoff_required = true
+				has_organization_projects = true
+				has_repository_projects = true
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "web_commit_signoff_required", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "has_organization_projects", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "has_repository_projects", "true"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test enum fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				default_repository_permission = "write"
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "write"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test comprehensive configuration", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				company = "Test Company"
+				email = "contact@test.com"
+				twitter_username = "testorg"
+				location = "Test City, Country"
+				name = "Test Organization"
+				description = "Test organization description"
+				blog = "https://test.com/blog"
+				
+				advanced_security_enabled_for_new_repositories = true
+				dependabot_alerts_enabled_for_new_repositories = true
+				dependabot_security_updates_enabled_for_new_repositories = true
+				dependency_graph_enabled_for_new_repositories = true
+				secret_scanning_enabled_for_new_repositories = true
+				secret_scanning_push_protection_enabled_for_new_repositories = true
+				
+				members_can_create_private_repositories = true
+				members_can_create_internal_repositories = true
+				members_can_create_pages = true
+				members_can_create_public_pages = true
+				members_can_create_private_pages = true
+				
+				web_commit_signoff_required = true
+				default_repository_permission = "write"
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "company", "Test Company"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "email", "contact@test.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "twitter_username", "testorg"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "location", "Test City, Country"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "name", "Test Organization"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "description", "Test organization description"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "blog", "https://test.com/blog"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "advanced_security_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_alerts_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_security_updates_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependency_graph_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_internal_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "web_commit_signoff_required", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "write"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test boolean false values for all fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				advanced_security_enabled_for_new_repositories = false
+				dependabot_alerts_enabled_for_new_repositories = false
+				dependabot_security_updates_enabled_for_new_repositories = false
+				dependency_graph_enabled_for_new_repositories = false
+				secret_scanning_enabled_for_new_repositories = false
+				secret_scanning_push_protection_enabled_for_new_repositories = false
+				members_can_create_private_repositories = false
+				members_can_create_internal_repositories = false
+				members_can_create_pages = false
+				members_can_create_public_pages = false
+				members_can_create_private_pages = false
+				web_commit_signoff_required = false
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "advanced_security_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_alerts_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependabot_security_updates_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "dependency_graph_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_internal_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "web_commit_signoff_required", "false"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+
+		t.Run("test enum field variations", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				default_repository_permission = "admin"
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "admin"),
+			)
+
+			testCase := resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, organization) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			}
+
+			t.Run("run with an anonymous account", func(t *testing.T) {
+				t.Skip("anonymous account not supported for this operation")
+			})
+			t.Run("run with an individual account", func(t *testing.T) {
+				t.Skip("individual account not supported for this operation")
+			})
+			t.Run("run with an organization account", func(t *testing.T) {
+				resource.Test(t, testCase)
+			})
+		})
+	})
 }
