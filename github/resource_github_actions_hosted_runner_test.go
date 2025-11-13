@@ -1,0 +1,343 @@
+package github
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+)
+
+func TestAccGithubActionsHostedRunner(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("creates hosted runners without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-%s"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size            = "4-core"
+				runner_group_id = github_actions_runner_group.test.id
+			}
+		`, randomID, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "name",
+				fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"4-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "image.0.id",
+				"ubuntu-latest",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "image.0.source",
+				"github",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "id",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "status",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "platform",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for hosted runners")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-optional-%s"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size             = "8-core"
+				runner_group_id  = github_actions_runner_group.test.id
+				maximum_runners  = 5
+				enable_static_ip = true
+			}
+		`, randomID, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "name",
+				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"8-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "maximum_runners",
+				"5",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "enable_static_ip",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("updates hosted runner configuration", func(t *testing.T) {
+		configBefore := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-update-%s"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size            = "4-core"
+				runner_group_id = github_actions_runner_group.test.id
+				maximum_runners = 3
+			}
+		`, randomID, randomID)
+
+		configAfter := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-update-%s-updated"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size            = "8-core"
+				runner_group_id = github_actions_runner_group.test.id
+				maximum_runners = 5
+			}
+		`, randomID, randomID)
+
+		checkBefore := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "name",
+				fmt.Sprintf("tf-acc-test-update-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"4-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "maximum_runners",
+				"3",
+			),
+		)
+
+		checkAfter := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "name",
+				fmt.Sprintf("tf-acc-test-update-%s-updated", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "size",
+				"8-core",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "maximum_runners",
+				"5",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: configBefore,
+						Check:  checkBefore,
+					},
+					{
+						Config: configAfter,
+						Check:  checkAfter,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("imports hosted runner", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-import-%s"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size            = "4-core"
+				runner_group_id = github_actions_runner_group.test.id
+			}
+		`, randomID, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "id",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "name",
+				fmt.Sprintf("tf-acc-test-import-%s", randomID),
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+					{
+						ResourceName:      "github_actions_hosted_runner.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("deletes hosted runner", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-delete-%s"
+				
+				image {
+					id     = "ubuntu-latest"
+					source = "github"
+				}
+
+				size            = "4-core"
+				runner_group_id = github_actions_runner_group.test.id
+			}
+		`, randomID, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrSet(
+								"github_actions_hosted_runner.test", "id",
+							),
+						),
+					},
+					// This step should successfully delete the runner
+					{
+						Config: fmt.Sprintf(`
+							resource "github_actions_runner_group" "test" {
+								name       = "tf-acc-test-group-%s"
+								visibility = "all"
+							}
+						`, randomID),
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}

@@ -145,6 +145,7 @@ func Provider() *schema.Provider {
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
 			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+			"github_actions_hosted_runner":                                          resourceGithubActionsHostedRunner(),
 			"github_actions_secret":                                                 resourceGithubActionsSecret(),
 			"github_actions_variable":                                               resourceGithubActionsVariable(),
 			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
