@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"regexp"
@@ -18,8 +19,8 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 		Update: resourceGithubRepositoryTopicsCreateOrUpdate,
 		Delete: resourceGithubRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				d.Set("repository", d.Id())
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				_ = d.Set("repository", d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -38,12 +39,12 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
 				},
-			}},
+			},
+		},
 	}
-
 }
 
-func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -62,7 +63,7 @@ func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta i
 	return resourceGithubRepositoryTopicsRead(d, meta)
 }
 
-func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -71,7 +72,8 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}
 
 	topics, _, err := client.Repositories.ListAllTopics(ctx, owner, repoName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -85,11 +87,11 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("topics", flattenStringList(topics))
+	_ = d.Set("topics", flattenStringList(topics))
 	return nil
 }
 
-func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

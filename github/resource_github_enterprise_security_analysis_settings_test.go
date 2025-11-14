@@ -8,9 +8,7 @@ import (
 )
 
 func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
-
 	t.Run("creates enterprise security analysis settings without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_analysis_settings" "test" {
 			enterprise_slug = "%s"
@@ -55,7 +53,6 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 	})
 
 	t.Run("creates enterprise security analysis settings with custom link", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_analysis_settings" "test" {
 			enterprise_slug = "%s"
@@ -102,7 +99,6 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 	})
 
 	t.Run("updates enterprise security analysis settings without error", func(t *testing.T) {
-
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 			resource "github_enterprise_security_analysis_settings" "test" {
@@ -173,7 +169,6 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 	})
 
 	t.Run("creates minimal enterprise security analysis settings", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_analysis_settings" "test" {
 			enterprise_slug = "%s"
@@ -213,7 +208,6 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 	})
 
 	t.Run("imports enterprise security analysis settings without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_analysis_settings" "test" {
 			enterprise_slug = "%s"
@@ -263,7 +257,6 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 	})
 
 	t.Run("handles custom link removal", func(t *testing.T) {
-
 		configs := map[string]string{
 			"with_link": fmt.Sprintf(`
 			resource "github_enterprise_security_analysis_settings" "test" {

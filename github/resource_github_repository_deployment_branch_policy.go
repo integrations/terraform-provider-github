@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -43,7 +44,7 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
@@ -52,7 +53,7 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -73,7 +74,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData
 	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -95,7 +96,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -113,7 +114,8 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 
 	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -143,7 +145,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 	return nil
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	client := meta.(*Owner).v3client
@@ -156,14 +158,14 @@ func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData
 		return err
 	}
 
-	_, error := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
-	if error != nil {
-		return error
+	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, environmentName, id, err := parseThreePartID(d.Id(), "repository", "environment_name", "id")
 	if err != nil {
 		return nil, err

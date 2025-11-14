@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries deployment branch policies", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
@@ -75,6 +73,5 @@ func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
