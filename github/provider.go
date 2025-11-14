@@ -168,6 +168,7 @@ func Provider() *schema.Provider {
 			"github_organization_block":                                             resourceOrganizationBlock(),
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
 			"github_organization_custom_properties":                                 resourceGithubOrganizationCustomProperties(),
+			"github_organization_network_configuration":                             resourceGithubOrganizationNetworkConfiguration(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
 			"github_organization_repository_role":                                   resourceGithubOrganizationRepositoryRole(),
 			"github_organization_role":                                              resourceGithubOrganizationRole(),
