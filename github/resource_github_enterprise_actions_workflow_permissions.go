@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -62,7 +62,7 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.
 	}
 
 	log.Printf("[DEBUG] Updating workflow permissions for enterprise: %s", enterpriseSlug)
-	_, _, err := client.Actions.EditDefaultWorkflowPermissionsInEnterprise(ctx, enterpriseSlug, workflowPerms)
+	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInEnterprise(ctx, enterpriseSlug, workflowPerms)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.Resource
 		CanApprovePullRequestReviews: github.Bool(false),
 	}
 
-	_, _, err := client.Actions.EditDefaultWorkflowPermissionsInEnterprise(ctx, enterpriseSlug, workflowPerms)
+	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInEnterprise(ctx, enterpriseSlug, workflowPerms)
 	if err != nil {
 		return err
 	}
