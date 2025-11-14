@@ -658,8 +658,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 	d.Set("enforcement", ruleset.Enforcement)
 	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
 	d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
-	// TODO: Update flattenRules to handle RepositoryRulesetRules structure in v77
-	// d.Set("rules", flattenRules(ruleset.Rules, false))
+	d.Set("rules", flattenRules(ruleset.Rules, false))
 	d.Set("node_id", ruleset.GetNodeID())
 	d.Set("ruleset_id", ruleset.ID)
 
