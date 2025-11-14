@@ -12,7 +12,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	t.Run("creates organization network configuration without error", func(t *testing.T) {
 		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
 		if networkSettingsID == "" {
-			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
 		}
 
 		config := fmt.Sprintf(`
@@ -74,7 +74,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	t.Run("updates organization network configuration without error", func(t *testing.T) {
 		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
 		if networkSettingsID == "" {
-			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
 		}
 
 		name := "test-network-config-one"
@@ -82,7 +82,6 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 
 		updatedName := "test-network-config-two"
 		updatedComputeService := "actions"
-		updatedNetworkSettingsID := networkSettingsID
 
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
@@ -97,7 +96,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 				name                  = "%s"
 				compute_service       = "%s"
 				network_settings_ids  = ["%s"]
-			}`, updatedName, updatedComputeService, updatedNetworkSettingsID),
+			}`, updatedName, updatedComputeService, networkSettingsID),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -126,7 +125,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 				),
 				resource.TestCheckResourceAttr(
 					"github_organization_network_configuration.test",
-					"network_settings_ids.0", updatedNetworkSettingsID,
+					"network_settings_ids.0", networkSettingsID,
 				),
 			),
 		}
@@ -164,7 +163,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	t.Run("imports organization network configuration without error", func(t *testing.T) {
 		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
 		if networkSettingsID == "" {
-			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
 		}
 
 		name := "test-network-config-import"

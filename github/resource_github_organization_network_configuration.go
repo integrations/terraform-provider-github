@@ -49,7 +49,7 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: "The identifier of the network settings to use for the network configuration. Exactly one network settings must be specified.",
+				Description: "An array containing exactly one network settings ID. A network settings resource can only be associated with one network configuration at a time.",
 			},
 			"id": {
 				Type:        schema.TypeString,
