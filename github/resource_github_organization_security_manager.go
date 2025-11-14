@@ -3,12 +3,37 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// findTeamByIDInSecurityManager lists teams and finds one by ID (fallback for deprecated GetTeamByID).
+func findTeamByIDInSecurityManager(ctx context.Context, client *github.Client, orgName string, teamID int64) (*github.Team, error) {
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		teams, resp, err := client.Teams.ListTeams(ctx, orgName, opts)
+		if err != nil {
+			return nil, fmt.Errorf("error listing teams: %w", err)
+		}
+
+		for _, team := range teams {
+			if team.GetID() == teamID {
+				return team, nil
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil, fmt.Errorf("team with ID %d not found in organization %s", teamID, orgName)
+}
 
 func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	return &schema.Resource{
@@ -140,7 +165,6 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 		return err
 	}
 
-	orgId := meta.(*Owner).id
 	orgName := meta.(*Owner).name
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -150,7 +174,8 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	// Find team by ID using listing (since GetTeamByID is deprecated)
+	team, err := findTeamByIDInSecurityManager(ctx, client, orgName, teamId)
 	if err != nil {
 		return err
 	}

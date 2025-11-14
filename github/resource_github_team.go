@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +13,30 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
+
+// findTeamByID lists teams and finds one by ID (fallback for deprecated GetTeamByID).
+func findTeamByID(ctx context.Context, client *github.Client, orgName string, teamID int64) (*github.Team, error) {
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		teams, resp, err := client.Teams.ListTeams(ctx, orgName, opts)
+		if err != nil {
+			return nil, fmt.Errorf("error listing teams: %w", err)
+		}
+
+		for _, team := range teams {
+			if team.GetID() == teamID {
+				return team, nil
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil, fmt.Errorf("team with ID %d not found in organization %s", teamID, orgName)
+}
 
 func resourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
@@ -183,18 +208,36 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Try to get team slug from state first (preferred method)
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	var team *github.Team
+	var resp *github.Response
+
+	if teamSlug != "" {
+		// Use team slug if available
+		team, resp, err = client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
+	} else {
+		// Fallback: parse team ID and find team by listing (less efficient)
+		id, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+
+		// List teams and find by ID
+		team, err = findTeamByID(ctx, client, orgName, id)
+		if err != nil {
+			return err
+		}
+		resp = nil // We don't have a response object from listing
+	}
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(err, &ghErr) {
@@ -319,15 +362,25 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Try to get team slug from state first
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	// Delete using slug if available, otherwise fall back to ID-based deletion
+	if teamSlug != "" {
+		_, err = client.Teams.DeleteTeamBySlug(ctx, orgName, teamSlug)
+	} else {
+		// Fallback: parse team ID for legacy resources
+		id, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+		_, err = client.Teams.DeleteTeamByID(ctx, meta.(*Owner).id, id)
+	}
+
 	/*
 		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
 		This could be the case when deleting nested teams via Terraform by looping through a module
@@ -336,8 +389,15 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		GitHub automatically).
 		So we're checking if it still exists and if not, simply remove it from TF state.
 	*/if err != nil {
-		// Fetch the team in order to see if it exists or not (http 404)
-		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
+		// Check if the team still exists
+		if teamSlug != "" {
+			_, _, err = client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
+		} else {
+			// Fallback: find team by ID
+			id, _ := strconv.ParseInt(d.Id(), 10, 64)
+			_, checkErr := findTeamByID(ctx, client, orgName, id)
+			err = checkErr
+		}
 		if err != nil {
 			ghErr := &github.ErrorResponse{}
 			if errors.As(err, &ghErr) {

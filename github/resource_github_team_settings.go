@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -224,31 +223,14 @@ func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta any) ([]*sche
 func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, slug string, err error) {
 	client := meta.v3client
 	orgName := meta.name
-	orgId := meta.id
 
-	teamId, parseIntErr := strconv.ParseInt(idOrSlug, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
-		if slugErr != nil {
-			return "", "", errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetNodeID(), team.GetSlug(), nil
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
-			if slugErr != nil {
-				return "", "", errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-
-			return team.GetNodeID(), team.GetSlug(), nil
-		}
-
-		return team.GetNodeID(), team.GetSlug(), nil
+	// Update: go-github v77+, team IDs are deprecated. This func now
+	// treats all inputs as team slugs.
+	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
+	if err != nil {
+		return "", "", fmt.Errorf("team '%s' not found in organization '%s': %w", idOrSlug, orgName, err)
 	}
+	return team.GetNodeID(), team.GetSlug(), nil
 }
 
 type UpdateTeamReviewAssignmentInput struct {
