@@ -177,7 +177,6 @@ func Provider() *schema.Provider {
 			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
-			"github_project_item":                                                   resourceGithubProjectItem(),
 			"github_release":                                                        resourceGithubRelease(),
 			"github_repository":                                                     resourceGithubRepository(),
 			"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
@@ -283,9 +282,6 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
-			"github_organization_projects":                                          dataSourceGithubOrganizationProjects(),
-			"github_user_projects":                                                  dataSourceGithubUserProjects(),
-			"github_project_fields":                                                 dataSourceGithubProjectFields(),
 		},
 	}
 
