@@ -407,8 +407,8 @@ func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []us
 
 func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
-	orgID := meta.(*Owner).id
 	owner := meta.(*Owner).name
+	orgId := meta.(*Owner).id
 	ctx := context.Background()
 
 	remove := make([]teamCollaborator, 0)
@@ -429,9 +429,9 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		if wantPerm == "" { // user should NOT have permission
 			remove = append(remove, hasTeam)
 		} else if wantPerm != hasTeam.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
+			log.Printf("[DEBUG] Updating team %s permission from %s to %s for repo: %s.", hasTeam.teamSlug, hasTeam.permission, wantPerm, repoName)
 			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+				ctx, orgId, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -444,6 +444,10 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 	for _, t := range want {
 		teamData := t.(map[string]any)
 		teamIDString := teamData["team_id"].(string)
+		teamSlug, err := getTeamSlug(teamIDString, meta)
+		if err != nil {
+			return err
+		}
 		teamID, err := getTeamID(teamIDString, meta)
 		if err != nil {
 			return err
@@ -460,9 +464,9 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		}
 		permission := teamData["permission"].(string)
 		// team needs to be added
-		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamIDString, permission, repoName)
+		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamSlug, permission, repoName)
 		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+			ctx, orgId, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
@@ -472,10 +476,10 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 	}
 
 	for _, team := range remove {
-		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
-		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
+		log.Printf("[DEBUG] Removing team %s from repo: %s.", team.teamSlug, repoName)
+		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, team.teamID, owner, repoName)
 		if err != nil {
-			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %d", team.teamID), owner, repoName)
+			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", team.teamSlug), owner, repoName)
 			if err != nil {
 				return err
 			}

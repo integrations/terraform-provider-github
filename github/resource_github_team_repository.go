@@ -70,6 +70,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
@@ -78,7 +79,6 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
@@ -108,23 +108,20 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	teamSlug := d.Get("slug").(string)
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := getTeamID(teamIdString, meta)
-	if err != nil {
-		return err
-	}
+
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 	if repoErr != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(repoErr, &ghErr) {

@@ -155,7 +155,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 	*/
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
 		_, _, err := client.Teams.EditTeamByID(ctx,
-			*githubTeam.Organization.ID,
+			meta.(*Owner).id,
 			*githubTeam.ID,
 			newTeam,
 			false)
@@ -267,7 +267,6 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
@@ -290,9 +289,10 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
+	team, _, err := client.Teams.EditTeamByID(ctx, meta.(*Owner).id, teamId, editedTeam, removeParentTeam)
 	if err != nil {
 		return err
 	}
