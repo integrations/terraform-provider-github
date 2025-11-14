@@ -18,7 +18,6 @@ func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsSecretCreateOrUpdate,
 		Read:   resourceGithubActionsSecretRead,
-		Update: resourceGithubActionsSecretCreateOrUpdate,
 		Delete: resourceGithubActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsSecretImport,
@@ -189,7 +188,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 		if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
 			return err
 		}
-	}	// Always update the timestamp to prevent repeated drift detection
+	} // Always update the timestamp to prevent repeated drift detection
 	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 		return err
 	}

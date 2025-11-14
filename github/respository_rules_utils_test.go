@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
@@ -359,7 +360,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".sh"},
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []any{".exe", ".bat", ".sh"}),
 			},
 		},
 	}

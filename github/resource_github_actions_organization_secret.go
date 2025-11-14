@@ -220,10 +220,10 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 	// previously.
 	destroyOnDrift := d.Get("destroy_on_drift").(bool)
 	storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-	
+
 	if hasStoredUpdatedAt && storedUpdatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-		
+
 		if destroyOnDrift {
 			// Original behavior: mark for recreation
 			d.SetId("")

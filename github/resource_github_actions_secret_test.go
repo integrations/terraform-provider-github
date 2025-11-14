@@ -413,10 +413,10 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 				d.SetId("")
 			} else {
 				// Should clear sensitive values to trigger update
-				d.Set("encrypted_value", "")
-				d.Set("plaintext_value", "")
+				_ = d.Set("encrypted_value", "")
+				_ = d.Set("plaintext_value", "")
 			}
-			d.Set("updated_at", newTimestamp)
+			_ = d.Set("updated_at", newTimestamp)
 		}
 
 		// Should NOT have cleared the ID when destroy_on_drift=false
@@ -443,7 +443,38 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 		originalTimestamp := "2023-01-01T00:00:00Z"
 		newTimestamp := "2023-01-02T00:00:00Z"
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
+			"repository":       "test-repo",
+			"secret_name":      "test-secret",
+			"plaintext_value":  "original-value",
+			"destroy_on_drift": true, // Explicitly set to true
+			"updated_at":       originalTimestamp,
+		})
+		d.SetId("test-secret")
+
+		// Simulate drift detection logic when destroy_on_drift is true
+		destroyOnDrift := d.Get("destroy_on_drift").(bool)
+		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+
+		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
+			if destroyOnDrift {
+				// Should clear ID for recreation (original behavior)
+				d.SetId("")
+				return // Exit early like the real function would
+			}
+		}
+
+		// Should have cleared the ID for recreation when destroy_on_drift=true
+		if d.Id() != "" {
+			t.Error("Expected ID to be cleared for recreation when destroy_on_drift=true, but it was preserved")
+		}
+	})
+
+	t.Run("destroyOnDrift true still recreates resource on drift", func(t *testing.T) {
+		originalTimestamp := "2023-01-01T00:00:00Z"
+		newTimestamp := "2023-01-02T00:00:00Z"
+
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":       "test-repo",
 			"secret_name":      "test-secret",
 			"plaintext_value":  "original-value",

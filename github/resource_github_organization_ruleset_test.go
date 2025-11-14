@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
@@ -586,7 +587,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".sh", ".ps1"},
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []any{".exe", ".bat", ".sh", ".ps1"}),
 			},
 		},
 	}
