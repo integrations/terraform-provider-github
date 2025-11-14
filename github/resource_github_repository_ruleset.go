@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -601,10 +601,10 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) err
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var err error
 
-	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, *rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -629,7 +629,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var resp *github.Response
 
 	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
@@ -683,15 +683,20 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
 	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
 	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
 	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
 	if d.HasChange("bypass_actors") {
-		ruleset, _, err = client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
+		// Clear bypass actors first, then update with new ruleset
+		_, err = client.Repositories.UpdateRulesetClearBypassActor(ctx, owner, repoName, rulesetID)
+		if err != nil {
+			return err
+		}
+		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
 	} else {
-		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
 	}
 	if err != nil {
 		return err

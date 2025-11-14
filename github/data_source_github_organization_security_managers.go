@@ -51,7 +51,13 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	allTeams := make([]any, 0)
 
-	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
+	// Get the security manager role ID first
+	smRole, err := getSecurityManagerRole(client, ctx, orgName)
+	if err != nil {
+		return err
+	}
+
+	teams, _, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, smRole.GetID(), nil)
 	if err != nil {
 		return err
 	}
