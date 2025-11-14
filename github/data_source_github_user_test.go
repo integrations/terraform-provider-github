@@ -9,9 +9,7 @@ import (
 )
 
 func TestAccGithubUserDataSource(t *testing.T) {
-
 	t.Run("queries an existing individual account without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			data "github_user" "test" {
 				username = "%s"
@@ -47,11 +45,9 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("errors when querying a non-existing individual account", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 				data "github_user" "test" {
 					username = "!%s"
@@ -82,6 +78,5 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

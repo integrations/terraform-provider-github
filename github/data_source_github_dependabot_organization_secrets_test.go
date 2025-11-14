@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
-
 	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 

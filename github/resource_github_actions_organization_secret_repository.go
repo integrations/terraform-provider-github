@@ -36,7 +36,7 @@ func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoryCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -55,7 +55,6 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(d *schema.ResourceD
 	}
 
 	_, err = client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
-
 	if err != nil {
 		return err
 	}
@@ -64,7 +63,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(d *schema.ResourceD
 	return resourceGithubActionsOrganizationSecretRepositoryRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoryRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner).name
 
 	err := checkOrganization(meta)
@@ -119,7 +118,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoryDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

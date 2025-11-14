@@ -41,8 +41,7 @@ type Owner struct {
 // https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
 var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
-
+func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
 	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
@@ -59,7 +58,6 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 }
 
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
-
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
@@ -79,7 +77,6 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-
 	uv4, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -95,7 +92,6 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-
 	uv3, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -143,8 +139,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
-func (c *Config) Meta() (interface{}, error) {
-
+func (c *Config) Meta() (any, error) {
 	var client *http.Client
 	if c.Anonymous() {
 		client = c.AnonymousHTTPClient()
