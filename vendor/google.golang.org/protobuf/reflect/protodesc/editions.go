@@ -11,11 +11,10 @@ import (
 
 	"google.golang.org/protobuf/internal/editiondefaults"
 	"google.golang.org/protobuf/internal/filedesc"
-	"google.golang.org/protobuf/internal/genid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/gofeaturespb"
+	gofeaturespb "google.golang.org/protobuf/types/gofeaturespb"
 )
 
 var defaults = &descriptorpb.FeatureSetDefaults{}
@@ -44,8 +43,6 @@ func toEditionProto(ed filedesc.Edition) descriptorpb.Edition {
 		return descriptorpb.Edition_EDITION_PROTO3
 	case filedesc.Edition2023:
 		return descriptorpb.Edition_EDITION_2023
-	case filedesc.Edition2024:
-		return descriptorpb.Edition_EDITION_2024
 	default:
 		panic(fmt.Sprintf("unknown value for edition: %v", ed))
 	}
@@ -65,20 +62,18 @@ func getFeatureSetFor(ed filedesc.Edition) *descriptorpb.FeatureSet {
 		fmt.Fprintf(os.Stderr, "internal error: unsupported edition %v (did you forget to update the embedded defaults (i.e. the bootstrap descriptor proto)?)\n", edpb)
 		os.Exit(1)
 	}
-	fsed := defaults.GetDefaults()[0]
+	fs := defaults.GetDefaults()[0].GetFeatures()
 	// Using a linear search for now.
 	// Editions are guaranteed to be sorted and thus we could use a binary search.
 	// Given that there are only a handful of editions (with one more per year)
 	// there is not much reason to use a binary search.
 	for _, def := range defaults.GetDefaults() {
 		if def.GetEdition() <= edpb {
-			fsed = def
+			fs = def.GetFeatures()
 		} else {
 			break
 		}
 	}
-	fs := proto.Clone(fsed.GetFixedFeatures()).(*descriptorpb.FeatureSet)
-	proto.Merge(fs, fsed.GetOverridableFeatures())
 	defaultsCache[ed] = fs
 	return fs
 }
@@ -126,43 +121,10 @@ func mergeEditionFeatures(parentDesc protoreflect.Descriptor, child *descriptorp
 		parentFS.IsJSONCompliant = *jf == descriptorpb.FeatureSet_ALLOW
 	}
 
-	// We must not use proto.GetExtension(child, gofeaturespb.E_Go)
-	// because that only works for messages we generated, but not for
-	// dynamicpb messages. See golang/protobuf#1669.
-	//
-	// Further, we harden this code against adversarial inputs: a
-	// service which accepts descriptors from a possibly malicious
-	// source shouldn't crash.
-	goFeatures := child.ProtoReflect().Get(gofeaturespb.E_Go.TypeDescriptor())
-	if !goFeatures.IsValid() {
-		return parentFS
-	}
-	gf, ok := goFeatures.Interface().(protoreflect.Message)
-	if !ok {
-		return parentFS
-	}
-	// gf.Interface() could be *dynamicpb.Message or *gofeaturespb.GoFeatures.
-	fields := gf.Descriptor().Fields()
-
-	if fd := fields.ByNumber(genid.GoFeatures_LegacyUnmarshalJsonEnum_field_number); fd != nil &&
-		!fd.IsList() &&
-		fd.Kind() == protoreflect.BoolKind &&
-		gf.Has(fd) {
-		parentFS.GenerateLegacyUnmarshalJSON = gf.Get(fd).Bool()
-	}
-
-	if fd := fields.ByNumber(genid.GoFeatures_StripEnumPrefix_field_number); fd != nil &&
-		!fd.IsList() &&
-		fd.Kind() == protoreflect.EnumKind &&
-		gf.Has(fd) {
-		parentFS.StripEnumPrefix = int(gf.Get(fd).Enum())
-	}
-
-	if fd := fields.ByNumber(genid.GoFeatures_ApiLevel_field_number); fd != nil &&
-		!fd.IsList() &&
-		fd.Kind() == protoreflect.EnumKind &&
-		gf.Has(fd) {
-		parentFS.APILevel = int(gf.Get(fd).Enum())
+	if goFeatures, ok := proto.GetExtension(child, gofeaturespb.E_Go).(*gofeaturespb.GoFeatures); ok && goFeatures != nil {
+		if luje := goFeatures.LegacyUnmarshalJsonEnum; luje != nil {
+			parentFS.GenerateLegacyUnmarshalJSON = *luje
+		}
 	}
 
 	return parentFS

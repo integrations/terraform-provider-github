@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 
@@ -52,7 +51,7 @@ func resourceGithubActionsVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -72,7 +71,7 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 	return resourceGithubActionsVariableRead(d, meta)
 }
 
-func resourceGithubActionsVariableUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsVariableUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -92,7 +91,7 @@ func resourceGithubActionsVariableUpdate(d *schema.ResourceData, meta any) error
 	return resourceGithubActionsVariableRead(d, meta)
 }
 
-func resourceGithubActionsVariableRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsVariableRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -104,8 +103,7 @@ func resourceGithubActionsVariableRead(d *schema.ResourceData, meta any) error {
 
 	variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, variableName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -135,7 +133,7 @@ func resourceGithubActionsVariableRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubActionsVariableDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsVariableDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

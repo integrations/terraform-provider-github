@@ -172,7 +172,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -299,7 +299,7 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubOrganizationSettingsRead(d, meta)
 }
 
-func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -394,7 +394,7 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 	return nil
 }
 
-func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

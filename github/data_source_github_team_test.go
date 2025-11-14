@@ -10,9 +10,11 @@ import (
 )
 
 func TestAccGithubTeamDataSource(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries an existing team without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -52,9 +54,11 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -98,6 +102,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
+
 		config := `
 			data "github_team" "test" {
 				slug = ""
@@ -128,9 +133,11 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -173,9 +180,11 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -216,9 +225,11 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -275,5 +286,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

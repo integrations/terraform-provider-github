@@ -1,4 +1,3 @@
-// Package analyzer implements the thelper linter logic.
 package analyzer
 
 import (
@@ -10,14 +9,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gostaticanalysis/analysisutil"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 )
 
 const (
-	doc = "thelper detects tests helpers which do not start with the t.Helper() method."
-
+	doc       = "thelper detects tests helpers which is not start with t.Helper() method."
 	checksDoc = `coma separated list of enabled checks
 
 Available checks
@@ -46,9 +45,7 @@ func (m enabledChecksValue) String() string {
 	for s := range m {
 		ss = append(ss, s)
 	}
-
 	sort.Strings(ss)
-
 	return strings.Join(ss, ",")
 }
 
@@ -61,7 +58,6 @@ func (m enabledChecksValue) Set(s string) error {
 	for k := range m {
 		delete(m, k)
 	}
-
 	for _, v := range ss {
 		switch v {
 		case checkTBegin, checkTFirst, checkTName,
@@ -73,7 +69,6 @@ func (m enabledChecksValue) Set(s string) error {
 			return fmt.Errorf("unknown check name %q (see help for full list)", v)
 		}
 	}
-
 	return nil
 }
 
@@ -130,7 +125,6 @@ func NewAnalyzer() *analysis.Analyzer {
 	return a
 }
 
-//nolint:funlen // The function is easier to grok this way.
 func (t thelper) run(pass *analysis.Pass) (interface{}, error) {
 	tCheckOpts, fCheckOpts, bCheckOpts, tbCheckOpts, ok := t.buildCheckFuncOpts(pass)
 	if !ok {
@@ -143,7 +137,6 @@ func (t thelper) run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	var reports reports
-
 	nodeFilter := []ast.Node{
 		(*ast.FuncDecl)(nil),
 		(*ast.FuncLit)(nil),
@@ -151,7 +144,6 @@ func (t thelper) run(pass *analysis.Pass) (interface{}, error) {
 	}
 	inspect.Preorder(nodeFilter, func(node ast.Node) {
 		var fd funcDecl
-
 		switch n := node.(type) {
 		case *ast.FuncLit:
 			fd.Pos = n.Pos()
@@ -165,17 +157,11 @@ func (t thelper) run(pass *analysis.Pass) (interface{}, error) {
 			fd.Name = n.Name
 		case *ast.CallExpr:
 			runSubtestExprs := extractSubtestExp(pass, n, tCheckOpts.subRun, tCheckOpts.subTestFuncType)
-
 			if len(runSubtestExprs) == 0 {
 				runSubtestExprs = extractSubtestExp(pass, n, bCheckOpts.subRun, bCheckOpts.subTestFuncType)
 			}
-
 			if len(runSubtestExprs) == 0 {
 				runSubtestExprs = extractSubtestFuzzExp(pass, n, fCheckOpts.subRun)
-			}
-
-			if len(runSubtestExprs) == 0 {
-				runSubtestExprs = extractSynctestExp(pass, n, tCheckOpts.subTestFuncType)
 			}
 
 			if len(runSubtestExprs) > 0 {
@@ -185,7 +171,6 @@ func (t thelper) run(pass *analysis.Pass) (interface{}, error) {
 			} else {
 				reports.NoFilter(funcDefPosition(pass, n.Fun))
 			}
-
 			return
 		default:
 			return
@@ -217,8 +202,7 @@ type checkFuncOpts struct {
 
 func (t thelper) buildCheckFuncOpts(pass *analysis.Pass) (checkFuncOpts, checkFuncOpts, checkFuncOpts, checkFuncOpts, bool) {
 	var ctxType types.Type
-
-	ctxObj := findTypeObject(pass, "context.Context")
+	ctxObj := analysisutil.ObjectOf(pass, "context", "Context")
 	if ctxObj != nil {
 		ctxType = ctxObj.Type()
 	}
@@ -247,7 +231,7 @@ func (t thelper) buildCheckFuncOpts(pass *analysis.Pass) (checkFuncOpts, checkFu
 }
 
 func (t thelper) buildTestCheckFuncOpts(pass *analysis.Pass, ctxType types.Type) (checkFuncOpts, bool) {
-	tObj := findTypeObject(pass, "testing.T")
+	tObj := analysisutil.ObjectOf(pass, "testing", "T")
 	if tObj == nil {
 		return checkFuncOpts{}, false
 	}
@@ -264,14 +248,13 @@ func (t thelper) buildTestCheckFuncOpts(pass *analysis.Pass, ctxType types.Type)
 
 	tType := types.NewPointer(tObj.Type())
 	tVar := types.NewVar(token.NoPos, nil, "t", tType)
-
 	return checkFuncOpts{
 		skipPrefix:      "Test",
 		varName:         "t",
 		fnHelper:        tHelper,
 		subRun:          tRun,
 		hpType:          tType,
-		subTestFuncType: types.NewSignatureType(nil, nil, nil, types.NewTuple(tVar), nil, false),
+		subTestFuncType: types.NewSignature(nil, types.NewTuple(tVar), nil, false),
 		ctxType:         ctxType,
 		checkBegin:      t.enabledChecks.Enabled(checkTBegin),
 		checkFirst:      t.enabledChecks.Enabled(checkTFirst),
@@ -280,7 +263,7 @@ func (t thelper) buildTestCheckFuncOpts(pass *analysis.Pass, ctxType types.Type)
 }
 
 func (t thelper) buildFuzzCheckFuncOpts(pass *analysis.Pass, ctxType types.Type) (checkFuncOpts, bool) {
-	fObj := findTypeObject(pass, "testing.F")
+	fObj := analysisutil.ObjectOf(pass, "testing", "F")
 	if fObj == nil {
 		return checkFuncOpts{}, true // fuzzing supports since go1.18, it's ok, that testig.F is missed.
 	}
@@ -309,7 +292,7 @@ func (t thelper) buildFuzzCheckFuncOpts(pass *analysis.Pass, ctxType types.Type)
 }
 
 func (t thelper) buildBenchmarkCheckFuncOpts(pass *analysis.Pass, ctxType types.Type) (checkFuncOpts, bool) {
-	bObj := findTypeObject(pass, "testing.B")
+	bObj := analysisutil.ObjectOf(pass, "testing", "B")
 	if bObj == nil {
 		return checkFuncOpts{}, false
 	}
@@ -326,14 +309,13 @@ func (t thelper) buildBenchmarkCheckFuncOpts(pass *analysis.Pass, ctxType types.
 
 	bType := types.NewPointer(bObj.Type())
 	bVar := types.NewVar(token.NoPos, nil, "b", bType)
-
 	return checkFuncOpts{
 		skipPrefix:      "Benchmark",
 		varName:         "b",
 		fnHelper:        bHelper,
 		subRun:          bRun,
 		hpType:          types.NewPointer(bObj.Type()),
-		subTestFuncType: types.NewSignatureType(nil, nil, nil, types.NewTuple(bVar), nil, false),
+		subTestFuncType: types.NewSignature(nil, types.NewTuple(bVar), nil, false),
 		ctxType:         ctxType,
 		checkBegin:      t.enabledChecks.Enabled(checkBBegin),
 		checkFirst:      t.enabledChecks.Enabled(checkBFirst),
@@ -342,7 +324,7 @@ func (t thelper) buildBenchmarkCheckFuncOpts(pass *analysis.Pass, ctxType types.
 }
 
 func (t thelper) buildTBCheckFuncOpts(pass *analysis.Pass, ctxType types.Type) (checkFuncOpts, bool) {
-	tbObj := findTypeObject(pass, "testing.TB")
+	tbObj := analysisutil.ObjectOf(pass, "testing", "TB")
 	if tbObj == nil {
 		return checkFuncOpts{}, false
 	}
@@ -388,7 +370,6 @@ func checkFunc(pass *analysis.Pass, reports *reports, funcDecl funcDecl, opts ch
 	if opts.checkFirst {
 		if pos != 0 {
 			checkFirstPassed := false
-
 			if pos == 1 && opts.ctxType != nil {
 				_, pos, ok := searchFuncParam(pass, funcDecl, opts.ctxType)
 				checkFirstPassed = ok && (pos == 0)
@@ -423,7 +404,6 @@ func searchFuncParam(pass *analysis.Pass, f funcDecl, p types.Type) (*ast.Field,
 			return f, i, true
 		}
 	}
-
 	return nil, 0, false
 }
 
@@ -493,44 +473,6 @@ func extractSubtestFuzzExp(
 	return []ast.Expr{e.Args[0]}
 }
 
-// extractSynctestExp analyzes that call expression 'e' is synctest.Test
-// and returns the test function.
-func extractSynctestExp(
-	pass *analysis.Pass, e *ast.CallExpr, testFuncType types.Type,
-) []ast.Expr {
-	// Check if this is a call to synctest.Test
-	selExpr, ok := e.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return nil
-	}
-
-	// Check if the selector is "Test"
-	if selExpr.Sel.Name != "Test" {
-		return nil
-	}
-
-	// Check if the package is synctest by looking at the identifier
-	ident, ok := selExpr.X.(*ast.Ident)
-	if !ok {
-		return nil
-	}
-
-	if !isIdentPackageName(pass, ident, "testing/synctest") {
-		return nil
-	}
-
-	// synctest.Test takes 2 arguments: t *testing.T, f func(*testing.T)
-	if len(e.Args) != 2 {
-		return nil
-	}
-
-	if funcs := unwrapTestingFunctionBuilding(pass, e.Args[1], testFuncType); funcs != nil {
-		return funcs
-	}
-
-	return []ast.Expr{e.Args[1]}
-}
-
 // unwrapTestingFunctionConstruction checks that expresion is build testing functions
 // and returns the result of building.
 func unwrapTestingFunctionBuilding(pass *analysis.Pass, expr ast.Expr, testFuncType types.Type) []ast.Expr {
@@ -540,7 +482,6 @@ func unwrapTestingFunctionBuilding(pass *analysis.Pass, expr ast.Expr, testFuncT
 	}
 
 	var funcDecl funcDecl
-
 	switch f := callExpr.Fun.(type) {
 	case *ast.FuncLit:
 		funcDecl.Body = f.Body
@@ -571,7 +512,6 @@ func unwrapTestingFunctionBuilding(pass *analysis.Pass, expr ast.Expr, testFuncT
 	}
 
 	var funcs []ast.Expr
-
 	ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
 		if n == nil {
 			return false
@@ -582,7 +522,6 @@ func unwrapTestingFunctionBuilding(pass *analysis.Pass, expr ast.Expr, testFuncT
 				funcs = append(funcs, retStmt.Results[0])
 			}
 		}
-
 		return true
 	})
 
@@ -603,7 +542,6 @@ func funcDefPosition(pass *analysis.Pass, e ast.Expr) token.Pos {
 		if !ok {
 			return token.NoPos
 		}
-
 		funIdent = selExpr.Sel
 	}
 
@@ -634,21 +572,6 @@ func isExprHasType(pass *analysis.Pass, expr ast.Expr, expType types.Type) bool 
 	}
 
 	return types.Identical(typeInfo.Type, expType)
-}
-
-// isIdentPackageName returns true if ident refers to the specified package.
-func isIdentPackageName(pass *analysis.Pass, ident *ast.Ident, pkgName string) bool {
-	obj := pass.TypesInfo.Uses[ident]
-	if obj == nil {
-		return false
-	}
-
-	pkgObj, ok := obj.(*types.PkgName)
-	if !ok {
-		return false
-	}
-
-	return pkgObj.Imported().Path() == pkgName
 }
 
 // findSelectorDeclaration returns function declaration called by selector expression.
@@ -709,25 +632,6 @@ func findFunctionDeclaration(pass *analysis.Pass, ident *ast.Ident) *ast.FuncDec
 			if funcDecl.Name.Pos() == obj.Pos() {
 				return funcDecl
 			}
-		}
-	}
-
-	return nil
-}
-
-func findTypeObject(pass *analysis.Pass, typeName string) types.Object {
-	parts := strings.Split(typeName, ".")
-	pkgName := parts[0]
-	typeName = parts[1]
-
-	for _, pkg := range pass.Pkg.Imports() {
-		if pkg.Name() != pkgName {
-			continue
-		}
-
-		obj := pkg.Scope().Lookup(typeName)
-		if obj != nil {
-			return obj
 		}
 	}
 

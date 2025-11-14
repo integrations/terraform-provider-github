@@ -44,7 +44,7 @@ func dataSourceGithubOrganizationWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta interface{}) error {
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
@@ -54,7 +54,7 @@ func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta any) 
 		PerPage: 100,
 	}
 
-	results := make([]map[string]any, 0)
+	results := make([]map[string]interface{}, 0)
 	for {
 		hooks, resp, err := client.Organizations.ListHooks(ctx, owner, options)
 		if err != nil {

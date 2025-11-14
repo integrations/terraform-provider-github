@@ -34,9 +34,9 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeInt},
 				Optional: true,
-				DefaultFunc: func() (any, error) {
+				DefaultFunc: func() (interface{}, error) {
 					defaultErrors := []int{500, 502, 503, 504}
-					errorInterfaces := make([]any, len(defaultErrors))
+					errorInterfaces := make([]interface{}, len(defaultErrors))
 					for i, v := range defaultErrors {
 						errorInterfaces[i] = v
 					}
@@ -209,8 +209,6 @@ func Provider() *schema.Provider {
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
-			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
-			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
 
@@ -337,7 +335,7 @@ func init() {
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
@@ -365,8 +363,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]any)
+		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]interface{})
 
 			var appID, appInstallationID, appPemFile string
 
@@ -390,7 +388,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				// (explicit value, or default value taken from
 				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+				appPemFile = strings.Replace(v, `\n`, "\n", -1)
 			} else {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
@@ -441,7 +439,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
-			reParam := d.Get("retryable_errors").([]any)
+			reParam := d.Get("retryable_errors").([]interface{})
 			if len(reParam) == 0 {
 				retryableErrors = getDefaultRetriableErrors()
 			} else {
@@ -518,7 +516,7 @@ func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
 	if err != nil {
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
-		return "", nil //nolint:nilerr
+		return "", nil
 	}
 
 	log.Printf("[INFO] Using the token from GitHub CLI")

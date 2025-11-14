@@ -19,7 +19,7 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 				return d.HasChange("name")
 			}),
 		),
@@ -63,7 +63,7 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
@@ -73,7 +73,7 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	required := d.Get("required").(bool)
 	defaultValue := d.Get("default_value").(string)
 	description := d.Get("description").(string)
-	allowedValues := d.Get("allowed_values").([]any)
+	allowedValues := d.Get("allowed_values").([]interface{})
 	var allowedValuesString []string
 	for _, v := range allowedValues {
 		allowedValuesString = append(allowedValuesString, v.(string))
@@ -95,7 +95,7 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	return resourceGithubCustomPropertiesRead(d, meta)
 }
 
-func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
@@ -106,24 +106,24 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 	}
 
 	d.SetId(*customProperty.PropertyName)
-	_ = d.Set("allowed_values", customProperty.AllowedValues)
-	_ = d.Set("default_value", customProperty.DefaultValue)
-	_ = d.Set("description", customProperty.Description)
-	_ = d.Set("property_name", customProperty.PropertyName)
-	_ = d.Set("required", customProperty.Required)
-	_ = d.Set("value_type", customProperty.ValueType)
+	d.Set("allowed_values", customProperty.AllowedValues)
+	d.Set("default_value", customProperty.DefaultValue)
+	d.Set("description", customProperty.Description)
+	d.Set("property_name", customProperty.PropertyName)
+	d.Set("required", customProperty.Required)
+	d.Set("value_type", customProperty.ValueType)
 
 	return nil
 }
 
-func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err := resourceGithubCustomPropertiesCreate(d, meta); err != nil {
 		return err
 	}
 	return resourceGithubCustomPropertiesRead(d, meta)
 }
 
-func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
@@ -135,7 +135,7 @@ func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) erro
 	return nil
 }
 
-func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	if err := d.Set("property_name", d.Id()); err != nil {
 		return nil, err
 	}

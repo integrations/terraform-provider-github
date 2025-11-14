@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +22,7 @@ import (
 // Options controls the behavior of a Walk call.
 type Options struct {
 	// If Logf is non-nil, debug logging is enabled through this function.
-	Logf func(format string, args ...any)
+	Logf func(format string, args ...interface{})
 
 	// Search module caches. Also disables legacy goimports ignore rules.
 	ModulesEnabled bool
@@ -82,7 +81,7 @@ func WalkSkip(roots []Root, add func(root Root, dir string), skip func(root Root
 // walkDir creates a walker and starts fastwalk with this walker.
 func walkDir(root Root, add func(Root, string), skip func(root Root, dir string) bool, opts Options) {
 	if opts.Logf == nil {
-		opts.Logf = func(format string, args ...any) {}
+		opts.Logf = func(format string, args ...interface{}) {}
 	}
 	if _, err := os.Stat(root.Path); os.IsNotExist(err) {
 		opts.Logf("skipping nonexistent directory: %v", root.Path)
@@ -196,8 +195,10 @@ func (w *walker) getIgnoredDirs(path string) []string {
 
 // shouldSkipDir reports whether the file should be skipped or not.
 func (w *walker) shouldSkipDir(dir string) bool {
-	if slices.Contains(w.ignoredDirs, dir) {
-		return true
+	for _, ignoredDir := range w.ignoredDirs {
+		if dir == ignoredDir {
+			return true
+		}
 	}
 	if w.skip != nil {
 		// Check with the user specified callback.

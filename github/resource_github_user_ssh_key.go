@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -51,7 +50,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	title := d.Get("title").(string)
@@ -71,7 +70,7 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubUserSshKeyRead(d, meta)
 }
 
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -85,8 +84,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -115,7 +113,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

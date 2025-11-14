@@ -15,7 +15,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
 		repoName := fmt.Sprintf("tf-acc-test-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		existingLabelName := fmt.Sprintf("label-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
-		empty := []map[string]any{}
+		empty := []map[string]interface{}{}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -41,7 +41,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					},
 					// 2. Check if existing labels can be adopted
 					{
-						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]any{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
 							"name":        existingLabelName,
 							"color":       "000000",
 							"description": "Test label",
@@ -55,7 +55,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					},
 					// 4. Check if a new label can be created
 					{
-						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]any{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
 							"name":        "foo",
 							"color":       "000000",
 							"description": "foo",
@@ -64,7 +64,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					},
 					// 5. Check if a label can be recreated
 					{
-						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]any{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
 							"name":        "Foo",
 							"color":       "000000",
 							"description": "foo",
@@ -74,16 +74,16 @@ func TestAccGithubIssueLabels(t *testing.T) {
 					// 6. Check if multiple labels can be created
 					{
 						Config: testAccGithubIssueLabelsConfig(repoName, append(empty,
-							map[string]any{
+							map[string]interface{}{
 								"name":        "Foo",
 								"color":       "000000",
 								"description": "foo",
 							},
-							map[string]any{
+							map[string]interface{}{
 								"name":        "bar",
 								"color":       "000000",
 								"description": "bar",
-							}, map[string]any{
+							}, map[string]interface{}{
 								"name":        "baz",
 								"color":       "000000",
 								"description": "baz",
@@ -119,18 +119,18 @@ func TestAccGithubIssueLabels(t *testing.T) {
 	})
 }
 
-func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) string {
+func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]interface{}) string {
 	resource := ""
 	if labels != nil {
-		var dynamic strings.Builder
+		dynamic := ""
 		for _, label := range labels {
-			dynamic.WriteString(fmt.Sprintf(`
+			dynamic += fmt.Sprintf(`
 				label {
 					name = "%s"
 					color = "%s"
 					description = "%s"
 				}
-			`, label["name"], label["color"], label["description"]))
+			`, label["name"], label["color"], label["description"])
 		}
 
 		resource = fmt.Sprintf(`
@@ -139,7 +139,7 @@ func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) st
 
 				%s
 			}
-		`, dynamic.String())
+		`, dynamic)
 	}
 
 	return fmt.Sprintf(`
@@ -165,6 +165,7 @@ func TestAccGithubIssueLabelsArchived(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+
 		repoName := fmt.Sprintf("tf-acc-test-labels-archive-%s", randomID)
 
 		config := fmt.Sprintf(`

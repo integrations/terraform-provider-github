@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 
@@ -49,7 +48,7 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -81,7 +80,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 	return resourceGithubMembershipRead(d, meta)
 }
 
-func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -102,8 +101,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
 		username, orgName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -130,7 +128,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -152,8 +150,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 		var membership *github.Membership
 		membership, _, err = client.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
-			ghErr := &github.ErrorResponse{}
-			if errors.As(err, &ghErr) {
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
 					return nil

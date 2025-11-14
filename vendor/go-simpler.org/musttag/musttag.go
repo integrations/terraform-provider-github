@@ -49,18 +49,12 @@ func New(funcs ...Func) *analysis.Analyzer {
 			merge(funcs)
 			merge(flagFuncs)
 
-			var mainModule string
-			if pass.Module != nil {
-				mainModule = pass.Module.Path
-			} else {
-				var err error
-				mainModule, err = getMainModule()
-				if err != nil {
-					return nil, err
-				}
+			mainModule, err := getMainModule()
+			if err != nil {
+				return nil, err
 			}
 
-			return nil, run(pass, mainModule, allFuncs)
+			return run(pass, mainModule, allFuncs)
 		},
 	}
 }
@@ -86,34 +80,43 @@ func flags(funcs *[]Func) flag.FlagSet {
 	return *fs
 }
 
-func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) error {
+func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) (_ any, err error) {
 	visit := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	filter := []ast.Node{(*ast.CallExpr)(nil)}
 
-	for node := range visit.PreorderSeq((*ast.CallExpr)(nil)) {
-		call := node.(*ast.CallExpr)
+	visit.Preorder(filter, func(node ast.Node) {
+		if err != nil {
+			return // there is already an error.
+		}
 
-		callee, ok := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
+		call, ok := node.(*ast.CallExpr)
 		if !ok {
-			continue
+			return // not a function call.
+		}
+
+		callee := typeutil.StaticCallee(pass.TypesInfo, call)
+		if callee == nil {
+			return // not a static call.
 		}
 
 		fn, ok := funcs[cutVendor(callee.FullName())]
 		if !ok {
-			continue
+			return // unsupported function.
 		}
 
 		if len(call.Args) <= fn.ArgPos {
-			return fmt.Errorf("musttag: Func.ArgPos cannot be %d: %s accepts only %d argument(s)", fn.ArgPos, fn.Name, len(call.Args))
+			err = fmt.Errorf("musttag: Func.ArgPos cannot be %d: %s accepts only %d argument(s)", fn.ArgPos, fn.Name, len(call.Args))
+			return
 		}
 
 		arg := call.Args[fn.ArgPos]
 		if ident, ok := arg.(*ast.Ident); ok && ident.Obj == nil {
-			continue // e.g. json.Marshal(nil)
+			return // e.g. json.Marshal(nil)
 		}
 
 		typ := pass.TypesInfo.TypeOf(arg)
 		if typ == nil {
-			continue
+			return // no type info found.
 		}
 
 		checker := checker{
@@ -122,14 +125,15 @@ func run(pass *analysis.Pass, mainModule string, funcs map[string]Func) error {
 			ifaceWhitelist: fn.ifaceWhitelist,
 			imports:        pass.Pkg.Imports(),
 		}
-		if checker.isValidType(typ, fn.Tag) {
-			continue
+
+		if valid := checker.checkType(typ, fn.Tag); valid {
+			return // nothing to report.
 		}
 
 		pass.Reportf(arg.Pos(), "the given struct should be annotated with the `%s` tag", fn.Tag)
-	}
+	})
 
-	return nil
+	return nil, err
 }
 
 type checker struct {
@@ -139,34 +143,46 @@ type checker struct {
 	imports        []*types.Package
 }
 
-func (c *checker) isValidType(typ types.Type, tag string) bool {
+func (c *checker) checkType(typ types.Type, tag string) bool {
 	if _, ok := c.seenTypes[typ.String()]; ok {
-		return true
+		return true // already checked.
 	}
 	c.seenTypes[typ.String()] = struct{}{}
 
 	styp, ok := c.parseStruct(typ)
 	if !ok {
-		return true
+		return true // not a struct.
 	}
 
-	return c.isValidStruct(styp, tag)
+	return c.checkStruct(styp, tag)
 }
 
+// recursively unwrap a type until we get to an underlying
+// raw struct type that should have its fields checked
+//
+//	SomeStruct -> struct{SomeStructField: ... }
+//	[]*SomeStruct -> struct{SomeStructField: ... }
+//	...
+//
+// exits early if it hits a type that implements a whitelisted interface
 func (c *checker) parseStruct(typ types.Type) (*types.Struct, bool) {
 	if implementsInterface(typ, c.ifaceWhitelist, c.imports) {
-		return nil, false
+		return nil, false // the type implements a Marshaler interface; see issue #64.
 	}
 
 	switch typ := typ.(type) {
 	case *types.Pointer:
 		return c.parseStruct(typ.Elem())
+
 	case *types.Array:
 		return c.parseStruct(typ.Elem())
+
 	case *types.Slice:
 		return c.parseStruct(typ.Elem())
+
 	case *types.Map:
 		return c.parseStruct(typ.Elem())
+
 	case *types.Named: // a struct of the named type.
 		pkg := typ.Obj().Pkg()
 		if pkg == nil {
@@ -180,14 +196,16 @@ func (c *checker) parseStruct(typ types.Type) (*types.Struct, bool) {
 			return nil, false
 		}
 		return styp, true
+
 	case *types.Struct: // an anonymous struct.
 		return typ, true
+
 	default:
 		return nil, false
 	}
 }
 
-func (c *checker) isValidStruct(styp *types.Struct, tag string) bool {
+func (c *checker) checkStruct(styp *types.Struct, tag string) (valid bool) {
 	for i := 0; i < styp.NumFields(); i++ {
 		field := styp.Field(i)
 		if !field.Exported() {
@@ -196,15 +214,18 @@ func (c *checker) isValidStruct(styp *types.Struct, tag string) bool {
 
 		tagValue, ok := reflect.StructTag(styp.Tag(i)).Lookup(tag)
 		if !ok {
+			// tag is not required for embedded types; see issue #12.
 			if !field.Embedded() {
-				return false // tag is not required for embedded types.
+				return false
 			}
 		}
+
+		// Do not recurse into ignored fields.
 		if tagValue == "-" {
-			continue // the field is explicitly ignored.
+			continue
 		}
 
-		if !c.isValidType(field.Type(), tag) {
+		if valid := c.checkType(field.Type(), tag); !valid {
 			return false
 		}
 	}
@@ -233,29 +254,25 @@ func implementsInterface(typ types.Type, ifaces []string, imports []*types.Packa
 	}
 
 	for _, ifacePath := range ifaces {
-		// e.g. "encoding/json.Marshaler" -> "encoding/json" + "Marshaler".
+		// "encoding/json.Marshaler" -> "encoding/json" + "Marshaler"
 		idx := strings.LastIndex(ifacePath, ".")
 		if idx == -1 {
 			continue
 		}
-
 		pkgName, ifaceName := ifacePath[:idx], ifacePath[idx+1:]
 
 		scope, ok := findScope(pkgName)
 		if !ok {
 			continue
 		}
-
 		obj := scope.Lookup(ifaceName)
 		if obj == nil {
 			continue
 		}
-
 		iface, ok := obj.Type().Underlying().(*types.Interface)
 		if !ok {
 			continue
 		}
-
 		if types.Implements(typ, iface) || types.Implements(types.NewPointer(typ), iface) {
 			return true
 		}

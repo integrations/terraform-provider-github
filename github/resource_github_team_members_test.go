@@ -63,7 +63,9 @@ func TestAccGithubTeamMembers(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }
 
 func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
@@ -127,6 +129,7 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 		}
 
 		TeamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, *members[0].Login)
+
 		if err != nil {
 			return err
 		}

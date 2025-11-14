@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,7 +46,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
-							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 								return true
 							},
 						},
@@ -92,7 +91,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
-							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 								return true
 							},
 						},
@@ -219,7 +218,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -260,7 +259,7 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) er
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -282,11 +281,10 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
-					return fmt.Errorf("error setting signed commit restriction: %w", err)
+					return fmt.Errorf("error setting signed commit restriction: %v", err)
 				}
 				return nil
 			}
@@ -320,25 +318,25 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_status_checks: %w", err)
+		return fmt.Errorf("error setting required_status_checks: %v", err)
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_pull_request_reviews: %w", err)
+		return fmt.Errorf("error setting required_pull_request_reviews: %v", err)
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting restrictions: %w", err)
+		return fmt.Errorf("error setting restrictions: %v", err)
 	}
 
 	if err := requireSignedCommitsRead(d, meta); err != nil {
-		return fmt.Errorf("error setting signed commit restriction: %w", err)
+		return fmt.Errorf("error setting signed commit restriction: %v", err)
 	}
 
 	return nil
 }
 
-func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -392,7 +390,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

@@ -11,10 +11,9 @@ func getPermission(permission string) string {
 	// Permissions for some GitHub API routes are expressed as "read",
 	// "write", and "admin"; in other places, they are expressed as "pull",
 	// "push", and "admin".
-	switch permission {
-	case readPermission:
+	if permission == readPermission {
 		return pullPermission
-	case writePermission:
+	} else if permission == writePermission {
 		return pushPermission
 	}
 

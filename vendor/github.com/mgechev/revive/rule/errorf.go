@@ -6,11 +6,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgechev/revive/internal/astutils"
 	"github.com/mgechev/revive/lint"
 )
 
-// ErrorfRule suggests using `fmt.Errorf` instead of `errors.New(fmt.Sprintf())`.
+// ErrorfRule lints given else constructs.
 type ErrorfRule struct{}
 
 // Apply applies the rule to given file.
@@ -48,7 +47,7 @@ func (w lintErrorf) Visit(n ast.Node) ast.Visitor {
 	if !ok || len(ce.Args) != 1 {
 		return w
 	}
-	isErrorsNew := astutils.IsPkgDotName(ce.Fun, "errors", "New")
+	isErrorsNew := isPkgDot(ce.Fun, "errors", "New")
 	var isTestingError bool
 	se, ok := ce.Fun.(*ast.SelectorExpr)
 	if ok && se.Sel.Name == "Error" {
@@ -61,7 +60,7 @@ func (w lintErrorf) Visit(n ast.Node) ast.Visitor {
 	}
 	arg := ce.Args[0]
 	ce, ok = arg.(*ast.CallExpr)
-	if !ok || !astutils.IsPkgDotName(ce.Fun, "fmt", "Sprintf") {
+	if !ok || !isPkgDot(ce.Fun, "fmt", "Sprintf") {
 		return w
 	}
 	errorfPrefix := "fmt"
@@ -70,7 +69,7 @@ func (w lintErrorf) Visit(n ast.Node) ast.Visitor {
 	}
 
 	failure := lint.Failure{
-		Category:   lint.FailureCategoryErrors,
+		Category:   "errors",
 		Node:       n,
 		Confidence: 1,
 		Failure:    fmt.Sprintf("should replace %s(fmt.Sprintf(...)) with %s.Errorf(...)", w.file.Render(se), errorfPrefix),

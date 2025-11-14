@@ -2,7 +2,6 @@ package analyzer
 
 import (
 	"flag"
-	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -27,7 +26,6 @@ const (
 	TLSSignatureSchemeFlag = "tls-signature-scheme"
 	ConstantKindFlag       = "constant-kind"
 	SyslogPriorityFlag     = "syslog-priority"
-	TimeDateMonthFlag      = "time-date-month"
 )
 
 // New returns new usestdlibvars analyzer.
@@ -55,7 +53,6 @@ func flags() flag.FlagSet {
 	flags.Bool(TLSSignatureSchemeFlag, false, "suggest the use of tls.SignatureScheme.String()")
 	flags.Bool(ConstantKindFlag, false, "suggest the use of constant.Kind.String()")
 	flags.Bool(SyslogPriorityFlag, false, "[DEPRECATED] suggest the use of syslog.Priority")
-	flags.Bool(TimeDateMonthFlag, false, "suggest the use of time.Month in time.Date")
 	return *flags
 }
 
@@ -120,9 +117,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		case *ast.BinaryExpr:
 			switch n.Op {
-			case token.LSS, token.GTR, token.LEQ, token.GEQ, token.QUO, token.ADD, token.SUB, token.MUL:
+			case token.LSS, token.GTR, token.LEQ, token.GEQ:
 				return
-			default:
 			}
 
 			x, ok := n.X.(*ast.SelectorExpr)
@@ -142,6 +138,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			if ok {
 				switchStmt(pass, x, n.Body.List)
 			}
+
 		}
 	})
 
@@ -244,18 +241,6 @@ func funArgs(pass *analysis.Pass, x *ast.Ident, fun *ast.SelectorExpr, args []as
 				checkSyslogPriority(pass, basicLit)
 			}
 		}
-	case "time":
-		if !lookupFlag(pass, TimeDateMonthFlag) {
-			return
-		}
-
-		// time.Date(2023, time.January, 2, 3, 4, 5, 0, time.UTC)
-		if fun.Sel.Name == "Date" {
-			if basicLit := getBasicLitFromArgs(args, 8, 1, token.INT); basicLit != nil {
-				checkTimeDateMonth(pass, basicLit)
-			}
-		}
-
 	default:
 		// w.WriteHeader(http.StatusOk)
 		if fun.Sel.Name == "WriteHeader" {
@@ -379,7 +364,7 @@ func checkHTTPMethod(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	key := strings.ToUpper(currentVal)
 
 	if newVal, ok := mapping.HTTPMethod[key]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -387,7 +372,7 @@ func checkHTTPStatusCode(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.HTTPStatusCode[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -395,7 +380,7 @@ func checkTimeWeekday(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.TimeWeekday[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -403,7 +388,7 @@ func checkTimeMonth(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.TimeMonth[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -411,7 +396,7 @@ func checkTimeLayout(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.TimeLayout[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -419,7 +404,7 @@ func checkCryptoHash(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.CryptoHash[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -427,7 +412,7 @@ func checkRPCDefaultPath(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.RPCDefaultPath[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -437,7 +422,7 @@ func checkSQLIsolationLevel(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.SQLIsolationLevel[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -445,7 +430,7 @@ func checkTLSSignatureScheme(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.TLSSignatureScheme[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
@@ -453,19 +438,11 @@ func checkConstantKind(pass *analysis.Pass, basicLit *ast.BasicLit) {
 	currentVal := getBasicLitValue(basicLit)
 
 	if newVal, ok := mapping.ConstantKind[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
+		report(pass, basicLit.Pos(), currentVal, newVal)
 	}
 }
 
 func checkSyslogPriority(pass *analysis.Pass, basicLit *ast.BasicLit) {}
-
-func checkTimeDateMonth(pass *analysis.Pass, basicLit *ast.BasicLit) {
-	currentVal := getBasicLitValue(basicLit)
-
-	if newVal, ok := mapping.TimeDateMonth[currentVal]; ok {
-		report(pass, basicLit, currentVal, newVal)
-	}
-}
 
 // getBasicLitFromArgs gets the *ast.BasicLit of a function argument.
 //
@@ -537,16 +514,6 @@ func getBasicLitValue(basicLit *ast.BasicLit) string {
 	return val.String()
 }
 
-func report(pass *analysis.Pass, rg analysis.Range, currentVal, newVal string) {
-	pass.Report(analysis.Diagnostic{
-		Pos:     rg.Pos(),
-		Message: fmt.Sprintf("%q can be replaced by %s", currentVal, newVal),
-		SuggestedFixes: []analysis.SuggestedFix{{
-			TextEdits: []analysis.TextEdit{{
-				Pos:     rg.Pos(),
-				End:     rg.End(),
-				NewText: []byte(newVal),
-			}},
-		}},
-	})
+func report(pass *analysis.Pass, pos token.Pos, currentVal, newVal string) {
+	pass.Reportf(pos, "%q can be replaced by %s", currentVal, newVal)
 }

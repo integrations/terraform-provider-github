@@ -121,7 +121,7 @@ type BranchProtectionResourceData struct {
 	LockBranch                     bool
 }
 
-func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProtectionResourceData, error) {
+func branchProtectionResourceData(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
 	data := BranchProtectionResourceData{}
 
 	if v, ok := d.GetOk(REPOSITORY_ID); ok {
@@ -161,7 +161,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_APPROVING_REVIEWS)
@@ -173,7 +173,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 
 			data.RequiresApprovingReviews = true
 
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			if v, ok := m[PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT]; ok {
 				data.RequiredApprovingReviewCount = v.(int)
 			}
@@ -215,7 +215,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
 		data.RequiresStatusChecks = true
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_STATUS_CHECKS)
@@ -225,7 +225,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 				break
 			}
 
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			if v, ok := m[PROTECTION_REQUIRES_STRICT_STATUS_CHECKS]; ok {
 				data.RequiresStrictStatusChecks = v.(bool)
 			}
@@ -235,7 +235,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
@@ -247,7 +247,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 
 			data.RestrictsPushes = true
 
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
 				data.BlocksCreations = v.(bool)
 			}
@@ -283,10 +283,10 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	return data, nil
 }
 
-func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectionResourceData, error) {
+func branchProtectionResourceDataActors(d *schema.ResourceData, meta interface{}) (BranchProtectionResourceData, error) {
 	data := BranchProtectionResourceData{}
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_APPROVING_REVIEWS)
@@ -296,7 +296,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 				break
 			}
 
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
 				vL := v.(*schema.Set).List()
@@ -322,7 +322,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
@@ -334,7 +334,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 
 			data.RestrictsPushes = true
 
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
 				data.BlocksCreations = v.(bool)
 			}
@@ -366,7 +366,7 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 	return data, nil
 }
 
-func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	dismissalActors := make([]string, 0, len(actors))
 	orgName := meta.(*Owner).name
 
@@ -396,7 +396,7 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 	return dismissalActors
 }
 
-func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	bypassActors := make([]string, 0, len(actors))
 
 	orgName := meta.(*Owner).name
@@ -427,7 +427,7 @@ func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchP
 	return bypassActors
 }
 
-func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	bypassActors := make([]string, 0, len(actors))
 
 	orgName := meta.(*Owner).name
@@ -458,7 +458,7 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 	return bypassActors
 }
 
-func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, meta interface{}) []string {
 	pushActors := make([]string, 0, len(actors))
 
 	orgName := meta.(*Owner).name
@@ -489,7 +489,7 @@ func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData,
 	return pushActors
 }
 
-func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionResourceData, meta any) any {
+func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
 	if !protection.RequiresApprovingReviews {
 		return nil
 	}
@@ -500,8 +500,8 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 	bypassPullRequestAllowances := protection.BypassPullRequestAllowances.Nodes
 	bypassPullRequestActors := setBypassPullRequestActorIDs(bypassPullRequestAllowances, data, meta)
 
-	approvalReviews := []any{
-		map[string]any{
+	approvalReviews := []interface{}{
+		map[string]interface{}{
 			PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT: protection.RequiredApprovingReviewCount,
 			PROTECTION_REQUIRES_CODE_OWNER_REVIEWS:     protection.RequiresCodeOwnerReviews,
 			PROTECTION_DISMISSES_STALE_REVIEWS:         protection.DismissesStaleReviews,
@@ -515,13 +515,13 @@ func setApprovingReviews(protection BranchProtectionRule, data BranchProtectionR
 	return approvalReviews
 }
 
-func setStatusChecks(protection BranchProtectionRule) any {
+func setStatusChecks(protection BranchProtectionRule) interface{} {
 	if !protection.RequiresStatusChecks {
 		return nil
 	}
 
-	statusChecks := []any{
-		map[string]any{
+	statusChecks := []interface{}{
+		map[string]interface{}{
 			PROTECTION_REQUIRES_STRICT_STATUS_CHECKS:  protection.RequiresStrictStatusChecks,
 			PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS: protection.RequiredStatusCheckContexts,
 		},
@@ -530,7 +530,7 @@ func setStatusChecks(protection BranchProtectionRule) any {
 	return statusChecks
 }
 
-func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta any) any {
+func setPushes(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) interface{} {
 	if !protection.RestrictsPushes {
 		return nil
 	}
@@ -538,8 +538,8 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 	pushAllowances := protection.PushAllowances.Nodes
 	pushActors := setPushActorIDs(pushAllowances, data, meta)
 
-	restrictsPushes := []any{
-		map[string]any{
+	restrictsPushes := []interface{}{
+		map[string]interface{}{
 			PROTECTION_BLOCKS_CREATIONS: protection.BlocksCreations,
 			PROTECTION_PUSH_ALLOWANCES:  pushActors,
 		},
@@ -548,7 +548,7 @@ func setPushes(protection BranchProtectionRule, data BranchProtectionResourceDat
 	return restrictsPushes
 }
 
-func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta any) []string {
+func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectionResourceData, meta interface{}) []string {
 	if protection.AllowsForcePushes {
 		return nil
 	}
@@ -558,7 +558,7 @@ func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectio
 	return bypassForcePushActors
 }
 
-func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (githubv4.ID, error) {
+func getBranchProtectionID(repoID githubv4.ID, pattern string, meta interface{}) (githubv4.ID, error) {
 	var query struct {
 		Node struct {
 			Repository struct {
@@ -573,7 +573,7 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (github
 			} `graphql:"... on Repository"`
 		} `graphql:"node(id: $id)"`
 	}
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"id":     repoID,
 		"first":  githubv4.Int(100),
 		"cursor": (*githubv4.String)(nil),
@@ -609,7 +609,7 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (github
 	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'", pattern)
 }
 
-func getActorIds(data []string, meta any) ([]string, error) {
+func getActorIds(data []string, meta interface{}) ([]string, error) {
 	var actors []string
 	for _, v := range data {
 		id, err := getNodeIDv4(v, meta)
@@ -628,7 +628,7 @@ func getActorIds(data []string, meta any) ([]string, error) {
 // with the organization name as prefix (Ex.: exampleorg/exampleteam). Usernames
 // must be provided with the "/" prefix otherwise getNodeIDv4 assumes that
 // the provided string is a node ID.
-func getNodeIDv4(userOrSlug string, meta any) (string, error) {
+func getNodeIDv4(userOrSlug string, meta interface{}) (string, error) {
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 	client := meta.(*Owner).v4client
@@ -642,7 +642,7 @@ func getNodeIDv4(userOrSlug string, meta any) (string, error) {
 			} `graphql:"organization(login: $organization)"`
 		}
 		teamName := strings.TrimPrefix(userOrSlug, orgName+"/")
-		variablesTeam := map[string]any{
+		variablesTeam := map[string]interface{}{
 			"slug":         githubv4.String(teamName),
 			"organization": githubv4.String(orgName),
 		}
@@ -661,7 +661,7 @@ func getNodeIDv4(userOrSlug string, meta any) (string, error) {
 			} `graphql:"user(login: $user)"`
 		}
 		userName := strings.TrimPrefix(userOrSlug, "/")
-		variablesUser := map[string]any{
+		variablesUser := map[string]interface{}{
 			"user": githubv4.String(userName),
 		}
 

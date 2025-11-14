@@ -6,13 +6,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// Test for the organization secret drift detection fix.
+// Test for the organization secret drift detection fix
 func TestGithubActionsOrganizationSecretDriftDetectionFix(t *testing.T) {
 	t.Run("always updates timestamp regardless of drift detection", func(t *testing.T) {
 		// This test verifies the fix for the issue where updated_at was not
 		// being set when drift was detected, causing repeated drift detection
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsOrganizationSecret().Schema, map[string]any{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsOrganizationSecret().Schema, map[string]interface{}{
 			"secret_name":      "test-secret",
 			"plaintext_value":  "test-value",
 			"visibility":       "private",
@@ -50,7 +50,7 @@ func TestGithubActionsOrganizationSecretDriftDetectionFix(t *testing.T) {
 	})
 
 	t.Run("does not clear ID when destroy_on_drift is false", func(t *testing.T) {
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsOrganizationSecret().Schema, map[string]any{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsOrganizationSecret().Schema, map[string]interface{}{
 			"secret_name":      "test-secret",
 			"plaintext_value":  "test-value",
 			"visibility":       "private",

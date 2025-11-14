@@ -49,7 +49,7 @@ func dataSourceGithubOrganizationRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRoleRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name

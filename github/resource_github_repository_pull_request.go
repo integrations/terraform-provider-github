@@ -18,7 +18,7 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 		Update: resourceGithubRepositoryPullRequestUpdate,
 		Delete: resourceGithubRepositoryPullRequestDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				_, baseRepository, _, err := parsePullRequestID(d)
 				if err != nil {
 					return nil, err
@@ -135,7 +135,7 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
@@ -165,6 +165,7 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 		Body:                github.String(d.Get("body").(string)),
 		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -174,7 +175,7 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 	return resourceGithubRepositoryPullRequestRead(d, meta)
 }
 
-func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
@@ -263,7 +264,7 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) e
 	return nil
 }
 
-func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
@@ -289,16 +290,16 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 		return resourceGithubRepositoryPullRequestRead(d, meta)
 	}
 
-	errs := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
+	errors := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
 
 	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
-		errs = append(errs, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
+		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
 	}
 
-	return fmt.Errorf("%s", strings.Join(errs, ", "))
+	return fmt.Errorf(strings.Join(errors, ", "))
 }
 
-func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta interface{}) error {
 	// It's not entirely clear how to treat PR deletion according to Terraform's
 	// CRUD semantics. The approach we're taking here is to close the PR unless
 	// it's already closed or merged. Merging it feels intuitively wrong in what
@@ -329,12 +330,12 @@ func parsePullRequestID(d *schema.ResourceData) (owner, repository string, numbe
 	var strNumber string
 
 	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "base_repository", "number"); err != nil {
-		return owner, repository, number, err
+		return
 	}
 
 	if number, err = strconv.Atoi(strNumber); err != nil {
 		err = fmt.Errorf("invalid PR number %s: %w", strNumber, err)
 	}
 
-	return owner, repository, number, err
+	return
 }

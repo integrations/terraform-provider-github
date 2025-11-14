@@ -9,6 +9,7 @@ import (
 
 func TestAccGithubOrganizationSettings(t *testing.T) {
 	t.Run("creates organization settings without error", func(t *testing.T) {
+
 		config := `
 		resource "github_organization_settings" "test" {
 			billing_email = "test@example.com"
@@ -66,6 +67,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 		t.Run("run with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 	t.Run("updates organization settings without error", func(t *testing.T) {
 		billingEmail := "test1@example.com"

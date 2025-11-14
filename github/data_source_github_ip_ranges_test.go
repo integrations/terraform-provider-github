@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccGithubIpRangesDataSource(t *testing.T) {
+
 	t.Run("reads IP ranges without error", func(t *testing.T) {
+
 		config := `data "github_ip_ranges" "test" {}`
 
 		check := resource.ComposeTestCheckFunc(
@@ -64,5 +66,6 @@ func TestAccGithubIpRangesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

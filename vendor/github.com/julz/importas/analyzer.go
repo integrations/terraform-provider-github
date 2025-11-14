@@ -13,7 +13,7 @@ import (
 )
 
 var config = &Config{
-	RequiredAlias: make([][]string, 0),
+	RequiredAlias: make(map[string]string),
 }
 
 var Analyzer = &analysis.Analyzer{
@@ -129,19 +129,11 @@ func findEdits(node ast.Node, uses map[*ast.Ident]types.Object, importPath, orig
 			// skip identifiers pointing to a different import statement.
 			continue
 		}
-		pos := use.Pos()
-		end := use.End()
-		replacement := packageReplacement
-
-		if packageReplacement == "." {
-			replacement = ""
-			end = end + 1
-		}
 
 		result = append(result, analysis.TextEdit{
-			Pos:     pos,
-			End:     end,
-			NewText: []byte(replacement),
+			Pos:     use.Pos(),
+			End:     use.End(),
+			NewText: []byte(packageReplacement),
 		})
 	}
 

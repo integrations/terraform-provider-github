@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccGithubRefDataSource(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries an existing branch ref without error", func(t *testing.T) {
@@ -55,10 +56,12 @@ func TestAccGithubRefDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	// TODO: This still fails on missing id attribute
 	t.Run("queries an invalid ref without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -101,5 +104,6 @@ func TestAccGithubRefDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

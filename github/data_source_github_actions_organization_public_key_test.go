@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccGithubActionsOrganizationPublicKeyDataSource(t *testing.T) {
+
 	t.Run("queries an organization public key without error", func(t *testing.T) {
+
 		config := `
 			data "github_actions_organization_public_key" "test" {}
 		`
@@ -42,5 +44,6 @@ func TestAccGithubActionsOrganizationPublicKeyDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

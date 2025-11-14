@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -70,7 +69,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -118,7 +117,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 	return resourceGithubActionsEnvironmentSecretRead(d, meta)
 }
 
-func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -131,8 +130,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -145,8 +143,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 
 	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -182,8 +179,8 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 	// not this resource should be modified or left as-is (ignore_changes).
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
-		_ = d.Set("encrypted_value", "")
-		_ = d.Set("plaintext_value", "")
+		d.Set("encrypted_value", "")
+		d.Set("plaintext_value", "")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return err
@@ -193,7 +190,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 	return nil
 }
 
-func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -213,7 +210,7 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta a
 	return err
 }
 
-func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta any) (keyId, pkValue string, err error) {
+func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

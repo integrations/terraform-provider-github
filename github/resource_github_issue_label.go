@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 
@@ -51,7 +50,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
@@ -70,7 +69,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 // otherwise it will create. This is also advantageous in that we get to use the
 // same function for two schema funcs.
 
-func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -143,7 +142,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 	return resourceGithubIssueLabelRead(d, meta)
 }
 
-func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
@@ -159,8 +158,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, name)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -196,7 +194,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name

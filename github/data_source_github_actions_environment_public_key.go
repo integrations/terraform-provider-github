@@ -32,7 +32,7 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)

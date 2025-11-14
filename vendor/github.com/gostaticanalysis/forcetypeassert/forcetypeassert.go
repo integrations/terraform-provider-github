@@ -2,7 +2,6 @@ package forcetypeassert
 
 import (
 	"go/ast"
-	"go/types"
 	"reflect"
 
 	"golang.org/x/tools/go/analysis"
@@ -43,9 +42,7 @@ func (p *Panicable) At(i int) ast.Node {
 
 const Doc = "forcetypeassert is finds type assertions which did forcely"
 
-var anyTyp = types.Universe.Lookup("any").Type()
-
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	inspect, _ := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	result := &Panicable{m: make(map[ast.Node]bool)}
 
@@ -65,7 +62,7 @@ func run(pass *analysis.Pass) (any, error) {
 		case *ast.ValueSpec:
 			return checkValueSpec(pass, result, n)
 		case *ast.TypeAssertExpr:
-			if n.Type != nil && !isAny(pass, n.Type) {
+			if n.Type != nil {
 				result.m[n] = true
 				result.nodes = append(result.nodes, n)
 				pass.Reportf(n.Pos(), "type assertion must be checked")
@@ -79,10 +76,6 @@ func run(pass *analysis.Pass) (any, error) {
 	return result, nil
 }
 
-func isAny(pass *analysis.Pass, expr ast.Expr) bool {
-	return types.Identical(pass.TypesInfo.TypeOf(expr), anyTyp)
-}
-
 func checkAssignStmt(pass *analysis.Pass, result *Panicable, n *ast.AssignStmt) bool {
 	tae := findTypeAssertion(n.Rhs)
 	if tae == nil {
@@ -90,16 +83,11 @@ func checkAssignStmt(pass *analysis.Pass, result *Panicable, n *ast.AssignStmt) 
 	}
 
 	switch {
-
-	// if right hand is a call expression, assign statement can't assert boolean value which describes type assertion is succeeded
-	case len(n.Rhs) == 1 && isCallExpr(n.Rhs[0]):
-		pass.Reportf(n.Pos(), "right hand must be only type assertion")
-		return false
 	// if right hand has 2 or more values, assign statement can't assert boolean value which describes type assertion is succeeded
 	case len(n.Rhs) > 1:
 		pass.Reportf(n.Pos(), "right hand must be only type assertion")
 		return false
-	case len(n.Lhs) != 2 && tae.Type != nil && !isAny(pass, tae.Type):
+	case len(n.Lhs) != 2 && tae.Type != nil:
 		result.m[n] = true
 		result.nodes = append(result.nodes, n)
 		pass.Reportf(n.Pos(), "type assertion must be checked")
@@ -118,15 +106,11 @@ func checkValueSpec(pass *analysis.Pass, result *Panicable, n *ast.ValueSpec) bo
 	}
 
 	switch {
-	// if right hand is a call expression, assign statement can't assert boolean value which describes type assertion is succeeded
-	case len(n.Values) == 1 && isCallExpr(n.Values[0]):
-		pass.Reportf(n.Pos(), "right hand must be only type assertion")
-		return false
 	// if right hand has 2 or more values, assign statement can't assert boolean value which describes type assertion is succeeded
 	case len(n.Values) > 1:
 		pass.Reportf(n.Pos(), "right hand must be only type assertion")
 		return false
-	case len(n.Names) != 2 && tae.Type != nil && !isAny(pass, tae.Type):
+	case len(n.Names) != 2 && tae.Type != nil:
 		result.m[n] = true
 		result.nodes = append(result.nodes, n)
 		pass.Reportf(n.Pos(), "type assertion must be checked")
@@ -156,9 +140,4 @@ func findTypeAssertion(exprs []ast.Expr) *ast.TypeAssertExpr {
 		}
 	}
 	return nil
-}
-
-func isCallExpr(expr ast.Expr) bool {
-	_, isCallExpr := expr.(*ast.CallExpr)
-	return isCallExpr
 }

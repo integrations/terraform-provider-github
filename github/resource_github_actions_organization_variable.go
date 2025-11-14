@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -64,7 +63,7 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -105,7 +104,7 @@ func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, met
 	return resourceGithubActionsOrganizationVariableRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -147,7 +146,7 @@ func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, met
 	return resourceGithubActionsOrganizationVariableRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -156,8 +155,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 
 	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, name)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -214,7 +212,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubActionsOrganizationVariableDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationVariableDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

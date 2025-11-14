@@ -6,7 +6,7 @@ package modfile
 
 import (
 	"fmt"
-	"slices"
+	"sort"
 	"strings"
 )
 
@@ -315,7 +315,9 @@ func (f *WorkFile) SortBlocks() {
 		if !ok {
 			continue
 		}
-		slices.SortStableFunc(block.Line, compareLine)
+		sort.SliceStable(block.Line, func(i, j int) bool {
+			return lineLess(block.Line[i], block.Line[j])
+		})
 	}
 }
 
@@ -329,5 +331,5 @@ func (f *WorkFile) SortBlocks() {
 // retract directives are not de-duplicated since comments are
 // meaningful, and versions may be retracted multiple times.
 func (f *WorkFile) removeDups() {
-	removeDups(f.Syntax, nil, &f.Replace, nil, nil)
+	removeDups(f.Syntax, nil, &f.Replace)
 }

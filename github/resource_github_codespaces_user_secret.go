@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"log"
 	"net/http"
 
@@ -19,7 +18,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 		Update: resourceGithubCodespacesUserSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -75,7 +74,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -127,14 +126,13 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubCodespacesUserSecretRead(d, meta)
 }
 
-func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -207,7 +205,7 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) er
 	return nil
 }
 
-func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -216,7 +214,7 @@ func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) 
 	return err
 }
 
-func getCodespacesUserPublicKeyDetails(meta any) (keyId, pkValue string, err error) {
+func getCodespacesUserPublicKeyDetails(meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

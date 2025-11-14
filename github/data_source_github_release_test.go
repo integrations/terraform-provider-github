@@ -10,11 +10,13 @@ import (
 )
 
 func TestAccGithubReleaseDataSource(t *testing.T) {
+
 	testReleaseRepository := os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
 	testReleaseID := os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID")
 	testReleaseOwner := testOrganizationFunc()
 
 	t.Run("queries latest release", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_release" "test" {
 				repository = "%s"
@@ -53,9 +55,11 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries release by ID or tag", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_release" "by_id" {
 				repository = "%[1]s"
@@ -105,9 +109,11 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("errors when querying with non-existent ID", func(t *testing.T) {
+
 		config := `
 			data "github_release" "test" {
 				repository = "test"
@@ -140,9 +146,11 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("errors when querying with non-existent repository", func(t *testing.T) {
+
 		config := `
 			data "github_release" "test" {
 				repository = "test"
@@ -174,9 +182,11 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("errors when querying with non-existent tag", func(t *testing.T) {
+
 		config := `
 			data "github_release" "test" {
 				repository = "test"
@@ -208,5 +218,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

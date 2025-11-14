@@ -49,6 +49,7 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 				i+1, tcCount, tc.OldValue, tc.NewValue)
 		}
 	}
+
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
@@ -111,7 +112,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 
 		_, resp, err := conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
 
-		if err != nil && resp.StatusCode != 404 {
+		if err != nil && resp.Response.StatusCode != 404 {
 			return err
 		}
 		return nil
@@ -168,9 +169,11 @@ resource "github_repository_deploy_key" "test_repo_deploy_key" {
 }
 
 func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
+
 		// Create a TEMP SSH key for testing only
 		key := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+7E/lL5ZWD7TCnNHfQWfyZ+/g1J0+E2u5R1d8K3/WKXGmI4DXk5JHZv+/rj+1J5HL5+3rJ4Z5bGF4e1z8E9JqHzF+8lQ3EI8E3z+9CQ5E5SYPeZPLxFk= test@example.com`
 
@@ -246,5 +249,6 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 		t.Run("with organization mode", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

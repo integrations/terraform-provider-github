@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +17,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 		Update: resourceGithubTeamSyncGroupMappingUpdate,
 		Delete: resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				if err := d.Set("team_slug", d.Id()); err != nil {
 					return nil, err
 				}
@@ -66,7 +65,7 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -88,7 +87,7 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) 
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -105,8 +104,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -120,19 +118,22 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 		return err
 	}
 
-	groups := flattenGithubIDPGroupList(idpGroupList)
+	groups, err := flattenGithubIDPGroupList(idpGroupList)
+	if err != nil {
+		return err
+	}
 
 	if err = d.Set("group", groups); err != nil {
-		return fmt.Errorf("error setting groups: %w", err)
+		return fmt.Errorf("error setting groups: %s", err)
 	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return fmt.Errorf("error setting etag: %w", err)
+		return fmt.Errorf("error setting etag: %s", err)
 	}
 
 	return nil
 }
 
-func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -152,7 +153,7 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) 
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -170,20 +171,20 @@ func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta any) 
 	return err
 }
 
-func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) []any {
+func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) ([]interface{}, error) {
 	if idpGroupList == nil {
-		return make([]any, 0)
+		return make([]interface{}, 0), nil
 	}
-	results := make([]any, 0)
+	results := make([]interface{}, 0)
 	for _, group := range idpGroupList.Groups {
-		result := make(map[string]any)
+		result := make(map[string]interface{})
 		result["group_id"] = group.GetGroupID()
 		result["group_name"] = group.GetGroupName()
 		result["group_description"] = group.GetGroupDescription()
 		results = append(results, result)
 	}
 
-	return results
+	return results, nil
 }
 
 // expandTeamSyncGroups creates an IDPGroupList with an array of IdP groups
@@ -196,7 +197,7 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 	if v, ok := d.GetOk("group"); ok {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			groupID := m["group_id"].(string)
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
@@ -209,4 +210,5 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 		}
 	}
 	return &github.IDPGroupList{Groups: groups}
+
 }

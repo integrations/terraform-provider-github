@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,9 +42,9 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				ForceNew:    true,
 				Default:     "push",
 				Description: "The permission of the outside collaborator for the repository. Must be one of 'pull', 'push', 'maintain', 'triage' or 'admin' or the name of an existing custom repository role within the organization for organization-owned repositories. Must be 'push' for personal repositories. Defaults to 'push'.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if d.Get("permission_diff_suppression").(bool) {
-						if n == "triage" || n == "maintain" {
+						if new == "triage" || new == "maintain" {
 							return true
 						}
 					}
@@ -67,7 +66,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	username := d.Get("username").(string)
@@ -84,6 +83,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any
 		&github.RepositoryAddCollaboratorOptions{
 			Permission: d.Get("permission").(string),
 		})
+
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
@@ -106,8 +106,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				// this short circuits the rest of the code because if the
 				// repo is 404, no reason to try to list existing collaborators
@@ -180,11 +179,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	username := d.Get("username").(string)
@@ -229,7 +228,7 @@ func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo,
 	return nil, nil
 }
 
-func parseRepoName(repoName, defaultOwner string) (string, string) {
+func parseRepoName(repoName string, defaultOwner string) (string, string) {
 	// GitHub replaces '/' with '-' for a repo name, so it is safe to assume that if repo name contains '/'
 	// then first part will be the owner name and second part will be the repo name
 	if strings.Contains(repoName, "/") {

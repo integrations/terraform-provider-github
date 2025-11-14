@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccGithubSshKeysDataSource(t *testing.T) {
+
 	t.Run("reads SSH keys without error", func(t *testing.T) {
+
 		config := `data "github_ssh_keys" "test" {}`
 
 		check := resource.ComposeTestCheckFunc(
@@ -38,5 +40,6 @@ func TestAccGithubSshKeysDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

@@ -28,7 +28,7 @@ func dataSourceGithubDependabotPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotPublicKeyRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubDependabotPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 	log.Printf("[INFO] Refreshing GitHub Dependabot Public Key from: %s/%s", owner, repository)

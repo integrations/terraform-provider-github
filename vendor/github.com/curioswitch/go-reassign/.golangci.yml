@@ -5,12 +5,14 @@ linters:
     - bodyclose
     - decorder
     - durationcheck
-    - err113
     - errchkjson
     - errname
     - errorlint
+    - execinquery
     - exhaustive
+    - exportloopref
     - gocritic
+    - goerr113
     - gofmt
     - goimports
     - goprintffuncname
@@ -18,6 +20,7 @@ linters:
     - importas
     - misspell
     - nolintlint
+    - nosnakecase
     - prealloc
     - predeclared
     - promlinter

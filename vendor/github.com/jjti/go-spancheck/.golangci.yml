@@ -17,9 +17,12 @@ linters:
     - errcheck
     - errname
     - errorlint
+    - exhaustive # checks exhaustiveness of enum switch statements
+    - exportloopref # checks for pointers to enclosing loop variables
     - gci
     - gochecknoinits # checks that no init functions are present in Go code
     - gocritic
+    - gomnd
     - gosimple
     - govet
     - importas # enforces consistent import aliases
@@ -40,6 +43,7 @@ linters:
     - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     - staticcheck
     - stylecheck
+    - tenv
     - thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     - unconvert # removes unnecessary type conversions
     - unparam # reports unused function parameters
@@ -55,6 +59,12 @@ linters-settings:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
       - prefix(github.com/jjti)
+  exhaustive:
+    # Program elements to check for exhaustiveness.
+    # Default: [ switch ]
+    check:
+      - switch
+      - map
   gocritic:
     settings:
       captLocal:
@@ -77,7 +87,7 @@ linters-settings:
   nestif:
     # Minimal complexity of if statements to report.
     # Default: 5
-    min-complexity: 5
+    min-complexity: 4
   nolintlint:
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false

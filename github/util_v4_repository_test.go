@@ -21,7 +21,6 @@ const nodeMatchTmpl = `{
     }
   }
 }`
-
 const nodeNoMatchTmpl = `{
   "data": {
     "node": null
@@ -137,12 +136,11 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 				var out bytes.Buffer
 				w.Header().Set("Content-Type", "application/json")
 				if strings.Contains(body, "repository(owner:$owner, name:$name)") {
-					switch tc.Expected {
-					case tc.Provided:
+					if tc.Expected == tc.Provided {
 						t.Fatalf("Attempted to use node_id=%s as a repo name", tc.Provided)
-					case "":
+					} else if tc.Expected == "" {
 						action = "repo_no_match"
-					default:
+					} else {
 						action = "repo_match"
 					}
 				} else if strings.Contains(body, "node(id:$id)") {

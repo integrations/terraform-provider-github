@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -52,9 +51,10 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		},
 		CustomizeDiff: customDeploymentPolicyDiffFunction,
 	}
+
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -87,7 +87,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -104,8 +104,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 
 	branchPolicy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -120,14 +119,14 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 	}
 
 	if branchPolicy.GetType() == "branch" {
-		_ = d.Set("branch_pattern", branchPolicy.GetName())
+		d.Set("branch_pattern", branchPolicy.GetName())
 	} else {
-		_ = d.Set("tag_pattern", branchPolicy.GetName())
+		d.Set("tag_pattern", branchPolicy.GetName())
 	}
 	return nil
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -164,7 +163,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	return resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -187,7 +186,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(d *schema.Resourc
 	return nil
 }
 
-func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
+func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	oldBranchPattern, newBranchPattern := diff.GetChange("branch_pattern")
 
 	if oldBranchPattern != "" && newBranchPattern == "" {

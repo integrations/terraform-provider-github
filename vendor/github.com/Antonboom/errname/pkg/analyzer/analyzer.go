@@ -1,9 +1,11 @@
 package analyzer
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
-	"go/types"
+	"strconv"
+	"strings"
 	"unicode"
 
 	"golang.org/x/tools/go/analysis"
@@ -21,92 +23,113 @@ func New() *analysis.Analyzer {
 	}
 }
 
-func run(pass *analysis.Pass) (any, error) {
+type stringSet = map[string]struct{}
+
+var (
+	importNodes = []ast.Node{(*ast.ImportSpec)(nil)}
+	typeNodes   = []ast.Node{(*ast.TypeSpec)(nil)}
+	funcNodes   = []ast.Node{(*ast.FuncDecl)(nil)}
+)
+
+func run(pass *analysis.Pass) (interface{}, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
-	insp.Nodes([]ast.Node{
-		(*ast.TypeSpec)(nil),
-		(*ast.ValueSpec)(nil),
-		(*ast.FuncDecl)(nil),
-	}, func(node ast.Node, push bool) bool {
-		if !push {
-			return false
+	pkgAliases := map[string]string{}
+	insp.Preorder(importNodes, func(node ast.Node) {
+		i := node.(*ast.ImportSpec)
+		if n := i.Name; n != nil && i.Path != nil {
+			if path, err := strconv.Unquote(i.Path.Value); err == nil {
+				pkgAliases[n.Name] = getPkgFromPath(path)
+			}
+		}
+	})
+
+	allTypes := stringSet{}
+	typesSpecs := map[string]*ast.TypeSpec{}
+	insp.Preorder(typeNodes, func(node ast.Node) {
+		t := node.(*ast.TypeSpec)
+		allTypes[t.Name.Name] = struct{}{}
+		typesSpecs[t.Name.Name] = t
+	})
+
+	errorTypes := stringSet{}
+	insp.Preorder(funcNodes, func(node ast.Node) {
+		f := node.(*ast.FuncDecl)
+		t, ok := isMethodError(f)
+		if !ok {
+			return
+		}
+		errorTypes[t] = struct{}{}
+
+		tSpec, ok := typesSpecs[t]
+		if !ok {
+			panic(fmt.Sprintf("no specification for type %q", t))
 		}
 
+		if _, ok := tSpec.Type.(*ast.ArrayType); ok {
+			if !isValidErrorArrayTypeName(t) {
+				reportAboutErrorType(pass, tSpec.Pos(), t, true)
+			}
+		} else if !isValidErrorTypeName(t) {
+			reportAboutErrorType(pass, tSpec.Pos(), t, false)
+		}
+	})
+
+	errorFuncs := stringSet{}
+	insp.Preorder(funcNodes, func(node ast.Node) {
+		f := node.(*ast.FuncDecl)
+		if isFuncReturningErr(f.Type, allTypes, errorTypes) {
+			errorFuncs[f.Name.Name] = struct{}{}
+		}
+	})
+
+	inspectPkgLevelVarsOnly := func(node ast.Node) bool {
 		switch v := node.(type) {
 		case *ast.FuncDecl:
 			return false
 
 		case *ast.ValueSpec:
-			if len(v.Names) != 1 {
-				return false
+			if name, ok := isSentinelError(v, pkgAliases, allTypes, errorTypes, errorFuncs); ok && !isValidErrorVarName(name) {
+				reportAboutErrorVar(pass, v.Pos(), name)
 			}
-			ident := v.Names[0]
-
-			if exprImplementsError(pass, ident) && !isValidErrorVarName(ident.Name) {
-				reportAboutSentinelError(pass, v.Pos(), ident.Name)
-			}
-			return false
-
-		case *ast.TypeSpec:
-			tt := pass.TypesInfo.TypeOf(v.Name)
-			if tt == nil {
-				return false
-			}
-			// NOTE(a.telyshev): Pointer is the hack against Error() method with pointer receiver.
-			if !typeImplementsError(types.NewPointer(tt)) {
-				return false
-			}
-
-			name := v.Name.Name
-			if _, ok := v.Type.(*ast.ArrayType); ok {
-				if !isValidErrorArrayTypeName(name) {
-					reportAboutArrayErrorType(pass, v.Pos(), name)
-				}
-			} else if !isValidErrorTypeName(name) {
-				reportAboutErrorType(pass, v.Pos(), name)
-			}
-			return false
 		}
-
 		return true
-	})
+	}
+	for _, f := range pass.Files {
+		ast.Inspect(f, inspectPkgLevelVarsOnly)
+	}
 
-	return nil, nil //nolint:nilnil // Integration interface of analysis.Analyzer.
+	return nil, nil //nolint:nilnil
 }
 
-func reportAboutErrorType(pass *analysis.Pass, typePos token.Pos, typeName string) {
+func reportAboutErrorType(pass *analysis.Pass, typePos token.Pos, typeName string, isArrayType bool) {
 	var form string
-	if startsWithLower(typeName) {
+	if unicode.IsLower([]rune(typeName)[0]) {
 		form = "xxxError"
 	} else {
 		form = "XxxError"
 	}
 
-	pass.Reportf(typePos, "the error type name `%s` should conform to the `%s` format", typeName, form)
-}
-
-func reportAboutArrayErrorType(pass *analysis.Pass, typePos token.Pos, typeName string) {
-	var forms string
-	if startsWithLower(typeName) {
-		forms = "`xxxErrors` or `xxxError`"
-	} else {
-		forms = "`XxxErrors` or `XxxError`"
+	if isArrayType {
+		form += "s"
 	}
-
-	pass.Reportf(typePos, "the error type name `%s` should conform to the %s format", typeName, forms)
+	pass.Reportf(typePos, "the type name `%s` should conform to the `%s` format", typeName, form)
 }
 
-func reportAboutSentinelError(pass *analysis.Pass, pos token.Pos, varName string) {
+func reportAboutErrorVar(pass *analysis.Pass, pos token.Pos, varName string) {
 	var form string
-	if startsWithLower(varName) {
+	if unicode.IsLower([]rune(varName)[0]) {
 		form = "errXxx"
 	} else {
 		form = "ErrXxx"
 	}
-	pass.Reportf(pos, "the sentinel error name `%s` should conform to the `%s` format", varName, form)
+	pass.Reportf(pos, "the variable name `%s` should conform to the `%s` format", varName, form)
 }
 
-func startsWithLower(n string) bool {
-	return unicode.IsLower([]rune(n)[0]) //nolint:gocritic // Source code is Unicode text encoded in UTF-8.
+func getPkgFromPath(p string) string {
+	idx := strings.LastIndex(p, "/")
+	if idx == -1 {
+		return p
+	}
+	return p[idx+1:]
 }

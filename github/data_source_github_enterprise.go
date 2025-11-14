@@ -40,7 +40,7 @@ func dataSourceGithubEnterprise() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta any) error {
+func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta interface{}) error {
 	var query struct {
 		Enterprise struct {
 			ID          githubv4.String
@@ -54,7 +54,7 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta any) error {
 
 	slug := data.Get("slug").(string)
 	client := meta.(*Owner).v4client
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"slug": githubv4.String(slug),
 	}
 	err := client.Query(context.Background(), &query, variables)

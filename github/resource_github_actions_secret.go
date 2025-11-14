@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -79,7 +78,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -120,7 +119,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any)
 	return resourceGithubActionsSecretRead(d, meta)
 }
 
-func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -132,8 +131,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -183,7 +181,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -198,7 +196,7 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta any) error {
 	return err
 }
 
-func resourceGithubActionsSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -239,7 +237,7 @@ func resourceGithubActionsSecretImport(d *schema.ResourceData, meta any) ([]*sch
 	return []*schema.ResourceData{d}, nil
 }
 
-func getPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
+func getPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

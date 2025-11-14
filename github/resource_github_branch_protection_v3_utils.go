@@ -45,8 +45,8 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 	if rsc != nil {
 
 		// Contexts and Checks arrays to flatten into
-		var contexts []any
-		var checks []any
+		var contexts []interface{}
+		var checks []interface{}
 
 		// TODO: Remove once contexts is fully deprecated.
 		// Flatten contexts
@@ -65,8 +65,8 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 			}
 		}
 
-		return d.Set("required_status_checks", []any{
-			map[string]any{
+		return d.Set("required_status_checks", []interface{}{
+			map[string]interface{}{
 				"strict": rsc.Strict,
 				// TODO: Remove once contexts is fully deprecated.
 				"contexts": schema.NewSet(schema.HashString, contexts),
@@ -75,10 +75,10 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		})
 	}
 
-	return d.Set("required_status_checks", []any{})
+	return d.Set("required_status_checks", []interface{}{})
 }
 
-func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
+func requireSignedCommitsRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
@@ -96,14 +96,13 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 		orgName, repoName, branch)
 	if err != nil {
 		log.Printf("[INFO] Not able to read signature protection: %s/%s (%s)", orgName, repoName, branch)
-		// TODO: Remove nolint once we can return an error
-		return nil //nolint:nilerr
+		return nil
 	}
 
 	return d.Set("require_signed_commits", signedCommitStatus.Enabled)
 }
 
-func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
+func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
 	client := meta.(*Owner).v3client
 
@@ -126,33 +125,33 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
 	return err
 }
 
-func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances) []any {
+func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances) []interface{} {
 	if bpra == nil {
 		return nil
 	}
-	users := make([]any, 0, len(bpra.Users))
+	users := make([]interface{}, 0, len(bpra.Users))
 	for _, u := range bpra.Users {
 		if u.Login != nil {
 			users = append(users, *u.Login)
 		}
 	}
 
-	teams := make([]any, 0, len(bpra.Teams))
+	teams := make([]interface{}, 0, len(bpra.Teams))
 	for _, t := range bpra.Teams {
 		if t.Slug != nil {
 			teams = append(teams, *t.Slug)
 		}
 	}
 
-	apps := make([]any, 0, len(bpra.Apps))
+	apps := make([]interface{}, 0, len(bpra.Apps))
 	for _, t := range bpra.Apps {
 		if t.Slug != nil {
 			apps = append(apps, *t.Slug)
 		}
 	}
 
-	return []any{
-		map[string]any{
+	return []interface{}{
+		map[string]interface{}{
 			"users": schema.NewSet(schema.HashString, users),
 			"teams": schema.NewSet(schema.HashString, teams),
 			"apps":  schema.NewSet(schema.HashString, apps),
@@ -163,23 +162,23 @@ func flattenBypassPullRequestAllowances(bpra *github.BypassPullRequestAllowances
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
 	rprr := protection.GetRequiredPullRequestReviews()
 	if rprr != nil {
-		var users, teams, apps []any
+		var users, teams, apps []interface{}
 		restrictions := rprr.GetDismissalRestrictions()
 
 		if restrictions != nil {
-			users = make([]any, 0, len(restrictions.Users))
+			users = make([]interface{}, 0, len(restrictions.Users))
 			for _, u := range restrictions.Users {
 				if u.Login != nil {
 					users = append(users, *u.Login)
 				}
 			}
-			teams = make([]any, 0, len(restrictions.Teams))
+			teams = make([]interface{}, 0, len(restrictions.Teams))
 			for _, t := range restrictions.Teams {
 				if t.Slug != nil {
 					teams = append(teams, *t.Slug)
 				}
 			}
-			apps = make([]any, 0, len(restrictions.Apps))
+			apps = make([]interface{}, 0, len(restrictions.Apps))
 			for _, t := range restrictions.Apps {
 				if t.Slug != nil {
 					apps = append(apps, *t.Slug)
@@ -189,8 +188,8 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 
 		bpra := flattenBypassPullRequestAllowances(rprr.GetBypassPullRequestAllowances())
 
-		return d.Set("required_pull_request_reviews", []any{
-			map[string]any{
+		return d.Set("required_pull_request_reviews", []interface{}{
+			map[string]interface{}{
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
 				"dismissal_users":                 schema.NewSet(schema.HashString, users),
 				"dismissal_teams":                 schema.NewSet(schema.HashString, teams),
@@ -203,35 +202,35 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 		})
 	}
 
-	return d.Set("required_pull_request_reviews", []any{})
+	return d.Set("required_pull_request_reviews", []interface{}{})
 }
 
 func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
 	restrictions := protection.GetRestrictions()
 	if restrictions != nil {
-		users := make([]any, 0, len(restrictions.Users))
+		users := make([]interface{}, 0, len(restrictions.Users))
 		for _, u := range restrictions.Users {
 			if u.Login != nil {
 				users = append(users, *u.Login)
 			}
 		}
 
-		teams := make([]any, 0, len(restrictions.Teams))
+		teams := make([]interface{}, 0, len(restrictions.Teams))
 		for _, t := range restrictions.Teams {
 			if t.Slug != nil {
 				teams = append(teams, *t.Slug)
 			}
 		}
 
-		apps := make([]any, 0, len(restrictions.Apps))
+		apps := make([]interface{}, 0, len(restrictions.Apps))
 		for _, t := range restrictions.Apps {
 			if t.Slug != nil {
 				apps = append(apps, *t.Slug)
 			}
 		}
 
-		return d.Set("restrictions", []any{
-			map[string]any{
+		return d.Set("restrictions", []interface{}{
+			map[string]interface{}{
 				"users": schema.NewSet(schema.HashString, users),
 				"teams": schema.NewSet(schema.HashString, teams),
 				"apps":  schema.NewSet(schema.HashString, apps),
@@ -239,12 +238,12 @@ func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protec
 		})
 	}
 
-	return d.Set("restrictions", []any{})
+	return d.Set("restrictions", []interface{}{})
 }
 
 func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusChecks, error) {
 	if v, ok := d.GetOk("required_status_checks"); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify required_status_checks more than one time")
 		}
@@ -255,7 +254,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			if v == nil {
 				return nil, nil
 			}
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 			rsc.Strict = m["strict"].(bool)
 
 			// Initialise empty literal to ensure an empty array is passed mitigating schema errors like so:
@@ -315,7 +314,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullRequestReviewsEnforcementRequest, error) {
 	if v, ok := d.GetOk("required_pull_request_reviews"); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify required_pull_request_reviews more than one time")
 		}
@@ -328,7 +327,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			if v == nil {
 				return nil, nil
 			}
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 
 			users := expandNestedSet(m, "dismissal_users")
 			if len(users) > 0 {
@@ -366,7 +365,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 
 func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsRequest, error) {
 	if v, ok := d.GetOk("restrictions"); ok {
-		vL := v.([]any)
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify restrictions more than one time")
 		}
@@ -381,7 +380,7 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 				restrictions.Apps = []string{}
 				return restrictions, nil
 			}
-			m := v.(map[string]any)
+			m := v.(map[string]interface{})
 
 			users := expandNestedSet(m, "users")
 			restrictions.Users = users
@@ -396,12 +395,12 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 	return nil, nil
 }
 
-func expandBypassPullRequestAllowances(m map[string]any) (*github.BypassPullRequestAllowancesRequest, error) {
+func expandBypassPullRequestAllowances(m map[string]interface{}) (*github.BypassPullRequestAllowancesRequest, error) {
 	if m["bypass_pull_request_allowances"] == nil {
 		return nil, nil
 	}
 
-	vL := m["bypass_pull_request_allowances"].([]any)
+	vL := m["bypass_pull_request_allowances"].([]interface{})
 	if len(vL) > 1 {
 		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
 	}
@@ -413,7 +412,7 @@ func expandBypassPullRequestAllowances(m map[string]any) (*github.BypassPullRequ
 			return nil, errors.New("invalid bypass_pull_request_allowances")
 		}
 		bpra = new(github.BypassPullRequestAllowancesRequest)
-		m := v.(map[string]any)
+		m := v.(map[string]interface{})
 
 		users := expandNestedSet(m, "users")
 		bpra.Users = users

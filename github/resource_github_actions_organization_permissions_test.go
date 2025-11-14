@@ -9,7 +9,9 @@ import (
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
+
 	t.Run("test setting of basic actions organization permissions", func(t *testing.T) {
+
 		allowedActions := "local_only"
 		enabledRepositories := "all"
 
@@ -48,6 +50,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("imports entire set of github action organization permissions without error", func(t *testing.T) {
+
 		allowedActions := "selected"
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
@@ -114,6 +117,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of organization allowed actions", func(t *testing.T) {
+
 		allowedActions := "selected"
 		enabledRepositories := "all"
 		githubOwnedAllowed := true
@@ -163,6 +167,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test not setting of organization allowed actions without error", func(t *testing.T) {
+
 		allowedActions := "selected"
 		enabledRepositories := "all"
 
@@ -205,6 +210,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of organization enabled repositories", func(t *testing.T) {
+
 		allowedActions := "all"
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
@@ -263,4 +269,5 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
 }

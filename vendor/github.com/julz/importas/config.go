@@ -4,26 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sync"
 )
 
 type Config struct {
-	RequiredAlias        aliasList
+	RequiredAlias        map[string]string
 	Rules                []*Rule
 	DisallowUnaliased    bool
 	DisallowExtraAliases bool
-	muRules              sync.Mutex
 }
 
 func (c *Config) CompileRegexp() error {
-	c.muRules.Lock()
-	defer c.muRules.Unlock()
-	if c.Rules != nil {
-		return nil
-	}
 	rules := make([]*Rule, 0, len(c.RequiredAlias))
-	for _, aliases := range c.RequiredAlias {
-		path, alias := aliases[0], aliases[1]
+	for path, alias := range c.RequiredAlias {
 		reg, err := regexp.Compile(fmt.Sprintf("^%s$", path))
 		if err != nil {
 			return err
@@ -34,15 +26,13 @@ func (c *Config) CompileRegexp() error {
 			Alias:  alias,
 		})
 	}
+
 	c.Rules = rules
 	return nil
 }
 
 func (c *Config) findRule(path string) *Rule {
-	c.muRules.Lock()
-	rules := c.Rules
-	c.muRules.Unlock()
-	for _, rule := range rules {
+	for _, rule := range c.Rules {
 		if rule.Regexp.MatchString(path) {
 			return rule
 		}

@@ -59,7 +59,7 @@ func resourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Id()
@@ -85,7 +85,7 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
@@ -93,9 +93,9 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 
 	wantLabels := d.Get("label").(*schema.Set).List()
 
-	wantLabelsMap := make(map[string]any, len(wantLabels))
+	wantLabelsMap := make(map[string]interface{}, len(wantLabels))
 	for _, label := range wantLabels {
-		name := label.(map[string]any)["name"].(string)
+		name := label.(map[string]interface{})["name"].(string)
 		if _, found := wantLabelsMap[name]; found {
 			return fmt.Errorf("duplicate set label: %s", name)
 		}
@@ -114,7 +114,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 		name := hasLabel.GetName()
 		wantLabel, found := wantLabelsMap[name]
 		if found {
-			labelData := wantLabel.(map[string]any)
+			labelData := wantLabel.(map[string]interface{})
 			description := labelData["description"].(string)
 			color := labelData["color"].(string)
 			if hasLabel.GetDescription() != description || hasLabel.GetColor() != color {
@@ -142,7 +142,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 	}
 
 	for _, l := range wantLabels {
-		labelData := l.(map[string]any)
+		labelData := l.(map[string]interface{})
 		name := labelData["name"].(string)
 
 		_, found := hasLabelsMap[name]
@@ -170,7 +170,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 	return nil
 }
 
-func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
@@ -182,7 +182,7 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
 
 	// delete
 	for _, raw := range labels {
-		label := raw.(map[string]any)
+		label := raw.(map[string]interface{})
 		name := label["name"].(string)
 
 		log.Printf("[DEBUG] Deleting GitHub issue label %s/%s/%s", owner, repository, name)
@@ -199,7 +199,7 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
 
 	d.SetId(repository)
 
-	err := d.Set("label", make([]map[string]any, 0))
+	err := d.Set("label", make([]map[string]interface{}, 0))
 	if err != nil {
 		return err
 	}

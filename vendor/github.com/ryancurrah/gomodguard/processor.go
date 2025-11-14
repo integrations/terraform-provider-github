@@ -146,6 +146,10 @@ func (p *Processor) SetBlockedModules() { //nolint:funlen
 	replacedModules := p.Modfile.Replace
 
 	for i := range lintedModules {
+		if lintedModules[i].Indirect {
+			continue // Do not lint indirect modules.
+		}
+
 		lintedModuleName := strings.TrimSpace(lintedModules[i].Mod.Path)
 		lintedModuleVersion := strings.TrimSpace(lintedModules[i].Mod.Version)
 
@@ -261,7 +265,7 @@ func loadGoModFile() ([]byte, error) {
 		return os.ReadFile(goModFilename)
 	}
 
-	if goEnv["GOMOD"] == "/dev/null" || goEnv["GOMOD"] == "NUL" {
+	if goEnv["GOMOD"] == "/dev/null" {
 		return nil, errors.New("current working directory must have a go.mod file")
 	}
 

@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,7 +19,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -93,7 +92,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -152,15 +151,14 @@ func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceDat
 	return resourceGithubActionsOrganizationSecretRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
 	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -240,7 +238,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -250,7 +248,7 @@ func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta 
 	return err
 }
 
-func getOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
+func getOrganizationPublicKeyDetails(owner string, meta interface{}) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

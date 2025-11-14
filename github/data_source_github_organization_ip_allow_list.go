@@ -48,7 +48,7 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -87,12 +87,12 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 		} `graphql:"organization(login: $login)"`
 	}
 
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"login":         githubv4.String(orgName),
 		"entriesCursor": (*githubv4.String)(nil),
 	}
 
-	var ipAllowList []any
+	var ipAllowList []interface{}
 	var ipAllowListEntries []IpAllowListEntry
 
 	for {
@@ -108,7 +108,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 		variables["entriesCursor"] = githubv4.NewString(query.Organization.IpAllowListEntries.PageInfo.EndCursor)
 	}
 	for index := range ipAllowListEntries {
-		ipAllowList = append(ipAllowList, map[string]any{
+		ipAllowList = append(ipAllowList, map[string]interface{}{
 			"id":               ipAllowListEntries[index].ID,
 			"name":             ipAllowListEntries[index].Name,
 			"allow_list_value": ipAllowListEntries[index].AllowListValue,

@@ -84,8 +84,7 @@ func walkThroughEmbeddedInterfaces(sel *types.Selection) ([]types.Type, bool) {
 }
 
 func getTypeAtFieldIndex(startingAt types.Type, fieldIndex int) types.Type {
-	t := maybeDereference(maybeUnalias(startingAt))
-	t = maybeUnname(maybeUnalias(t))
+	t := maybeUnname(maybeDereference(startingAt))
 	s, ok := t.(*types.Struct)
 	if !ok {
 		panic(fmt.Sprintf("cannot get Field of a type that is not a struct, got a %T", t))

@@ -57,9 +57,9 @@ func (checker *GoRequire) SetIgnoreHTTPHandlers(v bool) *GoRequire {
 // Other test functions called in the test function are also analyzed to make a verdict about the current function.
 // This leads to recursion, which the cache of processed functions (processedFuncs) helps reduce the impact of.
 // Also, because of this, we have to pre-collect a list of test function declarations (testsDecls).
-func (checker GoRequire) Check(pass *analysis.Pass, insp *inspector.Inspector) (diagnostics []analysis.Diagnostic) {
+func (checker GoRequire) Check(pass *analysis.Pass, inspector *inspector.Inspector) (diagnostics []analysis.Diagnostic) {
 	testsDecls := make(funcDeclarations)
-	insp.Preorder([]ast.Node{(*ast.FuncDecl)(nil)}, func(node ast.Node) {
+	inspector.Preorder([]ast.Node{(*ast.FuncDecl)(nil)}, func(node ast.Node) {
 		fd := node.(*ast.FuncDecl)
 
 		if isTestingFuncOrMethod(pass, fd) {
@@ -78,7 +78,7 @@ func (checker GoRequire) Check(pass *analysis.Pass, insp *inspector.Inspector) (
 		(*ast.GoStmt)(nil),
 		(*ast.CallExpr)(nil),
 	}
-	insp.Nodes(nodesFilter, func(node ast.Node, push bool) bool {
+	inspector.Nodes(nodesFilter, func(node ast.Node, push bool) bool {
 		if fd, ok := node.(*ast.FuncDecl); ok {
 			if !isTestingFuncOrMethod(pass, fd) {
 				return false
@@ -142,11 +142,11 @@ func (checker GoRequire) Check(pass *analysis.Pass, insp *inspector.Inspector) (
 		if testifyCall != nil {
 			switch checker.checkCall(testifyCall) {
 			case goRequireVerdictRequire:
-				d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireCallReportFormat, "require"))
+				d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireCallReportFormat, "require"), nil)
 				diagnostics = append(diagnostics, *d)
 
 			case goRequireVerdictAssertFailNow:
-				d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireCallReportFormat, testifyCall))
+				d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireCallReportFormat, testifyCall), nil)
 				diagnostics = append(diagnostics, *d)
 
 			case goRequireVerdictNoExit:
@@ -163,7 +163,7 @@ func (checker GoRequire) Check(pass *analysis.Pass, insp *inspector.Inspector) (
 
 			if v := checker.checkFunc(pass, calledFd, testsDecls, processedFuncs); v != goRequireVerdictNoExit {
 				caller := analysisutil.NodeString(pass.Fset, ce.Fun)
-				d := newDiagnostic(checker.Name(), ce, fmt.Sprintf(goRequireFnReportFormat, caller))
+				d := newDiagnostic(checker.Name(), ce, fmt.Sprintf(goRequireFnReportFormat, caller), nil)
 				diagnostics = append(diagnostics, *d)
 			}
 		}
@@ -171,7 +171,7 @@ func (checker GoRequire) Check(pass *analysis.Pass, insp *inspector.Inspector) (
 	})
 
 	if !checker.ignoreHTTPHandlers {
-		diagnostics = append(diagnostics, checker.checkHTTPHandlers(pass, insp)...)
+		diagnostics = append(diagnostics, checker.checkHTTPHandlers(pass, inspector)...)
 	}
 
 	return diagnostics
@@ -198,11 +198,11 @@ func (checker GoRequire) checkHTTPHandlers(pass *analysis.Pass, insp *inspector.
 
 		switch checker.checkCall(testifyCall) {
 		case goRequireVerdictRequire:
-			d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireHTTPHandlerReportFormat, "require"))
+			d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireHTTPHandlerReportFormat, "require"), nil)
 			diagnostics = append(diagnostics, *d)
 
 		case goRequireVerdictAssertFailNow:
-			d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireHTTPHandlerReportFormat, testifyCall))
+			d := newDiagnostic(checker.Name(), testifyCall, fmt.Sprintf(goRequireHTTPHandlerReportFormat, testifyCall), nil)
 			diagnostics = append(diagnostics, *d)
 
 		case goRequireVerdictNoExit:

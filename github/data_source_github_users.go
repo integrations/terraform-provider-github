@@ -54,8 +54,8 @@ func dataSourceGithubUsers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
-	usernames := expandStringList(d.Get("usernames").([]any))
+func dataSourceGithubUsersRead(d *schema.ResourceData, meta interface{}) error {
+	usernames := expandStringList(d.Get("usernames").([]interface{}))
 
 	// Create GraphQL variables and query struct
 	type (
@@ -66,12 +66,12 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
 		}
 	)
 	var fields []reflect.StructField
-	variables := make(map[string]any)
+	variables := make(map[string]interface{})
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
 		variables[label] = githubv4.String(username)
 		fields = append(fields, reflect.StructField{
-			Name: label, Type: reflect.TypeFor[UserFragment](), Tag: reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
+			Name: label, Type: reflect.TypeOf(UserFragment{}), Tag: reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
 		})
 	}
 	query := reflect.New(reflect.StructOf(fields)).Elem()

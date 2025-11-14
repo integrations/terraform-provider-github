@@ -22,6 +22,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -150,9 +151,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
 
 	t.Run("Updates a ruleset name without error", func(t *testing.T) {
+
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
 
@@ -207,9 +210,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -288,9 +293,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
 
 	t.Run("Creates and updates organization using bypasses", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -393,9 +400,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
 
 	t.Run("Creates organization ruleset with all bypass_modes", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-bypass-modes-%s"
@@ -492,9 +501,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
 
 	t.Run("Updates organization ruleset bypass_mode without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-bypass-update-%s"
@@ -562,17 +573,19 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
+
 	})
+
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
 	// Test that organization push rulesets support all push-specific rules
 	// This is a unit test since it only validates the expand/flatten functionality
 
-	rulesMap := map[string]any{
-		"file_path_restriction": []any{
-			map[string]any{
-				"restricted_file_paths": []any{"secrets/", "*.key", "private/"},
+	rulesMap := map[string]interface{}{
+		"file_path_restriction": []interface{}{
+			map[string]interface{}{
+				"restricted_file_paths": []interface{}{"secrets/", "*.key", "private/"},
 			},
 		},
 		"max_file_size": []interface{}{
@@ -580,8 +593,8 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 				"max_file_size": 10485760, // 10MB
 			},
 		},
-		"max_file_path_length": []any{
-			map[string]any{
+		"max_file_path_length": []interface{}{
+			map[string]interface{}{
 				"max_file_path_length": 250,
 			},
 		},
@@ -594,7 +607,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 	}
 
-	input := []any{rulesMap}
+	input := []interface{}{rulesMap}
 
 	// Test expand functionality (organization rulesets use org=true)
 	expandedRules := expandRules(input, true)
@@ -623,10 +636,10 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
 
 	// Verify file_path_restriction
-	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]any)
+	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]interface{})
 	if len(filePathRules) != 1 {
 		t.Fatalf("Expected 1 file_path_restriction rule, got %d", len(filePathRules))
 	}
@@ -636,7 +649,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_size
-	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
+	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]interface{})
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
@@ -645,7 +658,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_path_length
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
 	}
@@ -654,7 +667,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify file_extension_restriction
-	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
+	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]interface{})
 	if len(fileExtRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtRules))
 	}

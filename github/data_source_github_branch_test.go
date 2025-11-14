@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccGithubBranchDataSource(t *testing.T) {
+
 	t.Run("queries an existing branch without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -55,6 +56,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries an invalid branch without error", func(t *testing.T) {
@@ -102,5 +104,6 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

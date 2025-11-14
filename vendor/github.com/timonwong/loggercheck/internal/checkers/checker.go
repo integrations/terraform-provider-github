@@ -29,7 +29,8 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 	nparams := params.Len() // variadic => nonzero
 	startIndex := nparams - 1
 
-	iface, ok := types.Unalias(params.At(startIndex).Type().(*types.Slice).Elem()).(*types.Interface)
+	lastArg := params.At(nparams - 1)
+	iface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Interface)
 	if !ok || !iface.Empty() {
 		return // final (args) param is not ...interface{}
 	}

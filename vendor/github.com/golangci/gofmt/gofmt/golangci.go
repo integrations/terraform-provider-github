@@ -11,13 +11,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/rogpeppe/go-internal/diff"
+	"github.com/golangci/gofmt/gofmt/internal/diff"
 )
-
-type Options struct {
-	NeedSimplify bool
-	RewriteRules []RewriteRule
-}
 
 var parserModeMu sync.RWMutex
 
@@ -27,13 +22,13 @@ type RewriteRule struct {
 }
 
 // Run runs gofmt.
-// Deprecated: use [Source] instead.
+// Deprecated: use RunRewrite instead.
 func Run(filename string, needSimplify bool) ([]byte, error) {
 	return RunRewrite(filename, needSimplify, nil)
 }
 
 // RunRewrite runs gofmt.
-// Deprecated: use [Source] instead.
+// empty string `rewrite` will be ignored.
 func RunRewrite(filename string, needSimplify bool, rewriteRules []RewriteRule) ([]byte, error) {
 	src, err := os.ReadFile(filename)
 	if err != nil {
@@ -76,34 +71,6 @@ func RunRewrite(filename string, needSimplify bool, rewriteRules []RewriteRule) 
 	oldName := newName + ".orig"
 
 	return diff.Diff(oldName, src, newName, res), nil
-}
-
-// Source formats the code like gofmt.
-// Empty string `rewrite` will be ignored.
-func Source(filename string, src []byte, opts Options) ([]byte, error) {
-	fset := token.NewFileSet()
-
-	parserModeMu.Lock()
-	initParserMode()
-	parserModeMu.Unlock()
-
-	file, sourceAdj, indentAdj, err := parse(fset, filename, src, false)
-	if err != nil {
-		return nil, err
-	}
-
-	file, err = rewriteFileContent(fset, file, opts.RewriteRules)
-	if err != nil {
-		return nil, err
-	}
-
-	ast.SortImports(fset, file)
-
-	if opts.NeedSimplify {
-		simplify(file)
-	}
-
-	return format(fset, file, sourceAdj, indentAdj, src, printer.Config{Mode: printerMode, Tabwidth: tabWidth})
 }
 
 func rewriteFileContent(fset *token.FileSet, file *ast.File, rewriteRules []RewriteRule) (*ast.File, error) {

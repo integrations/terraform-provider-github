@@ -46,15 +46,6 @@ Be aware that the most compact order is not always the most efficient.
 In rare cases it may cause two variables each updated by its own goroutine
 to occupy the same CPU cache line, inducing a form of memory contention
 known as "false sharing" that slows down both goroutines.
-
-Unlike most analyzers, which report likely mistakes, the diagnostics
-produced by fieldanalyzer very rarely indicate a significant problem,
-so the analyzer is not included in typical suites such as vet or
-gopls. Use this standalone command to run it on your code:
-
-   $ go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
-   $ fieldalignment [packages]
-
 `
 
 var Analyzer = &analysis.Analyzer{
@@ -65,7 +56,7 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 }
 
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.StructType)(nil),
@@ -168,7 +159,7 @@ func optimalOrder(str *types.Struct, sizes *gcSizes) (*types.Struct, []int) {
 	}
 
 	elems := make([]elem, nf)
-	for i := range nf {
+	for i := 0; i < nf; i++ {
 		field := str.Field(i)
 		ft := field.Type()
 		elems[i] = elem{
@@ -312,7 +303,7 @@ func (s *gcSizes) Sizeof(T types.Type) int64 {
 
 		var o int64
 		max := int64(1)
-		for i := range nf {
+		for i := 0; i < nf; i++ {
 			ft := t.Field(i).Type()
 			a, sz := s.Alignof(ft), s.Sizeof(ft)
 			if a > max {
@@ -366,7 +357,7 @@ func (s *gcSizes) ptrdata(T types.Type) int64 {
 		}
 
 		var o, p int64
-		for i := range nf {
+		for i := 0; i < nf; i++ {
 			ft := t.Field(i).Type()
 			a, sz := s.Alignof(ft), s.Sizeof(ft)
 			fp := s.ptrdata(ft)

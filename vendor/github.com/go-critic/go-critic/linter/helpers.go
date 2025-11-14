@@ -116,7 +116,7 @@ func validateCheckerName(info *CheckerInfo) error {
 	return nil
 }
 
-func validateCheckerDocumentation(_ *CheckerInfo) error {
+func validateCheckerDocumentation(info *CheckerInfo) error {
 	// TODO(quasilyte): validate documentation.
 	return nil
 }

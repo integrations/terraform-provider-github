@@ -23,7 +23,7 @@ func dataSourceGithubCodespacesUserPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesUserPublicKeyRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubCodespacesUserPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	ctx := context.Background()

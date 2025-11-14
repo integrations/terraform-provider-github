@@ -72,11 +72,12 @@ func isKnown(directive string) bool {
 	return false
 }
 
-// Found by running the following command on the source of go.
-// git grep -o -E -h '//go:[a-z_-]+' -- ':!**/*_test.go' ':!test/' ':!**/testdata/**' | sort -u
-// See https://pkg.go.dev/cmd/compile@go1.24#hdr-Compiler_Directives
 var known = []string{
+	// Found by running the following command on the source of go.
+	// git grep -o -E -h '//go:[a-z_]+' -- ':!**/*_test.go' ':!test/' ':!**/testdata/**' | sort -u
+	"binary",
 	"build",
+	"buildsomethingelse",
 	"cgo_dynamic_linker",
 	"cgo_export_dynamic",
 	"cgo_export_static",
@@ -84,10 +85,10 @@ var known = []string{
 	"cgo_import_static",
 	"cgo_ldflag",
 	"cgo_unsafe_args",
-	"debug",
 	"embed",
 	"generate",
 	"linkname",
+	"name",
 	"nocheckptr",
 	"noescape",
 	"noinline",
@@ -100,7 +101,5 @@ var known = []string{
 	"systemstack",
 	"uintptrescapes",
 	"uintptrkeepalive",
-	"wasmimport",
-	"wasmexport",
 	"yeswritebarrierrec",
 }

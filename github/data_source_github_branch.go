@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 
@@ -41,7 +40,7 @@ func dataSourceGithubBranch() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -50,8 +49,7 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(context.TODO(), orgName, repoName, branchRefName)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
+		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
 				d.SetId("")

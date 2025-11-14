@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -263,8 +262,7 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 		t.Fatal("Expected 422 error, got nil")
 	}
 
-	ghErr := &github.ErrorResponse{}
-	ok := errors.As(err, &ghErr)
+	ghErr, ok := err.(*github.ErrorResponse)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
 	}
@@ -274,7 +272,6 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
 	}
 }
-
 func TestRateLimitTransport_smart_lock(t *testing.T) {
 	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
 		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
@@ -396,8 +393,7 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 		t.Fatal("Expected error not to be nil")
 	}
 
-	ghErr := &github.ErrorResponse{}
-	ok := errors.As(err, &ghErr)
+	ghErr, ok := err.(*github.ErrorResponse)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
 	}
@@ -459,9 +455,8 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 		t.Fatalf("Expected error to be nil, got %v", err)
 	}
 
-	ghErr := &github.ErrorResponse{}
-	ok := errors.As(err, &ghErr)
-	if ok {
+	ghErr, _ := err.(*github.ErrorResponse)
+	if ghErr != nil {
 		t.Fatalf("Expected successful github call, got: %q", ghErr.Message)
 	}
 }

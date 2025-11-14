@@ -44,7 +44,7 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -52,14 +52,13 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 
 	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(context.Background(), owner, repoName, environmentName)
 	if err != nil {
-		// TODO: Remove nolint once we can return an error
-		return nil //nolint:nilerr
+		return nil
 	}
 
-	results := make([]map[string]any, 0)
+	results := make([]map[string]interface{}, 0)
 
 	for _, policy := range policies.BranchPolicies {
-		policyMap := make(map[string]any)
+		policyMap := make(map[string]interface{})
 		policyMap["id"] = strconv.FormatInt(*policy.ID, 10)
 		policyMap["name"] = policy.Name
 		results = append(results, policyMap)

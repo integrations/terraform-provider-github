@@ -1,4 +1,5 @@
 TEST?=$$(go list ./... |grep -v 'vendor')
+GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
@@ -6,14 +7,14 @@ default: build
 
 tools:
 	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
 
 build: fmtcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
 
 fmt:
-	@echo "==> Fixing source code with golangci-lint..."
-	golangci-lint fmt ./...
+	@echo "==> Fixing source code with gofmt..."
+	gofmt -s -w $(GOFMT_FILES)
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
@@ -37,6 +38,15 @@ test-compile:
 	fi
 	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
+vet:
+	@echo "go vet ."
+	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
+		echo ""; \
+		echo "Vet found suspicious constructs. Please check the reported constructs"; \
+		echo "and fix them if necessary before submitting the code for review."; \
+		exit 1; \
+	fi
+
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
@@ -55,4 +65,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt fmtcheck lint tools test-compile website website-lint website-test
+.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test

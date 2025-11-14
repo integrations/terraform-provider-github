@@ -7,16 +7,14 @@ import (
 	"testing"
 )
 
-var (
-	testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
-	isEnterprise     = os.Getenv("ENTERPRISE_ACCOUNT")
-	isPaidPlan       = os.Getenv("GITHUB_PAID_FEATURES")
-	testEnterprise   = os.Getenv("ENTERPRISE_SLUG")
-	testOrganization = testOrganizationFunc()
-	testOwner        = os.Getenv("GITHUB_OWNER")
-	testToken        = os.Getenv("GITHUB_TOKEN")
-	testBaseURLGHES  = os.Getenv("GHES_BASE_URL")
-)
+var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
+var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
+var isPaidPlan = os.Getenv("GITHUB_PAID_FEATURES")
+var testEnterprise = os.Getenv("ENTERPRISE_SLUG")
+var testOrganization = testOrganizationFunc()
+var testOwner = os.Getenv("GITHUB_OWNER")
+var testToken = os.Getenv("GITHUB_TOKEN")
+var testBaseURLGHES = os.Getenv("GHES_BASE_URL")
 
 func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GITHUB_TOKEN"); v == "" {
@@ -78,6 +76,7 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 }
 
 func testAccCheckOrganization() error {
+
 	baseURL := os.Getenv("GITHUB_BASE_URL")
 	token := os.Getenv("GITHUB_TOKEN")
 
@@ -106,7 +105,7 @@ func testAccCheckOrganization() error {
 	return nil
 }
 
-func OwnerOrOrgEnvDefaultFunc() (any, error) {
+func OwnerOrOrgEnvDefaultFunc() (interface{}, error) {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
 		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
 		return organization, nil
@@ -132,9 +131,7 @@ func testOwnerFunc() string {
 	return owner
 }
 
-const (
-	anonymous    = "anonymous"
-	individual   = "individual"
-	organization = "organization"
-	enterprise   = "enterprise"
-)
+const anonymous = "anonymous"
+const individual = "individual"
+const organization = "organization"
+const enterprise = "enterprise"

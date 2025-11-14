@@ -37,7 +37,7 @@ func resourceGithubOrganizationRoleUser() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleUserCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleUserCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func resourceGithubOrganizationRoleUserCreate(d *schema.ResourceData, meta any) 
 	return resourceGithubOrganizationRoleUserRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta any) er
 	return nil
 }
 
-func resourceGithubOrganizationRoleUserDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleUserDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

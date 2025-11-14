@@ -1,8 +1,8 @@
 package formatter
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/mgechev/revive/lint"
 )
@@ -15,16 +15,16 @@ type Unix struct {
 	Metadata lint.FormatterMetadata
 }
 
-// Name returns the name of the formatter.
+// Name returns the name of the formatter
 func (*Unix) Name() string {
 	return "unix"
 }
 
 // Format formats the failures gotten from the lint.
 func (*Unix) Format(failures <-chan lint.Failure, _ lint.Config) (string, error) {
-	var sb strings.Builder
+	var buf bytes.Buffer
 	for failure := range failures {
-		sb.WriteString(fmt.Sprintf("%v: [%s] %s\n", failure.Position.Start, failure.RuleName, failure.Failure))
+		fmt.Fprintf(&buf, "%v: [%s] %s\n", failure.Position.Start, failure.RuleName, failure.Failure)
 	}
-	return sb.String(), nil
+	return buf.String(), nil
 }

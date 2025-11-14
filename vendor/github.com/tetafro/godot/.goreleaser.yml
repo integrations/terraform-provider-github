@@ -1,5 +1,3 @@
-version: 2
-
 builds:
   - dir: ./cmd/godot
 checksum:

@@ -93,10 +93,6 @@ func (c *commentedOutCodeChecker) VisitLocalComment(cg *ast.CommentGroup) {
 		return
 	}
 
-	if c.isExampleOutputComment(s) {
-		return
-	}
-
 	stmt := strparse.Stmt(s)
 
 	if c.isPermittedStmt(stmt) {
@@ -113,6 +109,11 @@ func (c *commentedOutCodeChecker) VisitLocalComment(cg *ast.CommentGroup) {
 		return
 	}
 
+	// Some attempts to avoid false positives.
+	if c.skipBlock(s) {
+		return
+	}
+
 	// Add braces to make block statement from
 	// multiple statements.
 	stmt = strparse.Stmt(fmt.Sprintf("{ %s }", s))
@@ -122,18 +123,15 @@ func (c *commentedOutCodeChecker) VisitLocalComment(cg *ast.CommentGroup) {
 	}
 }
 
-// An example output comment can be one of the following:
-//
-//	Output: some output
-//
-// or
-//
-//	Output:
-//	some output
-//
-// See https://go.dev/blog/examples
-func (c *commentedOutCodeChecker) isExampleOutputComment(s string) bool {
-	return isExampleTestFunc(c.fn) && strings.Contains(s, "Output:")
+func (c *commentedOutCodeChecker) skipBlock(s string) bool {
+	lines := strings.Split(s, "\n") // There is at least 1 line, that's invariant
+
+	// Special example test block.
+	if isExampleTestFunc(c.fn) && strings.Contains(lines[0], "Output:") {
+		return true
+	}
+
+	return false
 }
 
 func (c *commentedOutCodeChecker) isPermittedStmt(stmt ast.Stmt) bool {

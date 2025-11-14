@@ -9,7 +9,9 @@ import (
 )
 
 func TestAccGithubOrganizationDataSource(t *testing.T) {
+
 	t.Run("queries for an organization without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_organization" "test" {
 				name = "%s"
@@ -69,6 +71,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries for an organization with archived repos", func(t *testing.T) {
@@ -132,9 +135,11 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries for an organization summary_only without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_organization" "test" {
 				name = "%s"
@@ -195,5 +200,6 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

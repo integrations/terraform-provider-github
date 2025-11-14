@@ -9,7 +9,9 @@ import (
 )
 
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
+
 	t.Run("test setting of basic actions repository permissions", func(t *testing.T) {
+
 		allowedActions := "local_only"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -56,9 +58,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("imports entire set of github action repository permissions without error", func(t *testing.T) {
+
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
@@ -120,9 +124,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("test setting of repository allowed actions", func(t *testing.T) {
+
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
@@ -179,9 +185,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("test not setting of repository allowed actions without error", func(t *testing.T) {
+
 		allowedActions := "selected"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -233,9 +241,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("test disabling actions on a repository", func(t *testing.T) {
+
 		actionsEnabled := false
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -282,6 +292,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	// https://github.com/integrations/terraform-provider-github/issues/2182

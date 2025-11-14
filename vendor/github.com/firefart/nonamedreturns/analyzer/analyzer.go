@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"errors"
 	"flag"
 	"go/ast"
 	"go/types"
@@ -31,10 +30,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	reportErrorInDefer := pass.Analyzer.Flags.Lookup(FlagReportErrorInDefer).Value.String() == "true"
 	errorType := types.Universe.Lookup("error").Type()
 
-	inspector, ok := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-	if !ok {
-		return nil, errors.New("failed to get inspector")
-	}
+	inspector := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	// only filter function defintions
 	nodeFilter := []ast.Node{
@@ -91,7 +87,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 	})
 
-	return nil, nil // nolint:nilnil
+	return nil, nil
 }
 
 func findDeferWithVariableAssignment(body *ast.BlockStmt, info *types.Info, variable types.Object) bool {

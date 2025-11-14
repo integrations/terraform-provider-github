@@ -69,12 +69,12 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *github.ActionsAllowed {
+func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]any)
+	config := d.Get("allowed_actions_config").([]interface{})
 	if len(config) > 0 {
-		data := config[0].(map[string]any)
+		data := config[0].(map[string]interface{})
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -96,13 +96,13 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
-		return nil
+		return nil, nil
 	}
 
-	return allowed
+	return allowed, nil
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -135,7 +135,10 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	}
 
 	if allowedActions == "selected" {
-		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
+		actionsAllowedData, err := resourceGithubActionsRepositoryAllowedObject(d)
+		if err != nil {
+			return err
+		}
 		if actionsAllowedData != nil {
 			log.Printf("[DEBUG] Allowed actions config is set")
 			_, _, err = client.Repositories.EditActionsAllowed(ctx,
@@ -154,7 +157,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -171,7 +174,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	// on initial import there might not be any value in the state, then we have to import the data
 	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
 	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
+	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
 
 	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
 	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
@@ -184,8 +187,8 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []any{
-				map[string]any{
+			if err = d.Set("allowed_actions_config", []interface{}{
+				map[string]interface{}{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
@@ -195,7 +198,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 			}
 		}
 	} else {
-		if err = d.Set("allowed_actions_config", []any{}); err != nil {
+		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
 			return err
 		}
 	}
@@ -213,7 +216,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()

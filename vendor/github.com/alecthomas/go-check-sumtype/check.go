@@ -29,7 +29,7 @@ func (e inexhaustiveError) Error() string {
 // Names returns a sorted list of names corresponding to the missing variant
 // cases.
 func (e inexhaustiveError) Names() []string {
-	list := make([]string, 0, len(e.Missing))
+	var list []string
 	for _, o := range e.Missing {
 		list = append(list, o.Name())
 	}
@@ -39,7 +39,7 @@ func (e inexhaustiveError) Names() []string {
 
 // check does exhaustiveness checking for the given sum type definitions in the
 // given package. Every instance of inexhaustive case analysis is returned.
-func check(pkg *packages.Package, defs []sumTypeDef, config Config) []error {
+func check(pkg *packages.Package, defs []sumTypeDef) []error {
 	var errs []error
 	for _, astfile := range pkg.Syntax {
 		ast.Inspect(astfile, func(n ast.Node) bool {
@@ -47,7 +47,7 @@ func check(pkg *packages.Package, defs []sumTypeDef, config Config) []error {
 			if !ok {
 				return true
 			}
-			if err := checkSwitch(pkg, defs, swtch, config); err != nil {
+			if err := checkSwitch(pkg, defs, swtch); err != nil {
 				errs = append(errs, err)
 			}
 			return true
@@ -67,9 +67,8 @@ func checkSwitch(
 	pkg *packages.Package,
 	defs []sumTypeDef,
 	swtch *ast.TypeSwitchStmt,
-	config Config,
 ) error {
-	def, missing := missingVariantsInSwitch(pkg, defs, swtch, config)
+	def, missing := missingVariantsInSwitch(pkg, defs, swtch)
 	if len(missing) > 0 {
 		return inexhaustiveError{
 			Position: pkg.Fset.Position(swtch.Pos()),
@@ -88,14 +87,9 @@ func missingVariantsInSwitch(
 	pkg *packages.Package,
 	defs []sumTypeDef,
 	swtch *ast.TypeSwitchStmt,
-	config Config,
 ) (*sumTypeDef, []types.Object) {
 	asserted := findTypeAssertExpr(swtch)
 	ty := pkg.TypesInfo.TypeOf(asserted)
-	if ty == nil {
-		panic(fmt.Sprintf("no type found for asserted expression: %v", asserted))
-	}
-
 	def := findDef(defs, ty)
 	if def == nil {
 		// We couldn't find a corresponding sum type, so there's
@@ -103,15 +97,15 @@ func missingVariantsInSwitch(
 		return nil, nil
 	}
 	variantExprs, hasDefault := switchVariants(swtch)
-	if config.DefaultSignifiesExhaustive && hasDefault && !defaultClauseAlwaysPanics(swtch) {
+	if hasDefault && !defaultClauseAlwaysPanics(swtch) {
 		// A catch-all case defeats all exhaustiveness checks.
 		return def, nil
 	}
-	variantTypes := make([]types.Type, 0, len(variantExprs))
+	var variantTypes []types.Type
 	for _, expr := range variantExprs {
 		variantTypes = append(variantTypes, pkg.TypesInfo.TypeOf(expr))
 	}
-	return def, def.missing(variantTypes, config.IncludeSharedInterfaces)
+	return def, def.missing(variantTypes)
 }
 
 // switchVariants returns all case expressions found in a type switch. This

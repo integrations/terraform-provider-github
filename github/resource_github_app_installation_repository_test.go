@@ -10,11 +10,13 @@ import (
 )
 
 func TestAccGithubAppInstallationRepository(t *testing.T) {
+
 	const APP_INSTALLATION_ID = "APP_INSTALLATION_ID"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	installation_id, exists := os.LookupEnv(APP_INSTALLATION_ID)
 
 	t.Run("installs an app to a repository", func(t *testing.T) {
+
 		if !exists {
 			t.Skipf("%s environment variable is missing", APP_INSTALLATION_ID)
 		}
@@ -67,5 +69,7 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

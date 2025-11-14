@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"regexp"
@@ -58,7 +57,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	repoName := d.Get("repository").(string)
@@ -73,6 +72,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 		Title:    github.String(title),
 		ReadOnly: github.Bool(readOnly),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -104,8 +104,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -138,7 +137,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

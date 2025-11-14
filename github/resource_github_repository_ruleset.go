@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -74,8 +73,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
 							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
-					},
-				},
+					}},
 			},
 			"node_id": {
 				Type:        schema.TypeString,
@@ -591,7 +589,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -613,7 +611,7 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) err
 	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
-func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -634,8 +632,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 
 	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -655,20 +652,20 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 		return nil
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("ruleset_id", ruleset.ID)
+	d.Set("etag", resp.Header.Get("ETag"))
+	d.Set("name", ruleset.Name)
+	d.Set("target", ruleset.GetTarget())
+	d.Set("enforcement", ruleset.Enforcement)
+	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
+	d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
+	d.Set("rules", flattenRules(ruleset.Rules, false))
+	d.Set("node_id", ruleset.GetNodeID())
+	d.Set("ruleset_id", ruleset.ID)
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -701,7 +698,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
-func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -717,7 +714,7 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) err
 	return err
 }
 
-func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
 	if err != nil {
 		return []*schema.ResourceData{d}, err
@@ -739,7 +736,7 @@ func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	_ = d.Set("repository", *repository.Name)
+	d.Set("repository", *repository.Name)
 
 	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
 	if ruleset == nil || err != nil {

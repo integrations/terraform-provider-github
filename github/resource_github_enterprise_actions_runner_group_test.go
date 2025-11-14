@@ -71,6 +71,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner group visibility to selected orgs", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -172,6 +173,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a runner group with selected orgs without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"

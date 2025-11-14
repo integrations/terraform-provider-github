@@ -1,4 +1,3 @@
-version: 2
 before:
   hooks:
     - go mod tidy
@@ -113,7 +112,7 @@ dockers:
 checksum:
   name_template: 'sha256sums.txt'
 snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+  name_template: "{{ incpatch .Version }}-next"
 release:
   github:
     owner: pelletier

@@ -105,7 +105,7 @@ cat /dev/null <<EOF
 ------------------------------------------------------------------------
 https://github.com/client9/shlib - portable posix shell functions
 Public domain - http://unlicense.org
-https://github.com/client9/shlib/blob/head/LICENSE.md
+https://github.com/client9/shlib/blob/master/LICENSE.md
 but credit (and pull requests) appreciated.
 ------------------------------------------------------------------------
 EOF
@@ -236,29 +236,10 @@ untar() {
       ;;
   esac
 }
-
 http_download_curl() {
   local_file=$1
   source_url=$2
   header=$3
-
-  # workaround https://github.com/curl/curl/issues/13845
-  curl_version=$(curl --version | head -n 1 | awk '{ print $2 }')
-  if [ "$curl_version" = "8.8.0" ]; then
-    log_debug "http_download_curl curl $curl_version detected"
-    if [ -z "$header" ]; then
-      curl -sL -o "$local_file" "$source_url"
-    else
-      curl -sL -H "$header" -o "$local_file" "$source_url"
-      nf=$(jq -r '.error // ""' "$local_file")
-      if  [ -n "$nf" ]; then
-        log_debug "http_download_curl received an error: $nf"
-        return 1
-      fi
-    fi
-    return 0
-  fi
-
   if [ -z "$header" ]; then
     code=$(curl -w '%{http_code}' -sL -o "$local_file" "$source_url")
   else
@@ -270,7 +251,6 @@ http_download_curl() {
   fi
   return 0
 }
-
 http_download_wget() {
   local_file=$1
   source_url=$2
@@ -357,8 +337,8 @@ EOF
 
 PROJECT_NAME="misspell"
 OWNER=golangci
-REPO=$PROJECT_NAME
-BINARY=$PROJECT_NAME
+REPO="misspell"
+BINARY=misspell
 FORMAT=tar.gz
 OS=$(uname_os)
 ARCH=$(uname_arch)

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/buildssa"
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ssa"
+	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/typeparams"
 )
 
@@ -28,17 +29,10 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 }
 
-func run(pass *analysis.Pass) (any, error) {
-	for _, pkg := range pass.Pkg.Imports() {
-		if pkg.Path() == "unsafe" {
-			// See golang/go#67684, or testdata/src/importsunsafe: the unusedwrite
-			// analyzer may have false positives when used with unsafe.
-			return nil, nil
-		}
-	}
-
+func run(pass *analysis.Pass) (interface{}, error) {
 	ssainput := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA)
 	for _, fn := range ssainput.SrcFuncs {
+		// TODO(taking): Iterate over fn._Instantiations() once exported. If so, have 1 report per Pos().
 		reports := checkStores(fn)
 		for _, store := range reports {
 			switch addr := store.Addr.(type) {
@@ -149,7 +143,7 @@ func hasStructOrArrayType(v ssa.Value) bool {
 			//   func (t T) f() { ...}
 			// the receiver object is of type *T:
 			//   t0 = local T (t)   *T
-			if tp, ok := types.Unalias(alloc.Type()).(*types.Pointer); ok {
+			if tp, ok := aliases.Unalias(alloc.Type()).(*types.Pointer); ok {
 				return isStructOrArray(tp.Elem())
 			}
 			return false

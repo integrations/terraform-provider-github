@@ -14,7 +14,7 @@ type Checkstyle struct {
 	Metadata lint.FormatterMetadata
 }
 
-// Name returns the name of the formatter.
+// Name returns the name of the formatter
 func (*Checkstyle) Name() string {
 	return "checkstyle"
 }
@@ -43,9 +43,9 @@ func (*Checkstyle) Format(failures <-chan lint.Failure, config lint.Config) (str
 			Severity:   severity(config, failure),
 			RuleName:   failure.RuleName,
 		}
-		fn := failure.Filename()
+		fn := failure.GetFilename()
 		if issues[fn] == nil {
-			issues[fn] = []issue{}
+			issues[fn] = make([]issue, 0)
 		}
 		issues[fn] = append(issues[fn], iss)
 	}

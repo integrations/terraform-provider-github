@@ -36,7 +36,7 @@ func dataSourceGithubAppToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta interface{}) error {
 	appID := d.Get("app_id").(string)
 	installationID := d.Get("installation_id").(string)
 	pemFile := d.Get("pem_file").(string)
@@ -50,7 +50,7 @@ func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta any) error {
 	// (explicit value, or default value taken from
 	// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 	// actual new line character before decoding.
-	pemFile = strings.ReplaceAll(pemFile, `\n`, "\n")
+	pemFile = strings.Replace(pemFile, `\n`, "\n", -1)
 
 	token, err := GenerateOAuthTokenFromApp(baseURL, appID, installationID, pemFile)
 	if err != nil {

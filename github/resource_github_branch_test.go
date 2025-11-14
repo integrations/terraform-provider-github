@@ -10,9 +10,11 @@ import (
 )
 
 func TestAccGithubBranch(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a branch directly", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -71,9 +73,11 @@ func TestAccGithubBranch(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("creates a branch named main directly and a repository with a gitignore_template", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -133,9 +137,11 @@ func TestAccGithubBranch(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("creates a branch from a source branch", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -200,5 +206,7 @@ func TestAccGithubBranch(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

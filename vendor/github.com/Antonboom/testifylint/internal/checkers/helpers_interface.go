@@ -15,21 +15,18 @@ func isEmptyInterface(pass *analysis.Pass, expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
-	return isEmptyInterfaceType(t.Type)
-}
 
-func isEmptyInterfaceType(t types.Type) bool {
-	iface, ok := t.Underlying().(*types.Interface)
+	iface, ok := t.Type.Underlying().(*types.Interface)
 	return ok && iface.NumMethods() == 0
 }
 
-func implementsTestifySuite(pass *analysis.Pass, e ast.Expr) bool {
+func implementsTestifySuite(pass *analysis.Pass, rcv ast.Expr) bool {
 	suiteIfaceObj := analysisutil.ObjectOf(pass.Pkg, testify.SuitePkgPath, "TestingSuite")
-	return (suiteIfaceObj != nil) && implements(pass, e, suiteIfaceObj)
+	return (suiteIfaceObj != nil) && implements(pass, rcv, suiteIfaceObj)
 }
 
-func implementsTestingT(pass *analysis.Pass, e ast.Expr) bool {
-	return implementsAssertTestingT(pass, e) || implementsRequireTestingT(pass, e)
+func implementsTestingT(pass *analysis.Pass, arg ast.Expr) bool {
+	return implementsAssertTestingT(pass, arg) || implementsRequireTestingT(pass, arg)
 }
 
 func implementsAssertTestingT(pass *analysis.Pass, e ast.Expr) bool {

@@ -6,15 +6,15 @@ import (
 	"github.com/google/go-github/v67/github"
 )
 
-func flattenLabels(labels []*github.Label) []any {
+func flattenLabels(labels []*github.Label) []interface{} {
 	if labels == nil {
-		return make([]any, 0)
+		return make([]interface{}, 0)
 	}
 
-	results := make([]any, 0)
+	results := make([]interface{}, 0)
 
 	for _, l := range labels {
-		result := make(map[string]any)
+		result := make(map[string]interface{})
 
 		result["name"] = l.GetName()
 		result["color"] = l.GetColor()

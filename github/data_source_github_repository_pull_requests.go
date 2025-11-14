@@ -128,7 +128,7 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
@@ -153,7 +153,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 		Direction:   direction,
 	}
 
-	results := make([]map[string]any, 0)
+	results := make([]map[string]interface{}, 0)
 
 	for {
 		pullRequests, resp, err := client.PullRequests.List(ctx, owner, baseRepository, options)
@@ -162,7 +162,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 		}
 
 		for _, pullRequest := range pullRequests {
-			result := map[string]any{
+			result := map[string]interface{}{
 				"number":                pullRequest.GetNumber(),
 				"body":                  pullRequest.GetBody(),
 				"draft":                 pullRequest.GetDraft(),

@@ -3,39 +3,29 @@ package rule
 import (
 	"fmt"
 	"go/ast"
+	"sync"
 
-	"github.com/mgechev/revive/internal/astutils"
 	"github.com/mgechev/revive/lint"
 )
 
-var (
-	deferOptionLoop             = normalizeRuleOption("loop")
-	deferOptionCallChain        = normalizeRuleOption("callChain")
-	deferOptionMethodCall       = normalizeRuleOption("methodCall")
-	deferOptionReturn           = normalizeRuleOption("return")
-	deferOptionRecover          = normalizeRuleOption("recover")
-	deferOptionImmediateRecover = normalizeRuleOption("immediateRecover")
-)
-
-// DeferRule lints gotchas in defer statements.
+// DeferRule lints unused params in functions.
 type DeferRule struct {
 	allow map[string]bool
+	sync.Mutex
 }
 
-// Configure validates the rule configuration, and configures the rule accordingly.
-//
-// Configuration implements the [lint.ConfigurableRule] interface.
-func (r *DeferRule) Configure(arguments lint.Arguments) error {
-	list, err := r.allowFromArgs(arguments)
-	if err != nil {
-		return err
+func (r *DeferRule) configure(arguments lint.Arguments) {
+	r.Lock()
+	if r.allow == nil {
+		r.allow = r.allowFromArgs(arguments)
 	}
-	r.allow = list
-	return nil
+	r.Unlock()
 }
 
 // Apply applies the rule to given file.
-func (r *DeferRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (r *DeferRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
+	r.configure(arguments)
+
 	var failures []lint.Failure
 	onFailure := func(failure lint.Failure) {
 		failures = append(failures, failure)
@@ -52,35 +42,35 @@ func (*DeferRule) Name() string {
 	return "defer"
 }
 
-func (*DeferRule) allowFromArgs(args lint.Arguments) (map[string]bool, error) {
+func (*DeferRule) allowFromArgs(args lint.Arguments) map[string]bool {
 	if len(args) < 1 {
 		allow := map[string]bool{
-			deferOptionLoop:             true,
-			deferOptionCallChain:        true,
-			deferOptionMethodCall:       true,
-			deferOptionReturn:           true,
-			deferOptionRecover:          true,
-			deferOptionImmediateRecover: true,
+			"loop":              true,
+			"call-chain":        true,
+			"method-call":       true,
+			"return":            true,
+			"recover":           true,
+			"immediate-recover": true,
 		}
 
-		return allow, nil
+		return allow
 	}
 
 	aa, ok := args[0].([]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid argument '%v' for 'defer' rule. Expecting []string, got %T", args[0], args[0])
+		panic(fmt.Sprintf("Invalid argument '%v' for 'defer' rule. Expecting []string, got %T", args[0], args[0]))
 	}
 
 	allow := make(map[string]bool, len(aa))
 	for _, subcase := range aa {
 		sc, ok := subcase.(string)
 		if !ok {
-			return nil, fmt.Errorf("invalid argument '%v' for 'defer' rule. Expecting string, got %T", subcase, subcase)
+			panic(fmt.Sprintf("Invalid argument '%v' for 'defer' rule. Expecting string, got %T", subcase, subcase))
 		}
-		allow[normalizeRuleOption(sc)] = true
+		allow[sc] = true
 	}
 
-	return allow, nil
+	return allow
 }
 
 type lintDeferRule struct {
@@ -104,31 +94,31 @@ func (w lintDeferRule) Visit(node ast.Node) ast.Visitor {
 		return nil
 	case *ast.ReturnStmt:
 		if len(n.Results) != 0 && w.inADefer && w.inAFuncLit {
-			w.newFailure("return in a defer function has no effect", n, 1.0, lint.FailureCategoryLogic, deferOptionReturn)
+			w.newFailure("return in a defer function has no effect", n, 1.0, "logic", "return")
 		}
 	case *ast.CallExpr:
-		isCallToRecover := astutils.IsIdent(n.Fun, "recover")
+		isCallToRecover := isIdent(n.Fun, "recover")
 		switch {
 		case !w.inADefer && isCallToRecover:
 			// func fn() { recover() }
 			//
 			// confidence is not 1 because recover can be in a function that is deferred elsewhere
-			w.newFailure("recover must be called inside a deferred function", n, 0.8, lint.FailureCategoryLogic, deferOptionRecover)
+			w.newFailure("recover must be called inside a deferred function", n, 0.8, "logic", "recover")
 		case w.inADefer && !w.inAFuncLit && isCallToRecover:
 			// defer helper(recover())
 			//
 			// confidence is not truly 1 because this could be in a correctly-deferred func,
 			// but it is very likely to be a misunderstanding of defer's behavior around arguments.
-			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, lint.FailureCategoryLogic, deferOptionImmediateRecover)
+			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, "logic", "immediate-recover")
 		}
-		return nil // no need to analyze the arguments of the function call
+
 	case *ast.DeferStmt:
-		if astutils.IsIdent(n.Call.Fun, "recover") {
+		if isIdent(n.Call.Fun, "recover") {
 			// defer recover()
 			//
 			// confidence is not truly 1 because this could be in a correctly-deferred func,
 			// but normally this doesn't suppress a panic, and even if it did it would silently discard the value.
-			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, lint.FailureCategoryLogic, deferOptionImmediateRecover)
+			w.newFailure("recover must be called inside a deferred function, this is executing recover immediately", n, 1, "logic", "immediate-recover")
 		}
 		w.visitSubtree(n.Call.Fun, true, false, false)
 		for _, a := range n.Call.Args {
@@ -141,17 +131,17 @@ func (w lintDeferRule) Visit(node ast.Node) ast.Visitor {
 		}
 
 		if w.inALoop {
-			w.newFailure("prefer not to defer inside loops", n, 1.0, lint.FailureCategoryBadPractice, deferOptionLoop)
+			w.newFailure("prefer not to defer inside loops", n, 1.0, "bad practice", "loop")
 		}
 
 		switch fn := n.Call.Fun.(type) {
 		case *ast.CallExpr:
-			w.newFailure("prefer not to defer chains of function calls", fn, 1.0, lint.FailureCategoryBadPractice, deferOptionCallChain)
+			w.newFailure("prefer not to defer chains of function calls", fn, 1.0, "bad practice", "call-chain")
 		case *ast.SelectorExpr:
 			if id, ok := fn.X.(*ast.Ident); ok {
 				isMethodCall := id != nil && id.Obj != nil && id.Obj.Kind == ast.Typ
 				if isMethodCall {
-					w.newFailure("be careful when deferring calls to methods without pointer receiver", fn, 0.8, lint.FailureCategoryBadPractice, deferOptionMethodCall)
+					w.newFailure("be careful when deferring calls to methods without pointer receiver", fn, 0.8, "bad practice", "method-call")
 				}
 			}
 		}
@@ -173,7 +163,7 @@ func (w lintDeferRule) visitSubtree(n ast.Node, inADefer, inALoop, inAFuncLit bo
 	ast.Walk(nw, n)
 }
 
-func (w lintDeferRule) newFailure(msg string, node ast.Node, confidence float64, cat lint.FailureCategory, subcase string) {
+func (w lintDeferRule) newFailure(msg string, node ast.Node, confidence float64, cat, subcase string) {
 	if !w.allow[subcase] {
 		return
 	}

@@ -2,13 +2,23 @@
 linters:
   enable-all: true
   disable:
-    - tenv
     - lll
+    - golint
+    - deadcode
+    - maligned
+    - scopelint
+    - nosnakecase
+    - exhaustivestruct
+    - ifshort
+    - varcheck
+    - structcheck
+    - interfacer
     - gomodguard
     - gochecknoglobals
     - paralleltest
     - varnamelen
     - exhaustruct
+    - gomnd
     - depguard
     - forbidigo
     - funlen
@@ -16,8 +26,7 @@ linters:
     - gofumpt
     - nonamedreturns
     - cyclop
-    - err113
+    - goerr113
     - perfsprint
     - tagliatelle
     - wrapcheck
-    - mnd

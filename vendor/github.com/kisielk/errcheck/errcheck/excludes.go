@@ -47,11 +47,6 @@ var DefaultExcludedSymbols = []string{
 
 	// hash
 	"(hash.Hash).Write",
-
-	// hash/maphash
-	"(*hash/maphash.Hash).Write",
-	"(*hash/maphash.Hash).WriteByte",
-	"(*hash/maphash.Hash).WriteString",
 }
 
 // ReadExcludes reads an excludes file, a newline delimited file that lists

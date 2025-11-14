@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
+
 	t.Run("queries branch protection rules without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -51,6 +52,7 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("queries branch protection", func(t *testing.T) {
@@ -106,5 +108,6 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

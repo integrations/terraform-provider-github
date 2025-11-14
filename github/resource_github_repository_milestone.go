@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +21,7 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 		Update: resourceGithubRepositoryMilestoneUpdate,
 		Delete: resourceGithubRepositoryMilestoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
@@ -94,7 +93,7 @@ const (
 	layoutISO = "2006-01-02"
 )
 
-func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.Background()
 	owner := d.Get("owner").(string)
@@ -131,7 +130,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -144,8 +143,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) err
 
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -180,7 +178,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)
@@ -226,7 +224,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	owner := d.Get("owner").(string)

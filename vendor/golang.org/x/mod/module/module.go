@@ -96,11 +96,10 @@ package module
 // Changes to the semantics in this file require approval from rsc.
 
 import (
-	"cmp"
 	"errors"
 	"fmt"
 	"path"
-	"slices"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -507,6 +506,7 @@ var badWindowsNames = []string{
 	"PRN",
 	"AUX",
 	"NUL",
+	"COM0",
 	"COM1",
 	"COM2",
 	"COM3",
@@ -516,6 +516,7 @@ var badWindowsNames = []string{
 	"COM7",
 	"COM8",
 	"COM9",
+	"LPT0",
 	"LPT1",
 	"LPT2",
 	"LPT3",
@@ -658,15 +659,17 @@ func CanonicalVersion(v string) string {
 // optionally followed by a tie-breaking suffix introduced by a slash character,
 // like in "v0.0.1/go.mod".
 func Sort(list []Version) {
-	slices.SortFunc(list, func(i, j Version) int {
-		if i.Path != j.Path {
-			return strings.Compare(i.Path, j.Path)
+	sort.Slice(list, func(i, j int) bool {
+		mi := list[i]
+		mj := list[j]
+		if mi.Path != mj.Path {
+			return mi.Path < mj.Path
 		}
 		// To help go.sum formatting, allow version/file.
 		// Compare semver prefix by semver rules,
 		// file by string order.
-		vi := i.Version
-		vj := j.Version
+		vi := mi.Version
+		vj := mj.Version
 		var fi, fj string
 		if k := strings.Index(vi, "/"); k >= 0 {
 			vi, fi = vi[:k], vi[k:]
@@ -675,9 +678,9 @@ func Sort(list []Version) {
 			vj, fj = vj[:k], vj[k:]
 		}
 		if vi != vj {
-			return semver.Compare(vi, vj)
+			return semver.Compare(vi, vj) < 0
 		}
-		return cmp.Compare(fi, fj)
+		return fi < fj
 	})
 }
 

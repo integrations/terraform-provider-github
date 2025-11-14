@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates environment variables without error", func(t *testing.T) {
@@ -140,6 +141,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("imports environment variables without error", func(t *testing.T) {

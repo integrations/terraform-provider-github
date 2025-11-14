@@ -1,6 +1,3 @@
----
-version: 2
-
 # This is an example .goreleaser.yml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
 before:
@@ -26,9 +23,9 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end -}}
 snapshot:
-  version_template: "{{ .Tag }}-next"
+  name_template: "{{ .Tag }}-next"
 changelog:
-  disable: true
+  skip: true
 release:
   github:
     owner: breml

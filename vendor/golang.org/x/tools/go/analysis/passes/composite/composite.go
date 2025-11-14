@@ -15,6 +15,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
+	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/typeparams"
 )
 
@@ -51,7 +52,7 @@ func init() {
 
 // runUnkeyedLiteral checks if a composite literal is a struct literal with
 // unkeyed fields.
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -71,7 +72,7 @@ func run(pass *analysis.Pass) (any, error) {
 			return
 		}
 		var structuralTypes []types.Type
-		switch typ := types.Unalias(typ).(type) {
+		switch typ := aliases.Unalias(typ).(type) {
 		case *types.TypeParam:
 			terms, err := typeparams.StructuralTerms(typ)
 			if err != nil {
@@ -115,7 +116,7 @@ func run(pass *analysis.Pass) (any, error) {
 					missingKeys = append(missingKeys, analysis.TextEdit{
 						Pos:     e.Pos(),
 						End:     e.Pos(),
-						NewText: fmt.Appendf(nil, "%s: ", field.Name()),
+						NewText: []byte(fmt.Sprintf("%s: ", field.Name())),
 					})
 				}
 			}
@@ -145,7 +146,7 @@ func run(pass *analysis.Pass) (any, error) {
 // isLocalType reports whether typ belongs to the same package as pass.
 // TODO(adonovan): local means "internal to a function"; rename to isSamePackageType.
 func isLocalType(pass *analysis.Pass, typ types.Type) bool {
-	switch x := types.Unalias(typ).(type) {
+	switch x := aliases.Unalias(typ).(type) {
 	case *types.Struct:
 		// struct literals are local types
 		return true
@@ -153,8 +154,7 @@ func isLocalType(pass *analysis.Pass, typ types.Type) bool {
 		return isLocalType(pass, x.Elem())
 	case interface{ Obj() *types.TypeName }: // *Named or *TypeParam (aliases were removed already)
 		// names in package foo are local to foo_test too
-		return x.Obj().Pkg() != nil &&
-			strings.TrimSuffix(x.Obj().Pkg().Path(), "_test") == strings.TrimSuffix(pass.Pkg.Path(), "_test")
+		return strings.TrimSuffix(x.Obj().Pkg().Path(), "_test") == strings.TrimSuffix(pass.Pkg.Path(), "_test")
 	}
 	return false
 }

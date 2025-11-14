@@ -12,11 +12,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	goversion "go/version"
 	"os"
 	"reflect"
 	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,6 +22,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/mod/semver"
 	"golang.org/x/tools/go/ast/astutil"
 
 	"mvdan.cc/gofumpt/internal/govendor/go/format"
@@ -32,25 +31,26 @@ import (
 
 // Options is the set of formatting options which affect gofumpt.
 type Options struct {
+	// TODO: link to the go/version docs once Go 1.22 is out.
+	// The old semver docs said:
+	//
+	// LangVersion is treated as a semantic version, which may start with a "v"
+	// prefix. Like Go versions, it may also be incomplete; "1.14" is equivalent
+	// to "1.14.0". When empty, it is equivalent to "v1", to not use language
+	// features which could break programs.
+
 	// LangVersion is the Go version a piece of code is written in.
 	// The version is used to decide whether to apply formatting
 	// rules which require new language features.
-	// When empty, a default of go1 is assumed.
-	// Otherwise, the version must satisfy [go/version.IsValid].
+	// When inside a Go module, LangVersion should typically be:
 	//
-	// When formatting a Go module, LangVersion should typically be
-	//
-	//     go list -m -f {{.GoVersion}}
-	//
-	// with a "go" prefix, or the equivalent from `go mod edit -json`.
+	//     go mod edit -json | jq -r '.Go'
 	LangVersion string
 
 	// ModulePath corresponds to the Go module path which contains the source
-	// code being formatted. When formatting a Go module, ModulePath should be
+	// code being formatted. When inside a Go module, ModulePath should be:
 	//
-	//     go list -m -f {{.Path}}
-	//
-	// or the equivalent from `go mod edit -json`.
+	//     go mod edit -json | jq -r '.Module.Path'
 	//
 	// ModulePath is used for formatting decisions like what import paths are
 	// considered to be not part of the standard library. When empty, the source
@@ -85,21 +85,26 @@ func Source(src []byte, opts Options) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+var rxGoVersionMajorMinor = regexp.MustCompile(`^(v|go)?([1-9]+)\.([0-9]+)`)
+
 // File modifies a file and fset in place to follow gofumpt's format. The
 // changes might include manipulating adding or removing newlines in fset,
 // modifying the position of nodes, or modifying literal values.
 func File(fset *token.FileSet, file *ast.File, opts Options) {
 	simplify(file)
 
+	// TODO: replace this hacky mess with go/version once we can rely on Go 1.22,
+	// as well as replacing our uses of the semver package.
+	// In particular, we likely want to allow any of 1.21, 1.21.2, or go1.21rc3,
+	// but we can rely on go/version.Lang to validate and normalize.
 	if opts.LangVersion == "" {
-		opts.LangVersion = "go1"
-	} else {
-		lang := goversion.Lang(opts.LangVersion)
-		if lang == "" {
-			panic(fmt.Sprintf("invalid Go version: %q", opts.LangVersion))
-		}
-		opts.LangVersion = lang
+		opts.LangVersion = "v1.0"
 	}
+	m := rxGoVersionMajorMinor.FindStringSubmatch(opts.LangVersion)
+	if m == nil {
+		panic(fmt.Sprintf("invalid Go version: %q", opts.LangVersion))
+	}
+	opts.LangVersion = "v" + m[2] + "." + m[3]
 	f := &fumpter{
 		file:    fset.File(file.Pos()),
 		fset:    fset,
@@ -114,9 +119,6 @@ func File(fset *token.FileSet, file *ast.File, opts Options) {
 		switch node := c.Node().(type) {
 		case *ast.FuncDecl:
 			topFuncType = node.Type
-			f.parentFuncTypes = append(f.parentFuncTypes, node.Type)
-		case *ast.FuncLit:
-			f.parentFuncTypes = append(f.parentFuncTypes, node.Type)
 		case *ast.FieldList:
 			ft, _ := c.Parent().(*ast.FuncType)
 			if ft == nil || ft != topFuncType {
@@ -152,8 +154,6 @@ func File(fset *token.FileSet, file *ast.File, opts Options) {
 
 		// Reset minSplitFactor and blockLevel.
 		switch node := c.Node().(type) {
-		case *ast.FuncDecl, *ast.FuncLit:
-			f.parentFuncTypes = f.parentFuncTypes[:len(f.parentFuncTypes)-1]
 		case *ast.FuncType:
 			if node == topFuncType {
 				f.minSplitFactor = 0.4
@@ -190,10 +190,6 @@ type fumpter struct {
 	blockLevel int
 
 	minSplitFactor float64
-
-	// parentFuncTypes is a stack of parent function types,
-	// used to determine return type information when clothing naked returns.
-	parentFuncTypes []*ast.FuncType
 }
 
 func (f *fumpter) commentsBetween(p1, p2 token.Pos) []*ast.CommentGroup {
@@ -230,14 +226,26 @@ func (f *fumpter) inlineComment(pos token.Pos) *ast.Comment {
 func (f *fumpter) addNewline(at token.Pos) {
 	offset := f.Offset(at)
 
-	lines := f.file.Lines()
-	i, exists := slices.BinarySearch(lines, offset)
-	if exists {
-		// This newline already exists; do nothing. Duplicate
-		// newlines can't exist.
-		return
+	// TODO: replace with the new Lines method once we require Go 1.21 or later
+	field := reflect.ValueOf(f.file).Elem().FieldByName("lines")
+	n := field.Len()
+	lines := make([]int, 0, n+1)
+	for i := 0; i < n; i++ {
+		cur := int(field.Index(i).Int())
+		if offset == cur {
+			// This newline already exists; do nothing. Duplicate
+			// newlines can't exist.
+			return
+		}
+		if offset >= 0 && offset < cur {
+			lines = append(lines, offset)
+			offset = -1
+		}
+		lines = append(lines, cur)
 	}
-	lines = slices.Insert(lines, i, offset)
+	if offset >= 0 {
+		lines = append(lines, offset)
+	}
 	if !f.file.SetLines(lines) {
 		panic(fmt.Sprintf("could not set lines to %v", lines))
 	}
@@ -309,33 +317,21 @@ func (f *fumpter) lineEnd(line int) token.Pos {
 	return f.file.LineStart(line+1) - 1
 }
 
-// rxCommentDirective covers all common Go comment directives, such as:
+// rxCommentDirective covers all common Go comment directives:
 //
 //	//go:          | standard Go directives, like go:noinline
 //	//some-words:  | similar to the syntax above, like lint:ignore or go-sumtype:decl
+//	//line         | inserted line information for cmd/compile
 //	//export       | to mark cgo funcs for exporting
 //	//extern       | C function declarations for gccgo
-//	//line         | inserted line information for cmd/compile
-//	//noinspection | noinspection directive for GoLand and friends
-//	//nolint       | nolint directive for golangci
-//	//#nosec       | #nosec directive for gosec
-//	//NOSONAR      | NOSONAR directive for SonarQube
 //	//sys(nb)?     | syscall function wrapper prototypes
-var rxCommentDirective = regexp.MustCompile(
-	`^(?:` +
-		// Patterns directly from https://go.dev/doc/comment#syntax.
-		// Note that we adjust the first pattern to allow for //go-sumtype:decl,
-		// which is a tool that existed before the Go convention was documented.
-		`[a-z0-9-]+:[a-z0-9]` +
-		`|export ` +
-		`|extern ` +
-		`|line ` +
-		// Third-party patterns; we generally assume they end with a word boundary.
-		`|no(?:inspection|lint)\b` +
-		`|#nosec\b` +
-		`|NOSONAR\b` +
-		`|sys(?:nb)?\b` +
-		`)`)
+//	//nolint       | nolint directive for golangci
+//	//noinspection | noinspection directive for GoLand and friends
+//	//NOSONAR      | NOSONAR directive for SonarQube
+//
+// Note that the "some-words:" matching expects a letter afterward, such as
+// "go:generate", to prevent matching false positives like "https://site".
+var rxCommentDirective = regexp.MustCompile(`^([a-z-]+:[a-z]+|line\b|export\b|extern\b|sys(nb)?\b|no(lint|inspection)\b)|NOSONAR\b`)
 
 func (f *fumpter) applyPre(c *astutil.Cursor) {
 	f.splitLongLine(c)
@@ -695,8 +691,8 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 		}
 
 	case *ast.BasicLit:
-		// Octal number literals were introduced in Go 1.13.
-		if goversion.Compare(f.LangVersion, "go1.13") >= 0 {
+		// Octal number literals were introduced in 1.13.
+		if semver.Compare(f.LangVersion, "v1.13") >= 0 {
 			if node.Kind == token.INT && rxOctalInteger.MatchString(node.Value) {
 				node.Value = "0o" + node.Value[1:]
 				c.Replace(node)
@@ -706,40 +702,6 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 	case *ast.AssignStmt:
 		// Only remove lines between the assignment token and the first right-hand side expression
 		f.removeLines(f.Line(node.TokPos), f.Line(node.Rhs[0].Pos()))
-
-	case *ast.ReturnStmt:
-		if len(node.Results) > 0 {
-			break
-		}
-		// Clothing naked returns is disabled by default.
-		if !f.ExtraRules {
-			break
-		}
-		results := f.parentFuncTypes[len(f.parentFuncTypes)-1].Results
-		if results.NumFields() == 0 {
-			break
-		}
-
-		// The function has return values; let's clothe the return.
-		node.Results = make([]ast.Expr, 0, results.NumFields())
-	nameLoop:
-		for _, result := range results.List {
-			for _, ident := range result.Names {
-				name := ident.Name
-				if name == "_" { // we can't handle blank names just yet
-					node.Results = nil
-					break nameLoop
-				}
-				node.Results = append(node.Results, &ast.Ident{
-					// Use the Pos of the return statement, to not interfere with comment placement.
-					NamePos: node.Pos(),
-					Name:    name,
-				})
-			}
-		}
-		if len(node.Results) > 0 {
-			c.Replace(node)
-		}
 	}
 }
 
@@ -1016,8 +978,10 @@ func (f *fumpter) joinStdImports(d *ast.GenDecl) {
 		case periodIndex > 0 && (slashIndex == -1 || periodIndex < slashIndex),
 
 			// "test" and "example" are reserved as per golang.org/issue/37641.
+			// "internal" is unreachable.
 			strings.HasPrefix(path, "test/"),
 			strings.HasPrefix(path, "example/"),
+			strings.HasPrefix(path, "internal/"),
 
 			// See if we match modulePrefix; see its documentation above.
 			// We match either exactly or with a slash suffix,
@@ -1091,13 +1055,7 @@ func (f *fumpter) shouldMergeAdjacentFields(f1, f2 *ast.Field) bool {
 		return false
 	}
 
-	// Only merge if the types that the syntax nodes represent are equal,
-	// e.g. two *ast.Ident nodes "int" are equal, but the two *ast.Ident nodes
-	// "string" and "bool" are not. Hence we use go-cmp to do deep comparisons
-	// while ignoring position information, as it is irrelevant.
-	//
-	// Note that we could in theory use go/types here, but in practice gofumpt
-	// needs to be fast, hence it shouldn't rely on expensive typechecking.
+	// Only merge if the types are equal.
 	opt := cmp.Comparer(func(x, y token.Pos) bool { return true })
 	return cmp.Equal(f1.Type, f2.Type, opt)
 }
@@ -1106,7 +1064,7 @@ var posType = reflect.TypeOf(token.NoPos)
 
 // setPos recursively sets all position fields in the node v to pos.
 func setPos(v reflect.Value, pos token.Pos) {
-	if v.Kind() == reflect.Pointer {
+	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
 	if !v.IsValid() {
@@ -1116,7 +1074,7 @@ func setPos(v reflect.Value, pos token.Pos) {
 		v.Set(reflect.ValueOf(pos))
 	}
 	if v.Kind() == reflect.Struct {
-		for i := range v.NumField() {
+		for i := 0; i < v.NumField(); i++ {
 			setPos(v.Field(i), pos)
 		}
 	}

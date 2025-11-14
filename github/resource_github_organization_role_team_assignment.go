@@ -35,7 +35,7 @@ func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, 
 	return resourceGithubOrganizationRoleTeamAssignmentRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -99,6 +99,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 				foundTeam = team
 				break
 			}
+
 		}
 
 		if resp.NextPage == 0 {
@@ -123,7 +124,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

@@ -71,7 +71,6 @@ data "github_collaborators" "test" {
 }
 `, repo, testOwner)
 }
-
 func testAccCheckGithubCollaboratorsDataSourcePermissionConfig(repo string) string {
 	return fmt.Sprintf(`
 resource "github_repository" "test" {

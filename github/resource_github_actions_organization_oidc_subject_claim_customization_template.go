@@ -30,7 +30,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *s
 	}
 }
 
-func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
@@ -40,7 +40,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreat
 		return err
 	}
 
-	includeClaimKeys := d.Get("include_claim_keys").([]any)
+	includeClaimKeys := d.Get("include_claim_keys").([]interface{})
 
 	claimsStr := make([]string, len(includeClaimKeys))
 
@@ -51,6 +51,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreat
 	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, &github.OIDCSubjectClaimCustomTemplate{
 		IncludeClaimKeys: claimsStr,
 	})
+
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreat
 	return resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -70,6 +71,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(
 	}
 
 	template, _, err := client.Actions.GetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName)
+
 	if err != nil {
 		return err
 	}
@@ -81,7 +83,8 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(
 	return nil
 }
 
-func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta interface{}) error {
+
 	// Sets include_claim_keys back to GitHub's defaults
 	// https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#resetting-your-customizations
 	client := meta.(*Owner).v3client
@@ -96,6 +99,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelet
 	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, &github.OIDCSubjectClaimCustomTemplate{
 		IncludeClaimKeys: []string{"repo", "context"},
 	})
+
 	if err != nil {
 		return err
 	}

@@ -9,9 +9,11 @@ import (
 )
 
 func TestAccGithubBranchProtectionV3_defaults(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures default settings when empty", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 
 		resource "github_repository" "test" {
@@ -73,13 +75,16 @@ func TestAccGithubBranchProtectionV3_defaults(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
 
 func TestAccGithubBranchProtectionV3_conversation_resolution(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures default settings when empty", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 
 		resource "github_repository" "test" {
@@ -142,6 +147,7 @@ func TestAccGithubBranchProtectionV3_conversation_resolution(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
 
@@ -149,6 +155,7 @@ func TestAccGithubBranchProtectionV3_required_status_checks(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required status checks", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -219,6 +226,7 @@ func TestAccGithubBranchProtectionV3_required_status_checks(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
 
@@ -226,6 +234,7 @@ func TestAccGithubBranchProtectionV3_required_status_contexts(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required status checks", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -277,10 +286,11 @@ func TestAccGithubBranchProtectionV3_required_status_contexts(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
-
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
@@ -388,10 +398,12 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
 
 func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
@@ -460,13 +472,16 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }
 
 func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name      = "tf-acc-test-%s"
@@ -525,7 +540,9 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }
 
 func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.T) {

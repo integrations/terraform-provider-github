@@ -2,9 +2,8 @@ package github
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"testing"
 )
 
 func TestAccGithubEnterpriseDataSource(t *testing.T) {

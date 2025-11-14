@@ -44,12 +44,12 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
-	allTeams := make([]any, 0)
+	allTeams := make([]interface{}, 0)
 
 	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
 	if err != nil {
@@ -68,7 +68,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	d.SetId(fmt.Sprintf("%s/github-org-security-managers", orgName))
 	if err := d.Set("teams", allTeams); err != nil {
-		return fmt.Errorf("error setting teams: %w", err)
+		return fmt.Errorf("error setting teams: %s", err)
 	}
 
 	return nil

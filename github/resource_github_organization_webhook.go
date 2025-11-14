@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 )
 
 func resourceGithubOrganizationWebhook() *schema.Resource {
+
 	return &schema.Resource{
 		Create: resourceGithubOrganizationWebhookCreate,
 		Read:   resourceGithubOrganizationWebhookRead,
@@ -65,15 +65,15 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 		Active: github.Bool(d.Get("active").(bool)),
 	}
 
-	config := d.Get("configuration").([]any)
+	config := d.Get("configuration").([]interface{})
 	if len(config) > 0 {
-		hook.Config = webhookConfigFromInterface(config[0].(map[string]any))
+		hook.Config = webhookConfigFromInterface(config[0].(map[string]interface{}))
 	}
 
 	return hook
 }
 
-func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -86,6 +86,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta any) e
 	ctx := context.Background()
 
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
+
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func resourceGithubOrganizationWebhookCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
-func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -125,8 +126,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta any) err
 
 	hook, resp, err := client.Organizations.GetHook(ctx, orgName, hookID)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -157,8 +157,8 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta any) err
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from what we get from
 	// ResourceData
-	if len(d.Get("configuration").([]any)) > 0 {
-		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
+	if len(d.Get("configuration").([]interface{})) > 0 {
+		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
 
 		if hook.Config.Secret != nil {
 			hook.Config.Secret = github.String(currentSecret.(string))
@@ -172,7 +172,7 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -197,7 +197,7 @@ func resourceGithubOrganizationWebhookUpdate(d *schema.ResourceData, meta any) e
 	return resourceGithubOrganizationWebhookRead(d, meta)
 }
 
-func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -216,7 +216,7 @@ func resourceGithubOrganizationWebhookDelete(d *schema.ResourceData, meta any) e
 	return err
 }
 
-func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
+func webhookConfigFromInterface(config map[string]interface{}) *github.HookConfig {
 	hookConfig := &github.HookConfig{}
 	if config["url"] != nil {
 		hookConfig.URL = github.String(config["url"].(string))
@@ -245,8 +245,8 @@ func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
 	return hookConfig
 }
 
-func interfaceFromWebhookConfig(config *github.HookConfig) []any {
-	cfg := map[string]any{}
+func interfaceFromWebhookConfig(config *github.HookConfig) []interface{} {
+	cfg := map[string]interface{}{}
 	if config.URL != nil {
 		cfg["url"] = *config.URL
 	}
@@ -259,5 +259,5 @@ func interfaceFromWebhookConfig(config *github.HookConfig) []any {
 	if config.Secret != nil {
 		cfg["secret"] = *config.Secret
 	}
-	return []any{cfg}
+	return []interface{}{cfg}
 }

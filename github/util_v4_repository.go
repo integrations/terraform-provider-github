@@ -8,7 +8,8 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-func getRepositoryID(name string, meta any) (githubv4.ID, error) {
+func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
+
 	// Interpret `name` as a node ID
 	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
 	if exists {
@@ -27,7 +28,7 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 			ID githubv4.ID
 		} `graphql:"repository(owner:$owner, name:$name)"`
 	}
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"owner": githubv4.String(meta.(*Owner).name),
 		"name":  githubv4.String(name),
 	}
@@ -45,14 +46,15 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 	return query.Repository.ID, nil
 }
 
-func repositoryNodeIDExists(name string, meta any) (bool, error) {
+func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {
+
 	// API check if node ID exists
 	var query struct {
 		Node struct {
 			ID githubv4.ID
 		} `graphql:"node(id:$id)"`
 	}
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"id": githubv4.ID(name),
 	}
 	ctx := context.Background()
@@ -67,16 +69,11 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 
 // Maintain compatibility with deprecated Global ID format
 // https://github.blog/2021-02-10-new-global-id-format-coming-to-graphql/
-func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
+func repositoryLegacyNodeIDExists(name string, meta interface{}) (bool, error) {
 	// Check if the name is a base 64 encoded node ID
-	if _, err := base64.StdEncoding.DecodeString(name); err != nil {
-		var corrErr base64.CorruptInputError
-		ok := errors.As(err, &corrErr)
-		if ok {
-			return false, nil
-		}
-
-		return false, err
+	_, err := base64.StdEncoding.DecodeString(name)
+	if err != nil {
+		return false, nil
 	}
 
 	// API check if node ID exists
@@ -85,13 +82,13 @@ func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
 			ID githubv4.ID
 		} `graphql:"node(id:$id)"`
 	}
-	variables := map[string]any{
+	variables := map[string]interface{}{
 		"id": githubv4.ID(name),
 	}
-
 	ctx := context.Background()
 	client := meta.(*Owner).v4client
-	if err := client.Query(ctx, &query, variables); err != nil {
+	err = client.Query(ctx, &query, variables)
+	if err != nil {
 		return false, err
 	}
 

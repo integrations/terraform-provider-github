@@ -44,6 +44,6 @@ var Analyzer = &analysis.Analyzer{
 	ResultType:       reflect.TypeOf(new(inspector.Inspector)),
 }
 
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	return inspector.New(pass.Files), nil
 }

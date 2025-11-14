@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	doc           = "Checks for dangerous unicode character sequences"
+	doc           = "bidichk detects dangerous unicode character sequences"
 	disallowedDoc = `comma separated list of disallowed runes (full name or short name)
 
 Supported runes
@@ -142,28 +142,25 @@ func NewAnalyzer() *analysis.Analyzer {
 }
 
 func (b bidichk) run(pass *analysis.Pass) (interface{}, error) {
-	readFile := pass.ReadFile
-	if readFile == nil {
-		readFile = os.ReadFile
-	}
+	var err error
 
-	for _, astFile := range pass.Files {
-		f := pass.Fset.File(astFile.FileStart)
-		if f == nil {
-			continue
+	pass.Fset.Iterate(func(f *token.File) bool {
+		if strings.HasPrefix(f.Name(), "$GOROOT") {
+			return true
 		}
 
-		body, err := readFile(f.Name())
-		if err != nil {
-			return nil, err
-		}
+		return b.check(f.Name(), f.Pos(0), pass) == nil
+	})
 
-		b.check(body, f.Pos(0), pass)
-	}
-	return nil, nil
+	return nil, err
 }
 
-func (b bidichk) check(body []byte, pos token.Pos, pass *analysis.Pass) {
+func (b bidichk) check(filename string, pos token.Pos, pass *analysis.Pass) error {
+	body, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
 	for name, r := range b.disallowedRunes {
 		start := 0
 		for {
@@ -178,4 +175,6 @@ func (b bidichk) check(body []byte, pos token.Pos, pass *analysis.Pass) {
 			start += utf8.RuneLen(r)
 		}
 	}
+
+	return nil
 }

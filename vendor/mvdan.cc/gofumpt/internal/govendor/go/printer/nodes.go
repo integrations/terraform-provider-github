@@ -44,7 +44,10 @@ import (
 // linebreaks. At the moment there is no easy way to know about
 // future (not yet interspersed) comments in this function.
 func (p *printer) linebreak(line, min int, ws whiteSpace, newSection bool) (nbreaks int) {
-	n := max(nlimit(line-p.pos.Line), min)
+	n := nlimit(line - p.pos.Line)
+	if n < min {
+		n = min
+	}
 	if n > 0 {
 		p.print(ws)
 		if newSection {
@@ -57,7 +60,7 @@ func (p *printer) linebreak(line, min int, ws whiteSpace, newSection bool) (nbre
 			p.print(newline)
 		}
 	}
-	return nbreaks
+	return
 }
 
 // setComment sets g as the next comment if g != nil and if node comments
@@ -380,7 +383,7 @@ func (p *printer) parameters(fields *ast.FieldList, mode paramMode) {
 		if closing := p.lineFor(fields.Closing); 0 < prevLine && prevLine < closing {
 			p.print(token.COMMA)
 			p.linebreak(closing, 0, ignore, true)
-		} else if mode == typeTParam && fields.NumFields() == 1 && combinesWithName(stripParensAlways(fields.List[0].Type)) {
+		} else if mode == typeTParam && fields.NumFields() == 1 && combinesWithName(fields.List[0].Type) {
 			// A type parameter list [P T] where the name P and the type expression T syntactically
 			// combine to another valid (value) expression requires a trailing comma, as in [P *T,]
 			// (or an enclosing interface as in [P interface(*T)]), so that the type parameter list
@@ -401,7 +404,7 @@ func (p *printer) parameters(fields *ast.FieldList, mode paramMode) {
 // combinesWithName reports whether a name followed by the expression x
 // syntactically combines to another valid (value) expression. For instance
 // using *T for x, "name *T" syntactically appears as the expression x*T.
-// On the other hand, using  P|Q or *P|~Q for x, "name P|Q" or "name *P|~Q"
+// On the other hand, using  P|Q or *P|~Q for x, "name P|Q" or name *P|~Q"
 // cannot be combined into a valid (value) expression.
 func combinesWithName(x ast.Expr) bool {
 	switch x := x.(type) {
@@ -411,7 +414,9 @@ func combinesWithName(x ast.Expr) bool {
 	case *ast.BinaryExpr:
 		return combinesWithName(x.X) && !isTypeElem(x.Y)
 	case *ast.ParenExpr:
-		return !isTypeElem(x.X)
+		// name(x) combines but we are making sure at
+		// the call site that x is never parenthesized.
+		panic("unexpected parenthesized expression")
 	}
 	return false
 }
@@ -465,7 +470,7 @@ func identListSize(list []*ast.Ident, maxSize int) (size int) {
 			break
 		}
 	}
-	return size
+	return
 }
 
 func (p *printer) isOneLineFieldList(list []*ast.Field) bool {
@@ -665,7 +670,9 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 		h4, h5, mp := walkBinary(l)
 		has4 = has4 || h4
 		has5 = has5 || h5
-		maxProblem = max(maxProblem, mp)
+		if maxProblem < mp {
+			maxProblem = mp
+		}
 	}
 
 	switch r := e.Y.(type) {
@@ -678,7 +685,9 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 		h4, h5, mp := walkBinary(r)
 		has4 = has4 || h4
 		has5 = has5 || h5
-		maxProblem = max(maxProblem, mp)
+		if maxProblem < mp {
+			maxProblem = mp
+		}
 
 	case *ast.StarExpr:
 		if e.Op == token.QUO { // `*/`
@@ -690,10 +699,12 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 		case "/*", "&&", "&^":
 			maxProblem = 5
 		case "++", "--":
-			maxProblem = max(maxProblem, 4)
+			if maxProblem < 4 {
+				maxProblem = 4
+			}
 		}
 	}
-	return has4, has5, maxProblem
+	return
 }
 
 func cutoff(e *ast.BinaryExpr, depth int) int {
@@ -972,24 +983,15 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		if len(x.Args) > 1 {
 			depth++
 		}
-
-		// Conversions to literal function types or <-chan
-		// types require parentheses around the type.
-		paren := false
-		switch t := x.Fun.(type) {
-		case *ast.FuncType:
-			paren = true
-		case *ast.ChanType:
-			paren = t.Dir == ast.RECV
-		}
-		if paren {
+		var wasIndented bool
+		if _, ok := x.Fun.(*ast.FuncType); ok {
+			// conversions to literal function types require parentheses around the type
 			p.print(token.LPAREN)
-		}
-		wasIndented := p.possibleSelectorExpr(x.Fun, token.HighestPrec, depth)
-		if paren {
+			wasIndented = p.possibleSelectorExpr(x.Fun, token.HighestPrec, depth)
 			p.print(token.RPAREN)
+		} else {
+			wasIndented = p.possibleSelectorExpr(x.Fun, token.HighestPrec, depth)
 		}
-
 		p.setPos(x.Lparen)
 		p.print(token.LPAREN)
 		if x.Ellipsis.IsValid() {
@@ -1737,7 +1739,7 @@ func (p *printer) genDecl(d *ast.GenDecl) {
 	p.setPos(d.Pos())
 	p.print(d.Tok, blank)
 
-	if d.Lparen.IsValid() || len(d.Specs) != 1 {
+	if d.Lparen.IsValid() || len(d.Specs) > 1 {
 		// group of parenthesized declarations
 		p.setPos(d.Lparen)
 		p.print(token.LPAREN)
@@ -1818,14 +1820,14 @@ func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
 	cfg := Config{Mode: RawFormat}
 	var counter sizeCounter
 	if err := cfg.fprint(&counter, p.fset, n, p.nodeSizes); err != nil {
-		return size
+		return
 	}
 	if counter.size <= maxSize && !counter.hasNewline {
 		// n fits in a single line
 		size = counter.size
 		p.nodeSizes[n] = size
 	}
-	return size
+	return
 }
 
 // numLines returns the number of lines spanned by node n in the original source.
@@ -1959,7 +1961,7 @@ func declToken(decl ast.Decl) (tok token.Token) {
 	case *ast.FuncDecl:
 		tok = token.FUNC
 	}
-	return tok
+	return
 }
 
 func (p *printer) declList(list []ast.Decl) {

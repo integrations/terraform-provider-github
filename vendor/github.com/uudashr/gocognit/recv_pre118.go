@@ -16,6 +16,5 @@ func recvString(recv ast.Expr) string {
 	case *ast.StarExpr:
 		return "*" + recvString(t.X)
 	}
-
 	return "BADRECV"
 }

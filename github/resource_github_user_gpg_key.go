@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -37,7 +36,7 @@ func resourceGithubUserGpgKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	pubKey := d.Get("armored_public_key").(string)
@@ -53,7 +52,7 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
 
-func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -67,8 +66,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, _, err := client.Users.GetGPGKey(ctx, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -89,7 +87,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

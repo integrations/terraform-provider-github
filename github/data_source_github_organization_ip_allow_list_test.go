@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
+
 	t.Run("queries without error", func(t *testing.T) {
+
 		config := `
 			data "github_organization_ip_allow_list" "all" {}
 		`
@@ -45,5 +47,7 @@ func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

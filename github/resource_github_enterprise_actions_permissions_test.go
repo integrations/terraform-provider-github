@@ -9,7 +9,9 @@ import (
 )
 
 func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
+
 	t.Run("test setting of basic actions enterprise permissions", func(t *testing.T) {
+
 		allowedActions := "local_only"
 		enabledOrganizations := "all"
 
@@ -55,6 +57,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 	})
 
 	t.Run("imports entire set of github action enterprise permissions without error", func(t *testing.T) {
+
 		allowedActions := "selected"
 		enabledOrganizations := "selected"
 		githubOwnedAllowed := true
@@ -142,6 +145,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of enterprise allowed actions", func(t *testing.T) {
+
 		allowedActions := "selected"
 		enabledOrganizations := "all"
 		githubOwnedAllowed := true
@@ -197,6 +201,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of enterprise enabled organizations", func(t *testing.T) {
+
 		allowedActions := "all"
 		enabledOrganizations := "selected"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -279,4 +284,5 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			testCase(t, enterprise)
 		})
 	})
+
 }

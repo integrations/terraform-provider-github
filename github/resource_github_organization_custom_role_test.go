@@ -9,9 +9,11 @@ import (
 )
 
 func TestAccGithubOrganizationCustomRole(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates custom repo role without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
 			  name        = "tf-acc-test-%s"
@@ -74,6 +76,7 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 	// More tests can go here following the same format...
 	t.Run("updates custom repo role without error", func(t *testing.T) {
+
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_organization_custom_role" "test" {
@@ -136,8 +139,7 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 					"write",
 				),
 				resource.TestCheckResourceAttr("github_organization_custom_role.test", "permissions.#", "3"),
-			),
-		}
+			)}
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -170,6 +172,7 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 	})
 
 	t.Run("imports custom repo role without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
 			  name        = "tf-acc-test-%s"

@@ -47,9 +47,10 @@ func (checker NilCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.D
 	}
 
 	return newUseFunctionDiagnostic(checker.Name(), call, proposedFn,
-		analysis.TextEdit{
+		newSuggestedFuncReplacement(call, proposedFn, analysis.TextEdit{
 			Pos:     call.Args[0].Pos(),
 			End:     call.Args[1].End(),
 			NewText: analysisutil.NodeBytes(pass.Fset, survivingArg),
-		})
+		}),
+	)
 }

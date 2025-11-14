@@ -39,8 +39,7 @@ func checkDate(day, month, year int64) (bool, int64, int64, int64) {
 		return false, 0, 0, 0
 	}
 
-	//nolint:staticcheck // Ignore De Morgan's law optimization
-	if !((1900 <= year && year <= 2025) || (0 <= year && year <= 99)) {
+	if !((1900 <= year && year <= 2019) || (0 <= year && year <= 99)) {
 		return false, 0, 0, 0
 	}
 

@@ -5,11 +5,10 @@ import (
 	"go/ast"
 	"strings"
 
-	"github.com/mgechev/revive/internal/astutils"
 	"github.com/mgechev/revive/lint"
 )
 
-// RangeRule prevents redundant variables when iterating over a collection.
+// RangeRule lints given else constructs.
 type RangeRule struct{}
 
 // Apply applies the rule to given file.
@@ -44,7 +43,7 @@ func (w *lintRanges) Visit(node ast.Node) ast.Visitor {
 		// for x = range m { ... }
 		return w // single var form
 	}
-	if !astutils.IsIdent(rs.Value, "_") {
+	if !isIdent(rs.Value, "_") {
 		// for ?, y = range m { ... }
 		return w
 	}

@@ -3,7 +3,7 @@ package gochecksumtype
 import "golang.org/x/tools/go/packages"
 
 // Run sumtype checking on the given packages.
-func Run(pkgs []*packages.Package, config Config) []error {
+func Run(pkgs []*packages.Package) []error {
 	var errs []error
 
 	decls, err := findSumTypeDecls(pkgs)
@@ -18,7 +18,7 @@ func Run(pkgs []*packages.Package, config Config) []error {
 	}
 
 	for _, pkg := range pkgs {
-		if pkgErrs := check(pkg, defs, config); pkgErrs != nil {
+		if pkgErrs := check(pkg, defs); pkgErrs != nil {
 			errs = append(errs, pkgErrs...)
 		}
 	}

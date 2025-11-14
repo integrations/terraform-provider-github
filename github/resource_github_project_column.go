@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -49,7 +48,7 @@ func resourceGithubProjectColumn() *schema.Resource {
 	}
 }
 
-func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -84,7 +83,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubProjectColumnRead(d, meta)
 }
 
-func resourceGithubProjectColumnRead(d *schema.ResourceData, meta any) error {
+func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -98,8 +97,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta any) error {
 
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
+		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing project column %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
@@ -124,7 +122,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	options := github.ProjectColumnOptions{
@@ -145,7 +143,7 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubProjectColumnRead(d, meta)
 }
 
-func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)

@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,13 +11,14 @@ import (
 )
 
 func resourceGithubTeamMembership() *schema.Resource {
+
 	return &schema.Resource{
 		Create: resourceGithubTeamMembershipCreateOrUpdate,
 		Read:   resourceGithubTeamMembershipRead,
 		Update: resourceGithubTeamMembershipCreateOrUpdate,
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
@@ -63,7 +63,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
@@ -94,7 +94,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any
 	return resourceGithubTeamMembershipRead(d, meta)
 }
 
-func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
@@ -125,8 +125,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -150,7 +149,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 	teamIdString := d.Get("team_id").(string)

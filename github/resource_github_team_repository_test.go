@@ -10,9 +10,11 @@ import (
 )
 
 func TestAccGithubTeamRepository(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team permissions to a repository", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -111,9 +113,11 @@ func TestAccGithubTeamRepository(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -169,9 +173,11 @@ func TestAccGithubTeamRepository(t *testing.T) {
 }
 
 func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("can delete team repository access from archived repositories without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-archive-%s"
@@ -253,5 +259,6 @@ func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

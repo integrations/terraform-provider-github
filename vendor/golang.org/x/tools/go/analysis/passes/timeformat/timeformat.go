@@ -19,7 +19,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/internal/typesinternal"
 )
 
 const badFormat = "2006-02-01"
@@ -36,7 +35,7 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 }
 
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	// Note: (time.Time).Format is a method and can be a typeutil.Callee
 	// without directly importing "time". So we cannot just skip this package
 	// when !analysisutil.Imports(pass.Pkg, "time").
@@ -49,9 +48,11 @@ func run(pass *analysis.Pass) (any, error) {
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		call := n.(*ast.CallExpr)
-		obj := typeutil.Callee(pass.TypesInfo, call)
-		if !typesinternal.IsMethodNamed(obj, "time", "Time", "Format") &&
-			!typesinternal.IsFunctionNamed(obj, "time", "Parse") {
+		fn, ok := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
+		if !ok {
+			return
+		}
+		if !isTimeDotFormat(fn) && !isTimeDotParse(fn) {
 			return
 		}
 		if len(call.Args) > 0 {
@@ -84,6 +85,19 @@ func run(pass *analysis.Pass) (any, error) {
 		}
 	})
 	return nil, nil
+}
+
+func isTimeDotFormat(f *types.Func) bool {
+	if f.Name() != "Format" || f.Pkg() == nil || f.Pkg().Path() != "time" {
+		return false
+	}
+	// Verify that the receiver is time.Time.
+	recv := f.Type().(*types.Signature).Recv()
+	return recv != nil && analysisutil.IsNamedType(recv.Type(), "time", "Time")
+}
+
+func isTimeDotParse(f *types.Func) bool {
+	return analysisutil.IsFunctionNamed(f, "time", "Parse")
 }
 
 // badFormatAt return the start of a bad format in e or -1 if no bad format is found.

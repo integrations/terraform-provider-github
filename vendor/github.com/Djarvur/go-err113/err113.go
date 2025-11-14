@@ -2,10 +2,10 @@
 package err113
 
 import (
+	"bytes"
 	"go/ast"
 	"go/printer"
 	"go/token"
-	"strings"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -19,14 +19,14 @@ func NewAnalyzer() *analysis.Analyzer {
 	}
 }
 
-func run(pass *analysis.Pass) (any, error) {
+func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		tlds := enumerateFileDecls(file)
 
 		ast.Inspect(
 			file,
 			func(n ast.Node) bool {
-				return inspectComparision(file, pass, n) &&
+				return inspectComparision(pass, n) &&
 					inspectDefinition(pass, tlds, n)
 			},
 		)
@@ -36,8 +36,8 @@ func run(pass *analysis.Pass) (any, error) {
 }
 
 // render returns the pretty-print of the given node.
-func render(fset *token.FileSet, x any) string {
-	var buf strings.Builder
+func render(fset *token.FileSet, x interface{}) string {
+	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, fset, x); err != nil {
 		panic(err)
 	}

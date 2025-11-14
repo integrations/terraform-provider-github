@@ -20,7 +20,8 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() 
 	}
 }
 
-func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
+
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := meta.(*Owner).StopContext
@@ -31,6 +32,7 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRea
 	}
 
 	template, _, err := client.Actions.GetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName)
+
 	if err != nil {
 		return err
 	}

@@ -52,6 +52,7 @@ func ForEachPackage(ctxt *build.Context, found func(importPath string, err error
 
 	var wg sync.WaitGroup
 	for _, root := range ctxt.SrcDirs() {
+		root := root
 		wg.Add(1)
 		go func() {
 			allPackages(ctxt, root, ch)
@@ -106,6 +107,7 @@ func allPackages(ctxt *build.Context, root string, ch chan<- item) {
 			ch <- item{pkg, err}
 		}
 		for _, fi := range files {
+			fi := fi
 			if fi.IsDir() {
 				wg.Add(1)
 				go func() {
@@ -175,7 +177,7 @@ func ExpandPatterns(ctxt *build.Context, patterns []string) map[string]bool {
 			for _, pkg := range all {
 				doPkg(pkg, neg)
 			}
-		} else if dir, ok := strings.CutSuffix(arg, "/..."); ok {
+		} else if dir := strings.TrimSuffix(arg, "/..."); dir != arg {
 			// dir/... matches all packages beneath dir
 			for _, pkg := range all {
 				if strings.HasPrefix(pkg, dir) &&

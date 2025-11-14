@@ -10,9 +10,11 @@ import (
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates labels without error", func(t *testing.T) {
+
 		description := "label_description"
 		updatedDescription := "updated_label_description"
 
@@ -79,6 +81,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 	})
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-archive-%s"
@@ -144,4 +147,5 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
 }

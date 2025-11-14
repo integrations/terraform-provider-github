@@ -13,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -151,8 +150,8 @@ func newModuleResolver(e *ProcessEnv, moduleCacheCache *DirInfoCache) (*ModuleRe
 				Path: "",
 				Dir:  filepath.Join(filepath.Dir(goWork), "vendor"),
 			}
-			r.modsByModPath = append(slices.Clone(mainModsVendor), r.dummyVendorMod)
-			r.modsByDir = append(slices.Clone(mainModsVendor), r.dummyVendorMod)
+			r.modsByModPath = append(append([]*gocommand.ModuleJSON{}, mainModsVendor...), r.dummyVendorMod)
+			r.modsByDir = append(append([]*gocommand.ModuleJSON{}, mainModsVendor...), r.dummyVendorMod)
 		}
 	} else {
 		// Vendor mode is off, so run go list -m ... to find everything.
@@ -246,10 +245,7 @@ func newModuleResolver(e *ProcessEnv, moduleCacheCache *DirInfoCache) (*ModuleRe
 //  2. Use this to separate module cache scanning from other scanning.
 func gomodcacheForEnv(goenv map[string]string) string {
 	if gmc := goenv["GOMODCACHE"]; gmc != "" {
-		// golang/go#67156: ensure that the module cache is clean, since it is
-		// assumed as a prefix to directories scanned by gopathwalk, which are
-		// themselves clean.
-		return filepath.Clean(gmc)
+		return gmc
 	}
 	gopaths := filepath.SplitList(goenv["GOPATH"])
 	if len(gopaths) == 0 {
@@ -269,7 +265,9 @@ func (r *ModuleResolver) initAllMods() error {
 			return err
 		}
 		if mod.Dir == "" {
-			r.env.logf("module %v has not been downloaded and will be ignored", mod.Path)
+			if r.env.Logf != nil {
+				r.env.Logf("module %v has not been downloaded and will be ignored", mod.Path)
+			}
 			// Can't do anything with a module that's not downloaded.
 			continue
 		}
@@ -744,8 +742,8 @@ func (r *ModuleResolver) loadExports(ctx context.Context, pkg *pkg, includeTest 
 
 func (r *ModuleResolver) scanDirForPackage(root gopathwalk.Root, dir string) directoryPackageInfo {
 	subdir := ""
-	if prefix := root.Path + string(filepath.Separator); strings.HasPrefix(dir, prefix) {
-		subdir = dir[len(prefix):]
+	if dir != root.Path {
+		subdir = dir[len(root.Path)+len("/"):]
 	}
 	importPath := filepath.ToSlash(subdir)
 	if strings.HasPrefix(importPath, "vendor/") {
@@ -768,7 +766,9 @@ func (r *ModuleResolver) scanDirForPackage(root gopathwalk.Root, dir string) dir
 		}
 		modPath, err := module.UnescapePath(filepath.ToSlash(matches[1]))
 		if err != nil {
-			r.env.logf("decoding module cache path %q: %v", subdir, err)
+			if r.env.Logf != nil {
+				r.env.Logf("decoding module cache path %q: %v", subdir, err)
+			}
 			return directoryPackageInfo{
 				status: directoryScanned,
 				err:    fmt.Errorf("decoding module cache path %q: %v", subdir, err),

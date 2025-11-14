@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -48,7 +47,7 @@ func resourceGithubOrganizationProject() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -75,7 +74,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubOrganizationProjectRead(d, meta)
 }
 
-func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -95,8 +94,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta any) err
 
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -127,7 +125,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -156,7 +154,7 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta any) e
 	return resourceGithubOrganizationProjectRead(d, meta)
 }
 
-func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

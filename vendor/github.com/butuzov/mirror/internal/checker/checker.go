@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-// Checker will perform standard check on package and its methods.
+// Checker will perform standart check on package and its methods.
 type Checker struct {
 	Violations []Violation           // List of available violations
 	Packages   map[string][]int      // Storing indexes of Violations per pkg/kg.Struct
 	Type       func(ast.Expr) string // Type Checker closure.
-	Print      func(ast.Node) []byte // String representation of the expression.
+	Print      func(ast.Node) []byte // String representation of the expresion.
 }
 
 func New(violations ...[]Violation) Checker {
@@ -76,7 +76,7 @@ func (c *Checker) Handle(v *Violation, ce *ast.CallExpr) (map[int]ast.Expr, bool
 			continue
 		}
 
-		// is it conversion call
+		// is it convertsion call
 		if !c.callConverts(call) {
 			continue
 		}

@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
+
 	t.Run("queries an user public key without error", func(t *testing.T) {
+
 		config := `
 			data "github_codespaces_user_public_key" "test" {}
 		`
@@ -42,5 +44,6 @@ func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 		t.Run("with an individual account", func(t *testing.T) {
 			testCase(t, individual)
 		})
+
 	})
 }

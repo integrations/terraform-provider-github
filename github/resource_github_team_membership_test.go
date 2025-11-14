@@ -169,6 +169,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		}
 
 		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, username)
+
 		if err != nil {
 			return err
 		}

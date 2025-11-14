@@ -10,8 +10,7 @@ endef
 
 # Generate Artifacts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 generate: ## Generate Assets
-	$(MAKE) generate-tests
-	$(MAKE) generate-mirror-table
+	$(MAKE)
 
 generate-tests: ## Generates Assets at testdata
 	go run ./cmd/internal/tests/ "$(PWD)/testdata"
@@ -53,7 +52,7 @@ tests-summary: bin/tparse
 lints: ## Run golangci-lint
 lints: bin/golangci-lint
 lints:
-	golangci-lint run --no-config ./... --exclude-dirs "^(cmd|testdata)"
+	golangci-lint run --no-config ./... --skip-dirs "^(cmd|testdata)"
 
 
 cover: ## Run Coverage
@@ -72,8 +71,8 @@ bin/tparse: INSTALL_URL=github.com/mfridman/tparse@v0.13.2
 bin/tparse:
 	$(call install_go_bin, tparse, $(INSTALL_URL))
 
-bin/golangci-lint: ## Installs golangci-lint@v1.62.0 (if not exists)
-bin/golangci-lint: INSTALL_URL=github.com/golangci/golangci-lint@v1.62.0
+bin/golangci-lint: ## Installs golangci-lint@v1.55.2 (if not exists)
+bin/golangci-lint: INSTALL_URL=github.com/golangci/golangci-lint@v1.55.2
 bin/golangci-lint:
 	$(call install_go_bin, golangci-lint, $(INSTALL_URL))
 
@@ -100,7 +99,7 @@ help: dep-gawk
 	@ echo ""
 
 
-# Helper Methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Helper Mehtods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 dep-gawk:
 	@ if [ -z "$(shell command -v gawk)" ]; then  \
 		if [ -x /usr/local/bin/brew ]; then $(MAKE) _brew_gawk_install; exit 0; fi; \
@@ -112,21 +111,21 @@ dep-gawk:
 	fi
 
 _brew_gawk_install:
-	@ echo "Installing gawk using brew... "
+	@ echo "Instaling gawk using brew... "
 	@ brew install gawk --quiet
 	@ echo "done"
 
 _ubuntu_gawk_install:
-	@ echo "Installing gawk using apt-get... "
+	@ echo "Instaling gawk using apt-get... "
 	@ apt-get -q install gawk -y
 	@ echo "done"
 
 _alpine_gawk_install:
-	@ echo "Installing gawk using yum... "
+	@ echo "Instaling gawk using yum... "
 	@ apk add --update --no-cache gawk
 	@ echo "done"
 
 _centos_gawk_install:
-	@ echo "Installing gawk using yum... "
+	@ echo "Instaling gawk using yum... "
 	@ yum install -q -y gawk;
 	@ echo "done"

@@ -6,6 +6,12 @@ import (
 	"go/ast"
 )
 
+// Enabled reports whether type parameters are enabled in the current build
+// environment.
+func Enabled() bool {
+	return enabled
+}
+
 // ReceiverType returns the named type of the method receiver, sans "*" and type
 // parameters, or "invalid-type" if fn.Recv is ill formed.
 func ReceiverType(fn *ast.FuncDecl) string {
@@ -13,19 +19,11 @@ func ReceiverType(fn *ast.FuncDecl) string {
 	if s, ok := e.(*ast.StarExpr); ok {
 		e = s.X
 	}
-	e = unpackIndexExpr(e)
+	if enabled {
+		e = unpackIndexExpr(e)
+	}
 	if id, ok := e.(*ast.Ident); ok {
 		return id.Name
 	}
 	return "invalid-type"
-}
-
-func unpackIndexExpr(e ast.Expr) ast.Expr {
-	switch e := e.(type) {
-	case *ast.IndexExpr:
-		return e.X
-	case *ast.IndexListExpr:
-		return e.X
-	}
-	return e
 }

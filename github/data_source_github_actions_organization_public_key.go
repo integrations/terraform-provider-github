@@ -23,7 +23,7 @@ func dataSourceGithubActionsOrganizationPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationPublicKeyRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubActionsOrganizationPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

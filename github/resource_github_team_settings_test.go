@@ -11,9 +11,11 @@ import (
 )
 
 func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -59,13 +61,17 @@ func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }
 
 func TestCanUpdateTeamSettings(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team code review settings", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -151,13 +157,17 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }
 
 func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("cannot manage team code review settings if disabled", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -200,5 +210,7 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
+
 }

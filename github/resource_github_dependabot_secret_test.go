@@ -12,9 +12,11 @@ import (
 )
 
 func TestAccGithubDependabotSecret(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("reads a repository public key without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -60,6 +62,7 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
@@ -290,5 +293,6 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

@@ -9,9 +9,11 @@ import (
 )
 
 func TestAccGithubCodespacesPublicKeyDataSource(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries a repository public key without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -53,5 +55,6 @@ func TestAccGithubCodespacesPublicKeyDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+
 	})
 }

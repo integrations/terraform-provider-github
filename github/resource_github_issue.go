@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -75,7 +74,7 @@ func resourceGithubIssue() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
@@ -131,7 +130,7 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubIssueRead(d, meta)
 }
 
-func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	repoName, idNumber, err := parseTwoPartID(d.Id(), "repository", "issue_number")
 	if err != nil {
@@ -153,8 +152,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	issue, resp, err := client.Issues.Get(ctx,
 		orgName, repoName, number)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -209,7 +207,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name

@@ -47,7 +47,7 @@ func (i IFace) HashString() string {
 }
 
 func (i IFace) ExportDiagnostic() analysis.Diagnostic {
-	return analysis.Diagnostic{
+	return analysis.Diagnostic{ //nolint: exhaustivestruct
 		Pos:     i.Pos,
 		Message: i.String(),
 	}

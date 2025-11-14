@@ -9,9 +9,11 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates repository oidc subject claim customization template without error", func(t *testing.T) {
+
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"
@@ -69,6 +71,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	})
 
 	t.Run("updates repository oidc subject claim customization template without error", func(t *testing.T) {
+
 		configTemplate := `
 		resource "github_repository" "test" {
 			name = "tf-acc-test-%s"

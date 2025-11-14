@@ -6,18 +6,15 @@ import (
 	"fmt"
 	"go/token"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
-
-	goversion "github.com/hashicorp/go-version"
-	"golang.org/x/mod/modfile"
-	"golang.org/x/sync/errgroup"
+	"sync"
 )
 
 // ReadFile defines an abstraction for reading files.
 type ReadFile func(path string) (result []byte, err error)
+
+type disabledIntervalsMap = map[string][]DisabledInterval
 
 // Linter is used for linting set of files.
 type Linter struct {
@@ -25,7 +22,7 @@ type Linter struct {
 	fileReadTokens chan struct{}
 }
 
-// New creates a new Linter.
+// New creates a new Linter
 func New(reader ReadFile, maxOpenFiles int) Linter {
 	var fileReadTokens chan struct{}
 	if maxOpenFiles > 0 {
@@ -52,85 +49,38 @@ func (l Linter) readFile(path string) (result []byte, err error) {
 }
 
 var (
-	generatedPrefix  = []byte("// Code generated ")
-	generatedSuffix  = []byte(" DO NOT EDIT.")
-	defaultGoVersion = goversion.Must(goversion.NewVersion("1.0"))
+	genHdr = []byte("// Code generated ")
+	genFtr = []byte(" DO NOT EDIT.")
 )
 
 // Lint lints a set of files with the specified rule.
 func (l *Linter) Lint(packages [][]string, ruleSet []Rule, config Config) (<-chan Failure, error) {
 	failures := make(chan Failure)
 
-	perModVersions := map[string]*goversion.Version{}
-	perPkgVersions := make([]*goversion.Version, len(packages))
-	for n, files := range packages {
-		if len(files) == 0 {
-			continue
-		}
-		if config.GoVersion != nil {
-			perPkgVersions[n] = config.GoVersion
-			continue
-		}
-
-		dir, err := filepath.Abs(filepath.Dir(files[0]))
-		if err != nil {
-			return nil, err
-		}
-
-		alreadyKnownMod := false
-		for d, v := range perModVersions {
-			if strings.HasPrefix(dir, d) {
-				perPkgVersions[n] = v
-				alreadyKnownMod = true
-				break
+	var wg sync.WaitGroup
+	for _, pkg := range packages {
+		wg.Add(1)
+		go func(pkg []string) {
+			if err := l.lintPackage(pkg, ruleSet, config, failures); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
-		}
-		if alreadyKnownMod {
-			continue
-		}
-
-		d, v, err := detectGoMod(dir)
-		if err != nil {
-			// No luck finding the go.mod file thus set the default Go version
-			v = defaultGoVersion
-			d = dir
-		}
-		perModVersions[d] = v
-		perPkgVersions[n] = v
-	}
-
-	var wg errgroup.Group
-	for n := range packages {
-		wg.Go(func() error {
-			pkg := packages[n]
-			gover := perPkgVersions[n]
-			if err := l.lintPackage(pkg, gover, ruleSet, config, failures); err != nil {
-				return fmt.Errorf("error during linting: %w", err)
-			}
-			return nil
-		})
+			defer wg.Done()
+		}(pkg)
 	}
 
 	go func() {
-		err := wg.Wait()
-		if err != nil {
-			failures <- NewInternalFailure(err.Error())
-		}
+		wg.Wait()
 		close(failures)
 	}()
 
 	return failures, nil
 }
 
-func (l *Linter) lintPackage(filenames []string, gover *goversion.Version, ruleSet []Rule, config Config, failures chan Failure) error {
-	if len(filenames) == 0 {
-		return nil
-	}
-
+func (l *Linter) lintPackage(filenames []string, ruleSet []Rule, config Config, failures chan Failure) error {
 	pkg := &Package{
-		fset:      token.NewFileSet(),
-		files:     map[string]*File{},
-		goVersion: gover,
+		fset:  token.NewFileSet(),
+		files: map[string]*File{},
 	}
 	for _, filename := range filenames {
 		content, err := l.readFile(filename)
@@ -153,52 +103,9 @@ func (l *Linter) lintPackage(filenames []string, gover *goversion.Version, ruleS
 		return nil
 	}
 
-	return pkg.lint(ruleSet, config, failures)
-}
+	pkg.lint(ruleSet, config, failures)
 
-func detectGoMod(dir string) (rootDir string, ver *goversion.Version, err error) {
-	modFileName, err := retrieveModFile(dir)
-	if err != nil {
-		return "", nil, fmt.Errorf("%q doesn't seem to be part of a Go module", dir)
-	}
-
-	mod, err := os.ReadFile(modFileName)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to read %q, got %w", modFileName, err)
-	}
-
-	modAst, err := modfile.ParseLax(modFileName, mod, nil)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to parse %q, got %w", modFileName, err)
-	}
-
-	if modAst.Go == nil {
-		return "", nil, fmt.Errorf("%q does not specify a Go version", modFileName)
-	}
-
-	ver, err = goversion.NewVersion(modAst.Go.Version)
-	return filepath.Dir(modFileName), ver, err
-}
-
-func retrieveModFile(dir string) (string, error) {
-	const lookingForFile = "go.mod"
-	for {
-		// filepath.Dir returns 'C:\' on Windows, and '/' on Unix
-		isRootDir := (dir == filepath.VolumeName(dir)+string(filepath.Separator))
-		if dir == "." || isRootDir {
-			return "", fmt.Errorf("did not found %q file", lookingForFile)
-		}
-
-		lookingForFilePath := filepath.Join(dir, lookingForFile)
-		info, err := os.Stat(lookingForFilePath)
-		if err != nil || info.IsDir() {
-			// lets check the parent dir
-			dir = filepath.Dir(dir)
-			continue
-		}
-
-		return lookingForFilePath, nil
-	}
+	return nil
 }
 
 // isGenerated reports whether the source file is generated code
@@ -208,32 +115,30 @@ func isGenerated(src []byte) bool {
 	sc := bufio.NewScanner(bytes.NewReader(src))
 	for sc.Scan() {
 		b := sc.Bytes()
-		if bytes.HasPrefix(b, generatedPrefix) && bytes.HasSuffix(b, generatedSuffix) && len(b) >= len(generatedPrefix)+len(generatedSuffix) {
+		if bytes.HasPrefix(b, genHdr) && bytes.HasSuffix(b, genFtr) && len(b) >= len(genHdr)+len(genFtr) {
 			return true
 		}
 	}
 	return false
 }
 
-// addInvalidFileFailure adds a failure for an invalid formatted file.
+// addInvalidFileFailure adds a failure for an invalid formatted file
 func addInvalidFileFailure(filename, errStr string, failures chan Failure) {
 	position := getPositionInvalidFile(filename, errStr)
 	failures <- Failure{
 		Confidence: 1,
 		Failure:    fmt.Sprintf("invalid file %s: %v", filename, errStr),
-		Category:   failureCategoryValidity,
+		Category:   "validity",
 		Position:   position,
 	}
 }
 
-// errPosRegexp matches with a NewFile error message:
-//
-//	corrupted.go:10:4: expected '}', found 'EOF
-//
-// The first group matches the line, and the second group matches the column.
+// errPosRegexp matches with an NewFile error message
+// i.e. :  corrupted.go:10:4: expected '}', found 'EOF
+// first group matches the line and the second group, the column
 var errPosRegexp = regexp.MustCompile(`.*:(\d*):(\d*):.*$`)
 
-// getPositionInvalidFile gets the position of the error in an invalid file.
+// getPositionInvalidFile gets the position of the error in an invalid file
 func getPositionInvalidFile(filename, s string) FailurePosition {
 	pos := errPosRegexp.FindStringSubmatch(s)
 	if len(pos) < 3 {

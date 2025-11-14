@@ -7,7 +7,6 @@ package ssa
 import (
 	"fmt"
 	"go/types"
-	"slices"
 	"sync"
 )
 
@@ -24,7 +23,7 @@ type generic struct {
 // Any created instance is added to cr.
 //
 // Acquires fn.generic.instancesMu.
-func (fn *Function) instance(targs []types.Type, b *builder) *Function {
+func (fn *Function) instance(targs []types.Type, cr *creator) *Function {
 	key := fn.Prog.canon.List(targs)
 
 	gen := fn.generic
@@ -33,24 +32,20 @@ func (fn *Function) instance(targs []types.Type, b *builder) *Function {
 	defer gen.instancesMu.Unlock()
 	inst, ok := gen.instances[key]
 	if !ok {
-		inst = createInstance(fn, targs)
-		inst.buildshared = b.shared()
-		b.enqueue(inst)
-
+		inst = createInstance(fn, targs, cr)
 		if gen.instances == nil {
 			gen.instances = make(map[*typeList]*Function)
 		}
 		gen.instances[key] = inst
-	} else {
-		b.waitForSharedFunction(inst)
 	}
 	return inst
 }
 
 // createInstance returns the instantiation of generic function fn using targs.
+// If the instantiation is created, this is added to cr.
 //
 // Requires fn.generic.instancesMu.
-func createInstance(fn *Function, targs []types.Type) *Function {
+func createInstance(fn *Function, targs []types.Type, cr *creator) *Function {
 	prog := fn.Prog
 
 	// Compute signature.
@@ -83,7 +78,8 @@ func createInstance(fn *Function, targs []types.Type) *Function {
 	if prog.mode&InstantiateGenerics != 0 && !prog.isParameterized(targs...) {
 		synthetic = fmt.Sprintf("instance of %s", fn.Name())
 		if fn.syntax != nil {
-			subst = makeSubster(prog.ctxt, obj, fn.typeparams, targs, false)
+			scope := obj.Origin().Scope()
+			subst = makeSubster(prog.ctxt, scope, fn.typeparams, targs, false)
 			build = (*builder).buildFromSyntax
 		} else {
 			build = (*builder).buildParamsOnly
@@ -94,7 +90,7 @@ func createInstance(fn *Function, targs []types.Type) *Function {
 	}
 
 	/* generic instance or instantiation wrapper */
-	return &Function{
+	instance := &Function{
 		name:           fmt.Sprintf("%s%s", fn.Name(), targs), // may not be unique
 		object:         obj,
 		Signature:      sig,
@@ -111,6 +107,8 @@ func createInstance(fn *Function, targs []types.Type) *Function {
 		typeargs:       targs,
 		subst:          subst,
 	}
+	cr.Add(instance)
+	return instance
 }
 
 // isParameterized reports whether any of the specified types contains
@@ -123,5 +121,10 @@ func (prog *Program) isParameterized(ts ...types.Type) bool {
 	// handle the most common but shallow cases such as T, pkg.T,
 	// *T without consulting the cache under the lock.
 
-	return slices.ContainsFunc(ts, prog.hasParams.Has)
+	for _, t := range ts {
+		if prog.hasParams.Has(t) {
+			return true
+		}
+	}
+	return false
 }
