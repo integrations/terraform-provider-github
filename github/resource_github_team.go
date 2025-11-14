@@ -179,9 +179,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 		on the parent team, the operation might still fail to set the parent team.
 	*/
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
-		_, _, err := client.Teams.EditTeamByID(ctx,
-			*githubTeam.Organization.ID,
-			*githubTeam.ID,
+		_, _, err := client.Teams.EditTeamBySlug(ctx,
+			ownerName,
+			*githubTeam.Slug,
 			newTeam,
 			false)
 		if err != nil {
@@ -310,7 +310,6 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
@@ -329,13 +328,29 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 		removeParentTeam = true
 	}
 
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Get team slug from state
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
+	var team *github.Team
+	if teamSlug != "" {
+		// Use team slug if available
+		team, _, err = client.Teams.EditTeamBySlug(ctx, meta.(*Owner).name, teamSlug, editedTeam, removeParentTeam)
+	} else {
+		// Fallback
+		teamId, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+
+		foundTeam, findErr := findTeamByID(ctx, client, meta.(*Owner).name, teamId)
+		if findErr != nil {
+			return findErr
+		}
+
+		team, _, err = client.Teams.EditTeamBySlug(ctx, meta.(*Owner).name, foundTeam.GetSlug(), editedTeam, removeParentTeam)
+	}
 	if err != nil {
 		return err
 	}
@@ -369,16 +384,20 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// Delete using slug if available, otherwise fall back to ID-based deletion
+	// Delete using slug if available, otherwise look up the slug by ID
 	if teamSlug != "" {
 		_, err = client.Teams.DeleteTeamBySlug(ctx, orgName, teamSlug)
 	} else {
-		// Fallback: parse team ID for legacy resources
+		// Fallback: find team slug by ID for legacy resources
 		id, parseErr := strconv.ParseInt(d.Id(), 10, 64)
 		if parseErr != nil {
 			return unconvertibleIdErr(d.Id(), parseErr)
 		}
-		_, err = client.Teams.DeleteTeamByID(ctx, meta.(*Owner).id, id)
+		team, findErr := findTeamByID(ctx, client, orgName, id)
+		if findErr != nil {
+			return findErr
+		}
+		_, err = client.Teams.DeleteTeamBySlug(ctx, orgName, *team.Slug)
 	}
 
 	/*

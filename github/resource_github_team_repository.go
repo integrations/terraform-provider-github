@@ -69,7 +69,8 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
+	teamSlug := d.Get("slug").(string)
 
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
@@ -78,14 +79,13 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+	_, err = client.Teams.AddTeamRepoBySlug(ctx,
+		orgName,
+		teamSlug,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -108,23 +108,20 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	teamSlug := d.Get("slug").(string)
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := getTeamID(teamIdString, meta)
-	if err != nil {
-		return err
-	}
+
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 	if repoErr != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(repoErr, &ghErr) {
@@ -168,7 +165,6 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
@@ -182,10 +178,14 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+	team, err := findTeamByID(ctx, client, orgName, teamId)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Teams.AddTeamRepoBySlug(ctx,
+		orgName,
+		*team.Slug,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -207,7 +207,6 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
@@ -220,7 +219,12 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	team, err := findTeamByID(ctx, client, orgName, teamId)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, *team.Slug, orgName, repoName)
 
 	if resp.StatusCode == 404 {
 		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
@@ -233,7 +237,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 			log.Printf("[INFO] Repo name has changed %s -> %s. "+
 				"Try deleting team repository again.",
 				repoName, newRepoName)
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
+			_, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, *team.Slug, orgName, newRepoName)
 			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName)
 		}
 	}
