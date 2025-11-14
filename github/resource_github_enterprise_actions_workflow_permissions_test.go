@@ -8,9 +8,7 @@ import (
 )
 
 func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
-
 	t.Run("creates enterprise workflow permissions without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_actions_workflow_permissions" "test" {
 			enterprise_slug = "%s"
@@ -51,7 +49,6 @@ func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
 	})
 
 	t.Run("updates enterprise workflow permissions without error", func(t *testing.T) {
-
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 			resource "github_enterprise_actions_workflow_permissions" "test" {
@@ -112,7 +109,6 @@ func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
 	})
 
 	t.Run("imports enterprise workflow permissions without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 		resource "github_enterprise_actions_workflow_permissions" "test" {
 			enterprise_slug = "%s"

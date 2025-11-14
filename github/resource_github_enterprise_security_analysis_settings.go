@@ -59,7 +59,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -97,7 +97,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	return resourceGithubEnterpriseSecurityAnalysisSettingsRead(d, meta)
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -131,7 +131,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData
 	return nil
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,7 +22,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
@@ -91,7 +92,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -116,7 +117,7 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	return resourceGithubRepositoryAutolinkReferenceRead(d, meta)
 }
 
-func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -132,7 +133,8 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
 					owner, repoName)
@@ -161,7 +163,7 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

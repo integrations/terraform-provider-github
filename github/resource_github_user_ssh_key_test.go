@@ -14,12 +14,10 @@ import (
 )
 
 func TestAccGithubUserSshKey(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	testKey := newTestKey()
 
 	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {
 				title = "tf-acc-test-%s"
@@ -66,11 +64,9 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {
 				title = "tf-acc-test-%s"
@@ -112,7 +108,6 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
