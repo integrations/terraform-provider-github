@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -150,6 +150,7 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
 	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
 	if err != nil {
 		return err

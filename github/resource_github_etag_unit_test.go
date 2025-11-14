@@ -80,7 +80,6 @@ func TestEtagSchemaConsistency(t *testing.T) {
 		"github_issue_label":                         resourceGithubIssueLabel(),
 		"github_repository_webhook":                  resourceGithubRepositoryWebhook(),
 		"github_repository_deployment_branch_policy": resourceGithubRepositoryDeploymentBranchPolicy(),
-		"github_repository_project":                  resourceGithubRepositoryProject(),
 	}
 
 	for resourceName, resource := range resourcesWithEtag {
