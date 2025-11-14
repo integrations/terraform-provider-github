@@ -148,7 +148,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 			// Now actually remove them from the org to clean up
 			_, removeErr := conn.Organizations.RemoveOrgMembership(context.TODO(), username, orgName)
 			if removeErr != nil {
-				return fmt.Errorf("organization membership %q could not be removed during membership downgrade test case cleanup: %s", rs.Primary.ID, removeErr)
+				return fmt.Errorf("organization membership %q could not be removed during membership downgrade test case cleanup: %w", rs.Primary.ID, removeErr)
 			}
 		} else if responseIsSuccessful {
 			return fmt.Errorf("organization membership %q still exists", rs.Primary.ID)

@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -65,7 +66,7 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -106,7 +107,7 @@ func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta i
 	return resourceGithubCodespacesSecretRead(d, meta)
 }
 
-func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -118,7 +119,8 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta interface{}
 
 	secret, _, err := client.Codespaces.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -166,7 +168,7 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -182,7 +184,7 @@ func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta interface
 	return err
 }
 
-func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -223,7 +225,7 @@ func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta interface
 	return []*schema.ResourceData{d}, nil
 }
 
-func getCodespacesPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
+func getCodespacesPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

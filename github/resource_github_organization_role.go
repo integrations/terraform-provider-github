@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -57,7 +58,7 @@ func resourceGithubOrganizationRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -80,14 +81,14 @@ func resourceGithubOrganizationRoleCreate(d *schema.ResourceData, meta interface
 		Permissions: permissionsStr,
 	})
 	if err != nil {
-		return fmt.Errorf("error creating GitHub custom organization role (%s/%s): %s", orgName, d.Get("name").(string), err)
+		return fmt.Errorf("error creating GitHub custom organization role (%s/%s): %w", orgName, d.Get("name").(string), err)
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
 	return resourceGithubOrganizationRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -104,7 +105,8 @@ func resourceGithubOrganizationRoleRead(d *schema.ResourceData, meta interface{}
 
 	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] GitHub custom organization role (%s/%d) not found, removing from state", orgName, roleId)
 				d.SetId("")
@@ -133,7 +135,7 @@ func resourceGithubOrganizationRoleRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceGithubOrganizationRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -163,13 +165,13 @@ func resourceGithubOrganizationRoleUpdate(d *schema.ResourceData, meta interface
 
 	_, _, err = client.Organizations.UpdateCustomOrgRole(ctx, orgName, roleId, update)
 	if err != nil {
-		return fmt.Errorf("error updating GitHub custom organization role (%s/%s): %s", orgName, d.Get("name").(string), err)
+		return fmt.Errorf("error updating GitHub custom organization role (%s/%s): %w", orgName, d.Get("name").(string), err)
 	}
 
 	return resourceGithubOrganizationRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -186,7 +188,7 @@ func resourceGithubOrganizationRoleDelete(d *schema.ResourceData, meta interface
 
 	_, err = client.Organizations.DeleteCustomOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub custom organization role %s (%d): %s", orgName, roleId, err)
+		return fmt.Errorf("Error deleting GitHub custom organization role %s (%d): %w", orgName, roleId, err)
 	}
 
 	return nil

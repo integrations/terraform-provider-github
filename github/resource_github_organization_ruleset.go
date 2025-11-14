@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -583,7 +584,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
@@ -603,7 +604,7 @@ func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
-func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	org := meta.(*Owner).name
@@ -622,7 +623,8 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 
 	ruleset, resp, err = client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -642,20 +644,27 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta interfac
 		return nil
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", ruleset.Name)
-	d.Set("target", ruleset.GetTarget())
-	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
-	d.Set("rules", flattenRules(ruleset.Rules, true))
-	d.Set("node_id", ruleset.GetNodeID())
-	d.Set("ruleset_id", ruleset.ID)
+	if ruleset == nil {
+		log.Printf("[INFO] Removing organization ruleset %s: %d from state because it no longer exists in GitHub (empty response)",
+			org, rulesetID)
+		d.SetId("")
+		return nil
+	}
+
+	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("name", ruleset.Name)
+	_ = d.Set("target", ruleset.GetTarget())
+	_ = d.Set("enforcement", ruleset.Enforcement)
+	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
+	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
+	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
+	_ = d.Set("node_id", ruleset.GetNodeID())
+	_ = d.Set("ruleset_id", ruleset.ID)
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
@@ -679,7 +688,7 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
-func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
@@ -694,9 +703,8 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta interf
 	return err
 }
 
-func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	rulesetIDStr := d.Id()
-	rulesetID, err := strconv.ParseInt(rulesetIDStr, 10, 64)
+func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return []*schema.ResourceData{d}, unconvertibleIdErr(rulesetIDStr, err)
 	}

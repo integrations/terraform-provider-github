@@ -61,7 +61,7 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
+	rulesMap := result[0].(map[string]any)
 
 	// Should contain the rules
 	if !rulesMap["creation"].(bool) {
@@ -224,8 +224,8 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	maxFileSizeRules := rulesMap["max_file_size"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	maxFileSizeRules := rulesMap["max_file_size"].([]map[string]any)
 
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
@@ -285,8 +285,8 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	fileExtensionRules := rulesMap["file_extension_restriction"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	fileExtensionRules := rulesMap["file_extension_restriction"].([]map[string]any)
 
 	if len(fileExtensionRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtensionRules))
@@ -306,30 +306,30 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 
 func TestCompletePushRulesetSupport(t *testing.T) {
 	// Test that all push-specific rules are supported together
-	rulesMap := map[string]interface{}{
-		"file_path_restriction": []interface{}{
-			map[string]interface{}{
-				"restricted_file_paths": []interface{}{"secrets/", "*.key", "private/"},
+	rulesMap := map[string]any{
+		"file_path_restriction": []any{
+			map[string]any{
+				"restricted_file_paths": []any{"secrets/", "*.key", "private/"},
 			},
 		},
-		"max_file_size": []interface{}{
-			map[string]interface{}{
+		"max_file_size": []any{
+			map[string]any{
 				"max_file_size": float64(5242880), // 5MB
 			},
 		},
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": 300,
 			},
 		},
-		"file_extension_restriction": []interface{}{
-			map[string]interface{}{
-				"restricted_file_extensions": []interface{}{".exe", ".bat", ".sh"},
+		"file_extension_restriction": []any{
+			map[string]any{
+				"restricted_file_extensions": []any{".exe", ".bat", ".sh"},
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 
 	// Expand to GitHub API format
 	expandedRules := expandRules(input, false)
@@ -364,10 +364,10 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
 
 	// Verify file_path_restriction
-	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]interface{})
+	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]any)
 	if len(filePathRules) != 1 {
 		t.Fatalf("Expected 1 file_path_restriction rule, got %d", len(filePathRules))
 	}
@@ -377,7 +377,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_size
-	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]interface{})
+	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
@@ -386,7 +386,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_path_length
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
 	}
@@ -395,7 +395,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify file_extension_restriction
-	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]interface{})
+	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
 	if len(fileExtRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtRules))
 	}

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -23,7 +24,7 @@ func resourceGithubTeam() *schema.Resource {
 		},
 
 		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("name")
 			}),
 		),
@@ -51,7 +52,7 @@ func resourceGithubTeam() *schema.Resource {
 				Optional:    true,
 				Default:     "",
 				Description: "The ID or slug of the parent team, if this is a nested team.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					if d.Get("parent_team_id") == d.Get("parent_team_read_id") || d.Get("parent_team_id") == d.Get("parent_team_read_slug") {
 						return true
 					}
@@ -103,7 +104,7 @@ func resourceGithubTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -158,7 +159,6 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 			*githubTeam.ID,
 			newTeam,
 			false)
-
 		if err != nil {
 			return err
 		}
@@ -176,7 +176,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGithubTeamRead(d, meta)
 }
 
-func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -196,7 +196,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -259,7 +260,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -311,7 +312,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGithubTeamRead(d, meta)
 }
 
-func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -334,12 +335,12 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 		been deleted already (via parallel runs), the child team is also already gone (deleted by
 		GitHub automatically).
 		So we're checking if it still exists and if not, simply remove it from TF state.
-	*/
-	if err != nil {
+	*/if err != nil {
 		// Fetch the team in order to see if it exists or not (http 404)
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {
-			if ghErr, ok := err.(*github.ErrorResponse); ok {
+			ghErr := &github.ErrorResponse{}
+			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					// If team we failed to delete does not exist, remove it from TF state.
 					log.Printf("[WARN] Removing team: %s from state because it no longer exists",
@@ -353,7 +354,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	return err
 }
 
-func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubTeamImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	teamId, err := getTeamID(d.Id(), meta)
 	if err != nil {
 		return nil, err
@@ -367,8 +368,7 @@ func resourceGithubTeamImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	return []*schema.ResourceData{d}, nil
 }
 
-func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
-
+func removeDefaultMaintainer(teamSlug string, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	v4client := meta.(*Owner).v4client
@@ -386,7 +386,7 @@ func removeDefaultMaintainer(teamSlug string, meta interface{}) error {
 			} `graphql:"team(slug:$slug)"`
 		} `graphql:"organization(login:$login)"`
 	}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug":  githubv4.String(teamSlug),
 		"login": githubv4.String(orgName),
 	}

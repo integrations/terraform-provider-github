@@ -60,7 +60,7 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -95,7 +95,7 @@ func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta inte
 
 	d.SetId(fmt.Sprintf("%d", roleId))
 	if err := d.Set("users", allUsers); err != nil {
-		return fmt.Errorf("error setting users: %s", err)
+		return fmt.Errorf("error setting users: %w", err)
 	}
 
 	return nil
