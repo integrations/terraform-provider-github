@@ -430,6 +430,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 			remove = append(remove, hasTeam)
 		} else if wantPerm != hasTeam.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating team %s permission from %s to %s for repo: %s.", hasTeam.teamSlug, hasTeam.permission, wantPerm, repoName)
+			//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 			_, err := client.Teams.AddTeamRepoByID(
 				ctx, orgId, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
@@ -465,6 +466,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		permission := teamData["permission"].(string)
 		// team needs to be added
 		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamSlug, permission, repoName)
+		//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 		_, err = client.Teams.AddTeamRepoByID(
 			ctx, orgId, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
@@ -477,6 +479,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 
 	for _, team := range remove {
 		log.Printf("[DEBUG] Removing team %s from repo: %s.", team.teamSlug, repoName)
+		//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
 		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, team.teamID, owner, repoName)
 		if err != nil {
 			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", team.teamSlug), owner, repoName)

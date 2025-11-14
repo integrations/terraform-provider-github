@@ -150,6 +150,7 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
 	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
 	if err != nil {
 		return err

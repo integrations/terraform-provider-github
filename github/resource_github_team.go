@@ -154,6 +154,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 		on the parent team, the operation might still fail to set the parent team.
 	*/
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
+		//nolint:staticcheck // SA1019: EditTeamByID is deprecated but still needed for legacy compatibility
 		_, _, err := client.Teams.EditTeamByID(ctx,
 			meta.(*Owner).id,
 			*githubTeam.ID,
@@ -194,6 +195,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
@@ -292,6 +294,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: EditTeamByID is deprecated but still needed for legacy compatibility
 	team, _, err := client.Teams.EditTeamByID(ctx, meta.(*Owner).id, teamId, editedTeam, removeParentTeam)
 	if err != nil {
 		return err
@@ -327,6 +330,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: DeleteTeamByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
 	/*
 		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
@@ -337,6 +341,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		So we're checking if it still exists and if not, simply remove it from TF state.
 	*/if err != nil {
 		// Fetch the team in order to see if it exists or not (http 404)
+		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {
 			ghErr := &github.ErrorResponse{}

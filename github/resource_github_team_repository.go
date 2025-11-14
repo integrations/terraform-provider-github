@@ -83,6 +83,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
+	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -180,6 +181,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
+	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -217,6 +219,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
 	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 
 	if resp.StatusCode == 404 {
@@ -230,6 +233,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 			log.Printf("[INFO] Repo name has changed %s -> %s. "+
 				"Try deleting team repository again.",
 				repoName, newRepoName)
+			//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
 			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
 			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName)
 		}
