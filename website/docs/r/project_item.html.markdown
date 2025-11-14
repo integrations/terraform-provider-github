@@ -25,13 +25,10 @@ resource "github_issue" "example" {
   body       = "This is an example issue"
 }
 
-resource "github_organization_project" "example" {
-  name = "Example Project"
-  body = "This is an example project"
-}
-
+# Note: Use existing Projects V2 project number
+# Projects V2 creation requires GraphQL API (not yet supported)
 resource "github_project_item" "example" {
-  project_number = github_organization_project.example.project_number
+  project_number = 123  # Replace with your existing Projects V2 number
   content_id     = github_issue.example.issue_id
   content_type   = "Issue"
 }
@@ -41,7 +38,7 @@ resource "github_project_item" "example" {
 
 ```hcl
 resource "github_project_item" "archived_example" {
-  project_number = github_organization_project.example.project_number
+  project_number = 123  # Replace with your existing Projects V2 number
   content_id     = github_issue.example.issue_id
   content_type   = "Issue"
   archived       = true
