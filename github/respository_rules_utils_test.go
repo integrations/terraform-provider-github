@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
@@ -255,7 +256,7 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 		},
 		"max_file_size": []interface{}{
 			map[string]interface{}{
-				"max_file_size": float64(1048576), // 1MB
+				"max_file_size": 1048576, // 1MB
 			},
 		},
 	}
@@ -349,7 +350,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"max_file_size": []interface{}{
 			map[string]interface{}{
-				"max_file_size": float64(5242880), // 5MB
+				"max_file_size": 5242880, // 5MB
 			},
 		},
 		"max_file_path_length": []interface{}{
@@ -359,7 +360,9 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []interface{}{
 			map[string]interface{}{
-				"restricted_file_extensions": []interface{}{".exe", ".bat", ".sh"},
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []interface{}{
+					".exe", ".bat", ".sh",
+				}),
 			},
 		},
 	}
