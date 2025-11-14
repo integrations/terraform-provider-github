@@ -366,11 +366,25 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("name", runner["name"])
-	d.Set("status", runner["status"])
-	d.Set("platform", runner["platform"])
-	d.Set("last_active_on", runner["last_active_on"])
-	d.Set("public_ip_enabled", runner["public_ip_enabled"])
+	if runner == nil {
+		return fmt.Errorf("no runner data returned from API")
+	}
+
+	if name, ok := runner["name"].(string); ok {
+		d.Set("name", name)
+	}
+	if status, ok := runner["status"].(string); ok {
+		d.Set("status", status)
+	}
+	if platform, ok := runner["platform"].(string); ok {
+		d.Set("platform", platform)
+	}
+	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
+		d.Set("last_active_on", lastActiveOn)
+	}
+	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
+		d.Set("public_ip_enabled", publicIPEnabled)
+	}
 
 	if image, ok := runner["image"].(map[string]interface{}); ok {
 		d.Set("image", flattenImage(image))
