@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -9,12 +10,17 @@ import (
 
 func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	t.Run("creates organization network configuration without error", func(t *testing.T) {
-		config := `
+		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
+		if networkSettingsID == "" {
+			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+		}
+
+		config := fmt.Sprintf(`
 		resource "github_organization_network_configuration" "test" {
 			name                  = "test-network-configuration"
 			compute_service       = "actions"
-			network_settings_ids  = ["test-network-settings-id"]
-		}`
+			network_settings_ids  = ["%s"]
+		}`, networkSettingsID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -27,7 +33,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_network_configuration.test",
-				"network_settings_ids.0", "test-network-settings-id",
+				"network_settings_ids.0", networkSettingsID,
 			),
 			resource.TestCheckResourceAttrSet(
 				"github_organization_network_configuration.test",
@@ -66,13 +72,17 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	})
 
 	t.Run("updates organization network configuration without error", func(t *testing.T) {
+		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
+		if networkSettingsID == "" {
+			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+		}
+
 		name := "test-network-config-one"
-		computeService := "none"
-		networkSettingsID := "test-settings-id-one"
+		computeService := "actions"
 
 		updatedName := "test-network-config-two"
 		updatedComputeService := "actions"
-		updatedNetworkSettingsID := "test-settings-id-two"
+		updatedNetworkSettingsID := networkSettingsID
 
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
@@ -152,9 +162,13 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	})
 
 	t.Run("imports organization network configuration without error", func(t *testing.T) {
+		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
+		if networkSettingsID == "" {
+			t.Skip("Skipping test: GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+		}
+
 		name := "test-network-config-import"
 		computeService := "actions"
-		networkSettingsID := "test-settings-id-import"
 
 		config := fmt.Sprintf(`
 		resource "github_organization_network_configuration" "test" {

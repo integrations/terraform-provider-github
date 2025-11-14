@@ -84,7 +84,7 @@ func resourceGithubOrganizationNetworkConfigurationCreate(d *schema.ResourceData
 	}
 
 	req := github.NetworkConfigurationRequest{
-		Name:               github.String(d.Get("name").(string)),
+		Name:               github.Ptr(d.Get("name").(string)),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	}
@@ -159,7 +159,7 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(d *schema.ResourceData
 	}
 
 	req := github.NetworkConfigurationRequest{
-		Name:               github.String(d.Get("name").(string)),
+		Name:               github.Ptr(d.Get("name").(string)),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	}
