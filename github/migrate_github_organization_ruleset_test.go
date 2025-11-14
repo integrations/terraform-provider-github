@@ -12,6 +12,7 @@ func TestResourceGithubOrganizationRulesetMigrateState(t *testing.T) {
 		Attributes   map[string]string
 		Expected     map[string]string
 		Meta         any
+		ExpectError  bool
 	}{
 		"v1_to_v2": {
 			StateVersion: 1,
@@ -26,6 +27,35 @@ func TestResourceGithubOrganizationRulesetMigrateState(t *testing.T) {
 				"enforcement": "active",
 			},
 		},
+		"v1_to_v2_empty_state": {
+			StateVersion: 1,
+			Attributes:   map[string]string{},
+			Expected:     map[string]string{},
+		},
+		"v1_to_v2_with_conditions": {
+			StateVersion: 1,
+			Attributes: map[string]string{
+				"name":                              "org-ruleset-with-conditions",
+				"target":                            "branch",
+				"enforcement":                       "evaluate",
+				"conditions.0.repository_id.0":      "12345",
+				"conditions.0.ref_name.0.include.0": "main",
+			},
+			Expected: map[string]string{
+				"name":                              "org-ruleset-with-conditions",
+				"target":                            "branch",
+				"enforcement":                       "evaluate",
+				"conditions.0.repository_id.0":      "12345",
+				"conditions.0.ref_name.0.include.0": "main",
+			},
+		},
+		"unsupported_version": {
+			StateVersion: 2,
+			Attributes: map[string]string{
+				"name": "test",
+			},
+			ExpectError: true,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -35,6 +65,14 @@ func TestResourceGithubOrganizationRulesetMigrateState(t *testing.T) {
 		}
 
 		is, err := resourceGithubOrganizationRulesetMigrateState(tc.StateVersion, is, tc.Meta)
+
+		if tc.ExpectError {
+			if err == nil {
+				t.Fatalf("bad: %s, expected error but got none", tn)
+			}
+			continue
+		}
+
 		if err != nil {
 			t.Fatalf("bad: %s, err: %#v", tn, err)
 		}
