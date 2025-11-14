@@ -46,7 +46,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 
 	accessLevel := d.Get("access_level").(string)
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String(accessLevel),
+		AccessLevel: github.Ptr(accessLevel),
 	}
 
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
@@ -81,7 +81,7 @@ func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, me
 	ctx := context.WithValue(context.Background(), ctxId, repoName)
 
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String("none"),
+		AccessLevel: github.Ptr("none"),
 	}
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
 

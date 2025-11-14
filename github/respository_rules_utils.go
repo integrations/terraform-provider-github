@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// Helper function to safely convert interface{} to int, handling both int and float64
-func toInt(v interface{}) int {
+// Helper function to safely convert interface{} to int, handling both int and float64.
+func toInt(v any) int {
 	switch val := v.(type) {
 	case int:
 		return val
@@ -22,8 +22,8 @@ func toInt(v interface{}) int {
 	}
 }
 
-// Helper function to safely convert interface{} to int64, handling both int and float64
-func toInt64(v interface{}) int64 {
+// Helper function to safely convert interface{} to int64, handling both int and float64.
+func toInt64(v any) int64 {
 	switch val := v.(type) {
 	case int:
 		return int64(val)
@@ -58,9 +58,9 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rep
 		Source:       source,
 		SourceType:   &sourceTypeEnum,
 		Enforcement:  enforcement,
-		BypassActors: expandBypassActors(d.Get("bypass_actors").([]interface{})),
-		Conditions:   expandConditions(d.Get("conditions").([]interface{}), isOrgLevel),
-		Rules:        expandRules(d.Get("rules").([]interface{}), isOrgLevel),
+		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
+		Conditions:   expandConditions(d.Get("conditions").([]any), isOrgLevel),
+		Rules:        expandRules(d.Get("rules").([]any), isOrgLevel),
 	}
 }
 
@@ -89,7 +89,7 @@ func expandBypassActors(input []any) []*github.BypassActor {
 			if actorID == 0 {
 				actor.ActorID = nil
 			} else {
-				actor.ActorID = github.Int64(int64(actorID))
+				actor.ActorID = github.Ptr(int64(actorID))
 			}
 		}
 
@@ -126,12 +126,12 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 	return actorsSlice
 }
 
-func expandConditions(input []interface{}, org bool) *github.RepositoryRulesetConditions {
+func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
 	rulesetConditions := &github.RepositoryRulesetConditions{}
-	inputConditions := input[0].(map[string]interface{})
+	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
 	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
@@ -200,7 +200,7 @@ func expandConditions(input []interface{}, org bool) *github.RepositoryRulesetCo
 	return rulesetConditions
 }
 
-func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []interface{} {
+func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
 	if conditions == nil || conditions.RefName == nil {
 		return []any{}
 	}
@@ -242,12 +242,12 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 	return []any{conditionsMap}
 }
 
-func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
+func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	if len(input) == 0 || input[0] == nil {
 		return &github.RepositoryRulesetRules{}
 	}
 
-	rulesMap := input[0].(map[string]interface{})
+	rulesMap := input[0].(map[string]any)
 	rulesetRules := &github.RepositoryRulesetRules{}
 
 	// Simple rules without parameters
@@ -281,10 +281,10 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// Required deployments rule
-	if v, ok := rulesMap["required_deployments"].([]interface{}); ok && len(v) != 0 {
-		requiredDeploymentsMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["required_deployments"].([]any); ok && len(v) != 0 {
+		requiredDeploymentsMap := v[0].(map[string]any)
 		envs := make([]string, 0)
-		for _, env := range requiredDeploymentsMap["required_deployment_environments"].([]interface{}) {
+		for _, env := range requiredDeploymentsMap["required_deployment_environments"].([]any) {
 			envs = append(envs, env.(string))
 		}
 		rulesetRules.RequiredDeployments = &github.RequiredDeploymentsRuleParameters{
@@ -321,14 +321,14 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// Required status checks rule
-	if v, ok := rulesMap["required_status_checks"].([]interface{}); ok && len(v) != 0 {
-		requiredStatusMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["required_status_checks"].([]any); ok && len(v) != 0 {
+		requiredStatusMap := v[0].(map[string]any)
 		requiredStatusChecks := make([]*github.RuleStatusCheck, 0)
 
 		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"]; ok {
 			requiredStatusChecksSet := requiredStatusChecksInput.(*schema.Set)
 			for _, checkMap := range requiredStatusChecksSet.List() {
-				check := checkMap.(map[string]interface{})
+				check := checkMap.(map[string]any)
 				integrationID := toInt64(check["integration_id"])
 
 				params := &github.RuleStatusCheck{
@@ -336,7 +336,7 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 				}
 
 				if integrationID != 0 {
-					params.IntegrationID = github.Int64(integrationID)
+					params.IntegrationID = github.Ptr(integrationID)
 				}
 
 				requiredStatusChecks = append(requiredStatusChecks, params)
@@ -362,8 +362,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	for k := range patternRules {
-		if v, ok := rulesMap[k].([]interface{}); ok && len(v) != 0 {
-			patternParametersMap := v[0].(map[string]interface{})
+		if v, ok := rulesMap[k].([]any); ok && len(v) != 0 {
+			patternParametersMap := v[0].(map[string]any)
 
 			name := patternParametersMap["name"].(string)
 			negate := patternParametersMap["negate"].(bool)
@@ -392,19 +392,19 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 
 	// Required workflows rule (org-only)
 	if org {
-		if v, ok := rulesMap["required_workflows"].([]interface{}); ok && len(v) != 0 {
-			requiredWorkflowsMap := v[0].(map[string]interface{})
+		if v, ok := rulesMap["required_workflows"].([]any); ok && len(v) != 0 {
+			requiredWorkflowsMap := v[0].(map[string]any)
 			requiredWorkflows := make([]*github.RuleWorkflow, 0)
 
 			if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
 				requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
 				for _, workflowMap := range requiredWorkflowsSet.List() {
-					workflow := workflowMap.(map[string]interface{})
+					workflow := workflowMap.(map[string]any)
 
 					params := &github.RuleWorkflow{
-						RepositoryID: github.Int64(toInt64(workflow["repository_id"])),
+						RepositoryID: github.Ptr(toInt64(workflow["repository_id"])),
 						Path:         workflow["path"].(string),
-						Ref:          github.String(workflow["ref"].(string)),
+						Ref:          github.Ptr(workflow["ref"].(string)),
 					}
 
 					requiredWorkflows = append(requiredWorkflows, params)
@@ -421,8 +421,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// Required code scanning rule
-	if v, ok := rulesMap["required_code_scanning"].([]interface{}); ok && len(v) != 0 {
-		requiredCodeScanningMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["required_code_scanning"].([]any); ok && len(v) != 0 {
+		requiredCodeScanningMap := v[0].(map[string]any)
 		requiredCodeScanningTools := make([]*github.RuleCodeScanningTool, 0)
 
 		if requiredCodeScanningInput, ok := requiredCodeScanningMap["required_code_scanning_tool"]; ok {
@@ -447,8 +447,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// File path restriction rule
-	if v, ok := rulesMap["file_path_restriction"].([]interface{}); ok && len(v) != 0 {
-		filePathRestrictionMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["file_path_restriction"].([]any); ok && len(v) != 0 {
+		filePathRestrictionMap := v[0].(map[string]any)
 		restrictedFilePaths := make([]string, 0)
 		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]any) {
 			restrictedFilePaths = append(restrictedFilePaths, path.(string))
@@ -460,8 +460,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// Max file size rule
-	if v, ok := rulesMap["max_file_size"].([]interface{}); ok && len(v) != 0 {
-		maxFileSizeMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
+		maxFileSizeMap := v[0].(map[string]any)
 		maxFileSize := toInt64(maxFileSizeMap["max_file_size"])
 		params := &github.MaxFileSizeRuleParameters{
 			MaxFileSize: maxFileSize,
@@ -470,8 +470,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// Max file path length rule
-	if v, ok := rulesMap["max_file_path_length"].([]interface{}); ok && len(v) != 0 {
-		maxFilePathLengthMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["max_file_path_length"].([]any); ok && len(v) != 0 {
+		maxFilePathLengthMap := v[0].(map[string]any)
 		maxFilePathLength := toInt(maxFilePathLengthMap["max_file_path_length"])
 		params := &github.MaxFilePathLengthRuleParameters{
 			MaxFilePathLength: maxFilePathLength,
@@ -480,8 +480,8 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	}
 
 	// File extension restriction rule
-	if v, ok := rulesMap["file_extension_restriction"].([]interface{}); ok && len(v) != 0 {
-		fileExtensionRestrictionMap := v[0].(map[string]interface{})
+	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
+		fileExtensionRestrictionMap := v[0].(map[string]any)
 		restrictedFileExtensions := make([]string, 0)
 		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]any) {
 			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
@@ -495,12 +495,12 @@ func expandRules(input []interface{}, org bool) *github.RepositoryRulesetRules {
 	return rulesetRules
 }
 
-func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} {
+func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 	if rules == nil {
-		return []interface{}{}
+		return []any{}
 	}
 
-	rulesMap := make(map[string]interface{})
+	rulesMap := make(map[string]any)
 
 	// Simple boolean rules - explicitly set all to false first, then override with true if present
 	rulesMap["creation"] = rules.Creation != nil
@@ -518,8 +518,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 		rulesMap["update_allows_fetch_and_merge"] = false
 	} // Required deployments rule
 	if rules.RequiredDeployments != nil {
-		requiredDeploymentsSlice := make([]map[string]interface{}, 0)
-		requiredDeploymentsSlice = append(requiredDeploymentsSlice, map[string]interface{}{
+		requiredDeploymentsSlice := make([]map[string]any, 0)
+		requiredDeploymentsSlice = append(requiredDeploymentsSlice, map[string]any{
 			"required_deployment_environments": rules.RequiredDeployments.RequiredDeploymentEnvironments,
 		})
 		rulesMap["required_deployments"] = requiredDeploymentsSlice
@@ -527,8 +527,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Pull request rule
 	if rules.PullRequest != nil {
-		pullRequestSlice := make([]map[string]interface{}, 0)
-		pullRequestSlice = append(pullRequestSlice, map[string]interface{}{
+		pullRequestSlice := make([]map[string]any, 0)
+		pullRequestSlice = append(pullRequestSlice, map[string]any{
 			"dismiss_stale_reviews_on_push":     rules.PullRequest.DismissStaleReviewsOnPush,
 			"require_code_owner_review":         rules.PullRequest.RequireCodeOwnerReview,
 			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
@@ -540,8 +540,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Merge queue rule
 	if rules.MergeQueue != nil {
-		mergeQueueSlice := make([]map[string]interface{}, 0)
-		mergeQueueSlice = append(mergeQueueSlice, map[string]interface{}{
+		mergeQueueSlice := make([]map[string]any, 0)
+		mergeQueueSlice = append(mergeQueueSlice, map[string]any{
 			"check_response_timeout_minutes":    rules.MergeQueue.CheckResponseTimeoutMinutes,
 			"grouping_strategy":                 string(rules.MergeQueue.GroupingStrategy),
 			"max_entries_to_build":              rules.MergeQueue.MaxEntriesToBuild,
@@ -555,11 +555,11 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Required status checks rule
 	if rules.RequiredStatusChecks != nil {
-		requiredStatusSlice := make([]map[string]interface{}, 0)
-		requiredChecks := make([]map[string]interface{}, 0)
+		requiredStatusSlice := make([]map[string]any, 0)
+		requiredChecks := make([]map[string]any, 0)
 
 		for _, check := range rules.RequiredStatusChecks.RequiredStatusChecks {
-			checkMap := map[string]interface{}{
+			checkMap := map[string]any{
 				"context": check.Context,
 			}
 			if check.IntegrationID != nil {
@@ -570,7 +570,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 			requiredChecks = append(requiredChecks, checkMap)
 		}
 
-		statusChecksMap := map[string]interface{}{
+		statusChecksMap := map[string]any{
 			"required_check":                       requiredChecks,
 			"strict_required_status_checks_policy": rules.RequiredStatusChecks.StrictRequiredStatusChecksPolicy,
 		}
@@ -596,8 +596,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	for k, v := range patternRules {
 		if v != nil {
-			patternSlice := make([]map[string]interface{}, 0)
-			patternMap := map[string]interface{}{
+			patternSlice := make([]map[string]any, 0)
+			patternMap := map[string]any{
 				"operator": string(v.Operator),
 				"pattern":  v.Pattern,
 			}
@@ -614,11 +614,11 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Required workflows rule (org-only)
 	if org && rules.Workflows != nil {
-		requiredWorkflowsSlice := make([]map[string]interface{}, 0)
-		requiredWorkflows := make([]map[string]interface{}, 0)
+		requiredWorkflowsSlice := make([]map[string]any, 0)
+		requiredWorkflows := make([]map[string]any, 0)
 
 		for _, workflow := range rules.Workflows.Workflows {
-			workflowMap := map[string]interface{}{
+			workflowMap := map[string]any{
 				"path": workflow.Path,
 			}
 			if workflow.RepositoryID != nil {
@@ -630,7 +630,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 			requiredWorkflows = append(requiredWorkflows, workflowMap)
 		}
 
-		workflowsMap := map[string]interface{}{
+		workflowsMap := map[string]any{
 			"required_workflow": requiredWorkflows,
 		}
 
@@ -646,11 +646,11 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Required code scanning rule
 	if rules.CodeScanning != nil {
-		requiredCodeScanningSlice := make([]map[string]interface{}, 0)
-		requiredCodeScanningTools := make([]map[string]interface{}, 0)
+		requiredCodeScanningSlice := make([]map[string]any, 0)
+		requiredCodeScanningTools := make([]map[string]any, 0)
 
 		for _, tool := range rules.CodeScanning.CodeScanningTools {
-			toolMap := map[string]interface{}{
+			toolMap := map[string]any{
 				"alerts_threshold":          string(tool.AlertsThreshold),
 				"security_alerts_threshold": string(tool.SecurityAlertsThreshold),
 				"tool":                      tool.Tool,
@@ -658,7 +658,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 			requiredCodeScanningTools = append(requiredCodeScanningTools, toolMap)
 		}
 
-		codeScanningMap := map[string]interface{}{
+		codeScanningMap := map[string]any{
 			"required_code_scanning_tool": requiredCodeScanningTools,
 		}
 
@@ -668,8 +668,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// File path restriction rule
 	if rules.FilePathRestriction != nil {
-		filePathRestrictionSlice := make([]map[string]interface{}, 0)
-		filePathRestrictionSlice = append(filePathRestrictionSlice, map[string]interface{}{
+		filePathRestrictionSlice := make([]map[string]any, 0)
+		filePathRestrictionSlice = append(filePathRestrictionSlice, map[string]any{
 			"restricted_file_paths": rules.FilePathRestriction.RestrictedFilePaths,
 		})
 		rulesMap["file_path_restriction"] = filePathRestrictionSlice
@@ -677,8 +677,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Max file size rule
 	if rules.MaxFileSize != nil {
-		maxFileSizeSlice := make([]map[string]interface{}, 0)
-		maxFileSizeSlice = append(maxFileSizeSlice, map[string]interface{}{
+		maxFileSizeSlice := make([]map[string]any, 0)
+		maxFileSizeSlice = append(maxFileSizeSlice, map[string]any{
 			"max_file_size": rules.MaxFileSize.MaxFileSize,
 		})
 		rulesMap["max_file_size"] = maxFileSizeSlice
@@ -686,8 +686,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// Max file path length rule
 	if rules.MaxFilePathLength != nil {
-		maxFilePathLengthSlice := make([]map[string]interface{}, 0)
-		maxFilePathLengthSlice = append(maxFilePathLengthSlice, map[string]interface{}{
+		maxFilePathLengthSlice := make([]map[string]any, 0)
+		maxFilePathLengthSlice = append(maxFilePathLengthSlice, map[string]any{
 			"max_file_path_length": rules.MaxFilePathLength.MaxFilePathLength,
 		})
 		rulesMap["max_file_path_length"] = maxFilePathLengthSlice
@@ -695,8 +695,8 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []interface{} 
 
 	// File extension restriction rule
 	if rules.FileExtensionRestriction != nil {
-		fileExtensionRestrictionSlice := make([]map[string]interface{}, 0)
-		fileExtensionRestrictionSlice = append(fileExtensionRestrictionSlice, map[string]interface{}{
+		fileExtensionRestrictionSlice := make([]map[string]any, 0)
+		fileExtensionRestrictionSlice = append(fileExtensionRestrictionSlice, map[string]any{
 			"restricted_file_extensions": rules.FileExtensionRestriction.RestrictedFileExtensions,
 		})
 		rulesMap["file_extension_restriction"] = fileExtensionRestrictionSlice

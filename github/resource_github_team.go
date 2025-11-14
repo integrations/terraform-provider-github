@@ -117,8 +117,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 
 	newTeam := github.NewTeam{
 		Name:        name,
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -272,8 +272,8 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(parentTeamID.(string), meta)
@@ -300,7 +300,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
+			LDAPDN: github.Ptr(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {

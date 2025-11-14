@@ -157,7 +157,7 @@ func testAccGithubIssueLabelsAddLabel(repository, label string) error {
 	orgName := testAccProvider.Meta().(*Owner).name
 	ctx := context.TODO()
 
-	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.String(label)})
+	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.Ptr(label)})
 	return err
 }
 

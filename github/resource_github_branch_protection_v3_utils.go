@@ -15,7 +15,7 @@ import (
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
 	req := &github.ProtectionRequest{
 		EnforceAdmins:                  d.Get("enforce_admins").(bool),
-		RequiredConversationResolution: github.Bool(d.Get("require_conversation_resolution").(bool)),
+		RequiredConversationResolution: github.Ptr(d.Get("require_conversation_resolution").(bool)),
 	}
 
 	rsc, err := expandRequiredStatusChecks(d)

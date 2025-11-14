@@ -117,7 +117,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 	owner := meta.(*Owner).name
 
 	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
-		UseDefault: github.Bool(true),
+		UseDefault: github.Ptr(true),
 	}
 
 	ctx := context.Background()

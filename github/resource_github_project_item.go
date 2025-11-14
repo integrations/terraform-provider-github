@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,12 +39,12 @@ func resourceGithubProjectItem() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+				ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 					v := val.(string)
 					if v != "Issue" && v != "PullRequest" {
 						errs = append(errs, fmt.Errorf("%q must be either 'Issue' or 'PullRequest', got: %s", key, v))
 					}
-					return
+					return warns, errs
 				},
 				Description: "Must be either 'Issue' or 'PullRequest'.",
 			},
@@ -71,7 +72,7 @@ func resourceGithubProjectItem() *schema.Resource {
 	}
 }
 
-func resourceGithubProjectItemCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectItemCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -118,7 +119,7 @@ func resourceGithubProjectItemCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubProjectItemRead(d, meta)
 }
 
-func resourceGithubProjectItemRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectItemRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -141,7 +142,8 @@ func resourceGithubProjectItemRead(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Reading project item: %d", itemID)
 	item, resp, err := client.Projects.GetOrganizationProjectItem(ctx, orgName, projectNumber, itemID, nil)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -166,10 +168,8 @@ func resourceGithubProjectItemRead(d *schema.ResourceData, meta interface{}) err
 	if err = d.Set("content_type", item.GetContentType()); err != nil {
 		return err
 	}
-	archived := false
-	if item.ArchivedAt != nil {
-		archived = true
-	}
+	archived := item.ArchivedAt != nil
+
 	if err = d.Set("archived", archived); err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func resourceGithubProjectItemRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceGithubProjectItemUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectItemUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func resourceGithubProjectItemUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubProjectItemRead(d, meta)
 }
 
-func resourceGithubProjectItemDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectItemDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func resourceGithubProjectItemDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubProjectItemImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubProjectItemImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	// For project items, we need: org/project_number/item_id
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 3 {
@@ -246,13 +246,13 @@ func resourceGithubProjectItemImport(d *schema.ResourceData, meta interface{}) (
 
 	projectNumber, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf("invalid project number: %v", err)
+		return nil, fmt.Errorf("invalid project number: %w", err)
 	}
 
 	itemIDStr := parts[2]
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid item ID: %v", err)
+		return nil, fmt.Errorf("invalid item ID: %w", err)
 	}
 
 	// Set the computed ID to just the item ID

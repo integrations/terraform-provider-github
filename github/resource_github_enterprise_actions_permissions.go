@@ -280,8 +280,8 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
 		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
-			AllowedActions:       github.String("all"),
-			EnabledOrganizations: github.String("all"),
+			AllowedActions:       github.Ptr("all"),
+			EnabledOrganizations: github.Ptr("all"),
 		})
 	if err != nil {
 		return err

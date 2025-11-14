@@ -66,13 +66,13 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(d *schema.Resourc
 	var createData github.DeploymentBranchPolicyRequest
 	if v, ok := d.GetOk("branch_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("branch"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("branch"),
 		}
 	} else if v, ok := d.GetOk("tag_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("tag"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("tag"),
 		}
 	} else {
 		return fmt.Errorf("exactly one of %q and %q must be specified", "branch_pattern", "tag_pattern")
@@ -153,7 +153,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(d *schema.Resourc
 	}
 
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(pattern),
+		Name: github.Ptr(pattern),
 	}
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)

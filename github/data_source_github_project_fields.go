@@ -117,7 +117,7 @@ func dataSourceGithubProjectFields() *schema.Resource {
 	}
 }
 
-func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -136,7 +136,7 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 	for {
 		if opts == nil {
 			opts = &github.ListProjectsOptions{
-				ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{PerPage: github.Int(100)},
+				ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{PerPage: github.Ptr(100)},
 			}
 		}
 
@@ -150,7 +150,7 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 		}
 
 		if err != nil {
-			return fmt.Errorf("error listing project fields: %v", err)
+			return fmt.Errorf("error listing project fields: %w", err)
 		}
 
 		allFields = append(allFields, fields...)
@@ -161,8 +161,8 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 
 		opts = &github.ListProjectsOptions{
 			ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{
-				PerPage: github.Int(100),
-				After:   github.String(resp.After),
+				PerPage: github.Ptr(100),
+				After:   github.Ptr(resp.After),
 			},
 		}
 	}
@@ -176,10 +176,10 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 	}
 	d.SetId(resourceID)
 
-	fieldsData := make([]map[string]interface{}, 0, len(allFields))
+	fieldsData := make([]map[string]any, 0, len(allFields))
 
 	for _, field := range allFields {
-		fieldData := map[string]interface{}{
+		fieldData := map[string]any{
 			"id":          field.GetID(),
 			"node_id":     field.GetNodeID(),
 			"name":        field.GetName(),
@@ -191,9 +191,9 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 
 		// Add options for single_select fields
 		if len(field.Options) > 0 {
-			optionsData := make([]map[string]interface{}, 0, len(field.Options))
+			optionsData := make([]map[string]any, 0, len(field.Options))
 			for _, option := range field.Options {
-				optionData := map[string]interface{}{
+				optionData := map[string]any{
 					"id":    option.GetID(),
 					"color": option.GetColor(),
 				}
@@ -217,7 +217,7 @@ func dataSourceGithubProjectFieldsRead(d *schema.ResourceData, meta interface{})
 	}
 
 	if err := d.Set("fields", fieldsData); err != nil {
-		return fmt.Errorf("error setting fields: %v", err)
+		return fmt.Errorf("error setting fields: %w", err)
 	}
 
 	return nil

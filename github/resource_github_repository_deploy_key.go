@@ -69,9 +69,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      github.String(key),
-		Title:    github.String(title),
-		ReadOnly: github.Bool(readOnly),
+		Key:      github.Ptr(key),
+		Title:    github.Ptr(title),
+		ReadOnly: github.Ptr(readOnly),
 	})
 	if err != nil {
 		return err

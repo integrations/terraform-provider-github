@@ -116,7 +116,7 @@ func dataSourceGithubOrganizationProjects() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationProjectsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationProjectsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -128,13 +128,13 @@ func dataSourceGithubOrganizationProjectsRead(d *schema.ResourceData, meta inter
 	for {
 		if opts == nil {
 			opts = &github.ListProjectsOptions{
-				ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{PerPage: github.Int(100)},
+				ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{PerPage: github.Ptr(100)},
 			}
 		}
 
 		projects, resp, err := client.Projects.ListOrganizationProjects(ctx, orgName, opts)
 		if err != nil {
-			return fmt.Errorf("error listing organization Projects V2: %v", err)
+			return fmt.Errorf("error listing organization Projects V2: %w", err)
 		}
 
 		allProjects = append(allProjects, projects...)
@@ -145,18 +145,18 @@ func dataSourceGithubOrganizationProjectsRead(d *schema.ResourceData, meta inter
 
 		opts = &github.ListProjectsOptions{
 			ListProjectsPaginationOptions: github.ListProjectsPaginationOptions{
-				PerPage: github.Int(100),
-				After:   github.String(resp.After),
+				PerPage: github.Ptr(100),
+				After:   github.Ptr(resp.After),
 			},
 		}
 	}
 
 	d.SetId(orgName)
 
-	projectsData := make([]map[string]interface{}, 0, len(allProjects))
+	projectsData := make([]map[string]any, 0, len(allProjects))
 
 	for _, project := range allProjects {
-		projectData := map[string]interface{}{
+		projectData := map[string]any{
 			"id":                project.GetID(),
 			"node_id":           project.GetNodeID(),
 			"number":            project.GetNumber(),
@@ -198,7 +198,7 @@ func dataSourceGithubOrganizationProjectsRead(d *schema.ResourceData, meta inter
 	}
 
 	if err := d.Set("projects", projectsData); err != nil {
-		return fmt.Errorf("error setting projects: %v", err)
+		return fmt.Errorf("error setting projects: %w", err)
 	}
 
 	return nil

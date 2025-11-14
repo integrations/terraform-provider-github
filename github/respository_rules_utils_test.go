@@ -8,7 +8,7 @@ import (
 
 func TestExpandRulesBasicRules(t *testing.T) {
 	// Test expanding basic boolean rules with RepositoryRulesetRules
-	rulesMap := map[string]interface{}{
+	rulesMap := map[string]any{
 		"creation":                true,
 		"deletion":                true,
 		"required_linear_history": true,
@@ -16,7 +16,7 @@ func TestExpandRulesBasicRules(t *testing.T) {
 		"non_fast_forward":        true,
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 	result := expandRules(input, false)
 
 	if result == nil {
@@ -89,15 +89,15 @@ func TestExpandRulesMaxFilePathLength(t *testing.T) {
 	// Test that max_file_path_length rule is properly expanded
 	maxPathLength := 512
 
-	rulesMap := map[string]interface{}{
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+	rulesMap := map[string]any{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": maxPathLength,
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 	result := expandRules(input, false)
 
 	if result == nil {
@@ -128,8 +128,8 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]any)
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
@@ -145,15 +145,15 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 	maxPathLength := 1024
 
 	// Start with terraform configuration
-	rulesMap := map[string]interface{}{
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+	rulesMap := map[string]any{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": maxPathLength,
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 
 	// Expand to GitHub API format
 	expandedRules := expandRules(input, false)
@@ -169,8 +169,8 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule after round trip, got %d", len(maxFilePathLengthRules))
@@ -185,15 +185,15 @@ func TestExpandRulesMaxFileSize(t *testing.T) {
 	// Test that max_file_size rule is properly expanded
 	maxFileSize := int64(1048576) // 1MB
 
-	rulesMap := map[string]interface{}{
-		"max_file_size": []interface{}{
-			map[string]interface{}{
+	rulesMap := map[string]any{
+		"max_file_size": []any{
+			map[string]any{
 				"max_file_size": float64(maxFileSize),
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 	result := expandRules(input, false)
 
 	if result == nil {
@@ -240,15 +240,15 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 	// Test that file_extension_restriction rule is properly expanded
 	restrictedExtensions := []string{".exe", ".bat", ".com"}
 
-	rulesMap := map[string]interface{}{
-		"file_extension_restriction": []interface{}{
-			map[string]interface{}{
-				"restricted_file_extensions": []interface{}{".exe", ".bat", ".com"},
+	rulesMap := map[string]any{
+		"file_extension_restriction": []any{
+			map[string]any{
+				"restricted_file_extensions": []any{".exe", ".bat", ".com"},
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 	result := expandRules(input, false)
 
 	if result == nil {

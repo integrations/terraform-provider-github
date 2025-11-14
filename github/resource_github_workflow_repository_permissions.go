@@ -106,8 +106,8 @@ func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, m
 
 	// Reset the repo to "default" settings
 	repoWorkflowPermissions := github.DefaultWorkflowPermissionRepository{
-		DefaultWorkflowPermissions:   github.String("read"),
-		CanApprovePullRequestReviews: github.Bool(false),
+		DefaultWorkflowPermissions:   github.Ptr("read"),
+		CanApprovePullRequestReviews: github.Ptr(false),
 	}
 
 	_, _, err := client.Repositories.UpdateDefaultWorkflowPermissions(ctx,

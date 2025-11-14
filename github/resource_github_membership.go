@@ -69,7 +69,7 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 		username,
 		orgName,
 		&github.Membership{
-			Role: github.String(roleName),
+			Role: github.Ptr(roleName),
 		},
 	)
 	if err != nil {
@@ -169,7 +169,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 		}
 
 		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
-			Role: github.String(downgradeTo),
+			Role: github.Ptr(downgradeTo),
 		})
 	} else {
 		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)

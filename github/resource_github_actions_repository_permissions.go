@@ -222,8 +222,8 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		AllowedActions: github.String("all"),
-		Enabled:        github.Bool(true),
+		AllowedActions: github.Ptr("all"),
+		Enabled:        github.Ptr(true),
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,

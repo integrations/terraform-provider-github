@@ -149,11 +149,11 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(*github.String(d.Get("content").(string))),
+		Content: []byte(d.Get("content").(string)),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = github.String(branch.(string))
+		opts.Branch = github.Ptr(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
