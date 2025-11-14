@@ -94,6 +94,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"allow_forking": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"squash_merge_commit_title": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -386,6 +390,10 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 	d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	// Only set allow_forking for private/internal repos (public repos can always be forked)
+	if repo.GetVisibility() != "public" {
+		d.Set("allow_forking", repo.GetAllowForking())
+	}
 	d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
 	d.Set("merge_commit_title", repo.GetMergeCommitTitle())
