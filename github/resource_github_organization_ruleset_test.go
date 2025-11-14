@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
@@ -574,9 +575,9 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 				"restricted_file_paths": []any{"secrets/", "*.key", "private/"},
 			},
 		},
-		"max_file_size": []any{
-			map[string]any{
-				"max_file_size": float64(10485760), // 10MB
+		"max_file_size": []interface{}{
+			map[string]interface{}{
+				"max_file_size": 10485760, // 10MB
 			},
 		},
 		"max_file_path_length": []any{
@@ -586,7 +587,9 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".sh", ".ps1"},
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []any{
+					".exe", ".bat", ".sh", ".ps1",
+				}),
 			},
 		},
 	}
