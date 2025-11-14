@@ -29,12 +29,13 @@ type Config struct {
 }
 
 type Owner struct {
-	name           string
-	id             int64
-	v3client       *github.Client
-	v4client       *githubv4.Client
-	StopContext    context.Context
-	IsOrganization bool
+	name                       string
+	id                         int64
+	v3client                   *github.Client
+	v4client                   *githubv4.Client
+	StopContext                context.Context
+	IsOrganization             bool
+	IsWebCommitSignoffRequired bool
 }
 
 // GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
@@ -134,6 +135,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 			if remoteOrg != nil {
 				owner.id = remoteOrg.GetID()
 				owner.IsOrganization = true
+				owner.IsWebCommitSignoffRequired = remoteOrg.GetWebCommitSignoffRequired()
 			}
 		}
 	}
