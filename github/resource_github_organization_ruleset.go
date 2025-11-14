@@ -706,7 +706,7 @@ func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) e
 func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(rulesetIDStr, err)
+		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
 	}
 	if rulesetID == 0 {
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
