@@ -255,7 +255,7 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": float64(1048576), // 1MB
+				"max_file_size": 1048576, // 1MB
 			},
 		},
 	}
@@ -349,7 +349,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": float64(5242880), // 5MB
+				"max_file_size": 5242880, // 5MB
 			},
 		},
 		"max_file_path_length": []any{
