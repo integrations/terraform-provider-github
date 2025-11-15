@@ -14,7 +14,63 @@ permissions:
   contents: write
 
 jobs:
+  pre-release-tests:
+    name: Run tests before release
+    runs-on: ubuntu-latest
+    env:
+      test_stacks_directory: test_tf_stacks # root directory for test stacks
+      pre_release_tests: provider_only # directory name for pre-release tests
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build provider
+        run: go build -o terraform-provider-github
+
+      - name: Setup dev overrides
+        run: |
+          ROOT_DIR=$(pwd)
+          cat > ~/.terraformrc << EOF
+          provider_installation {
+            dev_overrides {
+              "integrations/github" = "${ROOT_DIR}"
+            }
+            direct {}
+          }
+          EOF
+
+      - name: Verify dev overrides setup
+        run: cat ~/.terraformrc
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.x
+
+      - name: Check Terraform version
+        run: terraform version
+
+      - name: Terraform init
+        continue-on-error: true # continue even if init fails
+        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ env.pre_release_tests }} init
+
+      - name: Terraform validate
+        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ env.pre_release_tests }} validate
+
+      - name: Clean up
+        run: rm -f ~/.terraformrc terraform-provider-github
+
   goreleaser:
+    needs: [ pre-release-tests ] # runs only if pre-release tests pass
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
