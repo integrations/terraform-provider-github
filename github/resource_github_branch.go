@@ -15,6 +15,7 @@ func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubBranchCreate,
 		Read:   resourceGithubBranchRead,
+		Update: resourceGithubBranchUpdate,
 		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
@@ -30,7 +31,6 @@ func resourceGithubBranch() *schema.Resource {
 			"branch": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository branch to create.",
 			},
 			"source_branch": {
@@ -182,6 +182,29 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	return nil
+}
+
+func resourceGithubBranchUpdate(d *schema.ResourceData, meta interface{}) error {
+	if !d.HasChange("branch") {
+		return resourceGithubBranchRead(d, meta)
+	}
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	repoName, oldBranchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+	newBranchName := d.Get("branch").(string)
+
+	if _, _, err := client.Repositories.RenameBranch(ctx, orgName, repoName, oldBranchName, newBranchName); err != nil {
+		return fmt.Errorf("error renaming GitHub branch %s/%s (%s -> %s): %w", orgName, repoName, oldBranchName, newBranchName, err)
+	}
+
+	d.SetId(buildTwoPartID(repoName, newBranchName))
+
+	return resourceGithubBranchRead(d, meta)
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

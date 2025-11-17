@@ -209,4 +209,64 @@ func TestAccGithubBranch(t *testing.T) {
 
 	})
 
+	t.Run("renames a branch without replacement", func(t *testing.T) {
+
+		initialConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+			  auto_init = true
+			}
+
+			resource "github_branch" "test" {
+			  repository = github_repository.test.id
+			  branch     = "initial"
+			}
+		`, randomID)
+
+		renamedConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%[1]s"
+			  auto_init = true
+			}
+
+			resource "github_branch" "test" {
+			  repository = github_repository.test.id
+			  branch     = "renamed"
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: initialConfig,
+					},
+					{
+						Config: renamedConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_branch.test", "branch", "renamed",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
 }
