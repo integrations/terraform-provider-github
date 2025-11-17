@@ -59,8 +59,8 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			"visibility": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
@@ -218,10 +218,10 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	// previously.
 	destroyOnDrift := d.Get("destroy_on_drift").(bool)
 	storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-	
+
 	if hasStoredUpdatedAt && storedUpdatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-		
+
 		if destroyOnDrift {
 			// Original behavior: mark for recreation
 			d.SetId("")
