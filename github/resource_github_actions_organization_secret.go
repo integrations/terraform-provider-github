@@ -60,8 +60,8 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			"visibility": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {

@@ -10,8 +10,7 @@ func TestResourceGithubActionsSecretValidation(t *testing.T) {
 	resource := resourceGithubActionsSecret()
 
 	// Verify the resource does NOT have an Update function since all fields are ForceNew
-	//nolint:staticcheck // SA1019: We're specifically testing that the deprecated Update field is nil
-	if resource.Update != nil {
+	if resource.UpdateContext != nil || resource.UpdateWithoutTimeout != nil {
 		t.Fatal("github_actions_secret resource should not have an Update function when all fields are ForceNew")
 	}
 
