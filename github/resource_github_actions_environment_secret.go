@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -69,7 +70,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -117,7 +118,7 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData
 	return resourceGithubActionsEnvironmentSecretRead(d, meta)
 }
 
-func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -130,7 +131,8 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -143,7 +145,8 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 
 	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -172,16 +175,15 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	//
 	// If the resource is changed externally in the meantime then reading back
 	// the last update timestamp will return a result different than the
-	// timestamp we've persisted in the state. In that case, we can no longer
-	// trust that the value (which we don't see) is equal to what we've declared
-	// previously.
+	// timestamp we've persisted in the state. In this case, we can no longer
+	// trust that the value matches what is in the state file.
 	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
+	// To solve this, we must unset the values and allow Terraform to decide whether or
+	// not this resource should be modified or left as-is (ignore_changes).
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
+		_ = d.Set("encrypted_value", "")
+		_ = d.Set("plaintext_value", "")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return err
@@ -191,7 +193,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta int
 	return nil
 }
 
-func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -211,7 +213,7 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta i
 	return err
 }
 
-func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta interface{}) (keyId, pkValue string, err error) {
+func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

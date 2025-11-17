@@ -37,7 +37,7 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -52,7 +52,7 @@ func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta int
 	// implemented in the go-github library.
 	roleList, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return fmt.Errorf("error querying GitHub custom repository roles %s: %s", orgName, err)
+		return fmt.Errorf("error querying GitHub custom repository roles %s: %w", orgName, err)
 	}
 
 	var role *github.CustomRepoRoles

@@ -9,12 +9,10 @@ import (
 )
 
 func TestAccGithubRepositoriesDataSource(t *testing.T) {
-
 	// FIXME: Find a way to reduce amount of `GET /search/repositories`
 	// t.Skip("Skipping due to API rate limits exceeding")
 
 	t.Run("queries a list of repositories without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			data "github_repositories" "test" {
 				query = "org:%s"
@@ -62,11 +60,9 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a list of repositories with repo_ids and results_per_page without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			data "github_repositories" "test" {
 				query = "org:%s"
@@ -116,11 +112,9 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("returns an empty list given an invalid query", func(t *testing.T) {
-
 		// FIXME: Find a way to reduce amount of `GET /search/repositories`
 		// t.Skip("Skipping due to API rate limits exceeding")
 
@@ -165,6 +159,5 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

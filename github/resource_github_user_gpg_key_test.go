@@ -10,9 +10,7 @@ import (
 )
 
 func TestAccGithubUserGpgKey(t *testing.T) {
-
 	t.Run("creates a GPG key without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 				resource "github_user_gpg_key" "test" {
 					armored_public_key = "${file("%s")}"
@@ -56,7 +54,5 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
