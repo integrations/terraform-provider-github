@@ -244,7 +244,7 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 	rulesMap := map[string]any{
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".com"},
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []any{".exe", ".bat", ".com"}),
 			},
 		},
 	}
@@ -264,9 +264,14 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 		t.Errorf("Expected %d restricted extensions, got %d", len(restrictedExtensions), len(result.FileExtensionRestriction.RestrictedFileExtensions))
 	}
 
-	for i, ext := range restrictedExtensions {
-		if result.FileExtensionRestriction.RestrictedFileExtensions[i] != ext {
-			t.Errorf("Expected extension %s at index %d, got %s", ext, i, result.FileExtensionRestriction.RestrictedFileExtensions[i])
+	resultExtensions := make(map[string]bool)
+	for _, ext := range result.FileExtensionRestriction.RestrictedFileExtensions {
+		resultExtensions[ext] = true
+	}
+
+	for _, expectedExt := range restrictedExtensions {
+		if !resultExtensions[expectedExt] {
+			t.Errorf("Expected extension %s not found in result", expectedExt)
 		}
 	}
 }

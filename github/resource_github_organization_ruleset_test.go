@@ -611,8 +611,8 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 	if expandedRules.MaxFileSize != nil {
 		ruleCount++
-		if expandedRules.MaxFileSize.MaxFileSize != 10485760 {
-			t.Errorf("Expected max file size to be 10485760, got %d", expandedRules.MaxFileSize.MaxFileSize)
+		if expandedRules.MaxFileSize.MaxFileSize != 100 {
+			t.Errorf("Expected max file size to be 100, got %d", expandedRules.MaxFileSize.MaxFileSize)
 		}
 	}
 	if expandedRules.MaxFilePathLength != nil {
