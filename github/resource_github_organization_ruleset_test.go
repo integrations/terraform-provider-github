@@ -639,7 +639,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
 	if maxFileSizeRules[0]["max_file_size"] != int64(100) {
-		t.Errorf("Expected max_file_size to be 104857600, got %v", maxFileSizeRules[0]["max_file_size"])
+		t.Errorf("Expected max_file_size to be 100, got %v", maxFileSizeRules[0]["max_file_size"])
 	}
 
 	// Verify max_file_path_length

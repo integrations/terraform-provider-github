@@ -302,8 +302,8 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 	}
 
 	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
-	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1048576) {
-		t.Error("Expected max_file_size rule with value 1048576")
+	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1) {
+		t.Error("Expected max_file_size rule with value 1")
 	}
 }
 
@@ -411,8 +411,8 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
-	if maxFileSizeRules[0]["max_file_size"] != int64(5242880) {
-		t.Errorf("Expected max_file_size to be 5242880, got %v", maxFileSizeRules[0]["max_file_size"])
+	if maxFileSizeRules[0]["max_file_size"] != int64(5) {
+		t.Errorf("Expected max_file_size to be 5, got %v", maxFileSizeRules[0]["max_file_size"])
 	}
 
 	// Verify max_file_path_length
