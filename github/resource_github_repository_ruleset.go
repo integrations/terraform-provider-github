@@ -540,9 +540,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_size": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The maximum allowed size of a file in bytes.",
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
 									},
 								},
 							},
