@@ -136,7 +136,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "The repository properties and values to include. All of these properties must match for the condition to pass.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
-
 												"name": {
 													Type:        schema.TypeString,
 													Required:    true,
@@ -165,7 +164,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "The repository properties and values to exclude. The condition will not pass if any of these properties match.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
-
 												"name": {
 													Type:        schema.TypeString,
 													Required:    true,
