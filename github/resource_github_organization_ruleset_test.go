@@ -21,7 +21,6 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
-
 		rulesetRefName := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -209,7 +208,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string, config string) {
+		testCase := func(t *testing.T, mode, config string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
 				Providers: testAccProviders,

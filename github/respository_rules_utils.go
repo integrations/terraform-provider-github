@@ -101,18 +101,18 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]interface{}); ok && v != nil && len(v) != 0 {
+	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
 		rulesetConditions.RefName = expandRefNameConditions(v)
 	}
 
 	// org-only fields
 	if org {
 		// repository_name and repository_id
-		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil && len(v) != 0 {
+		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
 			rulesetConditions.RepositoryName = expandRepositoryNameConditions(v)
-		} else if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_id"].([]any); ok && v != nil && len(v) != 0 {
 			rulesetConditions.RepositoryID = expandRepositoryIDConditions(v)
-		} else if v, ok := inputConditions["repository_property"].([]interface{}); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
 			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}
@@ -120,18 +120,18 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 	return rulesetConditions
 }
 
-func expandRefNameConditions(v []interface{}) *github.RulesetRefConditionParameters {
-	inputRefName := v[0].(map[string]interface{})
+func expandRefNameConditions(v []any) *github.RulesetRefConditionParameters {
+	inputRefName := v[0].(map[string]any)
 	include := make([]string, 0)
 	exclude := make([]string, 0)
 
-	for _, v := range inputRefName["include"].([]interface{}) {
+	for _, v := range inputRefName["include"].([]any) {
 		if v != nil {
 			include = append(include, v.(string))
 		}
 	}
 
-	for _, v := range inputRefName["exclude"].([]interface{}) {
+	for _, v := range inputRefName["exclude"].([]any) {
 		if v != nil {
 			exclude = append(exclude, v.(string))
 		}
@@ -143,18 +143,18 @@ func expandRefNameConditions(v []interface{}) *github.RulesetRefConditionParamet
 	}
 }
 
-func expandRepositoryNameConditions(v []interface{}) *github.RulesetRepositoryNamesConditionParameters {
-	inputRepositoryName := v[0].(map[string]interface{})
+func expandRepositoryNameConditions(v []any) *github.RulesetRepositoryNamesConditionParameters {
+	inputRepositoryName := v[0].(map[string]any)
 	include := make([]string, 0)
 	exclude := make([]string, 0)
 
-	for _, v := range inputRepositoryName["include"].([]interface{}) {
+	for _, v := range inputRepositoryName["include"].([]any) {
 		if v != nil {
 			include = append(include, v.(string))
 		}
 	}
 
-	for _, v := range inputRepositoryName["exclude"].([]interface{}) {
+	for _, v := range inputRepositoryName["exclude"].([]any) {
 		if v != nil {
 			exclude = append(exclude, v.(string))
 		}
@@ -169,8 +169,7 @@ func expandRepositoryNameConditions(v []interface{}) *github.RulesetRepositoryNa
 	}
 }
 
-func expandRepositoryIDConditions(v []interface{}) *github.RulesetRepositoryIDsConditionParameters {
-
+func expandRepositoryIDConditions(v []any) *github.RulesetRepositoryIDsConditionParameters {
 	repositoryIDs := make([]int64, 0)
 
 	for _, v := range v {
@@ -182,30 +181,30 @@ func expandRepositoryIDConditions(v []interface{}) *github.RulesetRepositoryIDsC
 	return &github.RulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
 }
 
-func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetRepositoryPropertyConditionParameters {
-	repositoryProperties := v[0].(map[string]interface{})
+func expandRepositoryPropertyConditions(v []any) *github.RulesetRepositoryPropertyConditionParameters {
+	repositoryProperties := v[0].(map[string]any)
 	include := make([]github.RulesetRepositoryPropertyTargetParameters, 0)
 	exclude := make([]github.RulesetRepositoryPropertyTargetParameters, 0)
 
-	for _, v := range repositoryProperties["include"].([]interface{}) {
+	for _, v := range repositoryProperties["include"].([]any) {
 		if v != nil {
-			propertyMap := v.(map[string]interface{})
+			propertyMap := v.(map[string]any)
 			property := github.RulesetRepositoryPropertyTargetParameters{
 				Name:   propertyMap["name"].(string),
 				Source: github.String(propertyMap["source"].(string)),
-				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]interface{})),
+				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]any)),
 			}
 			include = append(include, property)
 		}
 	}
 
-	for _, v := range repositoryProperties["exclude"].([]interface{}) {
+	for _, v := range repositoryProperties["exclude"].([]any) {
 		if v != nil {
-			propertyMap := v.(map[string]interface{})
+			propertyMap := v.(map[string]any)
 			property := github.RulesetRepositoryPropertyTargetParameters{
 				Name:   propertyMap["name"].(string),
 				Source: github.String(propertyMap["source"].(string)),
-				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]interface{})),
+				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]any)),
 			}
 			exclude = append(exclude, property)
 		}
@@ -216,7 +215,8 @@ func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetReposito
 		Exclude: exclude,
 	}
 }
-func flattenConditions(conditions *github.RulesetConditions, org bool) []interface{} {
+
+func flattenConditions(conditions *github.RulesetConditions, org bool) []any {
 	if conditions == nil || conditions.RefName == nil {
 		return []any{}
 	}
@@ -254,9 +254,9 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
 		if conditions.RepositoryProperty != nil {
-			repositoryPropertySlice := make([]map[string]interface{}, 0)
+			repositoryPropertySlice := make([]map[string]any, 0)
 
-			repositoryPropertySlice = append(repositoryPropertySlice, map[string]interface{}{
+			repositoryPropertySlice = append(repositoryPropertySlice, map[string]any{
 				"include": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Include),
 				"exclude": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Exclude),
 			})
@@ -267,11 +267,11 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 	return []any{conditionsMap}
 }
 
-func flattenRulesetRepositoryPropertyTargetParameters(input []github.RulesetRepositoryPropertyTargetParameters) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0)
+func flattenRulesetRepositoryPropertyTargetParameters(input []github.RulesetRepositoryPropertyTargetParameters) []map[string]any {
+	result := make([]map[string]any, 0)
 
 	for _, v := range input {
-		propertyMap := make(map[string]interface{})
+		propertyMap := make(map[string]any)
 		propertyMap["name"] = v.Name
 		propertyMap["source"] = v.Source
 		propertyMap["property_values"] = v.Values
@@ -281,7 +281,7 @@ func flattenRulesetRepositoryPropertyTargetParameters(input []github.RulesetRepo
 	return result
 }
 
-func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
+func expandRules(input []any, org bool) []*github.RepositoryRule {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
@@ -548,15 +548,15 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
 	}
 	// Copilot code review rule
-	if v, ok := rulesMap["copilot_code_review"].([]interface{}); ok && len(v) != 0 {
-		copilotCodeReviewMap := v[0].(map[string]interface{})
-		
+	if v, ok := rulesMap["copilot_code_review"].([]any); ok && len(v) != 0 {
+		copilotCodeReviewMap := v[0].(map[string]any)
+
 		// Create parameters map
-		paramsMap := map[string]interface{}{
-			"review_on_push":              copilotCodeReviewMap["review_on_push"].(bool),
-			"review_draft_pull_requests":  copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		paramsMap := map[string]any{
+			"review_on_push":             copilotCodeReviewMap["review_on_push"].(bool),
+			"review_draft_pull_requests": copilotCodeReviewMap["review_draft_pull_requests"].(bool),
 		}
-		
+
 		// Marshal to JSON
 		paramsJSON, err := json.Marshal(paramsMap)
 		if err != nil {
@@ -574,7 +574,7 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 	return rulesSlice
 }
 
-func convertInterfaceSliceToStringSlice(input []interface{}) []string {
+func convertInterfaceSliceToStringSlice(input []any) []string {
 	result := make([]string, len(input))
 	for i, v := range input {
 		result[i] = v.(string)
@@ -582,7 +582,7 @@ func convertInterfaceSliceToStringSlice(input []interface{}) []string {
 	return result
 }
 
-func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
+func flattenRules(rules []*github.RepositoryRule, org bool) []any {
 	if len(rules) == 0 || rules == nil {
 		return []any{}
 	}
@@ -757,29 +757,29 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 
 		case "copilot_code_review":
 			// Handle copilot_code_review rule parameters
-			var params map[string]interface{}
-			
+			var params map[string]any
+
 			err := json.Unmarshal(*v.Parameters, &params)
 			if err != nil {
 				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
 					v.Type, v.Parameters)
 			}
 
-			rule := make(map[string]interface{})
+			rule := make(map[string]any)
 			if reviewOnPush, ok := params["review_on_push"].(bool); ok {
 				rule["review_on_push"] = reviewOnPush
 			} else {
 				rule["review_on_push"] = false
 			}
-			
+
 			if reviewDraftPRs, ok := params["review_draft_pull_requests"].(bool); ok {
 				rule["review_draft_pull_requests"] = reviewDraftPRs
 			} else {
 				rule["review_draft_pull_requests"] = false
 			}
-			
-			rulesMap[v.Type] = []map[string]interface{}{rule}
-		
+
+			rulesMap[v.Type] = []map[string]any{rule}
+
 		case "file_path_restriction":
 			var params github.RuleFileParameters
 			err := json.Unmarshal(*v.Parameters, &params)
