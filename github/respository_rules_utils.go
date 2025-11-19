@@ -483,7 +483,10 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]any)
 		restrictedFileExtensions := make([]string, 0)
-		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]any) {
+
+		// Handle schema.TypeSet
+		extensionSet := fileExtensionRestrictionMap["restricted_file_extensions"].(*schema.Set)
+		for _, extension := range extensionSet.List() {
 			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
 		}
 		params := &github.FileExtensionRestrictionRuleParameters{
