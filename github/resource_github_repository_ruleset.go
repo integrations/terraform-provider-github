@@ -686,10 +686,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
 	var ruleset *github.RepositoryRuleset
-	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
-	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
-	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
-	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
+
 	if d.HasChange("bypass_actors") {
 		// Clear bypass actors first, then update with new ruleset
 		_, err = client.Repositories.UpdateRulesetClearBypassActor(ctx, owner, repoName, rulesetID)
