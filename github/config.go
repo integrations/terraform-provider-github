@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v79/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"

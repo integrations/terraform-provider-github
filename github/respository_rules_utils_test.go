@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v79/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -184,7 +184,7 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 
 func TestExpandRulesMaxFileSize(t *testing.T) {
 	// Test that max_file_size rule is properly expanded
-	maxFileSize := int64(1048576) // 1MB
+	maxFileSize := int64(100) // 100 MB
 
 	rulesMap := map[string]any{
 		"max_file_size": []any{
@@ -212,7 +212,7 @@ func TestExpandRulesMaxFileSize(t *testing.T) {
 
 func TestFlattenRulesMaxFileSize(t *testing.T) {
 	// Test that max_file_size rule is properly flattened
-	maxFileSize := int64(5242880) // 5MB
+	maxFileSize := int64(100) // 100 MB
 	rules := &github.RepositoryRulesetRules{
 		MaxFileSize: &github.MaxFileSizeRuleParameters{
 			MaxFileSize: maxFileSize,

@@ -221,3 +221,22 @@ This may come in handy when debugging both acceptance and manual testing.
 	]
 }
 ```
+
+## Updating go-github
+
+If done frequently enough this process is generally smooth.  Occasionaly there will be a breaking change, see our release doc for [details](./RELEASE.md) but for the most part you can take the following steps to update this foundational library.
+
+1. Run `go get github.com/google/go-github/v#@v#.#.#` where # is replaced by the actual version.  We also want to specify the version not just the release version (in case there was patching)
+
+2. Next make sure to replace the references in all of the files, you can do this manually or run the script below:
+
+  - For instance we are upgrading from `v77` to `v79` (making sure that we ignore the `vendor` directory, we'll get to that later)
+	```
+	find . -name "*.go" -not -path "./vendor/*" -exec sed -i '' 's|github.com/google/go-github/v77|github.com/google/go-github/v79|g' {} \;
+	```
+
+3. Run `go mod tidy`
+
+4. Run `go mod vendor`
+
+6. Run `make build && make lint && make test` to validate the changes
