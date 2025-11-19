@@ -18,11 +18,9 @@ import (
 )
 
 func TestAccGithubRepositories(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 
@@ -90,11 +88,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("updates a repository's name without error", func(t *testing.T) {
-
 		oldName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
 		newName := fmt.Sprintf(`%[1]s-renamed`, oldName)
 
@@ -160,11 +156,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports repositories without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-import-%[1]s"
@@ -206,11 +200,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("archives repositories without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-archive-%[1]s"
@@ -264,11 +256,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("manages the project feature for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-project-%[1]s"
@@ -322,11 +312,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name           = "tf-acc-test-branch-%[1]s"
@@ -392,11 +380,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
-
 		// Although default_branch is deprecated, for backwards compatibility
 		// we allow setting it to "main".
 
@@ -448,11 +434,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name           = "tf-acc-test-license-%[1]s"
@@ -497,11 +481,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures topics for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name        = "tf-acc-test-topic-%[1]s"
@@ -541,11 +523,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates a repository using a template", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name        = "tf-acc-test-template-%s"
@@ -590,11 +570,9 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("archives repositories on destroy", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name               = "tf-acc-test-destroy-%[1]s"
@@ -649,13 +627,10 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures vulnerability alerts", func(t *testing.T) {
-
 		t.Run("for a public repository", func(t *testing.T) {
-
 			config := fmt.Sprintf(`
 				resource "github_repository" "test" {
 					name       = "tf-acc-test-pub-vuln-%s"
@@ -715,7 +690,6 @@ func TestAccGithubRepositories(t *testing.T) {
 		})
 
 		t.Run("for a private repository", func(t *testing.T) {
-
 			config := fmt.Sprintf(`
 				resource "github_repository" "test" {
 					name       = "tf-acc-test-prv-vuln-%s"
@@ -773,7 +747,6 @@ func TestAccGithubRepositories(t *testing.T) {
 				testCase(t, organization)
 			})
 		})
-
 	})
 
 	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
@@ -982,16 +955,13 @@ func TestAccGithubRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
-func TestAccGithubRepositoryPages(t *testing.T) {
 
+func TestAccGithubRepositoryPages(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-%s"
@@ -1035,11 +1005,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-%s"
@@ -1081,13 +1049,12 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []interface{}{map[string]interface{}{
+		input := []any{map[string]any{
 			"build_type": "workflow",
-			"source":     []interface{}{map[string]interface{}{}},
+			"source":     []any{map[string]any{}},
 		}}
 
 		pages := expandPages(input)
@@ -1103,9 +1070,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 	})
 
 	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []interface{}{map[string]interface{}{
+		input := []any{map[string]any{
 			"build_type": "legacy",
-			"source": []interface{}{map[string]interface{}{
+			"source": []any{map[string]any{
 				"branch": "main",
 				"path":   "/docs",
 			}},
@@ -1128,11 +1095,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 }
 
 func TestAccGithubRepositorySecurity(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages the security feature for a repository", func(t *testing.T) {
-
 		t.Run("for a private repository", func(t *testing.T) {
 			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
 
@@ -1195,7 +1160,6 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 		})
 
 		t.Run("for a public repository", func(t *testing.T) {
-
 			config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name        = "tf-acc-%s"
@@ -1252,11 +1216,9 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 }
 
 func TestAccGithubRepositoryVisibility(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates repos with private visibility", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "private" {
 				name       = "tf-acc-test-visibility-private-%s"
@@ -1341,7 +1303,6 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 	})
 
 	t.Run("updates repos to private visibility", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "public" {
 				name       = "tf-acc-test-visibility-public-%s"
@@ -1396,7 +1357,6 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 	})
 
 	t.Run("updates repos to public visibility", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name       = "tf-acc-test-prv-vuln-%s"
@@ -1456,7 +1416,6 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 	})
 
 	t.Run("updates repos to internal visibility", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name       = "tf-acc-test-prv-vuln-%s"
@@ -1516,7 +1475,6 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 	})
 
 	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "private" {
 				name       = "tf-acc-test-visibility-private-%s"
@@ -1564,15 +1522,12 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-
 }
 
 func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("changes the web_commit_signoff_required attribute for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                        = "tf-acc-%s"
@@ -1612,14 +1567,12 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	// Test that setting any other setting than web_commit_signoff_required
 	// being set, doesn't set the value of web_commit_signoff_required to true
 	// or false in the GitHub API call.
 	t.Run("changes a non web_commit_signoff_required attribute for a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                        = "tf-acc-%s"
@@ -1672,7 +1625,6 @@ func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
@@ -1701,7 +1653,7 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 }
 
 func testSweepRepositories(region string) error {
-	meta, err := sharedConfigForRegion(region)
+	meta, err := sharedConfigForRegion()
 	if err != nil {
 		return err
 	}
@@ -1742,21 +1694,21 @@ func reconfigureVisibility(config, visibility string) string {
 	return newConfig
 }
 
-type resourceDataLike map[string]interface{}
+type resourceDataLike map[string]any
 
-func (d resourceDataLike) GetOk(key string) (interface{}, bool) {
+func (d resourceDataLike) GetOk(key string) (any, bool) {
 	v, ok := d[key]
 	return v, ok
 }
 
 func TestResourceGithubParseFullName(t *testing.T) {
-	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "myrepo/myorg"}))
+	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "myrepo/myorg"}))
 	assert.True(t, ok)
 	assert.Equal(t, "myrepo", repo)
 	assert.Equal(t, "myorg", org)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{}))
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{}))
 	assert.False(t, ok)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]interface{}{"full_name": "malformed"}))
+	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
 	assert.False(t, ok)
 }
 

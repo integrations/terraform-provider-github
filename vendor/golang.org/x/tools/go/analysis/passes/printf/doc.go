@@ -45,6 +45,18 @@
 //
 //	log.Print("%d", 123) // log.Print call has possible formatting directive %d
 //
+// Conversely, it also reports calls to Printf-like functions with a
+// non-constant format string and no other arguments:
+//
+//	fmt.Printf(message) // non-constant format string in call to fmt.Printf
+//
+// Such calls may have been intended for the function's Print-like
+// counterpart: if the value of message happens to contain "%",
+// misformatting will occur. In this case, the checker additionally
+// suggests a fix to turn the call into:
+//
+//	fmt.Printf("%s", message)
+//
 // # Inferred printf wrappers
 //
 // Functions that delegate their arguments to fmt.Printf are
@@ -69,6 +81,16 @@
 //		}
 //		...
 //	}
+//
+// A local function may also be inferred as a printf wrapper. If it
+// is assigned to a variable, each call made through that variable will
+// be checked just like a call to a function:
+//
+//	logf := func(format string, args ...any) {
+//		message := fmt.Sprintf(format, args...)
+//		log.Printf("%s: %s", prefix, message)
+//	}
+//	logf("%s", 123) // logf format %s has arg 123 of wrong type int
 //
 // # Specifying printf wrappers by flag
 //

@@ -1,7 +1,11 @@
 package lint
 
+import (
+	goversion "github.com/hashicorp/go-version"
+)
+
 // Arguments is type used for the arguments of a rule.
-type Arguments = []interface{}
+type Arguments = []any
 
 // FileFilters is type used for modeling file filters to apply to rules.
 type FileFilters = []*FileFilter
@@ -17,7 +21,7 @@ type RuleConfig struct {
 	excludeFilters []*FileFilter
 }
 
-// Initialize - should be called after reading from TOML file
+// Initialize should be called after reading from TOML file.
 func (rc *RuleConfig) Initialize() error {
 	for _, f := range rc.Exclude {
 		ff, err := ParseFileFilter(f)
@@ -32,7 +36,7 @@ func (rc *RuleConfig) Initialize() error {
 // RulesConfig defines the config for all rules.
 type RulesConfig = map[string]RuleConfig
 
-// MustExclude - checks if given filename `name` must be excluded
+// MustExclude checks if given filename `name` must be excluded.
 func (rc *RuleConfig) MustExclude(name string) bool {
 	for _, exclude := range rc.excludeFilters {
 		if exclude.MatchFileName(name) {
@@ -52,13 +56,16 @@ type DirectivesConfig = map[string]DirectiveConfig
 
 // Config defines the config of the linter.
 type Config struct {
-	IgnoreGeneratedHeader bool `toml:"ignoreGeneratedHeader"`
-	Confidence            float64
-	Severity              Severity
+	IgnoreGeneratedHeader bool             `toml:"ignoreGeneratedHeader"`
+	Confidence            float64          `toml:"confidence"`
+	Severity              Severity         `toml:"severity"`
 	EnableAllRules        bool             `toml:"enableAllRules"`
 	Rules                 RulesConfig      `toml:"rule"`
 	ErrorCode             int              `toml:"errorCode"`
 	WarningCode           int              `toml:"warningCode"`
 	Directives            DirectivesConfig `toml:"directive"`
 	Exclude               []string         `toml:"exclude"`
+	// If set, overrides the go language version specified in go.mod of
+	// packages being linted, and assumes this specific language version.
+	GoVersion *goversion.Version `toml:"goVersion"`
 }

@@ -10,9 +10,7 @@ import (
 )
 
 func TestAccGithubRepositoryDataSource(t *testing.T) {
-
 	t.Run("anonymously queries a repository without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			data "github_repositories" "test" {
 				query = "org:%s"
@@ -48,11 +46,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an anonymous account", func(t *testing.T) {
 			testCase(t, anonymous)
 		})
-
 	})
 
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -102,11 +98,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("checks defaults on a new repository", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -168,11 +162,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a repository that is a template", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -217,11 +209,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a repository that was generated from a template", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -273,11 +263,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -321,11 +309,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -380,11 +366,9 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a repository that has a license", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -443,6 +427,5 @@ EOT
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

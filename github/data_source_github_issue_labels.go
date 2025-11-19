@@ -43,7 +43,7 @@ func dataSourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
