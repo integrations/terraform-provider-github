@@ -646,13 +646,6 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 		return nil
 	}
 
-	if ruleset == nil {
-		log.Printf("[INFO] Removing organization ruleset %s: %d from state because it no longer exists in GitHub (empty response)",
-			org, rulesetID)
-		d.SetId("")
-		return nil
-	}
-
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 	_ = d.Set("name", ruleset.Name)
 	_ = d.Set("target", ruleset.GetTarget())
