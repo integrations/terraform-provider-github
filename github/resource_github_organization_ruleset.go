@@ -23,8 +23,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			State: resourceGithubOrganizationRulesetImport,
 		},
 
-		SchemaVersion: 2,
-		MigrateState:  resourceGithubOrganizationRulesetMigrateState,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
