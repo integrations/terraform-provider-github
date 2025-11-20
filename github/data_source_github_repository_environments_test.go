@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironmentsDataSource(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries environments", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -63,6 +61,5 @@ func TestAccGithubRepositoryEnvironmentsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

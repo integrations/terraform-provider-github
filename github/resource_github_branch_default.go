@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 
@@ -41,7 +42,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
@@ -97,7 +98,8 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 
 	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -116,9 +118,9 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 		return nil
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("branch", *repository.DefaultBranch)
-	d.Set("repository", *repository.Name)
+	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("branch", *repository.DefaultBranch)
+	_ = d.Set("repository", *repository.Name)
 	return nil
 }
 

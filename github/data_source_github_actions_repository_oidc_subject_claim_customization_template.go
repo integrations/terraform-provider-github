@@ -26,7 +26,7 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *s
 	}
 }
 
-func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	repository := d.Get("name").(string)
@@ -34,7 +34,6 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(
 	ctx := meta.(*Owner).StopContext
 
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
-
 	if err != nil {
 		return err
 	}
