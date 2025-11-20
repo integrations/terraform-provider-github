@@ -94,7 +94,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		CustomizeDiff: customdiff.Sequence(
 			// If there was a new user added to the list of collaborators,
 			// it's possible a new invitation id will be created in GitHub.
-			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("user")
 			}),
 			customdiff.ForceNewIf("repository", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
@@ -126,11 +126,11 @@ type invitedCollaborator struct {
 	invitationID int64
 }
 
-func flattenUserCollaborator(obj userCollaborator) interface{} {
+func flattenUserCollaborator(obj userCollaborator) any {
 	if obj.Empty() {
 		return nil
 	}
-	transformed := map[string]interface{}{
+	transformed := map[string]any{
 		"permission": obj.permission,
 		"username":   obj.username,
 	}
@@ -138,7 +138,7 @@ func flattenUserCollaborator(obj userCollaborator) interface{} {
 	return transformed
 }
 
-func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollaborator) []interface{} {
+func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollaborator) []any {
 	if objs == nil && invites == nil {
 		return nil
 	}
@@ -151,7 +151,7 @@ func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollabor
 		return objs[i].username < objs[j].username
 	})
 
-	items := make([]interface{}, len(objs))
+	items := make([]any, len(objs))
 	for i, obj := range objs {
 		items[i] = flattenUserCollaborator(obj)
 	}
@@ -169,7 +169,7 @@ func (c teamCollaborator) Empty() bool {
 	return c == teamCollaborator{}
 }
 
-func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) interface{} {
+func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) any {
 	if obj.Empty() {
 		return nil
 	}
@@ -181,7 +181,7 @@ func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) interface
 		teamIDString = strconv.FormatInt(obj.teamID, 10)
 	}
 
-	transformed := map[string]interface{}{
+	transformed := map[string]any{
 		"permission": obj.permission,
 		"team_id":    teamIDString,
 	}
@@ -189,7 +189,7 @@ func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) interface
 	return transformed
 }
 
-func flattenTeamCollaborators(objs []teamCollaborator, teamSlugs []string) []interface{} {
+func flattenTeamCollaborators(objs []teamCollaborator, teamSlugs []string) []any {
 	if objs == nil {
 		return nil
 	}
@@ -198,7 +198,7 @@ func flattenTeamCollaborators(objs []teamCollaborator, teamSlugs []string) []int
 		return objs[i].teamID < objs[j].teamID
 	})
 
-	items := make([]interface{}, len(objs))
+	items := make([]any, len(objs))
 	for i, obj := range objs {
 		items[i] = flattenTeamCollaborator(obj, teamSlugs)
 	}
@@ -313,7 +313,7 @@ func listAllCollaborators(client *github.Client, isOrg bool, ctx context.Context
 	return userCollaborators, invitations, teamCollaborators, err
 }
 
-func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUsers []userCollaborator, hasInvites []invitedCollaborator, meta interface{}) error {
+func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []userCollaborator, hasInvites []invitedCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -322,7 +322,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 	for _, has := range hasUsers {
 		var wantPermission string
 		for _, w := range want {
-			userData := w.(map[string]interface{})
+			userData := w.(map[string]any)
 			if userData["username"] == has.username {
 				wantPermission = userData["permission"].(string)
 				break
@@ -353,7 +353,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 	for _, has := range hasInvites {
 		var wantPermission string
 		for _, u := range want {
-			userData := u.(map[string]interface{})
+			userData := u.(map[string]any)
 			if userData["username"] == has.username {
 				wantPermission = userData["permission"].(string)
 				break
@@ -378,7 +378,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 	}
 
 	for _, w := range want {
-		userData := w.(map[string]interface{})
+		userData := w.(map[string]any)
 		username := userData["username"].(string)
 		permission := userData["permission"].(string)
 		var found bool
@@ -415,7 +415,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []interface{}, hasUs
 	return nil
 }
 
-func matchTeamCollaborators(repoName string, want []interface{}, has []teamCollaborator, meta interface{}) error {
+func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 	orgID := meta.(*Owner).id
 	owner := meta.(*Owner).name
@@ -425,7 +425,7 @@ func matchTeamCollaborators(repoName string, want []interface{}, has []teamColla
 	for _, hasTeam := range has {
 		var wantPerm string
 		for _, w := range want {
-			teamData := w.(map[string]interface{})
+			teamData := w.(map[string]any)
 			teamIDString := teamData["team_id"].(string)
 			teamID, err := getTeamID(teamIDString, meta)
 			if err != nil {
@@ -452,7 +452,7 @@ func matchTeamCollaborators(repoName string, want []interface{}, has []teamColla
 	}
 
 	for _, t := range want {
-		teamData := t.(map[string]interface{})
+		teamData := t.(map[string]any)
 		teamIDString := teamData["team_id"].(string)
 		teamID, err := getTeamID(teamIDString, meta)
 		if err != nil {
@@ -495,7 +495,7 @@ func matchTeamCollaborators(repoName string, want []interface{}, has []teamColla
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -507,7 +507,7 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 
 	teamsMap := make(map[string]struct{}, len(teams))
 	for _, team := range teams {
-		teamIDString := team.(map[string]interface{})["team_id"].(string)
+		teamIDString := team.(map[string]any)["team_id"].(string)
 		if _, found := teamsMap[teamIDString]; found {
 			return fmt.Errorf("duplicate set member: %s", teamIDString)
 		}
@@ -515,7 +515,7 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 	}
 	usersMap := make(map[string]struct{}, len(users))
 	for _, user := range users {
-		username := user.(map[string]interface{})["username"].(string)
+		username := user.(map[string]any)["username"].(string)
 		if _, found := usersMap[username]; found {
 			return fmt.Errorf("duplicate set member found: %s", username)
 		}
@@ -552,7 +552,7 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 	return resourceGithubRepositoryCollaboratorsRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -578,7 +578,7 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	sourceTeams := d.Get("team").(*schema.Set).List()
 	teamSlugs := make([]string, len(sourceTeams))
 	for i, t := range sourceTeams {
-		teamIdString := t.(map[string]interface{})["team_id"].(string)
+		teamIdString := t.(map[string]any)["team_id"].(string)
 		_, parseIntErr := strconv.ParseInt(teamIdString, 10, 64)
 		if parseIntErr != nil {
 			teamSlugs[i] = teamIdString
@@ -605,11 +605,11 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorsUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubRepositoryCollaboratorsCreate(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -640,12 +640,12 @@ func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta in
 	return err
 }
 
-func getIgnoreTeamIds(d *schema.ResourceData, meta interface{}) ([]int64, error) {
+func getIgnoreTeamIds(d *schema.ResourceData, meta any) ([]int64, error) {
 	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
 	ignoreTeamIds := make([]int64, len(ignoreTeams))
 
 	for i, t := range ignoreTeams {
-		s := t.(map[string]interface{})["team_id"].(string)
+		s := t.(map[string]any)["team_id"].(string)
 		id, err := getTeamID(s, meta)
 		if err != nil {
 			return nil, err
