@@ -17,7 +17,6 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Read:   resourceGithubActionsOrganizationSecretRead,
-		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -61,8 +60,8 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 			"visibility": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				ForceNew:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
 				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
 			},
 			"selected_repository_ids": {
@@ -72,6 +71,7 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				},
 				Set:         schema.HashInt,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "An array of repository ids that can access the organization secret.",
 			},
 			"created_at": {
@@ -85,9 +85,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Description: "Date of 'actions_secret' update.",
 			},
 			"destroy_on_drift": {
-				Type:     schema.TypeBool,
-				Default:  true,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Default:     true,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Boolean indicating whether to recreate the secret if it's modified outside of Terraform. When `true` (default), Terraform will delete and recreate the secret if it detects external changes. When `false`, Terraform will acknowledge external changes but not recreate the secret.",
 			},
 		},
 	}
@@ -171,12 +173,6 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 		return err
 	}
 
-	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
-	}
-	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
-	}
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 		return err
 	}
@@ -222,14 +218,35 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 	// timestamp we've persisted in the state. In that case, we can no longer
 	// trust that the value (which we don't see) is equal to what we've declared
 	// previously.
-	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
 	destroyOnDrift := d.Get("destroy_on_drift").(bool)
-	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
+	storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+
+	if hasStoredUpdatedAt && storedUpdatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
+
+		if destroyOnDrift {
+			// Original behavior: mark for recreation
+			d.SetId("")
+			return nil
+		} else {
+			// Alternative approach: set sensitive values to empty to trigger update plan
+			// This tells Terraform that the current state is unknown and needs reconciliation
+			if err = d.Set("encrypted_value", ""); err != nil {
+				return err
+			}
+			if err = d.Set("plaintext_value", ""); err != nil {
+				return err
+			}
+			log.Printf("[INFO] Detected drift but destroy_on_drift=false, clearing sensitive values to trigger update")
+		}
+	} else {
+		// No drift detected, preserve the configured values in state
+		if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+			return err
+		}
+		if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+			return err
+		}
 	}
 
 	// Always update the timestamp to prevent repeated drift detection

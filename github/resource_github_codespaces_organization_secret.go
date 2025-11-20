@@ -17,7 +17,6 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
 		Read:   resourceGithubCodespacesOrganizationSecretRead,
-		Update: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -67,6 +66,7 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 				},
 				Set:         schema.HashInt,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "An array of repository ids that can access the organization secret.",
 			},
 			"created_at": {
