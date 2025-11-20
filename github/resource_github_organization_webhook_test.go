@@ -10,11 +10,9 @@ import (
 )
 
 func TestAccGithubOrganizationWebhook(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates webhooks without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -82,7 +80,6 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 	})
 
 	t.Run("imports webhooks without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -139,5 +136,4 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-
 }

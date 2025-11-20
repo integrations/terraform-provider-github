@@ -59,8 +59,7 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -94,8 +93,7 @@ func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta i
 	return resourceGithubRepositoryCustomPropertyRead(d, meta)
 }
 
-func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -109,16 +107,20 @@ func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta int
 		return err
 	}
 
+	if wantedCustomPropertyValue == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.SetId(buildThreePartID(owner, repoName, propertyName))
-	d.Set("repository", repoName)
-	d.Set("property_name", propertyName)
-	d.Set("property_value", wantedCustomPropertyValue)
+	_ = d.Set("repository", repoName)
+	_ = d.Set("property_name", propertyName)
+	_ = d.Set("property_value", wantedCustomPropertyValue)
 
 	return nil
 }
 
-func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta interface{}) error {
-
+func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -154,7 +156,7 @@ func readRepositoryCustomPropertyValue(ctx context.Context, client *github.Clien
 	}
 
 	if wantedCustomProperty == nil {
-		return nil, fmt.Errorf("could not find a custom property with name: %s", propertyName)
+		return nil, nil
 	}
 
 	wantedPropertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(wantedCustomProperty)

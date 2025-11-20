@@ -9,7 +9,6 @@ import (
 
 func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
 	t.Run("creates organization oidc subject claim customization template without error", func(t *testing.T) {
-
 		config := `
 		resource "github_actions_organization_oidc_subject_claim_customization_template" "test" {
 			include_claim_keys = ["repo", "context", "job_workflow_ref"]
@@ -57,7 +56,6 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 	})
 
 	t.Run("updates organization oidc subject claim customization template without error", func(t *testing.T) {
-
 		resourceTemplate := `
 		resource "github_actions_organization_oidc_subject_claim_customization_template" "test" {
 			include_claim_keys = %s
