@@ -14,26 +14,24 @@ GO := GO111MODULE=on go
 GOPATH ?= $(shell $(GO) env GOPATH)
 GOBIN ?= $(GOPATH)/bin
 GOSEC ?= $(GOBIN)/gosec
-GINKGO ?= $(GOBIN)/ginkgo
 GO_MINOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
 GOVULN_MIN_VERSION = 17
-GO_VERSION = 1.22
+GO_VERSION = 1.25
+LDFLAGS = -ldflags "\
+	-X 'main.Version=$(shell git describe --tags --always)' \
+	-X 'main.GitTag=$(shell git describe --tags --abbrev=0)' \
+	-X 'main.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)'"
 
 default:
 	$(MAKE) build
-
-install-test-deps:
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
-	go install golang.org/x/crypto/...@latest
-	go install github.com/lib/pq/...@latest
 
 install-govulncheck:
 	@if [ $(GO_MINOR_VERSION) -gt $(GOVULN_MIN_VERSION) ]; then \
 		go install golang.org/x/vuln/cmd/govulncheck@latest; \
 	fi
 
-test: install-test-deps build-race fmt vet sec govulncheck
-	$(GINKGO) -v --fail-fast
+test: build-race fmt vet sec govulncheck
+	go run github.com/onsi/ginkgo/v2/ginkgo -- --ginkgo.v --ginkgo.fail-fast
 
 fmt:
 	@echo "FORMATTING"
@@ -58,17 +56,17 @@ govulncheck: install-govulncheck
 		govulncheck ./...; \
 	fi
 
-test-coverage: install-test-deps
+test-coverage:
 	go test -race -v -count=1 -coverprofile=coverage.out ./...
 
 build:
-	go build -o $(BIN) ./cmd/gosec/
+	go build $(LDFLAGS) -o $(BIN) ./cmd/gosec/
 
 build-race:
-	go build -race -o $(BIN) ./cmd/gosec/
+	go build -race $(LDFLAGS) -o $(BIN) ./cmd/gosec/
 
 clean:
-	rm -rf build vendor dist coverage.txt
+	rm -rf build vendor dist coverage.out
 	rm -f release image $(BIN)
 
 release:
@@ -92,4 +90,7 @@ image-push: image
 tlsconfig:
 	go generate ./...
 
-.PHONY: test build clean release image image-push tlsconfig
+perf-diff:
+	./perf-diff.sh
+
+.PHONY: test build clean release image image-push tlsconfig perf-diff

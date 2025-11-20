@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
-
 	const ORG_SECRET_NAME = "ORG_SECRET_NAME"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	secret_name, exists := os.LookupEnv(ORG_SECRET_NAME)

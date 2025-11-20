@@ -37,7 +37,7 @@ func resourceGithubOrganizationRoleTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func resourceGithubOrganizationRoleTeamCreate(d *schema.ResourceData, meta inter
 	return resourceGithubOrganizationRoleTeamRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

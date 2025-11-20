@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -66,7 +67,7 @@ func resourceGithubDependabotSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -107,7 +108,7 @@ func resourceGithubDependabotSecretCreateOrUpdate(d *schema.ResourceData, meta i
 	return resourceGithubDependabotSecretRead(d, meta)
 }
 
-func resourceGithubDependabotSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -119,7 +120,8 @@ func resourceGithubDependabotSecretRead(d *schema.ResourceData, meta interface{}
 
 	secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -167,7 +169,7 @@ func resourceGithubDependabotSecretRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceGithubDependabotSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -183,7 +185,7 @@ func resourceGithubDependabotSecretDelete(d *schema.ResourceData, meta interface
 	return err
 }
 
-func resourceGithubDependabotSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubDependabotSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -224,7 +226,7 @@ func resourceGithubDependabotSecretImport(d *schema.ResourceData, meta interface
 	return []*schema.ResourceData{d}, nil
 }
 
-func getDependabotPublicKeyDetails(owner, repository string, meta interface{}) (keyId, pkValue string, err error) {
+func getDependabotPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

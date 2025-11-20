@@ -52,7 +52,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 			"token":           {Type: schema.TypeString},
 		}
 
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{
 			"app_id":          testGitHubAppID,
 			"installation_id": testGitHubAppInstallationID,
 			"pem_file":        string(pemData),

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -58,7 +59,7 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -76,7 +77,8 @@ func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceDa
 	// Try to create the variable first
 	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusConflict {
 				// Variable already exists, try to update instead
 				_, err = client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
@@ -95,7 +97,7 @@ func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceDa
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
-func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -108,7 +110,8 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 
 	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -119,17 +122,17 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 		return err
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	_ = d.Set("repository", repoName)
+	_ = d.Set("environment", envName)
+	_ = d.Set("variable_name", name)
+	_ = d.Set("value", variable.Value)
+	_ = d.Set("created_at", variable.CreatedAt.String())
+	_ = d.Set("updated_at", variable.UpdatedAt.String())
 
 	return nil
 }
 
-func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

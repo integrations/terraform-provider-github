@@ -13,7 +13,6 @@ import (
 )
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
-
 	t.Run("configures default settings when empty", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -99,7 +98,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures default settings when conversation resolution is true", func(t *testing.T) {
@@ -191,7 +189,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures required status checks", func(t *testing.T) {
@@ -264,7 +261,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
@@ -334,7 +330,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
@@ -391,7 +386,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures branch push restrictions with node_id", func(t *testing.T) {
@@ -456,7 +450,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures branch push restrictions with username", func(t *testing.T) {
@@ -518,7 +511,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures branch push restrictions with blocksCreations false", func(t *testing.T) {
@@ -577,7 +569,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures force pushes and deletions", func(t *testing.T) {
@@ -637,7 +628,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures non-empty list of force push bypassers", func(t *testing.T) {
@@ -697,7 +687,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
@@ -757,7 +746,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures empty list of force push bypassers", func(t *testing.T) {
@@ -811,7 +799,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures non-empty list of pull request bypassers", func(t *testing.T) {
@@ -870,7 +857,6 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("configures empty list of pull request bypassers", func(t *testing.T) {
@@ -926,9 +912,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
 func importBranchProtectionByRepoName(repo, pattern string) resource.ImportStateIdFunc {
@@ -954,19 +938,19 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 	}
 }
 
-func testGithubBranchProtectionStateDataV1() map[string]interface{} {
-	return map[string]interface{}{
+func testGithubBranchProtectionStateDataV1() map[string]any {
+	return map[string]any{
 		"blocks_creations":  true,
 		"push_restrictions": [...]string{"/example-user"},
 	}
 }
 
-func testGithubBranchProtectionStateDataV2() map[string]interface{} {
-	restrictions := []interface{}{map[string]interface{}{
+func testGithubBranchProtectionStateDataV2() map[string]any {
+	restrictions := []any{map[string]any{
 		"blocks_creations": true,
 		"push_allowances":  [...]string{"/example-user"},
 	}}
-	return map[string]interface{}{
+	return map[string]any{
 		"restrict_pushes": restrictions,
 	}
 }

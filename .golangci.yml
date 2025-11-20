@@ -1,36 +1,76 @@
-# Visit https://golangci-lint.run/ for usage documentation
-# and information on other useful linters
-
+version: "2"
 run:
-  deadline: 3m
   modules-download-mode: vendor
 
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
-
 linters:
-  disable-all: true
+  default: none
+
   enable:
+    - copyloopvar
     - durationcheck
     - errcheck
-    - exportloopref
-    # - forcetypeassert
-    # - godot
-    - gofmt
-    - gosimple
+    - errname
+    - errorlint
+    # - forcetypeassert TODO: Re-enable when we can fix the issues
+    - godot
+    - govet
     - ineffassign
     - makezero
     - misspell
-    # - nilerr
-    # - predeclared
+    - modernize
+    - nilerr
+    - predeclared
     - staticcheck
-    - tenv
     - unconvert
-    # - unparam
+    - unparam
     - unused
-    - vet
+    - usetesting
 
-linters-settings:
-  errcheck:
-    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - path: _test\.go
+        linters:
+          - unparam
+        text: always receives
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+
+  settings:
+    gofmt:
+      simplify: true
+      rewrite-rules:
+        - pattern: interface{}
+          replacement: any
+        - pattern: a[b:len(a)]
+          replacement: a[b:]
+    gofumpt:
+      module-path: github.com/integrations/terraform-provider-github
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/integrations/terraform-provider-github
+
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

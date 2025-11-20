@@ -25,14 +25,14 @@ func dataSourceGithubActionsOrganizationRegistrationToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsOrganizationRegistrationTokenRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
 	log.Printf("[DEBUG] Creating a GitHub Actions organization registration token for %s", owner)
 	token, _, err := client.Actions.CreateOrganizationRegistrationToken(context.TODO(), owner)
 	if err != nil {
-		return fmt.Errorf("error creating a GitHub Actions organization registration token for %s: %s", owner, err)
+		return fmt.Errorf("error creating a GitHub Actions organization registration token for %s: %w", owner, err)
 	}
 
 	d.SetId(owner)

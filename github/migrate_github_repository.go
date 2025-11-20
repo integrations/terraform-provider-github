@@ -2,12 +2,13 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func resourceGithubRepositoryMigrateState(v int, is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+func resourceGithubRepositoryMigrateState(v int, is *terraform.InstanceState, meta any) (*terraform.InstanceState, error) {
 	switch v {
 	case 0:
 		log.Printf("[INFO] Found GitHub Repository State v0; migrating to v1")

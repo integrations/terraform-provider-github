@@ -44,7 +44,7 @@ func dataSourceGithubRepositoryMilestone() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
 	conn := meta.(*Owner).v3client
 	ctx := context.Background()
 

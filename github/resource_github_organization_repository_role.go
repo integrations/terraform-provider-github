@@ -54,7 +54,7 @@ func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRepositoryRoleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRepositoryRoleCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -77,14 +77,14 @@ func resourceGithubOrganizationRepositoryRoleCreate(d *schema.ResourceData, meta
 		Permissions: permissionsStr,
 	})
 	if err != nil {
-		return fmt.Errorf("error creating GitHub organization repository role (%s/%s): %s", orgName, d.Get("name").(string), err)
+		return fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err)
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
 	return resourceGithubOrganizationRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta i
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRepositoryRoleUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -180,13 +180,13 @@ func resourceGithubOrganizationRepositoryRoleUpdate(d *schema.ResourceData, meta
 
 	_, _, err = client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
 	if err != nil {
-		return fmt.Errorf("error updating GitHub organization repository role (%s/%s): %s", orgName, d.Get("name").(string), err)
+		return fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err)
 	}
 
 	return resourceGithubOrganizationRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationRepositoryRoleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRepositoryRoleDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -203,7 +203,7 @@ func resourceGithubOrganizationRepositoryRoleDelete(d *schema.ResourceData, meta
 
 	_, err = client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleId)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub organization repository role %s (%d): %s", orgName, roleId, err)
+		return fmt.Errorf("Error deleting GitHub organization repository role %s (%d): %w", orgName, roleId, err)
 	}
 
 	return nil

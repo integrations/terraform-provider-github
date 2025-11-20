@@ -38,7 +38,7 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(d *schema
 	return resourceGithubActionsOrganizationSecretRepositoriesRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceD
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

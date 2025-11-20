@@ -41,7 +41,7 @@ func dataSourceGithubCodespacesUserSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesUserSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubCodespacesUserSecretsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 

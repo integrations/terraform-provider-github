@@ -25,7 +25,7 @@ package ssa
 // populating fields such as Function.Body, .Params, and others.
 //
 // Building may create additional methods, including:
-// - wrapper methods (e.g. for embeddding, or implicit &recv)
+// - wrapper methods (e.g. for embedding, or implicit &recv)
 // - bound method closures (e.g. for use(recv.f))
 // - thunks (e.g. for use(I.f) or use(T.f))
 // - generic instances (e.g. to produce f[int] from f[any]).
@@ -82,7 +82,8 @@ import (
 	"runtime"
 	"sync"
 
-	"golang.org/x/tools/internal/aliases"
+	"slices"
+
 	"golang.org/x/tools/internal/typeparams"
 	"golang.org/x/tools/internal/versions"
 )
@@ -127,10 +128,48 @@ var (
 
 // builder holds state associated with the package currently being built.
 // Its methods contain all the logic for AST-to-SSA conversion.
+//
+// All Functions belong to the same Program.
+//
+// builders are not thread-safe.
 type builder struct {
-	// Invariant: 0 <= rtypes <= finished <= created.Len()
-	created  *creator // functions created during building
-	finished int      // Invariant: create[i].built holds for i in [0,finished)
+	fns []*Function // Functions that have finished their CREATE phases.
+
+	finished int // finished is the length of the prefix of fns containing built functions.
+
+	// The task of building shared functions within the builder.
+	// Shared functions are ones the builder may either create or lookup.
+	// These may be built by other builders in parallel.
+	// The task is done when the builder has finished iterating, and it
+	// waits for all shared functions to finish building.
+	// nil implies there are no hared functions to wait on.
+	buildshared *task
+}
+
+// shared is done when the builder has built all of the
+// enqueued functions to a fixed-point.
+func (b *builder) shared() *task {
+	if b.buildshared == nil { // lazily-initialize
+		b.buildshared = &task{done: make(chan unit)}
+	}
+	return b.buildshared
+}
+
+// enqueue fn to be built by the builder.
+func (b *builder) enqueue(fn *Function) {
+	b.fns = append(b.fns, fn)
+}
+
+// waitForSharedFunction indicates that the builder should wait until
+// the potentially shared function fn has finished building.
+//
+// This should include any functions that may be built by other
+// builders.
+func (b *builder) waitForSharedFunction(fn *Function) {
+	if fn.buildshared != nil { // maybe need to wait?
+		s := b.shared()
+		s.addEdge(fn.buildshared)
+	}
 }
 
 // cond emits to fn code to evaluate boolean condition e and jump
@@ -341,7 +380,13 @@ func (b *builder) builtin(fn *Function, obj *types.Builtin, args []ast.Expr, typ
 		}
 
 	case "new":
-		return emitNew(fn, typeparams.MustDeref(typ), pos, "new")
+		alloc := emitNew(fn, typeparams.MustDeref(typ), pos, "new")
+		if !fn.info.Types[args[0]].IsType() {
+			// new(expr), requires go1.26
+			v := b.expr(fn, args[0])
+			emitStore(fn, alloc, v, pos)
+		}
+		return alloc
 
 	case "len", "cap":
 		// Special case: len or cap of an array or *array is
@@ -522,7 +567,7 @@ func (sb *storebuf) emit(fn *Function) {
 // literal that may reference parts of the LHS.
 func (b *builder) assign(fn *Function, loc lvalue, e ast.Expr, isZero bool, sb *storebuf) {
 	// Can we initialize it in place?
-	if e, ok := unparen(e).(*ast.CompositeLit); ok {
+	if e, ok := ast.Unparen(e).(*ast.CompositeLit); ok {
 		// A CompositeLit never evaluates to a pointer,
 		// so if the type of the location is a pointer,
 		// an &-operation is implied.
@@ -577,7 +622,7 @@ func (b *builder) assign(fn *Function, loc lvalue, e ast.Expr, isZero bool, sb *
 // expr lowers a single-result expression e to SSA form, emitting code
 // to fn and returning the Value defined by the expression.
 func (b *builder) expr(fn *Function, e ast.Expr) Value {
-	e = unparen(e)
+	e = ast.Unparen(e)
 
 	tv := fn.info.Types[e]
 
@@ -667,7 +712,7 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			return y
 		}
 		// Call to "intrinsic" built-ins, e.g. new, make, panic.
-		if id, ok := unparen(e.Fun).(*ast.Ident); ok {
+		if id, ok := ast.Unparen(e.Fun).(*ast.Ident); ok {
 			if obj, ok := fn.info.Uses[id].(*types.Builtin); ok {
 				if v := b.builtin(fn, obj, e.Args, fn.typ(tv.Type), e.Lparen); v != nil {
 					return v
@@ -684,7 +729,7 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 		switch e.Op {
 		case token.AND: // &X --- potentially escaping.
 			addr := b.addr(fn, e.X, true)
-			if _, ok := unparen(e.X).(*ast.StarExpr); ok {
+			if _, ok := ast.Unparen(e.X).(*ast.StarExpr); ok {
 				// &*p must panic if p is nil (http://golang.org/s/go12nil).
 				// For simplicity, we'll just (suboptimally) rely
 				// on the side effects of a load.
@@ -779,7 +824,7 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			callee := v.(*Function) // (func)
 			if callee.typeparams.Len() > 0 {
 				targs := fn.subst.types(instanceArgs(fn.info, e))
-				callee = callee.instance(targs, b.created)
+				callee = callee.instance(targs, b)
 			}
 			return callee
 		}
@@ -800,7 +845,8 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 		case types.MethodExpr:
 			// (*T).f or T.f, the method f from the method-set of type T.
 			// The result is a "thunk".
-			thunk := createThunk(fn.Prog, sel, b.created)
+			thunk := createThunk(fn.Prog, sel)
+			b.enqueue(thunk)
 			return emitConv(fn, thunk, fn.typ(tv.Type))
 
 		case types.MethodVal:
@@ -815,10 +861,10 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 			if types.IsInterface(rt) {
 				// If v may be an interface type I (after instantiating),
 				// we must emit a check that v is non-nil.
-				if recv, ok := aliases.Unalias(sel.recv).(*types.TypeParam); ok {
+				if recv, ok := types.Unalias(sel.recv).(*types.TypeParam); ok {
 					// Emit a nil check if any possible instantiation of the
 					// type parameter is an interface type.
-					if typeSetOf(recv).Len() > 0 {
+					if !typeSetIsEmpty(recv) {
 						// recv has a concrete term its typeset.
 						// So it cannot be instantiated as an interface.
 						//
@@ -842,8 +888,11 @@ func (b *builder) expr0(fn *Function, e ast.Expr, tv types.TypeAndValue) Value {
 				// obj is generic.
 				obj = fn.Prog.canon.instantiateMethod(obj, fn.subst.types(targs), fn.Prog.ctxt)
 			}
+			bound := createBound(fn.Prog, obj)
+			b.enqueue(bound)
+
 			c := &MakeClosure{
-				Fn:       createBound(fn.Prog, obj, b.created),
+				Fn:       bound,
 				Bindings: []Value{v},
 			}
 			c.setPos(e.Sel.Pos())
@@ -961,7 +1010,7 @@ func (b *builder) setCallFunc(fn *Function, e *ast.CallExpr, c *CallCommon) {
 	c.pos = e.Lparen
 
 	// Is this a method call?
-	if selector, ok := unparen(e.Fun).(*ast.SelectorExpr); ok {
+	if selector, ok := ast.Unparen(e.Fun).(*ast.SelectorExpr); ok {
 		sel := fn.selection(selector)
 		if sel != nil && sel.kind == types.MethodVal {
 			obj := sel.obj.(*types.Func)
@@ -976,7 +1025,7 @@ func (b *builder) setCallFunc(fn *Function, e *ast.CallExpr, c *CallCommon) {
 				c.Method = obj
 			} else {
 				// "Call"-mode call.
-				c.Value = fn.Prog.objectMethod(obj, b.created)
+				c.Value = fn.Prog.objectMethod(obj, b)
 				c.Args = append(c.Args, v)
 			}
 			return
@@ -1331,7 +1380,7 @@ func (b *builder) compLit(fn *Function, addr Value, e *ast.CompositeLit, isZero 
 			// An &-operation may be implied:
 			//	map[*struct{}]bool{&struct{}{}: true}
 			wantAddr := false
-			if _, ok := unparen(e.Key).(*ast.CompositeLit); ok {
+			if _, ok := ast.Unparen(e.Key).(*ast.CompositeLit); ok {
 				wantAddr = isPointerCore(t.Key())
 			}
 
@@ -1506,9 +1555,9 @@ func (b *builder) typeSwitchStmt(fn *Function, s *ast.TypeSwitchStmt, label *lbl
 	var x Value
 	switch ass := s.Assign.(type) {
 	case *ast.ExprStmt: // x.(type)
-		x = b.expr(fn, unparen(ass.X).(*ast.TypeAssertExpr).X)
+		x = b.expr(fn, ast.Unparen(ass.X).(*ast.TypeAssertExpr).X)
 	case *ast.AssignStmt: // y := x.(type)
-		x = b.expr(fn, unparen(ass.Rhs[0]).(*ast.TypeAssertExpr).X)
+		x = b.expr(fn, ast.Unparen(ass.Rhs[0]).(*ast.TypeAssertExpr).X)
 	}
 
 	done := fn.newBasicBlock("typeswitch.done")
@@ -1626,7 +1675,7 @@ func (b *builder) selectStmt(fn *Function, s *ast.SelectStmt, label *lblock) {
 			}
 
 		case *ast.AssignStmt: // x := <-ch
-			recv := unparen(comm.Rhs[0]).(*ast.UnaryExpr)
+			recv := ast.Unparen(comm.Rhs[0]).(*ast.UnaryExpr)
 			st = &SelectState{
 				Dir:  types.RecvOnly,
 				Chan: b.expr(fn, recv.X),
@@ -1637,7 +1686,7 @@ func (b *builder) selectStmt(fn *Function, s *ast.SelectStmt, label *lblock) {
 			}
 
 		case *ast.ExprStmt: // <-ch
-			recv := unparen(comm.X).(*ast.UnaryExpr)
+			recv := ast.Unparen(comm.X).(*ast.UnaryExpr)
 			st = &SelectState{
 				Dir:  types.RecvOnly,
 				Chan: b.expr(fn, recv.X),
@@ -1980,8 +2029,8 @@ func (b *builder) forStmtGo122(fn *Function, s *ast.ForStmt, label *lblock) {
 		// Remove instructions for phi, load, and store.
 		// lift() will remove the unused i_next *Alloc.
 		isDead := func(i Instruction) bool { return dead[i] }
-		loop.Instrs = removeInstrsIf(loop.Instrs, isDead)
-		post.Instrs = removeInstrsIf(post.Instrs, isDead)
+		loop.Instrs = slices.DeleteFunc(loop.Instrs, isDead)
+		post.Instrs = slices.DeleteFunc(post.Instrs, isDead)
 	}
 }
 
@@ -2466,7 +2515,7 @@ func (b *builder) rangeFunc(fn *Function, x Value, tk, tv types.Type, rng *ast.R
 		name:           fmt.Sprintf("%s$%d", fn.Name(), anonIdx+1),
 		Signature:      ysig,
 		Synthetic:      "range-over-func yield",
-		pos:            rangePosition(rng),
+		pos:            rng.Range,
 		parent:         fn,
 		anonIdx:        int32(len(fn.AnonFuncs)),
 		Pkg:            fn.Pkg,
@@ -2524,6 +2573,8 @@ func (b *builder) rangeFunc(fn *Function, x Value, tk, tv types.Type, rng *ast.R
 
 	emitJump(fn, done)
 	fn.currentBlock = done
+	// pop the stack for the range-over-func
+	fn.targets = fn.targets.tail
 }
 
 // buildYieldResume emits to fn code for how to resume execution once a call to
@@ -2684,7 +2735,7 @@ start:
 		// The "intrinsics" new/make/len/cap are forbidden here.
 		// panic is treated like an ordinary function call.
 		deferstack := emitLoad(fn, fn.lookup(fn.deferstack, false))
-		v := Defer{pos: s.Defer, _DeferStack: deferstack}
+		v := Defer{pos: s.Defer, DeferStack: deferstack}
 		b.setCall(fn, s.Call, &v.Call)
 		fn.emit(&v)
 
@@ -2838,11 +2889,16 @@ type buildFunc = func(*builder, *Function)
 // iterate causes all created but unbuilt functions to be built. As
 // this may create new methods, the process is iterated until it
 // converges.
+//
+// Waits for any dependencies to finish building.
 func (b *builder) iterate() {
-	for ; b.finished < b.created.Len(); b.finished++ {
-		fn := b.created.At(b.finished)
+	for ; b.finished < len(b.fns); b.finished++ {
+		fn := b.fns[b.finished]
 		b.buildFunction(fn)
 	}
+
+	b.buildshared.markDone()
+	b.buildshared.wait()
 }
 
 // buildFunction builds SSA code for the body of function fn.  Idempotent.
@@ -2870,6 +2926,9 @@ func (b *builder) buildParamsOnly(fn *Function) {
 	for i, n := 0, params.Len(); i < n; i++ {
 		fn.addParamVar(params.At(i))
 	}
+
+	// clear out other function state (keep consistent with finishBody)
+	fn.subst = nil
 }
 
 // buildFromSyntax builds fn.Body from fn.syntax, which must be non-nil.
@@ -2920,7 +2979,7 @@ func (b *builder) buildFromSyntax(fn *Function) {
 func (b *builder) buildYieldFunc(fn *Function) {
 	// See builder.rangeFunc for detailed documentation on how fn is set up.
 	//
-	// In psuedo-Go this roughly builds:
+	// In pseudo-Go this roughly builds:
 	// func yield(_k tk, _v tv) bool {
 	// 	   if jump != READY { panic("yield function called after range loop exit") }
 	//     jump = BUSY
@@ -2951,6 +3010,7 @@ func (b *builder) buildYieldFunc(fn *Function) {
 		}
 	}
 	fn.targets = &targets{
+		tail:      fn.targets,
 		_continue: ycont,
 		// `break` statement targets fn.parent.targets._break.
 	}
@@ -3028,6 +3088,8 @@ func (b *builder) buildYieldFunc(fn *Function) {
 		// unreachable.
 		emitJump(fn, ycont)
 	}
+	// pop the stack for the yield function
+	fn.targets = fn.targets.tail
 
 	// Clean up exits and promote any unresolved exits to fn.parent.
 	for _, e := range fn.exits {
@@ -3057,17 +3119,17 @@ func (b *builder) buildYieldFunc(fn *Function) {
 	fn.finishBody()
 }
 
-// addRuntimeType records t as a runtime type,
-// along with all types derivable from it using reflection.
+// addMakeInterfaceType records non-interface type t as the type of
+// the operand a MakeInterface operation, for [Program.RuntimeTypes].
 //
-// Acquires prog.runtimeTypesMu.
-func addRuntimeType(prog *Program, t types.Type) {
-	prog.runtimeTypesMu.Lock()
-	defer prog.runtimeTypesMu.Unlock()
-	forEachReachable(&prog.MethodSets, t, func(t types.Type) bool {
-		prev, _ := prog.runtimeTypes.Set(t, true).(bool)
-		return !prev // already seen?
-	})
+// Acquires prog.makeInterfaceTypesMu.
+func addMakeInterfaceType(prog *Program, t types.Type) {
+	prog.makeInterfaceTypesMu.Lock()
+	defer prog.makeInterfaceTypesMu.Unlock()
+	if prog.makeInterfaceTypes == nil {
+		prog.makeInterfaceTypes = make(map[types.Type]unit)
+	}
+	prog.makeInterfaceTypes[t] = unit{}
 }
 
 // Build calls Package.Build for each package in prog.
@@ -3084,7 +3146,7 @@ func (prog *Program) Build() {
 			p.Build()
 		} else {
 			wg.Add(1)
-			cpuLimit <- struct{}{} // acquire a token
+			cpuLimit <- unit{} // acquire a token
 			go func(p *Package) {
 				p.Build()
 				wg.Done()
@@ -3096,7 +3158,7 @@ func (prog *Program) Build() {
 }
 
 // cpuLimit is a counting semaphore to limit CPU parallelism.
-var cpuLimit = make(chan struct{}, runtime.GOMAXPROCS(0))
+var cpuLimit = make(chan unit, runtime.GOMAXPROCS(0))
 
 // Build builds SSA code for all functions and vars in package p.
 //
@@ -3117,7 +3179,7 @@ func (p *Package) build() {
 		defer logStack("build %s", p)()
 	}
 
-	b := builder{created: &p.created}
+	b := builder{fns: p.created}
 	b.iterate()
 
 	// We no longer need transient information: ASTs or go/types deductions.

@@ -15,7 +15,8 @@ const (
 	name = "nilnil"
 	doc  = "Checks that there is no simultaneous return of `nil` error and an invalid value."
 
-	reportMsg = "return both the `nil` error and invalid value: use a sentinel error instead"
+	nilNilReportMsg       = "return both a `nil` error and an invalid value: use a sentinel error instead"
+	notNilNotNilReportMsg = "return both a non-nil error and a valid value: use separate returns instead"
 )
 
 // New returns new nilnil analyzer.
@@ -28,18 +29,26 @@ func New() *analysis.Analyzer {
 		Run:      n.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
-	a.Flags.Var(&n.checkedTypes, "checked-types", "coma separated list")
+	a.Flags.Var(&n.checkedTypes, "checked-types", "comma separated list of return types to check")
+	a.Flags.BoolVar(&n.detectOpposite, "detect-opposite", false,
+		"in addition, to detect opposite situation (simultaneous return of non-nil error and valid value)")
+	a.Flags.BoolVar(&n.onlyTwo, "only-two", true,
+		"to check functions with only two return values")
 
 	return a
 }
 
 type nilNil struct {
-	checkedTypes checkedTypes
+	checkedTypes   checkedTypes
+	detectOpposite bool
+	onlyTwo        bool
 }
 
 func newNilNil() *nilNil {
 	return &nilNil{
-		checkedTypes: newDefaultCheckedTypes(),
+		checkedTypes:   newDefaultCheckedTypes(),
+		detectOpposite: false,
+		onlyTwo:        true,
 	}
 }
 
@@ -49,7 +58,7 @@ var funcAndReturns = []ast.Node{
 	(*ast.ReturnStmt)(nil),
 }
 
-func (n *nilNil) run(pass *analysis.Pass) (interface{}, error) {
+func (n *nilNil) run(pass *analysis.Pass) (any, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	var fs funcTypeStack
@@ -72,44 +81,54 @@ func (n *nilNil) run(pass *analysis.Pass) (interface{}, error) {
 		case *ast.ReturnStmt:
 			ft := fs.Top() // Current function.
 
-			if !push || len(v.Results) != 2 || ft == nil || ft.Results == nil || len(ft.Results.List) != 2 {
+			if !push {
+				return false
+			}
+			if len(v.Results) < 2 {
+				return false
+			}
+			if (ft == nil) || (ft.Results == nil) || (len(ft.Results.List) != len(v.Results)) {
+				// Unreachable.
 				return false
 			}
 
-			fRes1Type := pass.TypesInfo.TypeOf(ft.Results.List[0].Type)
-			if fRes1Type == nil {
+			lastIdx := len(ft.Results.List) - 1
+			if n.onlyTwo {
+				lastIdx = 1
+			}
+
+			lastFtRes := ft.Results.List[lastIdx]
+			if !implementsError(pass.TypesInfo.TypeOf(lastFtRes.Type)) {
 				return false
 			}
 
-			fRes2Type := pass.TypesInfo.TypeOf(ft.Results.List[1].Type)
-			if fRes2Type == nil {
-				return false
-			}
+			retErr := v.Results[lastIdx]
+			for i := range lastIdx {
+				retVal := v.Results[i]
 
-			ok, zv := n.isDangerNilType(fRes1Type)
-			if !(ok && isErrorType(fRes2Type)) {
-				return false
-			}
+				zv, ok := n.isDangerNilType(pass.TypesInfo.TypeOf(ft.Results.List[i].Type))
+				if !ok {
+					continue
+				}
 
-			retVal, retErr := v.Results[0], v.Results[1]
+				if ((zv == zeroValueNil) && isNil(pass, retVal) && isNil(pass, retErr)) ||
+					((zv == zeroValueZero) && isZero(retVal) && isNil(pass, retErr)) {
+					pass.Reportf(v.Pos(), nilNilReportMsg)
+					return false
+				}
 
-			var needWarn bool
-			switch zv {
-			case zeroValueNil:
-				needWarn = isNil(pass, retVal) && isNil(pass, retErr)
-			case zeroValueZero:
-				needWarn = isZero(retVal) && isNil(pass, retErr)
-			}
-
-			if needWarn {
-				pass.Reportf(v.Pos(), reportMsg)
+				if n.detectOpposite && (((zv == zeroValueNil) && !isNil(pass, retVal) && !isNil(pass, retErr)) ||
+					((zv == zeroValueZero) && !isZero(retVal) && !isNil(pass, retErr))) {
+					pass.Reportf(v.Pos(), notNilNotNilReportMsg)
+					return false
+				}
 			}
 		}
 
 		return true
 	})
 
-	return nil, nil //nolint:nilnil
+	return nil, nil //nolint:nilnil // Integration interface of analysis.Analyzer.
 }
 
 type zeroValue int
@@ -119,40 +138,40 @@ const (
 	zeroValueZero
 )
 
-func (n *nilNil) isDangerNilType(t types.Type) (bool, zeroValue) {
-	switch v := t.(type) {
+func (n *nilNil) isDangerNilType(t types.Type) (zeroValue, bool) {
+	switch v := types.Unalias(t).(type) {
 	case *types.Pointer:
-		return n.checkedTypes.Contains(ptrType), zeroValueNil
+		return zeroValueNil, n.checkedTypes.Contains(ptrType)
 
 	case *types.Signature:
-		return n.checkedTypes.Contains(funcType), zeroValueNil
+		return zeroValueNil, n.checkedTypes.Contains(funcType)
 
 	case *types.Interface:
-		return n.checkedTypes.Contains(ifaceType), zeroValueNil
+		return zeroValueNil, n.checkedTypes.Contains(ifaceType)
 
 	case *types.Map:
-		return n.checkedTypes.Contains(mapType), zeroValueNil
+		return zeroValueNil, n.checkedTypes.Contains(mapType)
 
 	case *types.Chan:
-		return n.checkedTypes.Contains(chanType), zeroValueNil
+		return zeroValueNil, n.checkedTypes.Contains(chanType)
 
 	case *types.Basic:
 		if v.Kind() == types.Uintptr {
-			return n.checkedTypes.Contains(uintptrType), zeroValueZero
+			return zeroValueZero, n.checkedTypes.Contains(uintptrType)
 		}
 		if v.Kind() == types.UnsafePointer {
-			return n.checkedTypes.Contains(unsafeptrType), zeroValueNil
+			return zeroValueNil, n.checkedTypes.Contains(unsafeptrType)
 		}
 
 	case *types.Named:
 		return n.isDangerNilType(v.Underlying())
 	}
-	return false, 0
+	return 0, false
 }
 
 var errorIface = types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
 
-func isErrorType(t types.Type) bool {
+func implementsError(t types.Type) bool {
 	_, ok := t.Underlying().(*types.Interface)
 	return ok && types.Implements(t, errorIface)
 }

@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
-
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-%s", randomID)
@@ -146,7 +145,6 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates and updates org with display name", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
@@ -245,11 +243,9 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			}
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("creates org without display name, set and update display name", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -404,7 +400,6 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			}
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("imports enterprise organization without error", func(t *testing.T) {
@@ -516,7 +511,6 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			}
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
@@ -573,6 +567,5 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			}
 			testCase(t, enterprise)
 		})
-
 	})
 }

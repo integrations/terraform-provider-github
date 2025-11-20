@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -95,7 +96,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -111,7 +112,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]interface{}) {
+		for _, workflow := range workflows.([]any) {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
@@ -191,7 +192,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta interfa
 func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotModified {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			// ignore error StatusNotModified
 			return runnerGroup, resp, nil
 		}
@@ -199,7 +201,7 @@ func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org 
 	return runnerGroup, resp, err
 }
 
-func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -219,7 +221,8 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 
 	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
@@ -230,7 +233,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	//if runner group is nil (typically not modified) we can return early
+	// if runner group is nil (typically not modified) we can return early
 	if runnerGroup == nil {
 		return nil
 	}
@@ -298,7 +301,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -313,7 +316,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	selectedWorkflows := []string{}
 	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]interface{}) {
+		for _, workflow := range workflows.([]any) {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
@@ -356,7 +359,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta interfa
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
-func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

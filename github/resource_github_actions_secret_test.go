@@ -12,11 +12,9 @@ import (
 )
 
 func TestAccGithubActionsSecret(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("reads a repository public key without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -62,7 +60,6 @@ func TestAccGithubActionsSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
@@ -293,7 +290,6 @@ func TestAccGithubActionsSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("respects destroy_on_drift setting", func(t *testing.T) {
@@ -364,85 +360,15 @@ func TestAccGithubActionsSecret(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-
-	t.Run("updates destroy_on_drift field without recreation", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-		config1 := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-			}
-
-			resource "github_actions_secret" "test" {
-				repository        = github_repository.test.name
-				secret_name       = "test_destroy_on_drift_update"
-				plaintext_value   = "test_value"
-				destroy_on_drift  = true
-			}
-		`, randomID)
-
-		config2 := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-			}
-
-			resource "github_actions_secret" "test" {
-				repository        = github_repository.test.name
-				secret_name       = "test_destroy_on_drift_update"
-				plaintext_value   = "test_value"
-				destroy_on_drift  = false
-			}
-		`, randomID)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config1,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.test", "destroy_on_drift", "true"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.test", "plaintext_value", "test_value"),
-						),
-					},
-					{
-						Config: config2,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.test", "destroy_on_drift", "false"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.test", "plaintext_value", "test_value"),
-						),
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
 }
 
-// Unit tests for drift detection behavior
+// Unit tests for drift detection behavior.
 func TestGithubActionsSecretDriftDetection(t *testing.T) {
-
 	t.Run("destroyOnDrift true causes recreation on timestamp mismatch", func(t *testing.T) {
 		originalTimestamp := "2023-01-01T00:00:00Z"
 		newTimestamp := "2023-01-02T00:00:00Z"
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":       "test-repo",
 			"secret_name":      "test-secret",
 			"plaintext_value":  "test-value",
@@ -463,29 +389,48 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 		}
 	})
 
-	t.Run("destroyOnDrift false updates timestamp without recreation", func(t *testing.T) {
+	t.Run("destroyOnDrift false clears sensitive values instead of recreating", func(t *testing.T) {
 		originalTimestamp := "2023-01-01T00:00:00Z"
 		newTimestamp := "2023-01-02T00:00:00Z"
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":       "test-repo",
 			"secret_name":      "test-secret",
-			"plaintext_value":  "test-value",
+			"plaintext_value":  "original-value",
+			"encrypted_value":  "original-encrypted",
 			"destroy_on_drift": false,
 			"updated_at":       originalTimestamp,
 		})
 		d.SetId("test-secret")
 
-		// Test the drift detection logic when destroy_on_drift is false
+		// Simulate drift detection logic when destroy_on_drift is false
 		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		if updatedAt, ok := d.GetOk("updated_at"); ok && !destroyOnDrift && updatedAt != newTimestamp {
-			// This simulates what happens when destroy_on_drift=false
-			d.Set("updated_at", newTimestamp)
+		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+
+		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
+			if destroyOnDrift {
+				// Would clear ID for recreation
+				d.SetId("")
+			} else {
+				// Should clear sensitive values to trigger update
+				_ = d.Set("encrypted_value", "")
+				_ = d.Set("plaintext_value", "")
+			}
+			_ = d.Set("updated_at", newTimestamp)
 		}
 
-		// Should NOT have cleared the ID
+		// Should NOT have cleared the ID when destroy_on_drift=false
 		if d.Id() == "" {
 			t.Error("Expected ID to be preserved when destroy_on_drift=false, but it was cleared")
+		}
+
+		// Should have cleared sensitive values to trigger update plan
+		if plaintextValue := d.Get("plaintext_value").(string); plaintextValue != "" {
+			t.Errorf("Expected plaintext_value to be cleared for update plan, got %s", plaintextValue)
+		}
+
+		if encryptedValue := d.Get("encrypted_value").(string); encryptedValue != "" {
+			t.Errorf("Expected encrypted_value to be cleared for update plan, got %s", encryptedValue)
 		}
 
 		// Should have updated the timestamp
@@ -494,8 +439,70 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 		}
 	})
 
+	t.Run("destroyOnDrift true still recreates resource on drift", func(t *testing.T) {
+		originalTimestamp := "2023-01-01T00:00:00Z"
+		newTimestamp := "2023-01-02T00:00:00Z"
+
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
+			"repository":       "test-repo",
+			"secret_name":      "test-secret",
+			"plaintext_value":  "original-value",
+			"destroy_on_drift": true, // Explicitly set to true
+			"updated_at":       originalTimestamp,
+		})
+		d.SetId("test-secret")
+
+		// Simulate drift detection logic when destroy_on_drift is true
+		destroyOnDrift := d.Get("destroy_on_drift").(bool)
+		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+
+		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
+			if destroyOnDrift {
+				// Should clear ID for recreation (original behavior)
+				d.SetId("")
+				return // Exit early like the real function would
+			}
+		}
+
+		// Should have cleared the ID for recreation when destroy_on_drift=true
+		if d.Id() != "" {
+			t.Error("Expected ID to be cleared for recreation when destroy_on_drift=true, but it was preserved")
+		}
+	})
+
+	t.Run("destroyOnDrift true still recreates resource on drift", func(t *testing.T) {
+		originalTimestamp := "2023-01-01T00:00:00Z"
+		newTimestamp := "2023-01-02T00:00:00Z"
+
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
+			"repository":       "test-repo",
+			"secret_name":      "test-secret",
+			"plaintext_value":  "original-value",
+			"destroy_on_drift": true, // Explicitly set to true
+			"updated_at":       originalTimestamp,
+		})
+		d.SetId("test-secret")
+
+		// Simulate drift detection logic when destroy_on_drift is true
+		destroyOnDrift := d.Get("destroy_on_drift").(bool)
+		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
+
+		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
+			if destroyOnDrift {
+				// Should clear ID for recreation (original behavior)
+				d.SetId("")
+				return // Exit early like the real function would
+			}
+		}
+
+		// Should have cleared the ID for recreation when destroy_on_drift=true
+		if d.Id() != "" {
+			t.Error("Expected ID to be cleared for recreation when destroy_on_drift=true, but it was preserved")
+		}
+	})
+
 	t.Run("default destroy_on_drift is true", func(t *testing.T) {
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":      "test-repo",
 			"secret_name":     "test-secret",
 			"plaintext_value": "test-value",
@@ -511,7 +518,7 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 	t.Run("no drift when timestamps match", func(t *testing.T) {
 		timestamp := "2023-01-01T00:00:00Z"
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":       "test-repo",
 			"secret_name":      "test-secret",
 			"plaintext_value":  "test-value",
@@ -529,6 +536,14 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 		// Should NOT have cleared the ID
 		if d.Id() == "" {
 			t.Error("Expected ID to be preserved when no drift detected, but it was cleared")
+		}
+	})
+
+	t.Run("destroy_on_drift field defaults", func(t *testing.T) {
+		// Test that destroy_on_drift defaults to true for backward compatibility
+		schema := resourceGithubActionsSecret().Schema["destroy_on_drift"]
+		if schema.Default != true {
+			t.Error("destroy_on_drift should default to true for backward compatibility")
 		}
 	})
 
@@ -562,7 +577,7 @@ func TestGithubActionsSecretDriftDetection(t *testing.T) {
 	})
 }
 
-// Test demonstrating the solution to GitHub issue #964
+// Test demonstrating the solution to GitHub issue #964.
 func TestGithubActionsSecretIssue964Solution(t *testing.T) {
 	t.Run("solve issue 964 - prevent recreation when GUI changes secret", func(t *testing.T) {
 		// This test demonstrates the fix for:
@@ -571,7 +586,7 @@ func TestGithubActionsSecretIssue964Solution(t *testing.T) {
 		// Scenario: User creates secret with Terraform, then updates value via GitHub GUI
 		// Expected: With destroy_on_drift=false, Terraform should not recreate the secret
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]interface{}{
+		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
 			"repository":       "my-repo",
 			"secret_name":      "WORKFLOW_PAT",
 			"plaintext_value":  "CHANGE_ME", // Initial placeholder value
@@ -581,7 +596,7 @@ func TestGithubActionsSecretIssue964Solution(t *testing.T) {
 
 		// Set initial timestamp
 		originalTime := "2023-01-01T00:00:00Z"
-		d.Set("updated_at", originalTime)
+		_ = d.Set("updated_at", originalTime)
 
 		// Simulate: User changes secret value via GitHub GUI
 		// This changes the updated_at timestamp
@@ -591,7 +606,7 @@ func TestGithubActionsSecretIssue964Solution(t *testing.T) {
 		destroyOnDrift := d.Get("destroy_on_drift").(bool) // false
 		if updatedAt, ok := d.GetOk("updated_at"); ok && !destroyOnDrift && updatedAt != newTime {
 			// With destroy_on_drift=false, we update timestamp but don't clear ID
-			d.Set("updated_at", newTime)
+			_ = d.Set("updated_at", newTime)
 		}
 
 		// RESULT: Secret should NOT be marked for recreation

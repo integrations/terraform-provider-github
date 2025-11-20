@@ -2,6 +2,7 @@ package lint
 
 import (
 	"bytes"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/printer"
@@ -23,12 +24,29 @@ type File struct {
 // IsTest returns if the file contains tests.
 func (f *File) IsTest() bool { return strings.HasSuffix(f.Name, "_test.go") }
 
+// IsImportable returns if the symbols defined in this file can be imported in other packages.
+//
+// Symbols from the package `main` or test files are not exported, so they cannot be imported.
+func (f *File) IsImportable() bool {
+	if f.IsTest() {
+		// Test files cannot be imported.
+		return false
+	}
+
+	if f.Pkg.IsMain() {
+		// The package `main` cannot be imported.
+		return false
+	}
+
+	return true
+}
+
 // Content returns the file's content.
 func (f *File) Content() []byte {
 	return f.content
 }
 
-// NewFile creates a new file
+// NewFile creates a new file.
 func NewFile(name string, content []byte, pkg *Package) (*File, error) {
 	f, err := parser.ParseFile(pkg.fset, name, content, parser.ParseComments)
 	if err != nil {
@@ -48,7 +66,7 @@ func (f *File) ToPosition(pos token.Pos) token.Position {
 }
 
 // Render renders a node.
-func (f *File) Render(x interface{}) string {
+func (f *File) Render(x any) string {
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, f.Pkg.fset, x); err != nil {
 		panic(err)
@@ -72,7 +90,7 @@ var basicTypeKinds = map[types.BasicKind]string{
 
 // IsUntypedConst reports whether expr is an untyped constant,
 // and indicates what its default type is.
-// scope may be nil.
+// Scope may be nil.
 func (f *File) IsUntypedConst(expr ast.Expr) (defType string, ok bool) {
 	// Re-evaluate expr outside its context to see if it's untyped.
 	// (An expr evaluated within, for example, an assignment context will get the type of the LHS.)
@@ -96,7 +114,7 @@ func (f *File) isMain() bool {
 
 const directiveSpecifyDisableReason = "specify-disable-reason"
 
-func (f *File) lint(rules []Rule, config Config, failures chan Failure) {
+func (f *File) lint(rules []Rule, config Config, failures chan Failure) error {
 	rulesConfig := config.Rules
 	_, mustSpecifyDisableReason := config.Directives[directiveSpecifyDisableReason]
 	disabledIntervals := f.disabledIntervals(rules, mustSpecifyDisableReason, failures)
@@ -107,6 +125,10 @@ func (f *File) lint(rules []Rule, config Config, failures chan Failure) {
 		}
 		currentFailures := currentRule.Apply(f, ruleConfig.Arguments)
 		for idx, failure := range currentFailures {
+			if failure.IsInternal() {
+				return errors.New(failure.Failure)
+			}
+
 			if failure.RuleName == "" {
 				failure.RuleName = currentRule.Name()
 			}
@@ -122,6 +144,7 @@ func (f *File) lint(rules []Rule, config Config, failures chan Failure) {
 			}
 		}
 	}
+	return nil
 }
 
 type enableDisableConfig struct {
@@ -129,25 +152,26 @@ type enableDisableConfig struct {
 	position int
 }
 
+type disabledIntervalsMap = map[string][]DisabledInterval
+
 const (
-	directiveRE  = `^//[\s]*revive:(enable|disable)(?:-(line|next-line))?(?::([^\s]+))?[\s]*(?: (.+))?$`
 	directivePos = 1
 	modifierPos  = 2
 	rulesPos     = 3
 	reasonPos    = 4
 )
 
-var re = regexp.MustCompile(directiveRE)
+var directiveRegexp = regexp.MustCompile(`^//[\s]*revive:(enable|disable)(?:-(line|next-line))?(?::([^\s]+))?[\s]*(?: (.+))?$`)
 
 func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, failures chan Failure) disabledIntervalsMap {
-	enabledDisabledRulesMap := make(map[string][]enableDisableConfig)
+	enabledDisabledRulesMap := map[string][]enableDisableConfig{}
 
 	getEnabledDisabledIntervals := func() disabledIntervalsMap {
-		result := make(disabledIntervalsMap)
+		result := disabledIntervalsMap{}
 
 		for ruleName, disabledArr := range enabledDisabledRulesMap {
 			ruleResult := []DisabledInterval{}
-			for i := 0; i < len(disabledArr); i++ {
+			for i := range disabledArr {
 				interval := DisabledInterval{
 					RuleName: ruleName,
 					From: token.Position{
@@ -188,26 +212,25 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 		enabledDisabledRulesMap[name] = existing
 	}
 
-	handleRules := func(filename, modifier string, isEnabled bool, line int, ruleNames []string) []DisabledInterval {
-		var result []DisabledInterval
+	handleRules := func(modifier string, isEnabled bool, line int, ruleNames []string) {
 		for _, name := range ruleNames {
-			if modifier == "line" {
+			switch modifier {
+			case "line":
 				handleConfig(isEnabled, line, name)
 				handleConfig(!isEnabled, line, name)
-			} else if modifier == "next-line" {
+			case "next-line":
 				handleConfig(isEnabled, line+1, name)
 				handleConfig(!isEnabled, line+1, name)
-			} else {
+			default:
 				handleConfig(isEnabled, line, name)
 			}
 		}
-		return result
 	}
 
-	handleComment := func(filename string, c *ast.CommentGroup, line int) {
+	handleComment := func(c *ast.CommentGroup, line int) {
 		comments := c.List
 		for _, c := range comments {
-			match := re.FindStringSubmatch(c.Text)
+			match := directiveRegexp.FindStringSubmatch(c.Text)
 			if len(match) == 0 {
 				continue
 			}
@@ -216,7 +239,7 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 
 			for _, name := range tempNames {
 				name = strings.Trim(name, "\n")
-				if len(name) > 0 {
+				if name != "" {
 					ruleNames = append(ruleNames, name)
 				}
 			}
@@ -240,13 +263,12 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 				}
 			}
 
-			handleRules(filename, match[modifierPos], match[directivePos] == "enable", line, ruleNames)
+			handleRules(match[modifierPos], match[directivePos] == "enable", line, ruleNames)
 		}
 	}
 
-	comments := f.AST.Comments
-	for _, c := range comments {
-		handleComment(f.Name, c, f.ToPosition(c.End()).Line)
+	for _, c := range f.AST.Comments {
+		handleComment(c, f.ToPosition(c.End()).Line)
 	}
 
 	return getEnabledDisabledIntervals()
@@ -260,20 +282,21 @@ func (File) filterFailures(failures []Failure, disabledIntervals disabledInterva
 		intervals, ok := disabledIntervals[failure.RuleName]
 		if !ok {
 			result = append(result, failure)
-		} else {
-			include := true
-			for _, interval := range intervals {
-				intStart := interval.From.Line
-				intEnd := interval.To.Line
-				if (fStart >= intStart && fStart <= intEnd) ||
-					(fEnd >= intStart && fEnd <= intEnd) {
-					include = false
-					break
-				}
+			continue
+		}
+
+		include := true
+		for _, interval := range intervals {
+			intStart := interval.From.Line
+			intEnd := interval.To.Line
+			if (fStart >= intStart && fStart <= intEnd) ||
+				(fEnd >= intStart && fEnd <= intEnd) {
+				include = false
+				break
 			}
-			if include {
-				result = append(result, failure)
-			}
+		}
+		if include {
+			result = append(result, failure)
 		}
 	}
 	return result

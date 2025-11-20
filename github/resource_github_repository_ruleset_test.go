@@ -12,11 +12,9 @@ import (
 )
 
 func TestGithubRepositoryRulesets(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates repository rulesets without errors", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -150,7 +148,6 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
@@ -225,11 +222,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Updates a ruleset name without error", func(t *testing.T) {
-
 		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
@@ -300,11 +295,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "tf-acc-test-import-%[1]s"
@@ -414,7 +407,6 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 	t.Run("Creates a push repository ruleset without errors", func(t *testing.T) {
 		if isPaidPlan != "true" {
@@ -494,7 +486,6 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 	})
 
 	t.Run("Creates repository ruleset with merge queue SQUASH method", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-merge-queue-%s"
@@ -564,11 +555,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Removes bypass actors when removed from configuration", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-test-bypass-%s"
@@ -672,11 +661,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Updates ruleset without bypass actors defined", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-test-no-bypass-%s"
@@ -761,11 +748,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Creates repository ruleset with all bypass_modes", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-test-bypass-modes-%s"
@@ -889,11 +874,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Updates bypass_mode without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-test-bypass-update-%s"
@@ -981,11 +964,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("Creates repository ruleset with different actor types and bypass modes", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "tf-acc-test-actor-types-%s"
@@ -1101,9 +1082,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
 func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName string) resource.ImportStateIdFunc {

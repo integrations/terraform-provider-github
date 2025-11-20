@@ -9,7 +9,6 @@ import (
 )
 
 func TestAccGithubActionsVariablesDataSource(t *testing.T) {
-
 	t.Run("queries actions variables from a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 

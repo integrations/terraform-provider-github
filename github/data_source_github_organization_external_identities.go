@@ -65,7 +65,7 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, meta any) error {
 	name := meta.(*Owner).name
 
 	client4 := meta.(*Owner).v4client
@@ -78,20 +78,20 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 			}
 		} `graphql:"organization(login: $login)"`
 	}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"login": githubv4.String(name),
 		"after": (*githubv4.String)(nil),
 	}
 
-	var identities []map[string]interface{}
+	var identities []map[string]any
 
 	for {
 		err := client4.Query(ctx, &query, variables)
 		if err != nil {
 			return err
 		}
-		for _, edge := range query.Organization.SamlIdentityProvider.ExternalIdentities.Edges {
-			identity := map[string]interface{}{
+		for _, edge := range query.Organization.SamlIdentityProvider.Edges {
+			identity := map[string]any{
 				"login":         string(edge.Node.User.Login),
 				"saml_identity": nil,
 				"scim_identity": nil,
@@ -116,14 +116,14 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 
 			identities = append(identities, identity)
 		}
-		if !query.Organization.SamlIdentityProvider.ExternalIdentities.PageInfo.HasNextPage {
+		if !query.Organization.SamlIdentityProvider.PageInfo.HasNextPage {
 			break
 		}
-		variables["after"] = githubv4.NewString(query.Organization.SamlIdentityProvider.ExternalIdentities.PageInfo.EndCursor)
+		variables["after"] = githubv4.NewString(query.Organization.SamlIdentityProvider.PageInfo.EndCursor)
 	}
 
 	d.SetId(name)
-	d.Set("identities", identities)
+	_ = d.Set("identities", identities)
 
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 )
 
 func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
-
 	t.Skip("You need an org with custom properties already setup as described in the variables below") // TODO: at the time of writing org_custom_properties are not supported by this terraform provider, so cant be setup in the test itself for now
 	singleSelectPropertyName := "single-select"                                                        // Needs to be a of type single_select, and have "option1" as an option
 	multiSelectPropertyName := "multi-select"                                                          // Needs to be a of type multi_select, and have "option1" and "option2" as an options
@@ -19,7 +18,6 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -72,7 +70,6 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -126,7 +123,6 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type true_false without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -179,7 +175,6 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type string without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"

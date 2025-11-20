@@ -91,7 +91,7 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 
 	var query TeamsQuery
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"first":         githubv4.Int(resultsPerPage),
 		"login":         githubv4.String(orgName),
 		"cursor":        (*githubv4.String)(nil),
@@ -114,7 +114,7 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 		"summaryOnly":   githubv4.Boolean(summaryOnly),
 	}
 
-	var teams []interface{}
+	var teams []any
 	for {
 		err = client.Query(meta.(*Owner).StopContext, &query, variables)
 		if err != nil {
@@ -142,17 +142,17 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, tq TeamsQuery) ([]interface{}, error) {
+func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, tq TeamsQuery) ([]any, error) {
 	teams := tq.Organization.Teams.Nodes
 
 	if len(teams) == 0 {
-		return make([]interface{}, 0), nil
+		return make([]any, 0), nil
 	}
 
-	flatTeams := make([]interface{}, len(teams))
+	flatTeams := make([]any, len(teams))
 
 	for i, team := range teams {
-		t := make(map[string]interface{})
+		t := make(map[string]any)
 
 		t["id"] = team.DatabaseID
 		t["node_id"] = team.ID
@@ -181,7 +181,7 @@ func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, 
 		t["parent_team_id"] = parentTeamId
 		t["parent_team_slug"] = team.Parent.Slug
 
-		parentTeam := make(map[string]interface{})
+		parentTeam := make(map[string]any)
 		parentTeam["id"] = team.Parent.ID
 		parentTeam["slug"] = team.Parent.Slug
 		parentTeam["name"] = team.Parent.Name

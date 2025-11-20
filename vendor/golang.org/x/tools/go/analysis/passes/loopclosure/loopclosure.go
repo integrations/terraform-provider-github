@@ -29,7 +29,7 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -87,7 +87,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		//
 		// TODO: consider allowing the "last" go/defer/Go statement to be followed by
 		// N "trivial" statements, possibly under a recursive definition of "trivial"
-		// so that that checker could, for example, conclude that a go statement is
+		// so that checker could, for example, conclude that a go statement is
 		// followed by an if statement made of only trivial statements and trivial expressions,
 		// and hence the go statement could still be checked.
 		forEachLastStmt(body.List, func(last ast.Stmt) {
@@ -368,5 +368,5 @@ func isMethodCall(info *types.Info, expr ast.Expr, pkgPath, typeName, method str
 	// Check that the receiver is a <pkgPath>.<typeName> or
 	// *<pkgPath>.<typeName>.
 	_, named := typesinternal.ReceiverNamed(recv)
-	return analysisutil.IsNamedType(named, pkgPath, typeName)
+	return typesinternal.IsTypeNamed(named, pkgPath, typeName)
 }

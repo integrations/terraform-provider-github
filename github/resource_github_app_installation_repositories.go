@@ -39,7 +39,7 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	installationIDString := d.Get("installation_id").(string)
 	selectedRepositories := d.Get("selected_repositories")
 
@@ -96,7 +96,7 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 	return resourceGithubAppInstallationRepositoriesRead(d, meta)
 }
 
-func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta any) error {
 	installationIDString := d.Id()
 
 	reposNameIDs, _, err := getAllAccessibleRepos(meta, installationIDString)
@@ -125,7 +125,7 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, meta any) error {
 	installationIDString := d.Get("installation_id").(string)
 
 	reposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
@@ -156,7 +156,7 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, met
 	return nil
 }
 
-func getAllAccessibleRepos(meta interface{}, idString string) (map[string]int64, int64, error) {
+func getAllAccessibleRepos(meta any, idString string) (map[string]int64, int64, error) {
 	err := checkOrganization(meta)
 	if err != nil {
 		return nil, 0, err

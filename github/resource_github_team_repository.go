@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +19,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Update: resourceGithubTeamRepositoryUpdate,
 		Delete: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
@@ -61,7 +62,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -91,7 +92,6 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 			Permission: permission,
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
 
-func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -126,7 +126,8 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(repoErr, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -160,7 +161,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -191,7 +192,6 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 			Permission: permission,
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
 
-func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 
 	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 
-	if resp.Response.StatusCode == 404 {
+	if resp.StatusCode == 404 {
 		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
 		repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
 		if err != nil {

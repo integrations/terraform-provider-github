@@ -37,7 +37,7 @@ func dataSourceGithubExternalGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	groupsState := make([]map[string]interface{}, 0)
+	groupsState := make([]map[string]any, 0)
 	err = json.Unmarshal(jsonGroups, &groupsState)
 	if err != nil {
 		return err

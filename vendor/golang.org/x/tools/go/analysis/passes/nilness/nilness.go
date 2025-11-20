@@ -14,7 +14,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/buildssa"
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ssa"
-	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/typeparams"
 )
 
@@ -29,7 +28,7 @@ var Analyzer = &analysis.Analyzer{
 	Requires: []*analysis.Analyzer{buildssa.Analyzer},
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	ssainput := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA)
 	for _, fn := range ssainput.SrcFuncs {
 		runFunc(pass, fn)
@@ -38,7 +37,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func runFunc(pass *analysis.Pass, fn *ssa.Function) {
-	reportf := func(category string, pos token.Pos, format string, args ...interface{}) {
+	reportf := func(category string, pos token.Pos, format string, args ...any) {
 		// We ignore nil-checking ssa.Instructions
 		// that don't correspond to syntax.
 		if pos.IsValid() {
@@ -53,7 +52,7 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 	// notNil reports an error if v is provably nil.
 	notNil := func(stack []fact, instr ssa.Instruction, v ssa.Value, descr string) {
 		if nilnessOf(stack, v) == isnil {
-			reportf("nilderef", instr.Pos(), descr)
+			reportf("nilderef", instr.Pos(), "%s", descr)
 		}
 	}
 
@@ -187,7 +186,7 @@ func runFunc(pass *analysis.Pass, fn *ssa.Function) {
 					// t successor learns y is nil.
 					newFacts = expandFacts(fact{binop.Y, isnil})
 				} else {
-					// x is nil, y is unknown:
+					// y is nil, x is unknown:
 					// t successor learns x is nil.
 					newFacts = expandFacts(fact{binop.X, isnil})
 				}
@@ -300,7 +299,7 @@ func nilnessOf(stack []fact, v ssa.Value) nilness {
 		}
 	case *ssa.MakeInterface:
 		// A MakeInterface is non-nil unless its operand is a type parameter.
-		tparam, ok := aliases.Unalias(v.X.Type()).(*types.TypeParam)
+		tparam, ok := types.Unalias(v.X.Type()).(*types.TypeParam)
 		if !ok {
 			return isnonnil
 		}

@@ -37,7 +37,7 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -48,17 +48,14 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 		},
 	}
 
-	groups := make([]interface{}, 0)
+	groups := make([]any, 0)
 	for {
 		idpGroupList, resp, err := client.Teams.ListIDPGroupsInOrganization(ctx, orgName, options)
 		if err != nil {
 			return err
 		}
 
-		result, err := flattenGithubIDPGroupList(idpGroupList)
-		if err != nil {
-			return fmt.Errorf("unable to flatten IdP Groups in GitHub Organization(Org: %q) : %+v", orgName, err)
-		}
+		result := flattenGithubIDPGroupList(idpGroupList)
 
 		groups = append(groups, result...)
 
@@ -70,7 +67,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 
 	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
 	if err := d.Set("groups", groups); err != nil {
-		return fmt.Errorf("error setting groups: %s", err)
+		return fmt.Errorf("error setting groups: %w", err)
 	}
 
 	return nil

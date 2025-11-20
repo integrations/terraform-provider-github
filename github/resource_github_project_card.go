@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -58,7 +59,7 @@ func resourceGithubProjectCard() *schema.Resource {
 	}
 }
 
-func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectCardCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -102,7 +103,7 @@ func resourceGithubProjectCardCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubProjectCardRead(d, meta)
 }
 
-func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectCardRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	nodeID := d.Id()
 	cardID := d.Get("card_id").(int)
@@ -114,7 +115,8 @@ func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Reading project card: %s", nodeID)
 	card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
+		err := &github.ErrorResponse{}
+		if errors.As(err, &err) {
 			if err.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing project card %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
@@ -127,9 +129,6 @@ func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) err
 	// FIXME: Remove URL parsing if a better option becomes available
 	columnURL := card.GetColumnURL()
 	columnIDStr := strings.TrimPrefix(columnURL, client.BaseURL.String()+`projects/columns/`)
-	if err != nil {
-		return unconvertibleIdErr(columnIDStr, err)
-	}
 
 	if err = d.Set("note", card.GetNote()); err != nil {
 		return err
@@ -144,7 +143,7 @@ func resourceGithubProjectCardRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	cardID := d.Get("card_id").(int)
 
@@ -171,7 +170,7 @@ func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceGithubProjectCardRead(d, meta)
 }
 
-func resourceGithubProjectCardDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectCardDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -185,7 +184,7 @@ func resourceGithubProjectCardDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubProjectCardImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubProjectCardImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	cardIDStr := d.Id()
 	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
 	if err != nil {

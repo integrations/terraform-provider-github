@@ -2,19 +2,18 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIssue(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates an issue without error", func(t *testing.T) {
-
 		title := "issue_title"
 		body := "issue_body"
 		labels := "\"bug\", \"enhancement\""
@@ -172,5 +171,4 @@ func TestAccGithubIssue(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
-
 }

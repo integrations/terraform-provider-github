@@ -50,7 +50,7 @@ func dataSourceGithubActionsSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsSecretsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string

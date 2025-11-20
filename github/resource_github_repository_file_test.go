@@ -11,11 +11,9 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and manages files", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 	
 			resource "github_repository" "test" {
@@ -88,11 +86,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name                 = "tf-acc-test-%s"
@@ -169,11 +165,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -258,11 +252,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                 = "tf-acc-test-%s"
@@ -342,11 +334,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-file-archive-%s"
@@ -414,6 +404,5 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

@@ -49,7 +49,7 @@ func dataSourceGithubRepositoryWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
@@ -60,7 +60,7 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 		PerPage: 100,
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 	for {
 		hooks, resp, err := client.Repositories.ListHooks(ctx, owner, repository, options)
 		if err != nil {
@@ -87,15 +87,15 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func flattenGitHubWebhooks(hooks []*github.Hook) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenGitHubWebhooks(hooks []*github.Hook) []map[string]any {
+	results := make([]map[string]any, 0)
 
 	if hooks == nil {
 		return results
 	}
 
 	for _, hook := range hooks {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["id"] = hook.ID
 		result["type"] = hook.Type

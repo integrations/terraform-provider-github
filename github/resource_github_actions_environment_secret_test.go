@@ -12,7 +12,6 @@ import (
 )
 
 func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
@@ -109,7 +108,6 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
@@ -164,7 +162,6 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
@@ -186,32 +183,32 @@ func TestAccGithubActionsEnvironmentSecretIgnoreChanges(t *testing.T) {
 				#
 				# Workaround to using 'archive_on_destroy' instead.
 				archive_on_destroy = true
-				
+
 				visibility = "private"
 			}
-	
+
 			resource "github_repository_environment" "test" {
 				repository       = github_repository.test.name
 				environment      = "environment / test"
 			}
-	
+
 			resource "github_actions_environment_secret" "plaintext_secret" {
 				repository       = github_repository.test.name
 				environment      = github_repository_environment.test.environment
 				secret_name      = "test_plaintext_secret_name"
 				plaintext_value  = "%s"
-	
+
 				lifecycle {
 					ignore_changes = [plaintext_value]
 				}
 			}
-	
+
 			resource "github_actions_environment_secret" "encrypted_secret" {
 				repository       = github_repository.test.name
 				environment      = github_repository_environment.test.environment
 				secret_name      = "test_encrypted_secret_name"
 				encrypted_value  = "%s"
-	
+
 				lifecycle {
 					ignore_changes = [encrypted_value]
 				}

@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "test-%[1]s"
@@ -67,11 +65,9 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "test-%[1]s"
@@ -122,11 +118,9 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
-
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_repository" "test" {

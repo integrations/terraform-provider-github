@@ -7,13 +7,14 @@ import (
 )
 
 // TestEtagDiffSuppressFunction tests that the etag diff suppress function
-// always returns true, suppressing all etag differences
+// always returns true, suppressing all etag differences.
 func TestEtagDiffSuppressFunction(t *testing.T) {
 	repositoryResource := resourceGithubRepository()
 	etagField := repositoryResource.Schema["etag"]
 
 	if etagField == nil {
 		t.Fatal("etag field not found in repository schema")
+		panic("unreachable") // This resolves https://github.com/golangci/golangci-lint/issues/5979
 	}
 
 	if etagField.DiffSuppressFunc == nil {
@@ -58,7 +59,7 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			d := schema.TestResourceDataRaw(t, repositoryResource.Schema, map[string]interface{}{
+			d := schema.TestResourceDataRaw(t, repositoryResource.Schema, map[string]any{
 				"name": "test-repo",
 			})
 
@@ -70,7 +71,7 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 	}
 }
 
-// TestEtagSchemaConsistency ensure DiffSuppressFunc and DiffSuppressOnRefresh are consistently applied
+// TestEtagSchemaConsistency ensure DiffSuppressFunc and DiffSuppressOnRefresh are consistently applied.
 func TestEtagSchemaConsistency(t *testing.T) {
 	resourcesWithEtag := map[string]*schema.Resource{
 		"github_repository":                          resourceGithubRepository(),
@@ -110,7 +111,7 @@ func TestEtagSchemaConsistency(t *testing.T) {
 
 			// Verify the DiffSuppressFunc always returns true
 			if etagField.DiffSuppressFunc != nil {
-				d := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{})
+				d := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{})
 				result := etagField.DiffSuppressFunc("etag", "old", "new", d)
 				if !result {
 					t.Errorf("DiffSuppressFunc should return true in %s", resourceName)

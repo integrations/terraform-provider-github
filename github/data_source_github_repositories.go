@@ -59,7 +59,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	includeRepoId := d.Get("include_repo_id").(bool)

@@ -11,15 +11,15 @@ type DisabledInterval struct {
 	RuleName string
 }
 
-// Rule defines an abstract rule interface
+// Rule defines an abstract rule interface.
 type Rule interface {
 	Name() string
 	Apply(*File, Arguments) []Failure
 }
 
-// AbstractRule defines an abstract rule.
-type AbstractRule struct {
-	Failures []Failure
+// ConfigurableRule defines an abstract configurable rule interface.
+type ConfigurableRule interface {
+	Configure(Arguments) error
 }
 
 // ToFailurePosition returns the failure position.

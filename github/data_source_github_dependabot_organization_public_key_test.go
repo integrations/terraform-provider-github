@@ -7,9 +7,7 @@ import (
 )
 
 func TestAccGithubDependabotOrganizationPublicKeyDataSource(t *testing.T) {
-
 	t.Run("queries an organization public key without error", func(t *testing.T) {
-
 		config := `
 			data "github_dependabot_organization_public_key" "test" {}
 		`
@@ -44,6 +42,5 @@ func TestAccGithubDependabotOrganizationPublicKeyDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

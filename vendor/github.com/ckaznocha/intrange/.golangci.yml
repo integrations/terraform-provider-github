@@ -1,6 +1,9 @@
 linters-settings:
   gci:
-    local-prefixes: github.com/ckaznocha/intrange
+    sections:
+      - standard
+      - default
+      - localmodule
   gocritic:
     enabled-tags:
       - diagnostic
@@ -10,11 +13,9 @@ linters-settings:
       - style
   goimports:
     local-prefixes: github.com/ckaznocha/intrange
-  golint:
-    min-confidence: 0
   govet:
-    check-shadowing: true
     enable:
+      - appends
       - asmdecl
       - assign
       - atomic
@@ -22,9 +23,11 @@ linters-settings:
       - bools
       - buildtag
       - cgocall
-      - composite
-      - copylock
+      - composites
+      - copylocks
       - deepequalerrors
+      - defers
+      - directive
       - errorsas
       - fieldalignment
       - findcall
@@ -36,18 +39,25 @@ linters-settings:
       - nilfunc
       - nilness
       - printf
+      - reflectvaluecompare
       - shadow
       - shift
+      - sigchanyzer
+      - slog
       - sortslice
       - stdmethods
+      - stdversion
       - stringintconv
       - structtag
       - testinggoroutine
       - tests
+      - timeformat
       - unmarshal
       - unreachable
       - unsafeptr
       - unusedresult
+      - unusedwrite
+      - waitgroup
   misspell:
     locale: US
 linters:
@@ -57,18 +67,16 @@ linters:
     - dupl
     - errcheck
     - errorlint
-    - exportloopref
     - gci
     - gochecknoinits
     - goconst
     - gocritic
     - godot
     - godox
-    - goerr113
+    - err113
     - gofmt
     - gofumpt
     - goimports
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -94,6 +102,6 @@ linters:
     - wastedassign
     - whitespace
     - wsl
-run:
-  skip-dirs:
+issues:
+  exclude-dirs:
     - testdata/

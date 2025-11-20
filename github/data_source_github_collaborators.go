@@ -120,8 +120,7 @@ func dataSourceGithubCollaborators() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
-
+func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -160,17 +159,14 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	totalCollaborators := make([]interface{}, 0)
+	totalCollaborators := make([]any, 0)
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repo, options)
 		if err != nil {
 			return err
 		}
 
-		result, err := flattenGitHubCollaborators(collaborators)
-		if err != nil {
-			return fmt.Errorf("unable to flatten GitHub Collaborators (Owner: %q/Repository: %q) : %+v", owner, repo, err)
-		}
+		result := flattenGitHubCollaborators(collaborators)
 
 		totalCollaborators = append(totalCollaborators, result...)
 
@@ -188,15 +184,15 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, error) {
+func flattenGitHubCollaborators(collaborators []*github.User) []any {
 	if collaborators == nil {
-		return make([]interface{}, 0), nil
+		return make([]any, 0)
 	}
 
-	results := make([]interface{}, 0)
+	results := make([]any, 0)
 
 	for _, c := range collaborators {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["login"] = c.GetLogin()
 		result["id"] = c.GetID()
@@ -218,5 +214,5 @@ func flattenGitHubCollaborators(collaborators []*github.User) ([]interface{}, er
 		results = append(results, result)
 	}
 
-	return results, nil
+	return results
 }

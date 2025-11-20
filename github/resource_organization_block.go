@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 
@@ -34,7 +35,7 @@ func resourceOrganizationBlock() *schema.Resource {
 	}
 }
 
-func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOrganizationBlockCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceOrganizationBlockRead(d, meta)
 }
 
-func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
@@ -67,7 +68,8 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -97,7 +99,7 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceOrganizationBlockDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOrganizationBlockDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name

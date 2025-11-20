@@ -35,7 +35,7 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -58,7 +58,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsRepositoryAccessLevelRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -74,7 +74,7 @@ func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()

@@ -90,7 +90,7 @@ func dataSourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
 	ctx := context.TODO()
 	client := meta.(*Owner).v3client
 
