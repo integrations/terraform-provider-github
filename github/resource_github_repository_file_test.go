@@ -11,11 +11,9 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and manages files", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 	
 			resource "github_repository" "test" {
@@ -88,11 +86,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name                 = "tf-acc-test-%s"
@@ -169,11 +165,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -258,11 +252,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                 = "tf-acc-test-%s"
@@ -342,6 +334,75 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+	})
 
+	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-file-archive-%s"
+				auto_init = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository = github_repository.test.name
+				branch = "main"
+				file = "archived-test.md"
+				content = "# Test file for archived repo"
+				commit_message = "Add test file"
+				commit_author = "Terraform User"
+				commit_email = "terraform@example.com"
+			}
+		`, randomID)
+
+		archivedConfig := strings.Replace(config,
+			`auto_init = true`,
+			`auto_init = true
+				archived = true`, 1)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository_file.test", "file",
+								"archived-test.md",
+							),
+						),
+					},
+					{
+						Config: archivedConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "archived",
+								"true",
+							),
+						),
+					},
+					// This step should succeed - the file should be removed from state
+					// without trying to actually delete it from the archived repo
+					{
+						Config: fmt.Sprintf(`
+							resource "github_repository" "test" {
+								name = "tf-acc-test-file-archive-%s"
+								auto_init = true
+								archived = true
+							}
+						`, randomID),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 	})
 }

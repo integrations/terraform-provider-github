@@ -2,10 +2,11 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -48,7 +49,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -64,7 +70,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 // otherwise it will create. This is also advantageous in that we get to use the
 // same function for two schema funcs.
 
-func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -137,7 +143,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interfa
 	return resourceGithubIssueLabelRead(d, meta)
 }
 
-func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
@@ -153,7 +159,8 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, name)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -189,7 +196,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
@@ -197,7 +204,6 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err := client.Issues.DeleteLabel(ctx,
-		orgName, repoName, name)
-	return err
+	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
+	return handleArchivedRepoDelete(err, "issue label", name, orgName, repoName)
 }
