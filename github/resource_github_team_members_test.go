@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -63,9 +63,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
 func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
@@ -129,7 +127,6 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 		}
 
 		TeamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, *members[0].Login)
-
 		if err != nil {
 			return err
 		}

@@ -24,7 +24,7 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_user_external_identity.test", "scim_identity.username"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
+		testCase := func(t *testing.T) {
 			resource.Test(t, resource.TestCase{
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -45,7 +45,7 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 		})
 
 		t.Run("with an user accoy", func(t *testing.T) {
-			testCase(t, organization)
+			testCase(t)
 		})
 	})
 }

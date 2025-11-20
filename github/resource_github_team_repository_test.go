@@ -10,11 +10,9 @@ import (
 )
 
 func TestAccGithubTeamRepository(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team permissions to a repository", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -113,11 +111,9 @@ func TestAccGithubTeamRepository(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -165,6 +161,94 @@ func TestAccGithubTeamRepository(t *testing.T) {
 		t.Run("with an individual account", func(t *testing.T) {
 			t.Skip("individual account not supported for this operation")
 		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("can delete team repository access from archived repositories without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-archive-%s"
+				description = "test team for archived repo"
+			}
+
+			resource "github_repository" "test" {
+				name = "tf-acc-test-team-archive-%[1]s"
+				auto_init = true
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "pull"
+			}
+		`, randomID)
+
+		archivedConfig := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-archive-%s"
+				description = "test team for archived repo"
+			}
+
+			resource "github_repository" "test" {
+				name = "tf-acc-test-team-archive-%[1]s"
+				auto_init = true
+				archived = true
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "pull"
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_team_repository.test", "permission",
+								"pull",
+							),
+						),
+					},
+					{
+						Config: archivedConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "archived",
+								"true",
+							),
+						),
+					},
+					{
+						Config: fmt.Sprintf(`
+							resource "github_team" "test" {
+								name        = "tf-acc-test-team-archive-%s"
+								description = "test team for archived repo"
+							}
+
+							resource "github_repository" "test" {
+								name = "tf-acc-test-team-archive-%[1]s"
+								auto_init = true
+								archived = true
+							}
+						`, randomID),
+					},
+				},
+			})
+		}
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)

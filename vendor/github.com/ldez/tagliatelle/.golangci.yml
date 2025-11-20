@@ -1,88 +1,83 @@
-run:
-  timeout: 5m
-  skip-files: [ ]
-  skip-dirs: [ ]
+version: "2"
 
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  gocyclo:
-    min-complexity: 15
-  goconst:
-    min-len: 5
-    min-occurrences: 3
-  misspell:
-    locale: US
-  funlen:
-    lines: -1
-    statements: 40
-  godox:
-    keywords:
-      - FIXME
-  gofumpt:
-    extra-rules: true
-  depguard:
-    list-type: denylist
-    include-go-root: false
-    packages:
-      - github.com/sirupsen/logrus
-      - github.com/pkg/errors
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-    disabled-checks:
-      - sloppyReassign
-      - rangeValCopy
-      - octalLiteral
-      - paramTypeCombine # already handle by gofumpt.extra-rules
-    settings:
-      hugeParam:
-        sizeThreshold: 100
+formatters:
+  enable:
+    - gci
+    - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: true
 
 linters:
-  enable-all: true
+  default: all
   disable:
-    - deadcode # deprecated
-    - exhaustivestruct # deprecated
-    - golint # deprecated
-    - ifshort # deprecated
-    - interfacer # deprecated
-    - maligned # deprecated
-    - nosnakecase # deprecated
-    - scopelint # deprecated
-    - structcheck # deprecated
-    - varcheck # deprecated
-    - sqlclosecheck # not relevant (SQL)
-    - rowserrcheck # not relevant (SQL)
-    - execinquery # not relevant (SQL)
     - cyclop # duplicate of gocyclo
-    - lll
     - dupl
-    - wsl
-    - nlreturn
-    - gomnd
-    - goerr113
-    - wrapcheck
+    - err113
+    - errchkjson
     - exhaustive
     - exhaustruct
-    - testpackage
-    - tparallel
+    - forcetypeassert
+    - lll
+    - mnd
+    - nilnil
+    - nlreturn
+    - nonamedreturns
     - paralleltest
     - prealloc
-    - ifshort
-    - forcetypeassert
+    - rowserrcheck # not relevant (SQL)
+    - sqlclosecheck # not relevant (SQL)
+    - testpackage
+    - tparallel
     - varnamelen
-    - nilnil
-    - errchkjson
-    - nonamedreturns
+    - wrapcheck
+    - wsl # Deprecated
+
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/instana/testify
+              desc: not allowed
+            - pkg: github.com/pkg/errors
+              desc: Should be replaced by standard lib errors package
+    funlen:
+      lines: -1
+      statements: 40
+    goconst:
+      min-len: 5
+      min-occurrences: 3
+    gocritic:
+      disabled-checks:
+        - sloppyReassign
+        - rangeValCopy
+        - octalLiteral
+        - paramTypeCombine # already handle by gofumpt.extra-rules
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      settings:
+        hugeParam:
+          sizeThreshold: 100
+    gocyclo:
+      min-complexity: 20
+    godox:
+      keywords:
+        - FIXME
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    misspell:
+      locale: US
+
+  exclusions:
+    warn-unused: true
+    presets:
+      - comments
 
 issues:
-  exclude-use-default: false
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
-  exclude:
-    - 'package-comments: should have a package comment'

@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("get a repository registration token without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -56,6 +54,5 @@ func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

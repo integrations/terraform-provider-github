@@ -20,7 +20,7 @@ func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_organization_external_identities.test", "identities.0.saml_identity.name_id"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
+		testCase := func(t *testing.T) {
 			resource.Test(t, resource.TestCase{
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -41,7 +41,7 @@ func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			testCase(t)
 		})
 	})
 }

@@ -158,7 +158,6 @@ func TestGetInstallationAccessToken(t *testing.T) {
 	defer ts.Close()
 
 	accessToken, err := getInstallationAccessToken(ts.URL+"/", fakeJWT, testGitHubAppInstallationID)
-
 	if err != nil {
 		t.Logf("Unexpected error: %s", err)
 		t.Fail()

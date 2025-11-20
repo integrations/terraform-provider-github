@@ -33,7 +33,7 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 	}
 }
 
-func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	invitationIdString := d.Get("invitation_id").(string)
@@ -52,7 +52,7 @@ func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta int
 
 	invitationId, err := strconv.Atoi(invitationIdString)
 	if err != nil {
-		return fmt.Errorf("failed to parse invitation ID: %s", err)
+		return fmt.Errorf("failed to parse invitation ID: %w", err)
 	}
 	ctx := context.Background()
 

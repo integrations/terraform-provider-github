@@ -7,7 +7,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// FloatCompare detects situation like
+// FloatCompare detects situations like
 //
 //	assert.Equal(t, 42.42, result)
 //	assert.EqualValues(t, 42.42, result)
@@ -44,7 +44,7 @@ func (checker FloatCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis
 		if call.Fn.IsFmt {
 			format = "use %s.InEpsilonf (or InDeltaf)"
 		}
-		return newDiagnostic(checker.Name(), call, fmt.Sprintf(format, call.SelectorXStr), nil)
+		return newDiagnostic(checker.Name(), call, fmt.Sprintf(format, call.SelectorXStr))
 	}
 	return nil
 }

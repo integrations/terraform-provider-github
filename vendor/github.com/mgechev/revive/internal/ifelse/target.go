@@ -6,10 +6,10 @@ import "go/ast"
 type Target int
 
 const (
-	// TargetIf means the text refers to the "if"
+	// TargetIf means the text refers to the "if".
 	TargetIf Target = iota
 
-	// TargetElse means the text refers to the "else"
+	// TargetElse means the text refers to the "else".
 	TargetElse
 )
 
@@ -19,7 +19,6 @@ func (t Target) node(ifStmt *ast.IfStmt) ast.Node {
 		return ifStmt
 	case TargetElse:
 		return ifStmt.Else
-	default:
-		panic("bad target")
 	}
+	panic("bad target")
 }

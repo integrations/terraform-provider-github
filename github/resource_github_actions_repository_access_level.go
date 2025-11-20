@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -35,7 +35,7 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -58,7 +58,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsRepositoryAccessLevelRead(d, meta)
 }
 
-func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -74,7 +74,7 @@ func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()

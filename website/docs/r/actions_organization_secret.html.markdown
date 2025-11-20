@@ -65,6 +65,9 @@ The following arguments are supported:
 * `visibility`              - (Required) Configures the access that repositories have to the organization secret.
                               Must be one of `all`, `private`, `selected`. `selected_repository_ids` is required if set to `selected`.
 * `selected_repository_ids` - (Optional) An array of repository ids that can access the organization secret.
+* `destroy_on_drift`        - (Optional) Boolean indicating whether to recreate the secret if it's modified outside of Terraform. 
+                              When `true` (default), Terraform will delete and recreate the secret if it detects external changes. 
+                              When `false`, Terraform will acknowledge external changes but not recreate the secret. Defaults to `true`.
 
 ## Attributes Reference
 

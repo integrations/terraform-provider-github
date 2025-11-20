@@ -11,7 +11,9 @@ on:
       - opened
 jobs:
   respond-to-issue:
-    if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' }}
+    if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && 
+      github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' && 
+      github.repository == 'integrations/terraform-provider-github' }}
     runs-on: ubuntu-latest
     steps:
       - name: Determine issue or PR number
@@ -19,7 +21,7 @@ jobs:
         run: echo "NUMBER=${{ github.event.issue.number || github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
 
       - name: Respond to issue or PR
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
           issue-number: ${{ steps.extract.outputs.NUMBER }}
           body: >

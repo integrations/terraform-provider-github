@@ -30,7 +30,7 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 	return token, nil
 }
 
-func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
+func getInstallationAccessToken(baseURL, jwt, installationID string) (string, error) {
 	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) {
 		baseURL += "api/v3/"
 	}
@@ -87,7 +87,6 @@ func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error)
 		jose.SigningKey{Algorithm: jose.RS256, Key: privateKey},
 		(&jose.SignerOptions{}).WithType("JWT"),
 	)
-
 	if err != nil {
 		return "", err
 	}

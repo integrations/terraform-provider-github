@@ -7,11 +7,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// TODO: this is failing
+// TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
-
 	t.Run("queries multiple accounts", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
@@ -50,11 +48,9 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("does not fail if called with empty list of usernames", func(t *testing.T) {
-
 		config := `
 			data "github_users" "test" {
 				usernames = []
@@ -91,6 +87,5 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

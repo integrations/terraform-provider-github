@@ -7,9 +7,7 @@ import (
 )
 
 func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
-
 	t.Run("get an organization registration token without error", func(t *testing.T) {
-
 		config := `
 			data "github_actions_organization_registration_token" "test" {
 			}
@@ -44,6 +42,5 @@ func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

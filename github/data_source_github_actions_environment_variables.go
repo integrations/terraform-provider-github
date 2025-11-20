@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -59,7 +59,7 @@ func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -109,7 +109,7 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 	}
 
 	d.SetId(buildTwoPartID(repoName, envName))
-	d.Set("variables", all_variables)
+	_ = d.Set("variables", all_variables)
 
 	return nil
 }

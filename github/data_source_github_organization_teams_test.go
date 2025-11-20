@@ -7,9 +7,7 @@ import (
 )
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
-
 	t.Run("queries without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {}
 		`
@@ -43,11 +41,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries root teams only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "root_teams" {
 				root_teams_only = true
@@ -84,11 +80,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries summary only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {
 				summary_only = true
@@ -126,11 +120,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries results_per_page only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {
 				results_per_page = 50
@@ -166,7 +158,5 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }

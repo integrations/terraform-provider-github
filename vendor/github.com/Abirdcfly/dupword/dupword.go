@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package dupword defines an Analyzer that checks that duplicate words
-// int the source code.
+// Package dupword defines an Analyzer that checks those duplicate words in the source code.
 package dupword
 
 import (
@@ -49,54 +48,45 @@ This analyzer checks miswritten duplicate words in comments or package doc or st
 	CommentPrefix = `//`
 )
 
-var (
-	defaultWord = []string{}
-	// defaultWord = []string{"the", "and", "a"}
-	ignoreWord = map[string]bool{}
-)
+type keywords []string
 
-type analyzer struct {
-	KeyWord []string
+func (a keywords) String() string {
+	return strings.Join(a, ",")
 }
 
-func (a *analyzer) String() string {
-	return strings.Join(a.KeyWord, ",")
-}
-
-func (a *analyzer) Set(w string) error {
+func (a *keywords) Set(w string) error {
 	if len(w) != 0 {
-		a.KeyWord = make([]string, 0)
-		a.KeyWord = append(a.KeyWord, strings.Split(w, ",")...)
+		*a = append(*a, strings.Split(w, ",")...)
 	}
+
 	return nil
 }
 
-type ignore struct {
-}
+type ignore map[string]bool
 
-func (a *ignore) String() string {
-	t := make([]string, 0, len(ignoreWord))
-	for k := range ignoreWord {
+func (a ignore) String() string {
+	var t []string
+
+	for k := range a {
 		t = append(t, k)
 	}
+
 	return strings.Join(t, ",")
 }
 
-func (a *ignore) Set(w string) error {
+func (a ignore) Set(w string) error {
 	for _, k := range strings.Split(w, ",") {
-		ignoreWord[k] = true
+		a[k] = true
 	}
+
 	return nil
 }
 
-// for test only
-func ClearIgnoreWord() {
-	ignoreWord = map[string]bool{}
-}
-
 func NewAnalyzer() *analysis.Analyzer {
-	ignore := &ignore{}
-	analyzer := &analyzer{KeyWord: defaultWord}
+	analyzer := &analyzer{
+		ignoreWords: map[string]bool{},
+	}
+
 	a := &analysis.Analyzer{
 		Name:             Name,
 		Doc:              Doc,
@@ -104,16 +94,28 @@ func NewAnalyzer() *analysis.Analyzer {
 		Run:              analyzer.run,
 		RunDespiteErrors: true,
 	}
+
 	a.Flags.Init(Name, flag.ExitOnError)
-	a.Flags.Var(analyzer, "keyword", "keywords for detecting duplicate words")
-	a.Flags.Var(ignore, "ignore", "ignore words")
+	a.Flags.Var(&analyzer.keywords, "keyword", "keywords for detecting duplicate words")
+	a.Flags.Var(&analyzer.ignoreWords, "ignore", "ignore words")
+	a.Flags.BoolVar(&analyzer.commentsOnly, "comments-only", false, "check only comments, skip strings")
 	a.Flags.Var(version{}, "V", "print version and exit")
+
 	return a
+}
+
+type analyzer struct {
+	keywords     keywords
+	ignoreWords  ignore
+	commentsOnly bool
 }
 
 func (a *analyzer) run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		a.fixDuplicateWordInComment(pass, file)
+	}
+	if a.commentsOnly {
+		return nil, nil
 	}
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
@@ -128,7 +130,12 @@ func (a *analyzer) run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func (a *analyzer) fixDuplicateWordInComment(pass *analysis.Pass, f *ast.File) {
+	isTestFile := strings.HasSuffix(pass.Fset.File(f.FileStart).Name(), "_test.go")
 	for _, cg := range f.Comments {
+		// avoid checking example outputs for duplicate words
+		if isTestFile && isExampleOutputStart(cg.List[0].Text) {
+			continue
+		}
 		var preLine *ast.Comment
 		for _, c := range cg.List {
 			update, keyword, find := a.Check(c.Text)
@@ -203,8 +210,8 @@ func (a *analyzer) fixDuplicateWordInString(pass *analysis.Pass, lit *ast.BasicL
 }
 
 // CheckOneKey use to check there is a defined duplicate word in a string.
-// raw is checked line. key is the keyword to check. empty means just check duplicate word.
-func CheckOneKey(raw, key string) (new string, findWord string, find bool) {
+// `raw` is the checked line. key is the keyword to check. empty means just check duplicate word.
+func (a *analyzer) checkOneKey(raw, key string) (new string, findWord string, find bool) {
 	if key == "" {
 		has := false
 		fields := strings.Fields(raw)
@@ -244,7 +251,7 @@ func CheckOneKey(raw, key string) (new string, findWord string, find bool) {
 			*/
 			symbol := raw[spaceStart:i]
 			if ((key != "" && curWord == key) || key == "") && curWord == preWord && curWord != "" {
-				if !ExcludeWords(curWord) {
+				if !a.excludeWords(cutTrailingCommas(curWord)) {
 					find = true
 					findWordMap[curWord] = true
 					newLine.WriteString(lastSpace)
@@ -265,7 +272,7 @@ func CheckOneKey(raw, key string) (new string, findWord string, find bool) {
 			// last position
 			word := raw[wordStart:]
 			if ((key != "" && word == key) || key == "") && word == preWord {
-				if !ExcludeWords(word) {
+				if !a.excludeWords(cutTrailingCommas(word)) {
 					find = true
 					findWordMap[word] = true
 				}
@@ -291,8 +298,8 @@ func CheckOneKey(raw, key string) (new string, findWord string, find bool) {
 }
 
 func (a *analyzer) Check(raw string) (update string, keyword string, find bool) {
-	for _, key := range a.KeyWord {
-		updateOne, _, findOne := CheckOneKey(raw, key)
+	for _, key := range a.keywords {
+		updateOne, _, findOne := a.checkOneKey(raw, key)
 		if findOne {
 			raw = updateOne
 			find = findOne
@@ -304,8 +311,8 @@ func (a *analyzer) Check(raw string) (update string, keyword string, find bool) 
 			}
 		}
 	}
-	if len(a.KeyWord) == 0 {
-		return CheckOneKey(raw, "")
+	if len(a.keywords) == 0 {
+		return a.checkOneKey(raw, "")
 	}
 	return
 }
@@ -313,7 +320,7 @@ func (a *analyzer) Check(raw string) (update string, keyword string, find bool) 
 // ExcludeWords determines whether duplicate words should be reported,
 //
 //	e.g. %s, </div> should not be reported.
-func ExcludeWords(word string) (exclude bool) {
+func (a *analyzer) excludeWords(word string) (exclude bool) {
 	firstRune, _ := utf8.DecodeRuneInString(word)
 	if unicode.IsDigit(firstRune) {
 		return true
@@ -324,8 +331,23 @@ func ExcludeWords(word string) (exclude bool) {
 	if unicode.IsSymbol(firstRune) {
 		return true
 	}
-	if _, exist := ignoreWord[word]; exist {
+	if _, exist := a.ignoreWords[word]; exist {
 		return true
 	}
 	return false
+}
+
+func isExampleOutputStart(comment string) bool {
+	return strings.HasPrefix(comment, "// Output:") ||
+		strings.HasPrefix(comment, "// output:") ||
+		strings.HasPrefix(comment, "// Unordered output:") ||
+		strings.HasPrefix(comment, "// unordered output:")
+}
+
+// cutTrailingCommas is used to remove trailing commas of words.
+// The excludeWords are provided as comma-separated list, so it is
+// impossible to ignore "[word], [word]," matches otherwise
+func cutTrailingCommas(s string) string {
+	result, _ := strings.CutSuffix(s, ",")
+	return result
 }

@@ -10,11 +10,9 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a repository environment with branch-based deployment policy", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			data "github_user" "current" {
@@ -89,12 +87,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("updates the pattern for a branch-based deployment policy", func(t *testing.T) {
@@ -233,16 +229,13 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyTag(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a repository environment with tag-based deployment policy", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			data "github_user" "current" {
@@ -317,12 +310,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTag(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagUpdate(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("updates the pattern for a tag-based deployment policy", func(t *testing.T) {
@@ -461,12 +452,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagUpdate(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchToTagUpdate(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("recreates deployment policy when pattern type changes from branch to tag", func(t *testing.T) {
@@ -605,12 +594,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchToTagUpdate(t *test
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("recreates deployment policy when pattern type changes from tag to branch", func(t *testing.T) {
@@ -749,7 +736,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *test
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
 

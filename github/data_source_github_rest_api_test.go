@@ -11,11 +11,9 @@ import (
 )
 
 func TestAccGithubRestApiDataSource(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries an existing branch without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -62,11 +60,9 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries a collection without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -106,11 +102,9 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries an invalid branch without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -157,13 +151,11 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("fails for invalid endpoint", func(t *testing.T) {
-
 		// 4096 characters is the maximum length for a URL
-		var endpoint = strings.Repeat("x", 4096)
+		endpoint := strings.Repeat("x", 4096)
 		config := fmt.Sprintf(`
 			data "github_rest_api" "test" {
 				endpoint = "/%v"
@@ -194,6 +186,5 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

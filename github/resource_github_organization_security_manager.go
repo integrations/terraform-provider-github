@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -45,7 +45,7 @@ func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName 
 	return nil, errors.New("security manager role not found")
 }
 
-func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, met
 	return resourceGithubOrganizationSecurityManagerRead(d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	return resourceGithubOrganizationSecurityManagerRead(d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

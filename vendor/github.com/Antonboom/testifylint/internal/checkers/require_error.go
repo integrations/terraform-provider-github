@@ -50,12 +50,12 @@ func (checker *RequireError) SetFnPattern(p *regexp.Regexp) *RequireError {
 	return checker
 }
 
-func (checker RequireError) Check(pass *analysis.Pass, inspector *inspector.Inspector) []analysis.Diagnostic {
+func (checker RequireError) Check(pass *analysis.Pass, insp *inspector.Inspector) []analysis.Diagnostic {
 	callsByFunc := make(map[funcID][]*callMeta)
 
 	// Stage 1. Collect meta information about any calls inside functions.
 
-	inspector.WithStack([]ast.Node{(*ast.CallExpr)(nil)}, func(node ast.Node, push bool, stack []ast.Node) bool {
+	insp.WithStack([]ast.Node{(*ast.CallExpr)(nil)}, func(node ast.Node, push bool, stack []ast.Node) bool {
 		if !push {
 			return false
 		}
@@ -134,7 +134,7 @@ func (checker RequireError) Check(pass *analysis.Pass, inspector *inspector.Insp
 			}
 
 			diagnostics = append(diagnostics,
-				*newDiagnostic(checker.Name(), c.testifyCall, requireErrorReport, nil))
+				*newDiagnostic(checker.Name(), c.testifyCall, requireErrorReport))
 		}
 	}
 
@@ -197,11 +197,10 @@ func findRootIf(stack []ast.Node) *ast.IfStmt {
 	nearestIf, i := findNearestNodeWithIdx[*ast.IfStmt](stack)
 	for ; i > 0; i-- {
 		parent, ok := stack[i-1].(*ast.IfStmt)
-		if ok {
-			nearestIf = parent
-		} else {
+		if !ok {
 			break
 		}
+		nearestIf = parent
 	}
 	return nearestIf
 }
