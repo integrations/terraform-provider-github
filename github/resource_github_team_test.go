@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubTeam(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a team configured with defaults", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name         = "tf-acc-%s"
@@ -48,17 +46,13 @@ func TestAccGithubTeam(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
 func TestAccGithubTeamHierarchical(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a hierarchy of teams", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "team01" {
 				name        = "tf-acc-team01-%s"
@@ -143,16 +137,13 @@ func TestAccGithubTeamHierarchical(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
-func TestAccGithubTeamRemovesDefaultMaintainer(t *testing.T) {
 
+func TestAccGithubTeamRemovesDefaultMaintainer(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a team and removes the default maintainer", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name         = "tf-acc-%s"
@@ -188,16 +179,13 @@ func TestAccGithubTeamRemovesDefaultMaintainer(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
 func TestAccGithubTeamUpdateName(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("marks the slug as computed when the name changes", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name         = "tf-acc-%s"
@@ -247,6 +235,5 @@ func TestAccGithubTeamUpdateName(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

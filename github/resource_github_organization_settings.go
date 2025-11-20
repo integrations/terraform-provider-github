@@ -300,7 +300,7 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	return settings
 }
 
-func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubOrganizationSettingsRead(d, meta)
 }
 
-func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -514,7 +514,7 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

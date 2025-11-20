@@ -16,7 +16,7 @@ func dataSourceGithubSshKeys() *schema.Resource {
 	}
 }
 
-func dataSourceGithubSshKeysRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubSshKeysRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner)
 
 	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
