@@ -4,7 +4,6 @@ name: Post release smoke tests
 # This GitHub action runs smoke tests after a release is published.
 on:
   release:
-    types: [published]
 
 permissions: read-all
 
