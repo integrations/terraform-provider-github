@@ -203,7 +203,6 @@ func TestAccGithubBranch(t *testing.T) {
 	})
 
 	t.Run("renames a branch without replacement", func(t *testing.T) {
-
 		initialConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%[1]s"
@@ -259,7 +258,5 @@ func TestAccGithubBranch(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
