@@ -428,4 +428,179 @@ EOT
 			testCase(t, organization)
 		})
 	})
+
+	t.Run("queries a repository using owner and name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%s"
+			}
+
+			data "github_repository" "test" {
+				name  = github_repository.test.name
+				owner = "%s"
+			}
+		`, randomID, testOrganization)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"data.github_repository.test", "owner",
+				testOrganization,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			testCase(t, anonymous)
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("validates conflicts between full_name, name, and owner", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%[1]s"
+				vulnerability_alerts = true
+			}
+		`, randomID)
+
+		// Test invalid combinations
+		invalidConfigs := []string{
+			// full_name with name
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name                 = "tf-acc-%[1]s"
+					vulnerability_alerts = true
+				}
+
+				data "github_repository" "test" {
+					full_name = "%[2]s/tf-acc-%[1]s"
+					name     = "tf-acc-%[1]s"
+				}
+			`, randomID, testOrganization),
+			// full_name with owner
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+
+				data "github_repository" "test" {
+					full_name = "%[2]s/tf-acc-%[1]s"
+					owner    = "%[2]s"
+				}
+			`, randomID, testOrganization),
+			// full_name with both name and owner
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+
+				data "github_repository" "test" {
+					full_name = "%[2]s/tf-acc-%[1]s"
+					name     = "tf-acc-%[1]s"
+					owner    = "%[2]s"
+				}
+			`, randomID, testOrganization),
+		}
+
+		// Test valid combinations
+		validConfigs := []string{
+			// Just full_name
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+
+				data "github_repository" "test" {
+					full_name = "%[2]s/tf-acc-%[1]s"
+				}
+			`, randomID, testOrganization),
+			// Just name (uses provider owner)
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+
+				data "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+			`, randomID),
+			// name with owner
+			fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name = "tf-acc-%[1]s"
+				}
+
+				data "github_repository" "test" {
+					name  = "tf-acc-%[1]s"
+					owner = "%[2]s"
+				}
+			`, randomID, testOrganization),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					// Create the repository first
+					{
+						Config: config,
+					},
+					// Test that invalid configs fail
+					{
+						Config:      invalidConfigs[0],
+						ExpectError: regexp.MustCompile("(?i)conflicts with"),
+					},
+					{
+						Config:      invalidConfigs[1],
+						ExpectError: regexp.MustCompile("(?i)conflicts with"),
+					},
+					{
+						Config:      invalidConfigs[2],
+						ExpectError: regexp.MustCompile("(?i)conflicts with"),
+					},
+					// Test that valid configs succeed
+					{
+						Config: validConfigs[0],
+					},
+					{
+						Config: validConfigs[1],
+					},
+					{
+						Config: validConfigs[2],
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
