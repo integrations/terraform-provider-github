@@ -151,4 +151,51 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			testCase(t, organization)
 		})
 	})
+
+	t.Run("creates custom property with values_editable_by without error", func(t *testing.T) {
+		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name       = "TestValuesEditableBy"
+			value_type          = "string"
+			required            = false
+			description         = "Test property for values_editable_by"
+			values_editable_by  = "org_and_repo_actors"
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_custom_properties.test",
+				"property_name", "TestValuesEditableBy",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_custom_properties.test",
+				"values_editable_by", "org_and_repo_actors",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
