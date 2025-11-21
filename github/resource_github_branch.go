@@ -186,7 +186,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubBranchUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	if !d.HasChange("branch") {
 		return resourceGithubBranchRead(d, meta)
 	}
@@ -209,7 +209,7 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta interface{}) error 
 	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return nil, err
