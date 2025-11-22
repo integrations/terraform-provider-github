@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -182,13 +183,13 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 	}
 }
 
-func expandImage(imageList []interface{}) map[string]interface{} {
+func expandImage(imageList []any) map[string]any {
 	if len(imageList) == 0 {
 		return nil
 	}
 
-	imageMap := imageList[0].(map[string]interface{})
-	result := make(map[string]interface{})
+	imageMap := imageList[0].(map[string]any)
+	result := make(map[string]any)
 
 	if id, ok := imageMap["id"].(string); ok {
 		result["id"] = id
@@ -200,12 +201,12 @@ func expandImage(imageList []interface{}) map[string]interface{} {
 	return result
 }
 
-func flattenImage(image map[string]interface{}) []interface{} {
+func flattenImage(image map[string]any) []any {
 	if image == nil {
-		return []interface{}{}
+		return []any{}
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 
 	// Handle id as either string or number
 	if id, ok := image["id"].(string); ok {
@@ -221,15 +222,15 @@ func flattenImage(image map[string]interface{}) []interface{} {
 		result["size_gb"] = int(size)
 	}
 
-	return []interface{}{result}
+	return []any{result}
 }
 
-func flattenMachineSizeDetails(details map[string]interface{}) []interface{} {
+func flattenMachineSizeDetails(details map[string]any) []any {
 	if details == nil {
-		return []interface{}{}
+		return []any{}
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 	if id, ok := details["id"].(string); ok {
 		result["id"] = id
 	}
@@ -243,22 +244,22 @@ func flattenMachineSizeDetails(details map[string]interface{}) []interface{} {
 		result["storage_gb"] = int(storageGB)
 	}
 
-	return []interface{}{result}
+	return []any{result}
 }
 
-func flattenPublicIPs(ips []interface{}) []interface{} {
+func flattenPublicIPs(ips []any) []any {
 	if ips == nil {
-		return []interface{}{}
+		return []any{}
 	}
 
-	result := make([]interface{}, 0, len(ips))
+	result := make([]any, 0, len(ips))
 	for _, ip := range ips {
-		ipMap, ok := ip.(map[string]interface{})
+		ipMap, ok := ip.(map[string]any)
 		if !ok {
 			continue
 		}
 
-		ipResult := make(map[string]interface{})
+		ipResult := make(map[string]any)
 		if enabled, ok := ipMap["enabled"].(bool); ok {
 			ipResult["enabled"] = enabled
 		}
@@ -274,7 +275,7 @@ func flattenPublicIPs(ips []interface{}) []interface{} {
 	return result
 }
 
-func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -285,9 +286,9 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 	ctx := context.Background()
 
 	// Build request payload
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"name":            d.Get("name").(string),
-		"image":           expandImage(d.Get("image").([]interface{})),
+		"image":           expandImage(d.Get("image").([]any)),
 		"size":            d.Get("size").(string),
 		"runner_group_id": d.Get("runner_group_id").(int),
 	}
@@ -314,10 +315,11 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	var runner map[string]interface{}
+	var runner map[string]any
 	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		if _, ok := err.(*github.AcceptedError); !ok {
+		var acceptedErr *github.AcceptedError
+		if !errors.As(err, &acceptedErr) {
 			return err
 		}
 	}
@@ -336,7 +338,7 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta interf
 	return resourceGithubActionsHostedRunnerRead(d, meta)
 }
 
-func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -353,10 +355,11 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	var runner map[string]interface{}
+	var runner map[string]any
 	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
 				d.SetId("")
@@ -371,50 +374,74 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta interfac
 	}
 
 	if name, ok := runner["name"].(string); ok {
-		d.Set("name", name)
+		if err := d.Set("name", name); err != nil {
+			return err
+		}
 	}
 	if status, ok := runner["status"].(string); ok {
-		d.Set("status", status)
+		if err := d.Set("status", status); err != nil {
+			return err
+		}
 	}
 	if platform, ok := runner["platform"].(string); ok {
-		d.Set("platform", platform)
+		if err := d.Set("platform", platform); err != nil {
+			return err
+		}
 	}
 	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
-		d.Set("last_active_on", lastActiveOn)
+		if err := d.Set("last_active_on", lastActiveOn); err != nil {
+			return err
+		}
 	}
 	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
-		d.Set("public_ip_enabled", publicIPEnabled)
+		if err := d.Set("public_ip_enabled", publicIPEnabled); err != nil {
+			return err
+		}
 	}
 
-	if image, ok := runner["image"].(map[string]interface{}); ok {
-		d.Set("image", flattenImage(image))
+	if image, ok := runner["image"].(map[string]any); ok {
+		if err := d.Set("image", flattenImage(image)); err != nil {
+			return err
+		}
 	}
 
-	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]interface{}); ok {
-		d.Set("size", machineSizeDetails["id"])
-		d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails))
+	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]any); ok {
+		if err := d.Set("size", machineSizeDetails["id"]); err != nil {
+			return err
+		}
+		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
+			return err
+		}
 	}
 
 	if runnerGroupID, ok := runner["runner_group_id"].(float64); ok {
-		d.Set("runner_group_id", int(runnerGroupID))
+		if err := d.Set("runner_group_id", int(runnerGroupID)); err != nil {
+			return err
+		}
 	}
 
 	if maxRunners, ok := runner["maximum_runners"].(float64); ok {
-		d.Set("maximum_runners", int(maxRunners))
+		if err := d.Set("maximum_runners", int(maxRunners)); err != nil {
+			return err
+		}
 	}
 
-	if publicIPs, ok := runner["public_ips"].([]interface{}); ok {
-		d.Set("public_ips", flattenPublicIPs(publicIPs))
+	if publicIPs, ok := runner["public_ips"].([]any); ok {
+		if err := d.Set("public_ips", flattenPublicIPs(publicIPs)); err != nil {
+			return err
+		}
 	}
 
 	if imageGen, ok := runner["image_gen"].(bool); ok {
-		d.Set("image_gen", imageGen)
+		if err := d.Set("image_gen", imageGen); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -425,7 +452,7 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 	runnerID := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
-	payload := make(map[string]interface{})
+	payload := make(map[string]any)
 
 	if d.HasChange("name") {
 		payload["name"] = d.Get("name").(string)
@@ -456,10 +483,11 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	var runner map[string]interface{}
+	var runner map[string]any
 	_, err = client.Do(ctx, req, &runner)
 	if err != nil {
-		if _, ok := err.(*github.AcceptedError); !ok {
+		var acceptedErr *github.AcceptedError
+		if !errors.As(err, &acceptedErr) {
 			return err
 		}
 	}
@@ -467,7 +495,7 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta interf
 	return resourceGithubActionsHostedRunnerRead(d, meta)
 }
 
-func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -490,7 +518,8 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta interf
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		if _, ok := err.(*github.AcceptedError); ok {
+		var acceptedErr *github.AcceptedError
+		if errors.As(err, &acceptedErr) {
 			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
 		}
 		return err
@@ -507,7 +536,7 @@ func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName, 
 	conf := &retry.StateChangeConf{
 		Pending: []string{"deleting", "active"},
 		Target:  []string{"deleted"},
-		Refresh: func() (interface{}, string, error) {
+		Refresh: func() (any, string, error) {
 			req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 			if err != nil {
 				return nil, "", err
