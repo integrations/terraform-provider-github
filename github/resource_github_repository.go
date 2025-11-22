@@ -105,18 +105,18 @@ func resourceGithubRepository() *schema.Resource {
 								},
 							},
 						},
-						"code_scanning": {
+						"code_security": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "The code scanning configuration for the repository.",
+							Description: "The code security configuration for the repository.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "code_scanning"),
-										Description:      "Set to 'enabled' to enable code scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "code_security"),
+										Description:      "Set to 'enabled' to enable code security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},

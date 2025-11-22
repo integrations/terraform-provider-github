@@ -1110,7 +1110,7 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			    advanced_security {
 			      status = "enabled"
 			    }
-			    code_scanning {
+			    code_security {
 					status = "enabled"
 				}
 				secret_scanning {
@@ -1135,7 +1135,7 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 					"enabled",
 				),
 				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.code_scanning.0.status",
+					"github_repository.test", "security_and_analysis.0.code_security.0.status",
 					"enabled",
 				),
 				resource.TestCheckResourceAttr(
