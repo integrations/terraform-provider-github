@@ -1110,12 +1110,21 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			    advanced_security {
 			      status = "enabled"
 			    }
-			    secret_scanning {
+			    code_scanning {
+					status = "enabled"
+				}
+				secret_scanning {
 			      status = "enabled"
 			    }
 			    secret_scanning_push_protection {
 			       status = "enabled"
 			    }
+				secret_scanning_ai_detection {
+					status = "enabled"
+				}
+				secret_scanning_non_provider_patterns {
+					status = "enabled"
+				}
 			  }
 			}
 			`, randomID)
@@ -1126,12 +1135,24 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 					"enabled",
 				),
 				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.code_scanning.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
 					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
 					"enabled",
 				),
 				resource.TestCheckResourceAttr(
 					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
-					"disabled",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_ai_detection.0.status",
+					"enabled",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "security_and_analysis.0.secret_scanning_non_provider_patterns.0.status",
+					"enabled",
 				),
 			)
 			testCase := func(t *testing.T, mode string) {
