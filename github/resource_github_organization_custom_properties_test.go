@@ -9,7 +9,6 @@ import (
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	t.Run("creates custom property without error", func(t *testing.T) {
-
 		config := `
 		resource "github_organization_custom_properties" "test" {
 			allowed_values = [ "Test" ]
@@ -47,7 +46,6 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		t.Run("run with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 	t.Run("create custom property and update them", func(t *testing.T) {
 		configBefore := `

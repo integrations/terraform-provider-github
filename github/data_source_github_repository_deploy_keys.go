@@ -45,7 +45,7 @@ func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
@@ -56,7 +56,7 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta inter
 		PerPage: 100,
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 	for {
 		keys, resp, err := client.Repositories.ListKeys(ctx, owner, repository, options)
 		if err != nil {
@@ -81,15 +81,15 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta inter
 	return nil
 }
 
-func flattenGitHubDeployKeys(keys []*github.Key) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenGitHubDeployKeys(keys []*github.Key) []map[string]any {
+	results := make([]map[string]any, 0)
 
 	if keys == nil {
 		return results
 	}
 
 	for _, c := range keys {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["id"] = c.ID
 		result["key"] = c.Key

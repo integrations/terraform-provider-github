@@ -41,7 +41,7 @@ func dataSourceGithubDependabotOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotOrganizationSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubDependabotOrganizationSecretsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 

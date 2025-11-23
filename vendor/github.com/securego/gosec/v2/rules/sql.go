@@ -32,6 +32,12 @@ type sqlStatement struct {
 }
 
 var sqlCallIdents = map[string]map[string]int{
+	"*database/sql.Conn": {
+		"ExecContext":     1,
+		"QueryContext":    1,
+		"QueryRowContext": 1,
+		"PrepareContext":  1,
+	},
 	"*database/sql.DB": {
 		"Exec":            0,
 		"ExecContext":     1,
@@ -183,6 +189,11 @@ func (s *sqlStrConcat) checkQuery(call *ast.CallExpr, ctx *gosec.Context) (*issu
 		switch decl := id.Obj.Decl.(type) {
 		case *ast.AssignStmt:
 			if injection := s.findInjectionInBranch(ctx, decl.Rhs); injection != nil {
+				return ctx.NewIssue(injection, s.ID(), s.What, s.Severity, s.Confidence), nil
+			}
+		case *ast.ValueSpec:
+			// handle: var query string = "SELECT ...'" + user
+			if injection := s.findInjectionInBranch(ctx, decl.Values); injection != nil {
 				return ctx.NewIssue(injection, s.ID(), s.What, s.Severity, s.Confidence), nil
 			}
 		}

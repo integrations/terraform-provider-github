@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubRepositoryMilestone(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a repository milestone", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -62,6 +60,5 @@ func TestAccGithubRepositoryMilestone(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

@@ -43,19 +43,17 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 	}
 
 	newUseFnDiagnostic := func(proposed string, survivingArg ast.Expr, replaceStart, replaceEnd token.Pos) *analysis.Diagnostic {
-		if !isBuiltinBool(pass, survivingArg) {
+		if !hasBoolType(pass, survivingArg) {
 			if checker.ignoreCustomTypes {
 				return nil
 			}
 			survivingArg = newBoolCast(survivingArg)
 		}
-		return newUseFunctionDiagnostic(checker.Name(), call, proposed,
-			newSuggestedFuncReplacement(call, proposed, analysis.TextEdit{
-				Pos:     replaceStart,
-				End:     replaceEnd,
-				NewText: analysisutil.NodeBytes(pass.Fset, survivingArg),
-			}),
-		)
+		return newUseFunctionDiagnostic(checker.Name(), call, proposed, analysis.TextEdit{
+			Pos:     replaceStart,
+			End:     replaceEnd,
+			NewText: analysisutil.NodeBytes(pass.Fset, survivingArg),
+		})
 	}
 
 	newUseTrueDiagnostic := func(survivingArg ast.Expr, replaceStart, replaceEnd token.Pos) *analysis.Diagnostic {
@@ -67,14 +65,14 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 	}
 
 	newNeedSimplifyDiagnostic := func(survivingArg ast.Expr, replaceStart, replaceEnd token.Pos) *analysis.Diagnostic {
-		if !isBuiltinBool(pass, survivingArg) {
+		if !hasBoolType(pass, survivingArg) {
 			if checker.ignoreCustomTypes {
 				return nil
 			}
 			survivingArg = newBoolCast(survivingArg)
 		}
 		return newDiagnostic(checker.Name(), call, "need to simplify the assertion",
-			&analysis.SuggestedFix{
+			analysis.SuggestedFix{
 				Message: "Simplify the assertion",
 				TextEdits: []analysis.TextEdit{{
 					Pos:     replaceStart,
@@ -105,16 +103,16 @@ func (checker BoolCompare) Check(pass *analysis.Pass, call *CallMeta) *analysis.
 		switch {
 		case xor(t1, t2):
 			survivingArg, _ := anyVal([]bool{t1, t2}, arg2, arg1)
-			if call.Fn.NameFTrimmed == "Exactly" && !isBuiltinBool(pass, survivingArg) {
-				// NOTE(a.telyshev): `Exactly` assumes no type casting.
+			if call.Fn.NameFTrimmed == "Exactly" && !hasBoolType(pass, survivingArg) {
+				// NOTE(a.telyshev): `Exactly` assumes no type conversion.
 				return nil
 			}
 			return newUseTrueDiagnostic(survivingArg, arg1.Pos(), arg2.End())
 
 		case xor(f1, f2):
 			survivingArg, _ := anyVal([]bool{f1, f2}, arg2, arg1)
-			if call.Fn.NameFTrimmed == "Exactly" && !isBuiltinBool(pass, survivingArg) {
-				// NOTE(a.telyshev): `Exactly` assumes no type casting.
+			if call.Fn.NameFTrimmed == "Exactly" && !hasBoolType(pass, survivingArg) {
+				// NOTE(a.telyshev): `Exactly` assumes no type conversion.
 				return nil
 			}
 			return newUseFalseDiagnostic(survivingArg, arg1.Pos(), arg2.End())
