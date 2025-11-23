@@ -73,17 +73,18 @@ func resourceGithubActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	repo := d.Get("repository").(string)
+	owner, repoNameWithoutOwner := parseRepoName(repo, meta.(*Owner).name)
+
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	keyId, publicKey, err := getPublicKeyDetails(owner, repo, meta)
+	keyID, publicKey, err := getPublicKeyDetails(owner, repoNameWithoutOwner, meta)
 	if err != nil {
 		return err
 	}
@@ -101,11 +102,11 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 	// Create an EncryptedSecret and encrypt the plaintext value into it
 	eSecret := &github.EncryptedSecret{
 		Name:           secretName,
-		KeyID:          keyId,
+		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repo, eSecret)
+	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoNameWithoutOwner, eSecret)
 	if err != nil {
 		return err
 	}
@@ -116,7 +117,6 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 
 func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.Background()
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -124,7 +124,9 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+
+	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoNameWithoutOwner, secretName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -176,7 +178,6 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -184,14 +185,15 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	_, err = client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+
+	_, err = client.Actions.DeleteRepoSecret(ctx, owner, repoNameWithoutOwner, secretName)
 
 	return err
 }
 
 func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
-	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.Background()
 
 	parts := strings.Split(d.Id(), "/")
@@ -206,7 +208,9 @@ func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{})
 		return nil, err
 	}
 
-	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+
+	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoNameWithoutOwner, secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -263,11 +267,4 @@ func encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
 	}
 
 	return cipherText, nil
-}
-
-func getOwnerParam(param string, default_param string) string {
-	if len(param) > 0 {
-		return param
-	}
-	return default_param
 }
