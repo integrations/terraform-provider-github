@@ -30,7 +30,7 @@ func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -46,23 +46,23 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta inte
 			} `graphql:"branchProtectionRules(first:$first, after:$cursor)"`
 		} `graphql:"repository(name: $name, owner: $owner)"`
 	}
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"first":  githubv4.Int(100),
 		"name":   githubv4.String(repoName),
 		"owner":  githubv4.String(orgName),
 		"cursor": (*githubv4.String)(nil),
 	}
 
-	var rules []interface{}
+	var rules []any
 	for {
 		err := client.Query(meta.(*Owner).StopContext, &query, variables)
 		if err != nil {
 			return err
 		}
 
-		additionalRules := make([]interface{}, len(query.Repository.BranchProtectionRules.Nodes))
+		additionalRules := make([]any, len(query.Repository.BranchProtectionRules.Nodes))
 		for i, rule := range query.Repository.BranchProtectionRules.Nodes {
-			r := make(map[string]interface{})
+			r := make(map[string]any)
 			r["pattern"] = rule.Pattern
 			additionalRules[i] = r
 		}

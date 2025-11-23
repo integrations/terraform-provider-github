@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -136,7 +137,7 @@ func resourceGithubRelease() *schema.Resource {
 	}
 }
 
-func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -181,24 +182,30 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	} else {
-		number := d.Get("number").(int64)
+		id, err := strconv.ParseInt(d.Id(), 10, 64)
+		if err != nil {
+			return err
+		}
 		log.Printf("[DEBUG] Updating release: %d:%s (%s/%s)",
-			number, targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, number, req)
+			id, targetCommitish, owner, repoName)
+		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, id, req)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	}
 
-	if err != nil {
-		return err
-	}
 	transformResponseToResourceData(d, release, repoName)
 	return nil
 }
 
-func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
@@ -213,7 +220,8 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing release ID %d for repository %s from state, because it no longer exists on GitHub", releaseID, repository)
 				d.SetId("")
@@ -226,7 +234,7 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	repository := d.Get("repository").(string)
 	client := meta.(*Owner).v3client
@@ -243,13 +251,13 @@ func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error
 
 	_, err = client.Repositories.DeleteRelease(ctx, owner, repository, releaseID)
 	if err != nil {
-		return fmt.Errorf("error deleting GitHub release reference %s/%s (%s): %s",
+		return fmt.Errorf("error deleting GitHub release reference %s/%s (%s): %w",
 			fmt.Sprint(releaseID), repository, owner, err)
 	}
 	return nil
 }
 
-func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, releaseIDStr, err := parseTwoPartID(d.Id(), "repository", "release")
 	if err != nil {
 		return []*schema.ResourceData{d}, err

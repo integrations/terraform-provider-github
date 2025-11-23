@@ -148,7 +148,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 	name := d.Get("name").(string)
 
 	client4 := meta.(*Owner).v4client
@@ -217,7 +217,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 				} `graphql:"membersWithRole(first: 100, after: $after)"`
 			} `graphql:"organization(login: $login)"`
 		}
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			"login": githubv4.String(name),
 			"after": (*githubv4.String)(nil),
 		}
@@ -243,36 +243,36 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
 
-		d.Set("repositories", repoList)
-		d.Set("members", members)
-		d.Set("users", users)
-		d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
-		d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
-		d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
-		d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
-		d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
-		d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
-		d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
-		d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
-		d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
-		d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
-		d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
-		d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
-		d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
-		d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
-		d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
-		d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
-		d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
-		d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
+		_ = d.Set("repositories", repoList)
+		_ = d.Set("members", members)
+		_ = d.Set("users", users)
+		_ = d.Set("two_factor_requirement_enabled", organization.GetTwoFactorRequirementEnabled())
+		_ = d.Set("default_repository_permission", organization.GetDefaultRepoPermission())
+		_ = d.Set("members_can_create_repositories", organization.GetMembersCanCreateRepos())
+		_ = d.Set("members_allowed_repository_creation_type", organization.GetMembersAllowedRepositoryCreationType())
+		_ = d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
+		_ = d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		_ = d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
+		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		_ = d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
+		_ = d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
+		_ = d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
+		_ = d.Set("members_can_create_private_pages", organization.GetMembersCanCreatePrivatePages())
+		_ = d.Set("advanced_security_enabled_for_new_repositories", organization.GetAdvancedSecurityEnabledForNewRepos())
+		_ = d.Set("dependabot_alerts_enabled_for_new_repositories", organization.GetDependabotAlertsEnabledForNewRepos())
+		_ = d.Set("dependabot_security_updates_enabled_for_new_repositories", organization.GetDependabotSecurityUpdatesEnabledForNewRepos())
+		_ = d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
+		_ = d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
+		_ = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
-	d.Set("login", organization.GetLogin())
-	d.Set("name", organization.GetName())
-	d.Set("orgname", name)
-	d.Set("node_id", organization.GetNodeID())
-	d.Set("description", organization.GetDescription())
-	d.Set("plan", planName)
+	_ = d.Set("login", organization.GetLogin())
+	_ = d.Set("name", organization.GetName())
+	_ = d.Set("orgname", name)
+	_ = d.Set("node_id", organization.GetNodeID())
+	_ = d.Set("description", organization.GetDescription())
+	_ = d.Set("plan", planName)
 
 	return nil
 }

@@ -34,9 +34,9 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeInt},
 				Optional: true,
-				DefaultFunc: func() (interface{}, error) {
+				DefaultFunc: func() (any, error) {
 					defaultErrors := []int{500, 502, 503, 504}
-					errorInterfaces := make([]interface{}, len(defaultErrors))
+					errorInterfaces := make([]any, len(defaultErrors))
 					for i, v := range defaultErrors {
 						errorInterfaces[i] = v
 					}
@@ -122,6 +122,13 @@ func Provider() *schema.Provider {
 					},
 				},
 			},
+			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
+			"max_per_page": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", "100"),
+				Description: descriptions["max_per_page"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -202,9 +209,13 @@ func Provider() *schema.Provider {
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
+			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
+			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
+			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"github_actions_environment_public_key":                                 dataSourceGithubActionsEnvironmentPublicKey(),
 			"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
 			"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
 			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
@@ -320,11 +331,13 @@ func init() {
 			"Defaults to [500, 502, 503, 504]",
 		"max_retries": "Number of times to retry a request after receiving an error status code" +
 			"Defaults to 3",
+		"max_per_page": "Number of items per page for pagination" +
+			"Defaults to 100",
 	}
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
 		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
@@ -352,8 +365,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]interface{})
+		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]any)
 
 			var appID, appInstallationID, appPemFile string
 
@@ -377,7 +390,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				// (explicit value, or default value taken from
 				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 				// actual new line character before decoding.
-				appPemFile = strings.Replace(v, `\n`, "\n", -1)
+				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
 			} else {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
@@ -428,7 +441,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
-			reParam := d.Get("retryable_errors").([]interface{})
+			reParam := d.Get("retryable_errors").([]any)
 			if len(reParam) == 0 {
 				retryableErrors = getDefaultRetriableErrors()
 			} else {
@@ -439,6 +452,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
 		}
+
+		_maxPerPage := d.Get("max_per_page").(int)
+		if _maxPerPage <= 0 {
+			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+		}
+		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		maxPerPage = _maxPerPage
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
@@ -498,7 +518,7 @@ func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
 	if err != nil {
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
-		return "", nil
+		return "", nil //nolint:nilerr
 	}
 
 	log.Printf("[INFO] Using the token from GitHub CLI")

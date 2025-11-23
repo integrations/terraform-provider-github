@@ -23,6 +23,8 @@ When applied, an invitation will be sent to the user to become a collaborator
 on a repository. When destroyed, either the invitation will be cancelled or the
 collaborator will be removed from the repository.
 
+~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
 This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
 instead.
 
