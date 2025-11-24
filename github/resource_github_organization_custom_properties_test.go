@@ -19,29 +19,15 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 			values_editable_by = "invalid_value"
 		}`
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile("invalid_value is an invalid value"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("invalid_value is an invalid value"),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }
@@ -64,28 +50,19 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 				"property_name", "Test",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
+
 	t.Run("create custom property and update them", func(t *testing.T) {
 		configBefore := `
 		resource "github_organization_custom_properties" "test" {
@@ -112,33 +89,19 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			resource.TestCheckResourceAttr(resourceName, "allowed_values.#", "2"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configBefore,
-						Check:  checkBefore,
-					},
-					{
-						Config: configAfter,
-						Check:  checkAfter,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: configBefore,
+					Check:  checkBefore,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configAfter,
+					Check:  checkAfter,
+				},
+			},
 		})
 	})
 
@@ -161,33 +124,20 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_organization_custom_properties.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_organization_custom_properties.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
@@ -212,29 +162,15 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -259,29 +195,15 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -313,33 +235,19 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 			resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configBefore,
-						Check:  checkBefore,
-					},
-					{
-						Config: configAfter,
-						Check:  checkAfter,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: configBefore,
+					Check:  checkBefore,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configAfter,
+					Check:  checkAfter,
+				},
+			},
 		})
 	})
 
@@ -369,49 +277,35 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 
 		const resourceName = "github_organization_custom_properties.test"
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						// First, create a property with values_editable_by set
-						Config: configWithField,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
-						),
-					},
-					{
-						// Simulate the scenario: config doesn't have values_editable_by
-						// (as it would have been before Terraform support was added)
-						// Terraform should read the existing value from the API
-						Config: configWithoutField,
-						Check: resource.ComposeTestCheckFunc(
-							// Terraform should still see the value from the API
-							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
-						),
-					},
-					{
-						// Now add it back to the config - should be no changes needed
-						Config: configWithField,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
-						),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					// First, create a property with values_editable_by set
+					Config: configWithField,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					// Simulate the scenario: config doesn't have values_editable_by
+					// (as it would have been before Terraform support was added)
+					// Terraform should read the existing value from the API
+					Config: configWithoutField,
+					Check: resource.ComposeTestCheckFunc(
+						// Terraform should still see the value from the API
+						resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+					),
+				},
+				{
+					// Now add it back to the config - should be no changes needed
+					Config: configWithField,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+					),
+				},
+			},
 		})
 	})
 }

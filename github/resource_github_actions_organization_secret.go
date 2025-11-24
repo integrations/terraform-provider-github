@@ -23,6 +23,9 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
+				if err := d.Set("destroy_on_drift", true); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},

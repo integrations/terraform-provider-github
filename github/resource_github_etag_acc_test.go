@@ -21,7 +21,7 @@ func TestAccGithubRepositoryEtagPresent(t *testing.T) {
 	`, repoName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { skipUnauthenticated(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -49,7 +49,7 @@ func TestAccGithubRepositoryEtagNoDiff(t *testing.T) {
 	`, repoName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { skipUnauthenticated(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{

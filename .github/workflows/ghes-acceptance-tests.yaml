@@ -91,11 +91,15 @@ jobs:
           TF_LOG: INFO
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: ${{ steps.server.outputs.address }}
-          GITHUB_TEST_TYPE: enterprise
-          GITHUB_OWNER: terraformtesting
-          GITHUB_ORGANIZATION: terraformtesting
-          GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
+          GITHUB_ENTERPRISE_SLUG: ""
+          GITHUB_OWNER: ""
+          GITHUB_USERNAME: ""
+          GITHUB_TEST_AUTH_MODE: enterprise
+        run: |
+          set -eou pipefail
+
+          go test ./github -v -sweep=all
+          go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check GHES Acceptance Tests

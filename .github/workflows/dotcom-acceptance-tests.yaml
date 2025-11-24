@@ -2,19 +2,19 @@ name: Acceptance Tests (github.com)
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  #     - release-v*
-  # pull_request_target:
-  #   types:
-  #     - opened
-  #     - synchronize
-  #     - reopened
-  #     - labeled
-  #   branches:
-  #     - main
-  #     - release-v*
+  push:
+    branches:
+      - main
+      - release-v*
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+    branches:
+      - main
+      - release-v*
 
 permissions: read-all
 
@@ -29,6 +29,7 @@ jobs:
     strategy:
       matrix:
         mode: [anonymous, individual, organization] # team, enterprise
+      max-parallel: 1
       fail-fast: false
     defaults:
       run:
@@ -77,13 +78,28 @@ jobs:
           TF_LOG: INFO
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_TEST_TYPE: ${{ matrix.mode }}
+          GITHUB_ENTERPRISE_SLUG: ""
           GITHUB_OWNER: ${{ (matrix.mode == 'individual' && 'github-terraform-test-user') || (matrix.mode == 'organization' && 'terraformtesting') || '' }}
-          GITHUB_ORGANIZATION: ${{ (matrix.mode == 'organization' && 'terraformtesting') || '' }}
-          GITHUB_TEST_ORGANIZATION: ${{ (matrix.mode == 'individual' && 'terraformtesting') || '' }}
-          GITHUB_TEST_OWNER: ${{ (matrix.mode == 'organization' && 'github-terraform-test-user') || '' }}
-          GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
+          GITHUB_USERNAME: github-terraform-test-user
+          GITHUB_TEST_AUTH_MODE: ${{ matrix.mode }}
+          GITHUB_TEST_USER_REPOSITORY: ""
+          GITHUB_TEST_ORG_USER: ""
+          GITHUB_TEST_ORG_SECRET_NAME: ""
+          GITHUB_TEST_ORG_REPOSITORY: ""
+          GITHUB_TEST_ORG_TEMPLATE_REPOSITORY: ""
+          GITHUB_TEST_ORG_APP_INSTALLATION_ID: ""
+          GITHUB_TEST_EXTERNAL_USER: ""
+          GITHUB_TEST_EXTERNAL_USER_TOKEN: ""
+          GITHUB_TEST_EXTERNAL_USER2: ""
+          GITHUB_TEST_ADVANCED_SECURITY: ""
+        run: |
+          set -eou pipefail
+
+          if [[ "${GITHUB_TEST_AUTH_MODE}" != "anonymous" ]]; then
+            go test ./github -v -sweep=all
+          fi
+
+          go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check DotCom Acceptance Tests

@@ -19,7 +19,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 			}
-		`, testEnterprise, allowedActions, enabledOrganizations)
+		`, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -30,27 +30,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 
@@ -70,7 +58,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			data "github_user" "current" {
 				username = ""
 			}
-	
+
 			resource "github_enterprise_organization" "org" {
 				enterprise_slug = "%s"
 				name            = "%s"
@@ -95,7 +83,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					organization_ids       = [github_enterprise_organization.org.id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -112,32 +100,20 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_enterprise_actions_permissions.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					ResourceName:      "github_enterprise_actions_permissions.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
@@ -158,7 +134,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					verified_allowed     = %t
 				}
 			}
-		`, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -172,27 +148,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 
@@ -242,7 +206,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					organization_ids       = [github_enterprise_organization.org.id, github_enterprise_organization.org2.id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, testEnterprise, orgName2, displayName2, desc2, testEnterprise, allowedActions, enabledOrganizations)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, testAccConf.enterpriseSlug, orgName2, displayName2, desc2, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -256,27 +220,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 }

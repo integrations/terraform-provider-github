@@ -48,7 +48,7 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(d *schema.Resou
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
+	environmentName := d.Get("environment").(string)
 
 	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(context.Background(), owner, repoName, environmentName)
 	if err != nil {
@@ -59,7 +59,7 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(d *schema.Resou
 
 	for _, policy := range policies.BranchPolicies {
 		policyMap := make(map[string]any)
-		policyMap["type"] = policy.Type
+		policyMap["type"] = policy.GetType()
 		policyMap["pattern"] = policy.GetName()
 		results = append(results, policyMap)
 	}
