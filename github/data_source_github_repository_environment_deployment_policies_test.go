@@ -53,33 +53,18 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicies(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.all", "policies.1.type", "tag"),
 			resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.all", "policies.1.name", "bar"),
 		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
 	})
 }
