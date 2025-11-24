@@ -129,7 +129,7 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

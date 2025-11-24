@@ -12,50 +12,52 @@ import (
 )
 
 func TestAccGithubProjectColumn_basic(t *testing.T) {
-	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
+	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("creates and updates a project column", func(t *testing.T) {
+		var column github.ProjectColumn
 
-	var column github.ProjectColumn
+		rn := "github_project_column.column"
 
-	rn := "github_project_column.column"
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubProjectColumnDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubProjectColumnConfig("new column name"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists(rn, &column),
-					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
-						Name: "new column name",
-					}),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccGithubProjectColumnDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubProjectColumnConfig("new column name"),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubProjectColumnExists(rn, &column),
+						testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
+							Name: "new column name",
+						}),
+					),
+				},
+				{
+					Config: testAccGithubProjectColumnConfig("updated column name"),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubProjectColumnExists(rn, &column),
+						testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
+							Name: "updated column name",
+						}),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				Config: testAccGithubProjectColumnConfig("updated column name"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProjectColumnExists(rn, &column),
-					testAccCheckGithubProjectColumnAttributes(&column, &testAccGithubProjectColumnExpectedAttributes{
-						Name: "updated column name",
-					}),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccGithubProjectColumnDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_project_column" {
@@ -67,7 +69,7 @@ func testAccGithubProjectColumnDestroy(s *terraform.State) error {
 			return err
 		}
 
-		column, res, err := conn.Projects.GetProjectColumn(context.TODO(), columnID)
+		column, res, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
 		if err == nil {
 			if column != nil &&
 				column.GetID() == columnID {
@@ -93,8 +95,13 @@ func testAccCheckGithubProjectColumnExists(n string, project *github.ProjectColu
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		gotColumn, _, err := conn.Projects.GetProjectColumn(context.TODO(), columnID)
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+
+		gotColumn, _, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
 		if err != nil {
 			return err
 		}

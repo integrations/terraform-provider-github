@@ -60,7 +60,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	for _, team := range teams {
 		t := map[string]any{
-			"id":         team.GetID(),
+			"id":         int(team.GetID()),
 			"slug":       team.GetSlug(),
 			"name":       team.GetName(),
 			"permission": team.GetPermission(),

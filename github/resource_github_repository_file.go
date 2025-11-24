@@ -353,12 +353,12 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
 	} else {
 		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
-		commit, err = getFileCommit(client, owner, repo, file, ref)
-		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+		commit, err = getFileCommit(ctx, client, owner, repo, file, ref)
 	}
 	if err != nil {
 		return err
 	}
+	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return err

@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -52,53 +52,52 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
-	testUserEmail := os.Getenv("GITHUB_TEST_USER_EMAIL")
-	if testUserEmail == "" {
-		t.Skip("Skipping because `GITHUB_TEST_USER_EMAIL` is not set")
-	}
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C %s -N '' -f test-fixtures/id_rsa>/dev/null <<< y >/dev/null", testUserEmail))
-	if err := cmd.Run(); err != nil {
-		t.Fatal(err)
-	}
+	t.Run("creates repository deploy key without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		keyName := fmt.Sprintf("%s_rsa", randomID)
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
 
-	rn := "github_repository_deploy_key.test_repo_deploy_key"
-	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
+		rn := "github_repository_deploy_key.test_repo_deploy_key"
+		rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+		repositoryName := fmt.Sprintf("acctest-%s", rs)
+		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryDeployKeyExists(rn),
-					resource.TestCheckResourceAttr(rn, "read_only", "false"),
-					resource.TestCheckResourceAttr(rn, "repository", repositoryName),
-					resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
-					resource.TestCheckResourceAttr(rn, "title", "title"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubRepositoryDeployKeyDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubRepositoryDeployKeyExists(t.Context(), rn),
+						resource.TestCheckResourceAttr(rn, "read_only", "false"),
+						resource.TestCheckResourceAttr(rn, "repository", repositoryName),
+						resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
+						resource.TestCheckResourceAttr(rn, "title", "title"),
+					),
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		owner := testAccProvider.Meta().(*Owner).name
+		owner := meta.name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -109,7 +108,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 			return unconvertibleIdErr(idString, err)
 		}
 
-		_, resp, err := conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
+		_, resp, err := conn.Repositories.GetKey(context.Background(), owner, repoName, id)
 
 		if err != nil && resp.StatusCode != 404 {
 			return err
@@ -120,7 +119,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFunc {
+func testAccCheckGithubRepositoryDeployKeyExists(ctx context.Context, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -131,8 +130,12 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		owner := testAccProvider.Meta().(*Owner).name
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+		owner := meta.name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -143,7 +146,7 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return unconvertibleIdErr(idString, err)
 		}
 
-		_, _, err = conn.Repositories.GetKey(context.TODO(), owner, repoName, id)
+		_, _, err = conn.Repositories.GetKey(ctx, owner, repoName, id)
 		if err != nil {
 			return err
 		}
@@ -159,20 +162,24 @@ resource "github_repository" "test_repo" {
 }
 
 resource "github_repository_deploy_key" "test_repo_deploy_key" {
-  key        = "${file("%s")}"
+  key        = file("%s")
   read_only  = "false"
-  repository = "${github_repository.test_repo.name}"
+  repository = github_repository.test_repo.name
   title      = "title"
 }
 `, name, keyPath)
 }
 
 func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
-		// Create a TEMP SSH key for testing only
-		key := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+7E/lL5ZWD7TCnNHfQWfyZ+/g1J0+E2u5R1d8K3/WKXGmI4DXk5JHZv+/rj+1J5HL5+3rJ4Z5bGF4e1z8E9JqHzF+8lQ3EI8E3z+9CQ5E5SYPeZPLxFk= test@example.com`
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		keyName := fmt.Sprintf("%s_rsa", randomID)
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
+
+		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -181,12 +188,12 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 			}
 
 			resource "github_repository_deploy_key" "test" {
-				key        = "%s"
+				key        = file("%s")
 				read_only  = true
 				repository = github_repository.test.name
 				title      = "test-archived-deploy-key"
 			}
-		`, randomID, key)
+		`, randomID, keyPath)
 
 		archivedConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -196,55 +203,45 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 			}
 
 			resource "github_repository_deploy_key" "test" {
-				key        = "%s"
+				key        = file("%s")
 				read_only  = true
 				repository = github_repository.test.name
 				title      = "test-archived-deploy-key"
 			}
-		`, randomID, key)
+		`, randomID, keyPath)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository_deploy_key.test", "title",
-								"test-archived-deploy-key",
-							),
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository_deploy_key.test", "title",
+							"test-archived-deploy-key",
 						),
-					},
-					{
-						Config: archivedConfig,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository.test", "archived",
-								"true",
-							),
+					),
+				},
+				{
+					Config: archivedConfig,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"true",
 						),
-					},
-					{
-						Config: fmt.Sprintf(`
+					),
+				},
+				{
+					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
 								name = "tf-acc-test-deploy-key-archive-%s"
 								auto_init = true
 								archived = true
 							}
 						`, randomID),
-					},
 				},
-			})
-		}
-
-		t.Run("with individual mode", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with organization mode", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

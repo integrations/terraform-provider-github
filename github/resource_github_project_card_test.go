@@ -11,11 +11,10 @@ import (
 )
 
 func TestAccGithubProjectCard(t *testing.T) {
-	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a project card using a note", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_organization_project" "project" {
@@ -41,33 +40,20 @@ func TestAccGithubProjectCard(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -97,6 +83,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 				column_id    = github_project_column.test.column_id
 				content_id   = github_issue.test.issue_id
 				content_type = "Issue"
+				content_type = "Issue"
 			}
 
 		`, randomID)
@@ -116,29 +103,15 @@ func TestAccGithubProjectCard(t *testing.T) {
 			},
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }
