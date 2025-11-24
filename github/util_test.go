@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 )
 
-func TestAccGithubUtilRole_validation(t *testing.T) {
+func TestGithubUtilRole_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -37,7 +37,7 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 	}
 }
 
-func TestAccGithubUtilTwoPartID(t *testing.T) {
+func TestGithubUtilTwoPartID(t *testing.T) {
 	partOne, partTwo := "foo", "bar"
 
 	id := buildTwoPartID(partOne, partTwo)
@@ -77,7 +77,7 @@ func flipUsernameCase(username string) string {
 	return string(oc)
 }
 
-func TestAccGithubUtilValidateSecretName(t *testing.T) {
+func TestGithubUtilValidateSecretName(t *testing.T) {
 	cases := []struct {
 		Name  string
 		Error bool
