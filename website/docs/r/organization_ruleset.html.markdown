@@ -45,6 +45,51 @@ resource "github_organization_ruleset" "example" {
       operator = "starts_with"
       pattern  = "ex"
     }
+
+    required_workflows {
+      do_not_enforce_on_create = true
+      required_workflow {
+        repository_id = 1234
+        path          = ".github/workflows/ci.yml"
+        ref           = "main"
+      }
+    }
+  }
+}
+
+# Example with push ruleset  
+resource "github_organization_ruleset" "example_push" {
+  name        = "example_push"
+  target      = "push"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+    repository_name {
+      include = ["~ALL"] 
+      exclude = []
+    }
+  }
+
+  rules {
+    file_path_restriction {
+      restricted_file_paths = [".github/workflows/*", "*.env"]
+    }
+    
+    max_file_size {
+      max_file_size = 100  # 100 MB
+    }
+    
+    max_file_path_length {
+      max_file_path_length = 255
+    }
+    
+    file_extension_restriction {
+      restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
+    }
   }
 }
 ```
@@ -57,7 +102,7 @@ resource "github_organization_ruleset" "example" {
 
 * `rules` - (Required) (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#rules))
 
-* `target` - (Required) (String) Possible values are `branch` and `tag`.
+* `target` - (Required) (String) Possible values are `branch`, `tag` and `push`.
 
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
@@ -94,6 +139,14 @@ The `rules` block supports the following:
 * `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
 
 * `tag_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#rules.tag_name_pattern))
+
+* `file_path_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include changes to specified file paths from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_path_restriction))
+
+* `max_file_size` - (Optional) (Block List, Max: 1) Prevent commits that include files with a specified file size from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.max_file_size))
+
+* `max_file_path_length` - (Optional) (Block List, Max: 1) Prevent commits that include file paths that exceed a specified character limit from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.max_file_path_length))
+
+* `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rules.file_extension_restriction))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
@@ -155,13 +208,19 @@ The `rules` block supports the following:
 
 * `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
+
 #### required_status_checks.required_check ####
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
 
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
+
 #### rules.required_workflows ####
+
+* `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
 * `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
 
@@ -195,13 +254,29 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
+#### rules.file_path_restriction ####
+
+* `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
+
+#### rules.max_file_size ####
+
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
+
+#### rules.max_file_path_length ####
+
+* `max_file_path_length` - (Required) (Integer) The maximum number of characters allowed in file paths.
+
+#### rules.file_extension_restriction ####
+
+* `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
+
 #### bypass_actors ####
 
 * `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
-* `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
+* `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.
 
 ~>Note: at the time of writing this, the following actor types correspond to the following actor IDs:
 

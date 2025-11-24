@@ -49,6 +49,9 @@ The following arguments are supported:
 * `owner`           - (Optional) The account owner of the repository
 * `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
 * `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
+* `destroy_on_drift`  - (Optional) Boolean indicating whether to recreate the secret if it's modified outside of Terraform. 
+                        When `true` (default), Terraform will delete and recreate the secret if it detects external changes. 
+                        When `false`, Terraform will acknowledge external changes but not recreate the secret. Defaults to `true`.
 
 ## Attributes Reference
 

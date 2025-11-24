@@ -10,11 +10,9 @@ import (
 )
 
 func TestAccGithubAutomatedSecurityFixes(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("enables automated security fixes without error", func(t *testing.T) {
-
 		enabled := "enabled = false"
 		updatedEnabled := "enabled = true"
 		config := fmt.Sprintf(`
@@ -81,7 +79,6 @@ func TestAccGithubAutomatedSecurityFixes(t *testing.T) {
 	})
 
 	t.Run("disables automated security fixes without error", func(t *testing.T) {
-
 		enabled := "enabled = true"
 		updatedEnabled := "enabled = false"
 

@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -41,7 +41,7 @@ func dataSourceGithubCodespacesOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 

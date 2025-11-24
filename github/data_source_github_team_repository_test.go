@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubTeamRepositories(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Get Repositories By Teams", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 		resource "github_repository" "test" {
@@ -65,7 +63,5 @@ func TestAccGithubTeamRepositories(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }

@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -36,15 +36,15 @@ func dataSourceGithubRepositoryEnvironments() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 
-	var listOptions *github.EnvironmentListOptions
 	for {
+		listOptions := &github.EnvironmentListOptions{}
 		environments, resp, err := client.Repositories.ListEnvironments(context.Background(), orgName, repoName, listOptions)
 		if err != nil {
 			return err
@@ -68,14 +68,14 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta int
 	return nil
 }
 
-func flattenEnvironments(environments *github.EnvResponse) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenEnvironments(environments *github.EnvResponse) []map[string]any {
+	results := make([]map[string]any, 0)
 	if environments == nil {
 		return results
 	}
 
 	for _, environment := range environments.Environments {
-		environmentMap := make(map[string]interface{})
+		environmentMap := make(map[string]any)
 		environmentMap["name"] = environment.GetName()
 		environmentMap["node_id"] = environment.GetNodeID()
 		results = append(results, environmentMap)

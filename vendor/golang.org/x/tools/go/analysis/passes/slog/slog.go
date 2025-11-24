@@ -20,6 +20,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/internal/analysisutil"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
+	"golang.org/x/tools/internal/astutil"
 	"golang.org/x/tools/internal/typesinternal"
 )
 
@@ -114,10 +115,10 @@ func run(pass *analysis.Pass) (any, error) {
 				default:
 					if unknownArg == nil {
 						pass.ReportRangef(arg, "%s arg %q should be a string or a slog.Attr (possible missing key or value)",
-							shortName(fn), analysisutil.Format(pass.Fset, arg))
+							shortName(fn), astutil.Format(pass.Fset, arg))
 					} else {
 						pass.ReportRangef(arg, "%s arg %q should probably be a string or a slog.Attr (previous arg %q cannot be a key)",
-							shortName(fn), analysisutil.Format(pass.Fset, arg), analysisutil.Format(pass.Fset, unknownArg))
+							shortName(fn), astutil.Format(pass.Fset, arg), astutil.Format(pass.Fset, unknownArg))
 					}
 					// Stop here so we report at most one missing key per call.
 					return
@@ -157,7 +158,7 @@ func run(pass *analysis.Pass) (any, error) {
 }
 
 func isAttr(t types.Type) bool {
-	return analysisutil.IsNamedType(t, "log/slog", "Attr")
+	return typesinternal.IsTypeNamed(t, "log/slog", "Attr")
 }
 
 // shortName returns a name for the function that is shorter than FullName.
@@ -203,7 +204,7 @@ func kvFuncSkipArgs(fn *types.Func) (int, bool) {
 // order to get to the ones that match the ...any parameter.
 // The first key is the dereferenced receiver type name, or "" for a function.
 var kvFuncs = map[string]map[string]int{
-	"": map[string]int{
+	"": {
 		"Debug":        1,
 		"Info":         1,
 		"Warn":         1,
@@ -215,7 +216,7 @@ var kvFuncs = map[string]map[string]int{
 		"Log":          3,
 		"Group":        1,
 	},
-	"Logger": map[string]int{
+	"Logger": {
 		"Debug":        1,
 		"Info":         1,
 		"Warn":         1,
@@ -227,7 +228,7 @@ var kvFuncs = map[string]map[string]int{
 		"Log":          3,
 		"With":         0,
 	},
-	"Record": map[string]int{
+	"Record": {
 		"Add": 0,
 	},
 }
