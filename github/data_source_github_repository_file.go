@@ -146,11 +146,11 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 	}
 
 	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
-	commit, err := getFileCommit(client, owner, repo, file, ref)
-	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+	commit, err := getFileCommit(ctx, client, owner, repo, file, ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return diag.FromErr(err)

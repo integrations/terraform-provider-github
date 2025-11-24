@@ -51,6 +51,7 @@ func dataSourceGithubActionsSecrets() *schema.Resource {
 }
 
 func dataSourceGithubActionsSecretsRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -77,7 +78,7 @@ func dataSourceGithubActionsSecretsRead(d *schema.ResourceData, meta any) error 
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Actions.ListRepoSecrets(context.TODO(), owner, repoName, &options)
+		secrets, resp, err := client.Actions.ListRepoSecrets(ctx, owner, repoName, &options)
 		if err != nil {
 			return err
 		}
