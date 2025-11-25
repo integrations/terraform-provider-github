@@ -14,32 +14,42 @@ func TestGHECDataResidencyMatch(t *testing.T) {
 		description string
 	}{
 		{
-			url:         "https://customer.ghe.com",
+			url:         "https://customer.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with customer name",
 		},
 		{
-			url:         "https://customer-name.ghe.com",
+			url:         "https://customer-name.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with hyphenated name",
 		},
 		{
-			url:         "https://api.github.com",
+			url:         "https://customer.ghe.com",
+			matches:     false,
+			description: "GHEC data residency URL with customer name without trailing slash",
+		},
+		{
+			url:         "https://customer-name.ghe.com",
+			matches:     false,
+			description: "GHEC data residency URL with hyphenated name without trailing slash",
+		},
+		{
+			url:         "https://api.github.com/",
 			matches:     false,
 			description: "GitHub.com API URL",
 		},
 		{
-			url:         "https://github.com",
+			url:         "https://github.com/",
 			matches:     false,
 			description: "GitHub.com URL",
 		},
 		{
-			url:         "https://example.com",
+			url:         "https://example.com/",
 			matches:     false,
 			description: "Generic URL",
 		},
 		{
-			url:         "http://customer.ghe.com",
+			url:         "http://customer.ghe.com/",
 			matches:     false,
 			description: "Non-HTTPS GHEC URL",
 		},
@@ -49,7 +59,7 @@ func TestGHECDataResidencyMatch(t *testing.T) {
 			description: "GHEC URL with path",
 		},
 		{
-			url:         "https://ghe.com",
+			url:         "https://ghe.com/",
 			matches:     false,
 			description: "GHEC domain without subdomain",
 		},
