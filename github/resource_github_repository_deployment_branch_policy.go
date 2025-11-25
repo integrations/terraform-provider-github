@@ -13,6 +13,8 @@ import (
 
 func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated in favour of the github_repository_environment_deployment_policy resource.",
+
 		Create: resourceGithubRepositoryDeploymentBranchPolicyCreate,
 		Read:   resourceGithubRepositoryDeploymentBranchPolicyRead,
 		Update: resourceGithubRepositoryDeploymentBranchPolicyUpdate,
