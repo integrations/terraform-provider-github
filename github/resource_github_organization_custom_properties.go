@@ -85,20 +85,16 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	for _, v := range allowedValues {
 		allowedValuesString = append(allowedValuesString, v.(string))
 	}
+	valuesEditableBy := d.Get("values_editable_by").(string)
 
 	customProperty := &github.CustomProperty{
-		PropertyName:  &propertyName,
-		ValueType:     valueType,
-		Required:      &required,
-		DefaultValue:  &defaultValue,
-		Description:   &description,
-		AllowedValues: allowedValuesString,
-	}
-
-	// Set ValuesEditableBy if provided
-	if valuesEditableBy, ok := d.GetOk("values_editable_by"); ok {
-		valuesEditableByStr := valuesEditableBy.(string)
-		customProperty.ValuesEditableBy = &valuesEditableByStr
+		PropertyName:     &propertyName,
+		ValueType:        valueType,
+		Required:         &required,
+		DefaultValue:     &defaultValue,
+		Description:      &description,
+		AllowedValues:    allowedValuesString,
+		ValuesEditableBy: &valuesEditableBy,
 	}
 
 	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
