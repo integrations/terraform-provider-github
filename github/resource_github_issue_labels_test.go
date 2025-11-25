@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v79/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -157,7 +157,7 @@ func testAccGithubIssueLabelsAddLabel(repository, label string) error {
 	orgName := testAccProvider.Meta().(*Owner).name
 	ctx := context.TODO()
 
-	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.String(label)})
+	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.Ptr(label)})
 	return err
 }
 

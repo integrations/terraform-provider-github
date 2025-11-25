@@ -3,15 +3,40 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v79/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
+
+// findTeamByID lists teams and finds one by ID (fallback for deprecated GetTeamByID).
+func findTeamByID(ctx context.Context, client *github.Client, orgName string, teamID int64) (*github.Team, error) {
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		teams, resp, err := client.Teams.ListTeams(ctx, orgName, opts)
+		if err != nil {
+			return nil, fmt.Errorf("error listing teams: %w", err)
+		}
+
+		for _, team := range teams {
+			if team.GetID() == teamID {
+				return team, nil
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil, fmt.Errorf("team with ID %d not found in organization %s", teamID, orgName)
+}
 
 func resourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
@@ -117,8 +142,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 
 	newTeam := github.NewTeam{
 		Name:        name,
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -154,9 +179,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 		on the parent team, the operation might still fail to set the parent team.
 	*/
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
-		_, _, err := client.Teams.EditTeamByID(ctx,
-			*githubTeam.Organization.ID,
-			*githubTeam.ID,
+		_, _, err := client.Teams.EditTeamBySlug(ctx,
+			ownerName,
+			*githubTeam.Slug,
 			newTeam,
 			false)
 		if err != nil {
@@ -183,18 +208,36 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Try to get team slug from state first (preferred method)
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	var team *github.Team
+	var resp *github.Response
+
+	if teamSlug != "" {
+		// Use team slug if available
+		team, resp, err = client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
+	} else {
+		// Fallback: parse team ID and find team by listing (less efficient)
+		id, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+
+		// List teams and find by ID
+		team, err = findTeamByID(ctx, client, orgName, id)
+		if err != nil {
+			return err
+		}
+		resp = nil // We don't have a response object from listing
+	}
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(err, &ghErr) {
@@ -267,13 +310,12 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(parentTeamID.(string), meta)
@@ -286,13 +328,29 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 		removeParentTeam = true
 	}
 
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Get team slug from state
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
+	var team *github.Team
+	if teamSlug != "" {
+		// Use team slug if available
+		team, _, err = client.Teams.EditTeamBySlug(ctx, meta.(*Owner).name, teamSlug, editedTeam, removeParentTeam)
+	} else {
+		// Fallback
+		teamId, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+
+		foundTeam, findErr := findTeamByID(ctx, client, meta.(*Owner).name, teamId)
+		if findErr != nil {
+			return findErr
+		}
+
+		team, _, err = client.Teams.EditTeamBySlug(ctx, meta.(*Owner).name, foundTeam.GetSlug(), editedTeam, removeParentTeam)
+	}
 	if err != nil {
 		return err
 	}
@@ -300,7 +358,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
+			LDAPDN: github.Ptr(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {
@@ -319,15 +377,29 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
+	// Try to get team slug from state first
+	teamSlug := d.Get("slug").(string)
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	// Delete using slug if available, otherwise look up the slug by ID
+	if teamSlug != "" {
+		_, err = client.Teams.DeleteTeamBySlug(ctx, orgName, teamSlug)
+	} else {
+		// Fallback: find team slug by ID for legacy resources
+		id, parseErr := strconv.ParseInt(d.Id(), 10, 64)
+		if parseErr != nil {
+			return unconvertibleIdErr(d.Id(), parseErr)
+		}
+		team, findErr := findTeamByID(ctx, client, orgName, id)
+		if findErr != nil {
+			return findErr
+		}
+		_, err = client.Teams.DeleteTeamBySlug(ctx, orgName, *team.Slug)
+	}
+
 	/*
 		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
 		This could be the case when deleting nested teams via Terraform by looping through a module
@@ -336,8 +408,15 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		GitHub automatically).
 		So we're checking if it still exists and if not, simply remove it from TF state.
 	*/if err != nil {
-		// Fetch the team in order to see if it exists or not (http 404)
-		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
+		// Check if the team still exists
+		if teamSlug != "" {
+			_, _, err = client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
+		} else {
+			// Fallback: find team by ID
+			id, _ := strconv.ParseInt(d.Id(), 10, 64)
+			_, checkErr := findTeamByID(ctx, client, orgName, id)
+			err = checkErr
+		}
 		if err != nil {
 			ghErr := &github.ErrorResponse{}
 			if errors.As(err, &ghErr) {
