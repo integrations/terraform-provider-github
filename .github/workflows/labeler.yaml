@@ -4,13 +4,18 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: read
-  pull-requests: write # Use this if all labels already exist in the repository (i.e., pre-defined in .github/labeler.yml).
+permissions: read-all
 
 jobs:
   labeler:
+    name: Label PRs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Use this if all labels already exist in the repository (i.e., pre-defined in .github/labeler.yml).
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Run Labeler
         uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1

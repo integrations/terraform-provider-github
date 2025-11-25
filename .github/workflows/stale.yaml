@@ -1,4 +1,5 @@
-name: Close stale issues and PRs
+name: Close Stale Issues & PRs
+
 on:
   workflow_dispatch:
   schedule:
@@ -8,12 +9,22 @@ on:
     #         │ │ │ ┌───────────── month (1 - 12 or JAN-DEC)
     #         │ │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
     #         * * * * *
-    - cron:  '0 0 * * 3'  
-    - cron: '30 1 * * *'
+    - cron: "0 0 * * 3"
+    - cron: "30 1 * * *"
+
+permissions: read-all
 
 jobs:
   stale:
+    name: Stale
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # If we want to delete branches write is required
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008 # v10.1.0
         with:
@@ -29,8 +40,8 @@ jobs:
             Thank you for your contributions and help in keeping things tidy!
           days-before-stale: 270
           days-before-close: 7
-          exempt-issue-labels: 'Status: Pinned'
-          exempt-pr-labels: 'Status: Pinned'
+          exempt-issue-labels: "Status: Pinned"
+          exempt-pr-labels: "Status: Pinned"
           operations-per-run: 100
-          stale-issue-label: 'Status: Stale'
-          stale-pr-label: 'Status: Stale'
+          stale-issue-label: "Status: Stale"
+          stale-pr-label: "Status: Stale"
