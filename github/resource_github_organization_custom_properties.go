@@ -60,10 +60,11 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"values_editable_by": {
-				Description: "Who can edit the values of the custom property. Can be one of 'org_actors' or 'org_and_repo_actors'. If not specified, the default is 'org_actors' (only organization owners can edit values)",
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
+				Description:      "Who can edit the values of the custom property. Can be one of 'org_actors' or 'org_and_repo_actors'. If not specified, the default is 'org_actors' (only organization owners can edit values)",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"org_actors", "org_and_repo_actors"}),
 			},
 		},
 	}
