@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -103,7 +104,7 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 
 	hostname := uv3.Hostname()
 	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
-		uv3.Path = path.Join(uv3.Path, "api/v3/")
+		uv3.Path = fmt.Sprintf("%s/", path.Join(uv3.Path, "api/v3"))
 	}
 
 	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
