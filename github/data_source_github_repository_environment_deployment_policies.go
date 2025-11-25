@@ -2,40 +2,38 @@ package github
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
+func dataSourceGithubRepositoryEnvironmentDeploymentPolicies() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "This data source is deprecated in favour of the github_repository_environment_deployment_policies data source.",
-
-		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
+		Read: dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The GitHub repository name.",
+				Description: "The name of the GitHub repository.",
 			},
-			"environment_name": {
+			"environment": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The target environment name.",
+				Description: "The name of the environment.",
 			},
-			"deployment_branch_policies": {
+			"policies": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
+						"type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"name": {
+						"pattern": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -46,7 +44,7 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -54,24 +52,18 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 
 	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(context.Background(), owner, repoName, environmentName)
 	if err != nil {
-		// TODO: Remove nolint once we can return an error
-		return nil //nolint:nilerr
+		return err
 	}
 
 	results := make([]map[string]any, 0)
 
 	for _, policy := range policies.BranchPolicies {
 		policyMap := make(map[string]any)
-		policyMap["id"] = strconv.FormatInt(*policy.ID, 10)
-		policyMap["name"] = policy.Name
+		policyMap["type"] = policy.Type
+		policyMap["pattern"] = policy.GetName()
 		results = append(results, policyMap)
 	}
 
-	d.SetId(repoName + ":" + environmentName)
-	err = d.Set("deployment_branch_policies", results)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	d.SetId(fmt.Sprintf("%s:%s", repoName, environmentName))
+	return d.Set("policies", results)
 }
