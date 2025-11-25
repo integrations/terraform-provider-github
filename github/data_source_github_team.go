@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 
 	"github.com/shurcooL/githubv4"
 
@@ -176,6 +176,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 		repositories_detailed = make([]any, 0, resultsPerPage) // removed this from the loop
 
 		for {
+			//nolint:staticcheck // SA1019: ListTeamReposByID is deprecated but still needed for legacy compatibility
 			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
 			if err != nil {
 				return err

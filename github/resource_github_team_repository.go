@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -70,6 +70,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+	orgName := meta.(*Owner).name
 
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
@@ -78,11 +79,11 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
+	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -108,23 +109,20 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	teamSlug := d.Get("slug").(string)
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := getTeamID(teamIdString, meta)
-	if err != nil {
-		return err
-	}
+
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 	if repoErr != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(repoErr, &ghErr) {
@@ -183,6 +181,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
+	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
 		orgId,
 		teamId,
@@ -220,6 +219,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
 	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 
 	if resp.StatusCode == 404 {
@@ -233,6 +233,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 			log.Printf("[INFO] Repo name has changed %s -> %s. "+
 				"Try deleting team repository again.",
 				repoName, newRepoName)
+			//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
 			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
 			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName)
 		}
