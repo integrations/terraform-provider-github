@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 
@@ -172,8 +173,8 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 	}
 }
 
-// buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured
-// For updates, it only includes fields that have actually changed to avoid API validation errors
+// buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured.
+// For updates, it only includes fields that have actually changed to avoid API validation errors.
 func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *github.Organization {
 	settings := &github.Organization{}
 
@@ -402,7 +403,8 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
 	if err != nil {
 		// Log detailed error information for debugging
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			log.Printf("[DEBUG] GitHub API Error: Status=%d, Message=%s", ghErr.Response.StatusCode, ghErr.Message)
 			if len(ghErr.Errors) > 0 {
 				for i, apiErr := range ghErr.Errors {
