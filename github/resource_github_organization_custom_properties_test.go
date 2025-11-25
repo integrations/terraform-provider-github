@@ -2,10 +2,49 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
+	t.Run("rejects invalid values_editable_by value", func(t *testing.T) {
+		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name      = "TestInvalidValuesEditableBy"
+			value_type         = "string"
+			required           = false
+			description        = "Test invalid values_editable_by"
+			values_editable_by = "invalid_value"
+		}`
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("invalid_value is an invalid value"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	t.Run("creates custom property without error", func(t *testing.T) {
@@ -181,6 +220,183 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("backward compatibility - property without values_editable_by defaults correctly", func(t *testing.T) {
+		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name = "TestBackwardCompat"
+			value_type    = "string"
+			required      = false
+			description   = "Test property without values_editable_by"
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_custom_properties.test",
+				"property_name", "TestBackwardCompat",
+			),
+			// When not specified, API returns "org_actors" as the default
+			resource.TestCheckResourceAttr(
+				"github_organization_custom_properties.test",
+				"values_editable_by", "org_actors",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("update values_editable_by from org_actors to org_and_repo_actors", func(t *testing.T) {
+		configBefore := `
+		resource "github_organization_custom_properties" "test" {
+			property_name      = "TestUpdateValuesEditableBy"
+			value_type         = "string"
+			required           = false
+			description        = "Test updating values_editable_by"
+			values_editable_by = "org_actors"
+		}`
+
+		configAfter := `
+		resource "github_organization_custom_properties" "test" {
+			property_name      = "TestUpdateValuesEditableBy"
+			value_type         = "string"
+			required           = false
+			description        = "Test updating values_editable_by"
+			values_editable_by = "org_and_repo_actors"
+		}`
+
+		const resourceName = "github_organization_custom_properties.test"
+
+		checkBefore := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_actors"),
+		)
+		checkAfter := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: configBefore,
+						Check:  checkBefore,
+					},
+					{
+						Config: configAfter,
+						Check:  checkAfter,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("imports existing property with values_editable_by set via UI", func(t *testing.T) {
+		// This test simulates a scenario where values_editable_by was set to
+		// org_and_repo_actors in the GitHub UI before Terraform support was added.
+		// The resource config intentionally omits values_editable_by to verify
+		// Terraform can read and maintain the existing value from the API.
+
+		configWithoutField := `
+		resource "github_organization_custom_properties" "test" {
+			property_name = "TestImportWithUISet"
+			value_type    = "string"
+			required      = false
+			description   = "Test property set via UI"
+		}`
+
+		// After import, we explicitly set the value in config to match what's in the API
+		configWithField := `
+		resource "github_organization_custom_properties" "test" {
+			property_name      = "TestImportWithUISet"
+			value_type         = "string"
+			required           = false
+			description        = "Test property set via UI"
+			values_editable_by = "org_and_repo_actors"
+		}`
+
+		const resourceName = "github_organization_custom_properties.test"
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						// First, create a property with values_editable_by set
+						Config: configWithField,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+						),
+					},
+					{
+						// Simulate the scenario: config doesn't have values_editable_by
+						// (as it would have been before Terraform support was added)
+						// Terraform should read the existing value from the API
+						Config: configWithoutField,
+						Check: resource.ComposeTestCheckFunc(
+							// Terraform should still see the value from the API
+							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+						),
+					},
+					{
+						// Now add it back to the config - should be no changes needed
+						Config: configWithField,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(resourceName, "values_editable_by", "org_and_repo_actors"),
+						),
 					},
 				},
 			})
