@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
-
 	t.Run("creates and manages files", func(t *testing.T) {
 		config := fmt.Sprintf(`
 	
