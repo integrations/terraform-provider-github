@@ -39,6 +39,11 @@ resource "github_organization_ruleset" "example" {
     required_linear_history = true
     required_signatures     = true
 
+    copilot_code_review {
+      review_on_push              = true
+      review_draft_pull_requests  = false
+    }
+
     branch_name_pattern {
       name     = "example"
       negate   = false
@@ -120,6 +125,8 @@ The `rules` block supports the following:
 
 * `committer_email_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#rules.committer_email_pattern))
 
+* `copilot_code_review` - (Optional) (Block List, Max: 1) Request Copilot code review for new pull requests automatically if the author has access to Copilot code review. (see [below for nested schema](#rules.copilot_code_review))
+
 * `creation` - (Optional) (Boolean) Only allow users with bypass permission to create matching refs.
 
 * `deletion` - (Optional) (Boolean) Only allow users with bypass permissions to delete matching refs.
@@ -189,6 +196,12 @@ The `rules` block supports the following:
 * `name` - (Optional) (String) How this rule will appear to users.
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
+
+#### rules.copilot_code_review ####
+
+* `review_on_push` - (Optional) (Boolean) Copilot automatically reviews each new push to the pull request. Defaults to `false`.
+
+* `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
 #### rules.pull_request ####
 
@@ -289,8 +302,9 @@ The `rules` block supports the following:
 #### conditions ####
 
 * `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
-* `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
-* `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditions.repository_name))
+* `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name` and `repository_property`.
+* `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_property`. (see [below for nested schema](#conditions.repository_name))
+* `repository_property` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_name`. (see [below for nested schema](#conditions.repository_property))
 
 One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
 
@@ -305,6 +319,19 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 * `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
 
 * `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
+
+#### conditions.repository_property ####
+
+* `include` - (Optional) (List of Repository Properties) The repository properties and values to include. All of these properties must match for the condition to pass. (see [below for nested schema](#conditions.repository_property.properties))
+
+* `exclude` - (Optional) (List of Repository Properties) The repository properties and values to exclude. The condition will not pass if any of these properties match.(see [below for nested schema](#conditions.repository_property.properties))
+
+#### conditions.repository_property.properties ####
+* `name` (Required) (String) The name of the repository property to target.
+
+* `property_values` (Required) (Array of String) The values to match for the repository property.
+
+* `source` (String) The source of the repository property. Defaults to 'custom' if not specified. Can be one of: `custom`, `system`
 
 ## Attributes Reference
 
