@@ -23,6 +23,12 @@ const (
 	spanOpenCensus                    // from go.opencensus.io/trace
 )
 
+const (
+	selNameEnd         = "End"
+	selNameSetStatus   = "SetStatus"
+	selNameRecordError = "RecordError"
+)
+
 // SpanTypes is a list of all span types by name.
 var SpanTypes = map[string]spanType{
 	"opentelemetry": spanOpenTelemetry,
@@ -183,7 +189,7 @@ func runFunc(pass *analysis.Pass, node ast.Node, config *Config) {
 	for _, sv := range spanVars {
 		if config.endCheckEnabled {
 			// Check if there's no End to the span.
-			if ret := getMissingSpanCalls(pass, g, sv, "End", func(_ *analysis.Pass, ret *ast.ReturnStmt) *ast.ReturnStmt { return ret }, nil, config.startSpanMatchers); ret != nil {
+			if ret := getMissingSpanCalls(pass, g, sv, selNameEnd, func(_ *analysis.Pass, ret *ast.ReturnStmt) *ast.ReturnStmt { return ret }, nil, config.startSpanMatchers); ret != nil {
 				pass.ReportRangef(sv.stmt, "%s.End is not called on all paths, possible memory leak", sv.vr.Name())
 				pass.ReportRangef(ret, "return can be reached without calling %s.End", sv.vr.Name())
 			}
@@ -191,7 +197,7 @@ func runFunc(pass *analysis.Pass, node ast.Node, config *Config) {
 
 		if config.setStatusEnabled {
 			// Check if there's no SetStatus to the span setting an error.
-			if ret := getMissingSpanCalls(pass, g, sv, "SetStatus", getErrorReturn, config.ignoreChecksSignatures, config.startSpanMatchers); ret != nil {
+			if ret := getMissingSpanCalls(pass, g, sv, selNameSetStatus, getErrorReturn, config.ignoreChecksSignatures, config.startSpanMatchers); ret != nil {
 				pass.ReportRangef(sv.stmt, "%s.SetStatus is not called on all paths", sv.vr.Name())
 				pass.ReportRangef(ret, "return can be reached without calling %s.SetStatus", sv.vr.Name())
 			}
@@ -199,7 +205,7 @@ func runFunc(pass *analysis.Pass, node ast.Node, config *Config) {
 
 		if config.recordErrorEnabled && sv.spanType == spanOpenTelemetry { // RecordError only exists in OpenTelemetry
 			// Check if there's no RecordError to the span setting an error.
-			if ret := getMissingSpanCalls(pass, g, sv, "RecordError", getErrorReturn, config.ignoreChecksSignatures, config.startSpanMatchers); ret != nil {
+			if ret := getMissingSpanCalls(pass, g, sv, selNameRecordError, getErrorReturn, config.ignoreChecksSignatures, config.startSpanMatchers); ret != nil {
 				pass.ReportRangef(sv.stmt, "%s.RecordError is not called on all paths", sv.vr.Name())
 				pass.ReportRangef(ret, "return can be reached without calling %s.RecordError", sv.vr.Name())
 			}
@@ -216,7 +222,7 @@ func isSpanStart(info *types.Info, n ast.Node, startSpanMatchers []spanStartMatc
 
 	fnSig := info.ObjectOf(sel.Sel).String()
 
-	// Check if the function is a span start function
+	// Check if the function is a span start function.
 	for _, matcher := range startSpanMatchers {
 		if matcher.signature.MatchString(fnSig) {
 			return matcher.spanType, true
@@ -309,6 +315,11 @@ outer:
 			}
 			seen[b] = true
 
+			// Skip successors that are not nested within this current block.
+			if _, ok := nestedBlockTypes[b.Kind]; !ok {
+				continue
+			}
+
 			// Prune the search if the block uses v.
 			if blockUses(pass, b) {
 				continue
@@ -330,6 +341,21 @@ outer:
 	return search(defBlock.Succs)
 }
 
+var nestedBlockTypes = map[cfg.BlockKind]struct{}{
+	cfg.KindBody:            {},
+	cfg.KindForBody:         {},
+	cfg.KindForLoop:         {},
+	cfg.KindIfElse:          {},
+	cfg.KindIfThen:          {},
+	cfg.KindLabel:           {},
+	cfg.KindRangeBody:       {},
+	cfg.KindRangeLoop:       {},
+	cfg.KindSelectCaseBody:  {},
+	cfg.KindSelectAfterCase: {},
+	cfg.KindSwitchCaseBody:  {},
+	cfg.KindSwitchNextCase:  {},
+}
+
 // usesCall reports whether stmts contain a use of the selName call on variable v.
 func usesCall(
 	pass *analysis.Pass,
@@ -340,9 +366,11 @@ func usesCall(
 	startSpanMatchers []spanStartMatcher,
 	depth int,
 ) bool {
-	if depth > 1 { // for perf reasons, do not dive too deep thru func literals, just one level deep check.
+	if depth > 1 { // for perf reasons, do not dive too deep thru func literals, just two levels deep.
 		return false
 	}
+
+	cfgs := pass.ResultOf[ctrlflow.Analyzer].(*ctrlflow.CFGs)
 
 	found, reAssigned := false, false
 	for _, subStmt := range stmts {
@@ -351,7 +379,6 @@ func usesCall(
 			switch n := n.(type) {
 			case *ast.FuncLit:
 				if len(stack) > 0 {
-					cfgs := pass.ResultOf[ctrlflow.Analyzer].(*ctrlflow.CFGs)
 					g := cfgs.FuncLit(n)
 					if g != nil && len(g.Blocks) > 0 {
 						return usesCall(pass, g.Blocks[0].Nodes, sv, selName, ignoreCheckSig, startSpanMatchers, depth+1)
@@ -365,6 +392,52 @@ func usesCall(
 					if ignoreCheckSig != nil && ignoreCheckSig.MatchString(fnSig) {
 						found = true
 						return false
+					}
+				}
+			case *ast.DeferStmt:
+				if n.Call == nil {
+					break
+				}
+
+				f, ok := n.Call.Fun.(*ast.FuncLit)
+				if !ok {
+					break
+				}
+
+				if g := cfgs.FuncLit(f); g != nil && len(g.Blocks) > 0 {
+					if selName == selNameEnd {
+						// Check if all returning blocks call end.
+						for _, b := range g.Blocks {
+							if b.Return() != nil && !usesCall(
+								pass,
+								b.Nodes,
+								sv,
+								selName,
+								ignoreCheckSig,
+								startSpanMatchers,
+								depth+1,
+							) {
+								return false
+							}
+						}
+
+						found = true
+						return false
+					}
+
+					for _, b := range g.Blocks {
+						if usesCall(
+							pass,
+							b.Nodes,
+							sv,
+							selName,
+							ignoreCheckSig,
+							startSpanMatchers,
+							depth+1,
+						) {
+							found = true
+							return false
+						}
 					}
 				}
 			case nil:
@@ -389,7 +462,7 @@ func usesCall(
 				// Selector (End, SetStatus, RecordError) hit.
 				if n.Sel.Name == selName {
 					id, ok := n.X.(*ast.Ident)
-					found = ok && id.Obj.Decl == sv.id.Obj.Decl
+					found = ok && id.Obj != nil && id.Obj.Decl == sv.id.Obj.Decl
 				}
 
 				// Check if an ignore signature matches.

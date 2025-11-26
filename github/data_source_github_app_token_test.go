@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,7 +52,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 			"token":           {Type: schema.TypeString},
 		}
 
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{
 			"app_id":          testGitHubAppID,
 			"installation_id": testGitHubAppInstallationID,
 			"pem_file":        string(pemData),

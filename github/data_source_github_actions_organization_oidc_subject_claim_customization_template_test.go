@@ -7,9 +7,7 @@ import (
 )
 
 func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDataSource(t *testing.T) {
-
 	t.Run("get an organization oidc subject claim customization template without error", func(t *testing.T) {
-
 		config := `
 			resource "github_actions_organization_oidc_subject_claim_customization_template" "test" {
 				include_claim_keys = ["actor", "actor_id", "head_ref", "repository"]
