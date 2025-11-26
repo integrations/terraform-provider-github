@@ -49,7 +49,13 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 

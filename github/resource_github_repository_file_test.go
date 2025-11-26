@@ -11,8 +11,6 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates and manages files", func(t *testing.T) {
 		config := fmt.Sprintf(`
 	
@@ -31,7 +29,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
 			}
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
@@ -107,7 +105,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email        = "terraform@example.com"
 			}
 
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -196,7 +194,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
 			}
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -272,7 +270,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email      = "terraform@example.com"
 				autocreate_branch = false
 			}
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -352,7 +350,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author = "Terraform User"
 				commit_email = "terraform@example.com"
 			}
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 
 		archivedConfig := strings.Replace(config,
 			`auto_init = true`,
@@ -391,7 +389,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)),
 					},
 				},
 			})
