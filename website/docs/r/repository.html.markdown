@@ -47,6 +47,18 @@ resource "github_repository" "example" {
 }
 ```
 
+## Example Usage with Repository Forking
+
+```hcl
+resource "github_repository" "forked_repo" {
+  name         = "forked-repository"
+  description  = "This is a fork of another repository"
+  fork         = true
+  source_owner = "some-org"
+  source_repo  = "original-repository"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -56,6 +68,12 @@ The following arguments are supported:
 * `description` - (Optional) A description of the repository.
 
 * `homepage_url` - (Optional) URL of a page describing the project.
+
+* `fork` - (Optional) Set to `true` to create a fork of an existing repository. When set to `true`, both `source_owner` and `source_repo` must also be specified.
+
+* `source_owner` - (Optional) The GitHub username or organization that owns the repository being forked. Required when `fork` is `true`.
+
+* `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
 * `private` - (Optional) Set to `true` to create a private repository.
   Repositories are created as public (e.g. open source) by default.
@@ -150,9 +168,15 @@ The `security_and_analysis` block supports the following:
 
 * `advanced_security` - (Optional) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details. If a repository's visibility is `public`, advanced security is always enabled and cannot be changed, so this setting cannot be supplied.
 
+* `code_security` - (Optional) The code security configuration for the repository. See [Code Security](#code-security-configuration) below for details.
+
 * `secret_scanning` - (Optional) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
 
 * `secret_scanning_push_protection` - (Optional) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
+
+* `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
+
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details. 
 
 #### Advanced Security Configuration ####
 
@@ -160,13 +184,25 @@ The `advanced_security` block supports the following:
 
 * `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
 
+#### Code Security Configuration ####
+
+* `status` - (Required) Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
 #### Secret Scanning Configuration ####
 
-* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
 #### Secret Scanning Push Protection Configuration ####
 
-* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Secret Scanning AI Detection #### 
+
+* `status` - (Required) Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Secret Scanning Non-Provider Patterns #### 
+
+* `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
 ### Template Repositories
 

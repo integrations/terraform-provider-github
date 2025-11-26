@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -660,6 +660,12 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []any {
 
 		case "required_code_scanning":
 			var params github.RequiredCodeScanningRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
 
 			requiredCodeScanningToolSlice := make([]map[string]any, 0)
 			for _, tool := range params.RequiredCodeScanningTools {

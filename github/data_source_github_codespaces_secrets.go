@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -52,7 +52,7 @@ func dataSourceGithubCodespacesSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
