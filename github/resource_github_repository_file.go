@@ -496,7 +496,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 		opts.Branch = &branch
 	}
 
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return handleArchivedRepoDelete(err, "repository file", file, owner, repo)
 }
 

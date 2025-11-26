@@ -351,7 +351,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author = "Terraform User"
 				commit_email = "terraform@example.com"
 			}
-		`, randomID)
+		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 
 		archivedConfig := strings.Replace(config,
 			`auto_init = true`,
@@ -390,7 +390,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)),
 					},
 				},
 			})
