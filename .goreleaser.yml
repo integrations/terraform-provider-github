@@ -1,10 +1,15 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
 version: 2
+
+env:
+  - COSIGN_YES=true
+
 before:
   hooks:
     # this is just an example and not a requirement for provider building/publishing
     - go mod tidy
+
 builds:
   - env:
       # goreleaser does not work with CGO, it could also complicate
@@ -30,32 +35,51 @@ builds:
       - goos: darwin
         goarch: "386"
     binary: "{{ .ProjectName }}_v{{ .Version }}"
+
 archives:
-  - formats: [ 'zip' ]
+  - formats: ['zip']
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+sboms:
+  - id: default
+    artifacts: source
+
 checksum:
   extra_files:
     - glob: "terraform-registry-manifest.json"
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
+
 signs:
-  - artifacts: checksum
+  - id: gpg
+    cmd: gpg
     args:
-      # if you are using this in a GitHub action or some other automated pipeline, you
-      # need to pass the batch flag to indicate its not interactive.
-      - "--batch"
-      - "--local-user"
-      - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
-      - "--output"
+      - --batch
+      - --local-user
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - --output
       - "${signature}"
-      - "--detach-sign"
+      - --detach-sign
       - "${artifact}"
+    artifacts: checksum
+  - id: cosign
+    signature: "${artifact}.sbom.json.bundle"
+    cmd: cosign
+    args:
+      - sign-blob
+      - --new-bundle-format
+      - --bundle
+      - "${signature}"
+      - "${artifact}"
+    artifacts: checksum
+
 release:
   extra_files:
-    - glob: "terraform-registry-manifest.json"
+    - glob: terraform-registry-manifest.json
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
-  # If you want to manually examine the release before its live, uncomment this line:
-  # draft: true
+      # If you want to manually examine the release before its live, uncomment this line:
+      # draft: true
+
 changelog:
   disable: true

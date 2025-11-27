@@ -2,24 +2,35 @@ name: GitHub Actions CI
 
 on:
   push:
-    branches: [main]
-  pull_request: {}
+    branches:
+      - main
+      - release-v*
+  pull_request:
+    branches:
+      - main
+      - release-v*
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read # for actions/checkout
-
-env:
-  test_stacks_directory: test_tf_stacks
 
 jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       GITHUB_TEST_ORGANIZATION: kfcampbell-terraform-provider
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - name: Set-up Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: go.mod
           cache: true
@@ -32,6 +43,11 @@ jobs:
   generate-matrix:
     name: Generate matrix for test stacks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      TEST_STACKS_DIRECTORY: test-stacks
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       has-tests: ${{ steps.set-matrix.outputs.has-tests }}
@@ -42,7 +58,7 @@ jobs:
       - name: Generate matrix
         id: set-matrix
         run: |
-          if [ -d "${{ env.test_stacks_directory }}" ]; then
+          if [ -d "${{ env.TEST_STACKS_DIRECTORY }}" ]; then
             # find all directories and validate their names
             VALID_TESTS=()
             INVALID_TESTS=()
@@ -51,11 +67,11 @@ jobs:
               dirname=$(basename "$dir")
               # validate that directory name only contains alphanumeric, hyphens, underscores, and dots
               if [[ "$dirname" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
-                VALID_TESTS+=("$dirname")
+                VALID_TESTS+=("$dir")
               else
                 INVALID_TESTS+=("$dirname")
               fi
-            done < <(find ${{ env.test_stacks_directory }} -mindepth 1 -maxdepth 1 -type d)
+            done < <(find ${{ env.TEST_STACKS_DIRECTORY }} -mindepth 1 -maxdepth 1 -type d)
 
             # report invalid directory names if any
             if [ ${#INVALID_TESTS[@]} -gt 0 ]; then
@@ -75,7 +91,7 @@ jobs:
               echo "No valid test directories found"
             fi
           else
-            echo "Test directory ${{ env.test_stacks_directory }} does not exist"
+            echo "Test directory ${{ env.TEST_STACKS_DIRECTORY }} does not exist"
             echo "matrix=[]" >> $GITHUB_OUTPUT
             echo "has-tests=false" >> $GITHUB_OUTPUT
           fi
@@ -85,12 +101,13 @@ jobs:
     needs: [ci, generate-matrix]
     if: ${{ needs.generate-matrix.outputs.has-tests == 'true' }} # only run if there are some test stacks
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
         tests: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -129,10 +146,10 @@ jobs:
 
       - name: Terraform init
         continue-on-error: true # continue even if init fails
-        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ matrix.tests }} init
+        run: terraform -chdir=${{ matrix.tests }} init
 
       - name: Terraform validate
-        run: terraform -chdir=./${{ env.test_stacks_directory }}/${{ matrix.tests }} validate
+        run: terraform -chdir=${{ matrix.tests }} validate
 
       - name: Clean up
         run: rm -f ~/.terraformrc terraform-provider-github
