@@ -27,7 +27,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"user": {
 				Type:        schema.TypeSet,
@@ -97,6 +96,17 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			// it's possible a new invitation id will be created in GitHub.
 			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("user")
+			}),
+			customdiff.ForceNewIf("repository", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
+				_, new := d.GetChange("repository")
+				repoID, err := getRepositoryID(fmt.Sprintf("%s", new), meta)
+				if err != nil {
+					// If we cannot get the repository ID, force new
+					return true
+				}
+
+				// If the repository ID has changed, force new
+				return d.Id() != fmt.Sprintf("%d", repoID)
 			}),
 		),
 	}
@@ -532,7 +542,12 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta an
 		return err
 	}
 
-	d.SetId(repoName)
+	repoID, err := getRepositoryID(repoName, meta)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(fmt.Sprintf("%d", repoID))
 
 	return resourceGithubRepositoryCollaboratorsRead(d, meta)
 }
