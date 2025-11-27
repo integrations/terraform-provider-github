@@ -26,6 +26,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+    CustomizeDiff: validateConditionsFieldBasedOnTarget,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -854,4 +856,47 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	})
 
 	return []*schema.ResourceData{d}, nil
+}
+
+
+func validateConditionsFieldForBranchAndTagTargets(d *schema.ResourceDiff, meta interface{}) error {
+  conditions := d.Get("conditions").([]any)[0].(map[string]any)
+  if conditions["ref_name"] == nil || conditions["repository_name"] == nil || conditions["repository_id"] == nil {
+      return fmt.Errorf("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets")
+  }
+  return nil
+}
+
+func validateConditionsFieldForPushTarget(d *schema.ResourceDiff, meta interface{}) error {
+  conditions := d.Get("conditions").([]any)[0].(map[string]any)
+  if conditions["ref_name"] != nil {
+    return fmt.Errorf("ref_name must not be set for push target")
+  }
+  return nil
+}
+
+func validateConditionsFieldForRepositoryTarget(d *schema.ResourceDiff, meta interface{}) error {
+  conditions := d.Get("conditions").([]any)[0].(map[string]any)
+  if conditions["ref_name"] != nil {
+    return fmt.Errorf("ref_name must not be set for repository target")
+  }
+  if conditions["repository_name"] == nil && conditions["repository_id"] == nil {
+    return fmt.Errorf("repository_name or repository_id must be set for repository target")
+  }
+  return nil
+}
+
+
+func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+    target := d.Get("target").(string)
+
+    switch target {
+    case "branch", "tag":
+        return validateConditionsFieldForBranchAndTagTargets(d, meta)
+    case "push":
+        return validateConditionsFieldForPushTarget(d, meta)
+    case "repository":
+        return validateConditionsFieldForRepositoryTarget(d, meta)
+    }
+    return nil
 }
