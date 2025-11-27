@@ -36,8 +36,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, `push` and `repository`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -87,7 +87,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. The `push` target does not require `ref_name` conditions. For `repository` target, the conditions object should only contain the `repository_name` and the `repository_id`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
