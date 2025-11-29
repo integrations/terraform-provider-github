@@ -763,7 +763,6 @@ func validateConditionsFieldForRepositoryTarget(d *schema.ResourceDiff, meta int
 
 func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
     target := d.Get("target").(string)
-    conditions := d.Get("conditions").([]any)[0].(map[string]any)
 
     switch target {
     case "branch", "tag":
