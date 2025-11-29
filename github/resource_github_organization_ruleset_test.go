@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -601,6 +602,57 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
+		})
+	})
+
+	t.Run("Validates branch target requires ref_name", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-validation-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("Insufficient ref_name blocks"),
+						// ExpectError: regexp.MustCompile("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
 		})
 	})
 }
