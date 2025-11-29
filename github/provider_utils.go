@@ -67,10 +67,10 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 			t.Log("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set")
 		}
 	case organization:
-		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_ORGANIZATION") != "" {
+		if os.Getenv("GITHUB_TOKEN") != "" && (os.Getenv("GITHUB_ORGANIZATION") != "" || os.Getenv("GITHUB_TEST_ORGANIZATION") != "") {
 			return
 		} else {
-			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION environment variables should be set")
+			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION or GITHUB_TEST_ORGANIZATION environment variables should be set")
 		}
 	}
 

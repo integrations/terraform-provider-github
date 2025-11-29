@@ -11,14 +11,6 @@ import (
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-
-	if testEnterprise == "" {
-		t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-	}
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
