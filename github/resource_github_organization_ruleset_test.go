@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -495,6 +496,40 @@ resource "github_organization_ruleset" "test" {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("validates_branch_target_requires_ref_name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-validation-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("Insufficient ref_name blocks"),
+					// ExpectError: regexp.MustCompile("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets"),
 				},
 			},
 		})
