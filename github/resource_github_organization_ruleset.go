@@ -887,6 +887,12 @@ func validateConditionsFieldForRepositoryTarget(d *schema.ResourceDiff, _ any) e
 
 func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
 	target := d.Get("target").(string)
+	conditionsRaw := d.Get("conditions").([]any)
+
+	// Handle empty conditions - branch and tag targets require conditions with ref_name
+	if len(conditionsRaw) == 0 {
+		return fmt.Errorf("conditions block is required for %s target", target)
+	}
 
 	switch target {
 	case "branch", "tag":
