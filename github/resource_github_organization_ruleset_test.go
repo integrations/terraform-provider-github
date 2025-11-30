@@ -557,6 +557,39 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		})
 	})
 
+	t.Run("panics when conditions block is missing for branch target", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-no-conditions-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						// Before fix: This will PANIC with "index out of range"
+						// After fix: Should return proper validation error
+						ExpectError: regexp.MustCompile(`conditions block is required for branch target`),
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("Validates branch target requires ref_name", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
