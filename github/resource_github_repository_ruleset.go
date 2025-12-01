@@ -2,12 +2,14 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -34,13 +36,14 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the repository to apply rulset to.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -57,22 +60,24 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"actor_id": {
 							Type:        schema.TypeInt,
-							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
+							Optional:    true,
+							Default:     nil,
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.",
+							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
+							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
-					}},
+					},
+				},
 			},
 			"node_id": {
 				Type:        schema.TypeString,
@@ -509,6 +514,75 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								},
 							},
 						},
+						"file_path_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_paths": {
+										Type:        schema.TypeList,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file paths that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"max_file_size": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file size.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_size": {
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+									},
+								},
+							},
+						},
+						"max_file_path_length": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file path length.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_path_length": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed length of a file path.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "A list of file extensions.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -520,7 +594,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -542,7 +616,7 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
-func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -563,7 +637,8 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 
 	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -576,20 +651,27 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	d.Set("etag", resp.Header.Get("ETag"))
-	d.Set("name", ruleset.Name)
-	d.Set("target", ruleset.GetTarget())
-	d.Set("enforcement", ruleset.Enforcement)
-	d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
-	d.Set("rules", flattenRules(ruleset.Rules, false))
-	d.Set("node_id", ruleset.GetNodeID())
-	d.Set("ruleset_id", ruleset.ID)
+	if ruleset == nil {
+		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
+			owner, repoName, rulesetID)
+		d.SetId("")
+		return nil
+	}
+
+	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("name", ruleset.Name)
+	_ = d.Set("target", ruleset.GetTarget())
+	_ = d.Set("enforcement", ruleset.Enforcement)
+	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
+	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
+	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
+	_ = d.Set("node_id", ruleset.GetNodeID())
+	_ = d.Set("ruleset_id", ruleset.ID)
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -604,7 +686,16 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	var ruleset *github.Ruleset
+	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
+	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
+	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
+	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
+	if d.HasChange("bypass_actors") {
+		ruleset, _, err = client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
+	} else {
+		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	}
 	if err != nil {
 		return err
 	}
@@ -613,7 +704,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryRulesetRead(d, meta)
 }
 
-func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -629,7 +720,7 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta interfac
 	return err
 }
 
-func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
 	if err != nil {
 		return []*schema.ResourceData{d}, err
@@ -651,7 +742,7 @@ func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta interfac
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	d.Set("repository", *repository.Name)
+	_ = d.Set("repository", *repository.Name)
 
 	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
 	if ruleset == nil || err != nil {

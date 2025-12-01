@@ -32,7 +32,7 @@ func resourceGithubRepositoryDependabotSecurityUpdates() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -53,7 +53,7 @@ func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.R
 	return resourceGithubRepositoryDependabotSecurityUpdatesRead(d, meta)
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -64,12 +64,12 @@ func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceDat
 	if err != nil {
 		return err
 	}
-	d.Set("enabled", p.Enabled)
+	_ = d.Set("enabled", p.Enabled)
 
 	return nil
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -84,10 +84,10 @@ func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceD
 	return resourceGithubRepositoryDependabotSecurityUpdatesRead(d, meta)
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryDependabotSecurityUpdatesImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName := d.Id()
 
-	d.Set("repository", repoName)
+	_ = d.Set("repository", repoName)
 
 	err := resourceGithubRepositoryDependabotSecurityUpdatesRead(d, meta)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -157,8 +158,12 @@ func TestGetInstallationAccessToken(t *testing.T) {
 	})
 	defer ts.Close()
 
-	accessToken, err := getInstallationAccessToken(ts.URL+"/", fakeJWT, testGitHubAppInstallationID)
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("could not parse test server url")
+	}
 
+	accessToken, err := getInstallationAccessToken(u, fakeJWT, testGitHubAppInstallationID)
 	if err != nil {
 		t.Logf("Unexpected error: %s", err)
 		t.Fail()

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -37,12 +37,14 @@ type Owner struct {
 	IsOrganization bool
 }
 
-// GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
-// https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
-var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
+// DotComHost is the hostname for GitHub.com API.
+const DotComHost = "api.github.com"
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
+// GHECDataResidencyHostMatch is a regex to match a GitHub Enterprise Cloud data residency host:
+// https://[hostname].ghe.com/ instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
+var GHECDataResidencyHostMatch = regexp.MustCompile(`^[a-zA-Z0-9.\-]+\.ghe\.com\/?$`)
 
+func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
 	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
@@ -59,7 +61,6 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 }
 
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
-
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
@@ -79,13 +80,13 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-
 	uv4, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if uv4.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv4.String()) {
+	hostname := uv4.Hostname()
+	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
 		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	} else {
 		uv4.Path = path.Join(uv4.Path, "graphql")
@@ -95,14 +96,14 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-
 	uv3, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if uv3.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv3.String()) {
-		uv3.Path = uv3.Path + "api/v3/"
+	hostname := uv3.Hostname()
+	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
+		uv3.Path = path.Join(uv3.Path, "api/v3/")
 	}
 
 	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
@@ -143,8 +144,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
-func (c *Config) Meta() (interface{}, error) {
-
+func (c *Config) Meta() (any, error) {
 	var client *http.Client
 	if c.Anonymous() {
 		client = c.AnonymousHTTPClient()

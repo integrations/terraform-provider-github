@@ -2,17 +2,20 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationProject() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
+
 		Create: resourceGithubOrganizationProjectCreate,
 		Read:   resourceGithubOrganizationProjectRead,
 		Update: resourceGithubOrganizationProjectUpdate,
@@ -45,7 +48,7 @@ func resourceGithubOrganizationProject() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -72,7 +75,7 @@ func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationProjectRead(d, meta)
 }
 
-func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -92,7 +95,8 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -123,7 +127,7 @@ func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -152,7 +156,7 @@ func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta interf
 	return resourceGithubOrganizationProjectRead(d, meta)
 }
 
-func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

@@ -2,17 +2,20 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubProjectColumn() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
+
 		Create: resourceGithubProjectColumnCreate,
 		Read:   resourceGithubProjectColumnRead,
 		Update: resourceGithubProjectColumnUpdate,
@@ -46,7 +49,7 @@ func resourceGithubProjectColumn() *schema.Resource {
 	}
 }
 
-func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -81,7 +84,7 @@ func resourceGithubProjectColumnCreate(d *schema.ResourceData, meta interface{})
 	return resourceGithubProjectColumnRead(d, meta)
 }
 
-func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectColumnRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -95,7 +98,8 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
+		err := &github.ErrorResponse{}
+		if errors.As(err, &err) {
 			if err.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing project column %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
@@ -120,7 +124,7 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	options := github.ProjectColumnOptions{
@@ -141,7 +145,7 @@ func resourceGithubProjectColumnUpdate(d *schema.ResourceData, meta interface{})
 	return resourceGithubProjectColumnRead(d, meta)
 }
 
-func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubProjectColumnDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	columnID, err := strconv.ParseInt(d.Id(), 10, 64)

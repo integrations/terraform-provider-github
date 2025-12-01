@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -97,11 +97,9 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -194,7 +192,7 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	// helper function to simplify marshalling.
-	marshal := func(t *testing.T, msg interface{}) string {
+	marshal := func(t *testing.T, msg any) string {
 		data, err := json.MarshalIndent(msg, "", "    ")
 		if err != nil {
 			t.Fatalf("cant encode to json: %v", err)
@@ -294,9 +292,11 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"commit_message": {Type: schema.TypeString},
 			"content":        {Type: schema.TypeString},
 			"id":             {Type: schema.TypeString},
+			"sha":            {Type: schema.TypeString},
+			"ref":            {Type: schema.TypeString},
 		}
 
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{
 			"repository":     repositoryFullName,
 			"file":           fileName,
 			"branch":         branch,
@@ -366,9 +366,11 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"commit_message": {Type: schema.TypeString},
 			"content":        {Type: schema.TypeString},
 			"id":             {Type: schema.TypeString},
+			"sha":            {Type: schema.TypeString},
+			"ref":            {Type: schema.TypeString},
 		}
 
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{
 			"repository":     repositoryFullName,
 			"file":           fileName,
 			"branch":         branch,
@@ -393,7 +395,6 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 	})
 
 	t.Run("try reading a non-existent file without an error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -408,8 +409,8 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckNoResourceAttr(
-				"data.github_repository_file.test", "id",
+			resource.TestCheckResourceAttr(
+				"data.github_repository_file.test", "id", "",
 			),
 		)
 
@@ -437,7 +438,6 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	repoContentDirectoryRespBody := marshal(t, []github.RepositoryContent{
@@ -486,7 +486,7 @@ func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
 			"id":         {Type: schema.TypeString},
 		}
 
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
+		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{
 			"repository": repositoryFullName,
 			"file":       fileName,
 			"branch":     branch,

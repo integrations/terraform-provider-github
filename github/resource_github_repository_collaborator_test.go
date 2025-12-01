@@ -10,13 +10,11 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
-
 	t.Skip("update <username> below to unskip this test run")
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates invitations without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -64,7 +62,6 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 	})
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
-
 		orgName := os.Getenv("GITHUB_ORGANIZATION")
 
 		if orgName == "" {
@@ -151,4 +148,93 @@ func TestParseRepoName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
+		// Note: This test requires GITHUB_TEST_COLLABORATOR to be set to a valid GitHub username
+		testCollaborator := os.Getenv("GITHUB_TEST_COLLABORATOR")
+		if testCollaborator == "" {
+			t.Skip("GITHUB_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
+		}
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-collab-archive-%s"
+				auto_init = true
+			}
+
+			resource "github_repository_collaborator" "test" {
+				repository = github_repository.test.name
+				username   = "%s"
+				permission = "pull"
+			}
+		`, randomID, testCollaborator)
+
+		archivedConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-collab-archive-%s"
+				auto_init = true
+				archived = true
+			}
+
+			resource "github_repository_collaborator" "test" {
+				repository = github_repository.test.name
+				username   = "%s"
+				permission = "pull"
+			}
+		`, randomID, testCollaborator)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository_collaborator.test", "username",
+								testCollaborator,
+							),
+							resource.TestCheckResourceAttr(
+								"github_repository_collaborator.test", "permission",
+								"pull",
+							),
+						),
+					},
+					{
+						Config: archivedConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "archived",
+								"true",
+							),
+						),
+					},
+					// This step should succeed - the collaborator should be removed from state
+					// without trying to actually delete it from the archived repo
+					{
+						Config: fmt.Sprintf(`
+							resource "github_repository" "test" {
+								name = "tf-acc-test-collab-archive-%s"
+								auto_init = true
+								archived = true
+							}
+						`, randomID),
+					},
+				},
+			})
+		}
+
+		t.Run("with individual mode", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with organization mode", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

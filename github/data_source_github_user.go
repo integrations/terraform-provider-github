@@ -102,7 +102,7 @@ func dataSourceGithubUser() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubUserRead(d *schema.ResourceData, meta any) error {
 	username := d.Get("username").(string)
 
 	client := meta.(*Owner).v3client
