@@ -828,9 +828,9 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 		// Get repository rulesets
 		rulesets, _, err := client.Repositories.GetAllRulesets(ctx, owner, repoName, true)
 		if err != nil {
-			return fmt.Errorf("error getting repository rulesets: %v", err)
+			return fmt.Errorf("error getting repository rulesets: %w", err)
 		}
-		d.Set("rulesets", rulesets)
+		_ = d.Set("rulesets", rulesets)
 	}
 
 	if repo.GetHasPages() {
