@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -1081,6 +1082,62 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
+		})
+	})
+}
+
+func TestGithubRepositoryRulesetArchived(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-archive-%s"
+				auto_init = true
+				archived  = false
+			}
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.name
+				target      = "branch"
+				enforcement = "active"
+				rules { creation = true }
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{Config: config},
+				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
+				{Config: strings.Replace(strings.Replace(config, "archived  = false", "archived  = true", 1), `enforcement = "active"`, `enforcement = "disabled"`, 1)},
+			},
+		})
+	})
+
+	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-archive-create-%s"
+				auto_init = true
+				archived  = true
+			}
+			resource "github_repository_ruleset" "test" {
+				name       = "test"
+				repository = github_repository.test.name
+				target     = "branch"
+				enforcement = "active"
+				rules { creation = true }
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
+			},
 		})
 	})
 }
