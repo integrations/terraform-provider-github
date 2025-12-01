@@ -812,18 +812,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
-		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-		d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
-		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
-		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
-		d.Set("has_downloads", repo.GetHasDownloads())
-		d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-		d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+		_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		_ = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
+		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
+		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
+		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
+		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
+		_ = d.Set("has_downloads", repo.GetHasDownloads())
+		_ = d.Set("merge_commit_message", repo.GetMergeCommitMessage())
+		_ = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
+		_ = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
+		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 
 		// Get repository rulesets
 		rulesets, _, err := client.Repositories.GetAllRulesets(ctx, owner, repoName, true)
