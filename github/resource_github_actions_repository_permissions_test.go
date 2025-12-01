@@ -49,6 +49,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
+		shaPinningRequired := true
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
@@ -66,9 +67,10 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
 				}
+				sha_pinning_required = %t
 				repository = github_repository.test.name
 			}
-		`, repoName, allowedActions, githubOwnedAllowed, verifiedAllowed)
+		`, repoName, allowedActions, githubOwnedAllowed, verifiedAllowed, shaPinningRequired)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
