@@ -824,13 +824,6 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 		_ = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
 		_ = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
 		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
-
-		// Get repository rulesets
-		rulesets, _, err := client.Repositories.GetAllRulesets(ctx, owner, repoName, true)
-		if err != nil {
-			return fmt.Errorf("error getting repository rulesets: %w", err)
-		}
-		_ = d.Set("rulesets", rulesets)
 	}
 
 	if repo.GetHasPages() {
@@ -907,11 +900,6 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta any) error {
 	if !d.HasChange("security_and_analysis") {
 		repoReq.SecurityAndAnalysis = nil
 		log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
-	}
-
-	// Skip ruleset operations if repository is archived
-	if d.Get("archived").(bool) {
-		log.Printf("[DEBUG] Repository is archived, skipping ruleset operations")
 	}
 
 	// The documentation for `default_branch` states: "This can only be set
