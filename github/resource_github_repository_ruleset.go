@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v67/github"
@@ -39,9 +40,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the repository to apply rulset to.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
