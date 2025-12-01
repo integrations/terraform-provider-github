@@ -657,6 +657,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 				return nil
 			}
 		}
+		return err
 	}
 
 	if ruleset == nil {
