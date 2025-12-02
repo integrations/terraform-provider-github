@@ -22,8 +22,9 @@ func dataSourceGithubActionsRemoveToken() *schema.Resource {
 				ForceNew: true,
 			},
 			"token": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 			"expires_at": {
 				Type:     schema.TypeInt,

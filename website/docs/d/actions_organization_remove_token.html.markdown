@@ -1,6 +1,6 @@
 ---
 layout: "github"
-page_title: "GitHub: actions_organization_remove_token"
+page_title: "GitHub: github_actions_organization_remove_token"
 description: |-
   Get a GitHub Actions organization remove token.
 ---
