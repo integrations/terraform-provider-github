@@ -8,6 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// dataSourceGithubActionsOrganizationRemoveToken is a data source that creates a token that can be
+// used to remove a self-hosted runner from an organization.
+// https://docs.github.com/en/enterprise-cloud@latest/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-remove-token-for-an-organization
 func dataSourceGithubActionsOrganizationRemoveToken() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceGithubActionsOrganizationRemoveTokenRead,
@@ -25,7 +28,7 @@ func dataSourceGithubActionsOrganizationRemoveToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationRemoveTokenRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsOrganizationRemoveTokenRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
