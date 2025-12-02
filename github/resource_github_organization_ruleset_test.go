@@ -564,7 +564,8 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("Validates tag target requires conditions", func(t *testing.T) {
+	t.Run("validates_tag_target_requires_conditions", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-tag-no-conditions-%s"
@@ -577,37 +578,20 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`conditions block is required for tag target`),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`conditions block is required for tag target`),
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
-		})
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("Validates push target rejects ref_name", func(t *testing.T) {
+	t.Run("validates_push_target_rejects_ref_name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-push-with-ref-%s"
@@ -631,37 +615,21 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`ref_name must not be set for push target`),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`ref_name must not be set for push target`),
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			},
 		})
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
 	})
 
-	t.Run("Validates repository target rejects ref_name", func(t *testing.T) {
+	t.Run("validates_repository_target_rejects_ref_name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-repo-with-ref-%s"
@@ -685,33 +653,15 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`ref_name must not be set for repository target`),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`ref_name must not be set for repository target`),
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
-		})
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }
