@@ -120,6 +120,7 @@ func testOrganizationFunc() string {
 	organization := os.Getenv("GITHUB_ORGANIZATION")
 	if organization == "" {
 		organization = os.Getenv("GITHUB_TEST_ORGANIZATION")
+		os.Setenv("GITHUB_ORGANIZATION", organization)
 	}
 	return organization
 }
@@ -128,6 +129,7 @@ func testOwnerFunc() string {
 	owner := os.Getenv("GITHUB_OWNER")
 	if owner == "" {
 		owner = os.Getenv("GITHUB_TEST_OWNER")
+		os.Setenv("GITHUB_OWNER", owner)
 	}
 	return owner
 }
