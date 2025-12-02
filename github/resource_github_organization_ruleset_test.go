@@ -628,16 +628,8 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			testCase(t, enterprise)
 		})
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
 		})
 	})
 
@@ -671,16 +663,8 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			testCase(t, enterprise)
 		})
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
 		})
 	})
 
@@ -725,16 +709,8 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			testCase(t, enterprise)
 		})
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
 		})
 	})
 
@@ -779,16 +755,8 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			testCase(t, enterprise)
 		})
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
 		})
 	})
 }
