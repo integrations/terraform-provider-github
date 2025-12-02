@@ -335,7 +335,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		been deleted already (via parallel runs), the child team is also already gone (deleted by
 		GitHub automatically).
 		So we're checking if it still exists and if not, simply remove it from TF state.
-	*/if err != nil {
+	*/ if err != nil {
 		// Fetch the team in order to see if it exists or not (http 404)
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {

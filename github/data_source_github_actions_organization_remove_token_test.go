@@ -7,9 +7,7 @@ import (
 )
 
 func TestAccGithubActionsOrganizationRemoveTokenDataSource(t *testing.T) {
-
 	t.Run("get an organization remove token without error", func(t *testing.T) {
-
 		config := `
 			data "github_actions_organization_remove_token" "test" {
 			}
@@ -44,6 +42,5 @@ func TestAccGithubActionsOrganizationRemoveTokenDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }
