@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -63,10 +64,12 @@ func resourceGithubRepository() *schema.Resource {
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false), "visibility"),
 				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
 			},
+			// terraform-sdk-provider doesn't properly support tristate booleans: https://github.com/hashicorp/terraform-plugin-sdk/issues/817
+			// Using TypeString as the best alternative for now.
 			"fork": {
-				Type:        schema.TypeBool,
+				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "Set to 'true' to fork an existing repository.",
 			},
 			"source_owner": {
@@ -479,8 +482,24 @@ func resourceGithubRepository() *schema.Resource {
 				Description: " Set to 'true' to always suggest updating pull request branches.",
 			},
 		},
-		CustomizeDiff: customDiffFunction,
+		CustomizeDiff: customdiff.All(
+			customDiffFunction,
+			customdiff.ForceNewIfChange("fork", func(ctx context.Context, old, new, meta any) bool {
+				oldVal := old.(string)
+				newVal := new.(string)
+				return oldVal != "" && oldVal != newVal
+			}),
+		),
 	}
+}
+
+func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
+	if diff.HasChange("name") {
+		if err := diff.SetNewComputed("full_name"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func calculateVisibility(d *schema.ResourceData) string {
@@ -838,7 +857,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	// Set fork information if this is a fork
 	if repo.GetFork() {
-		_ = d.Set("fork", true)
+		_ = d.Set("fork", "true")
 
 		// If the repository has parent information, set the source details
 		if repo.Parent != nil {
@@ -846,7 +865,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 			_ = d.Set("source_repo", repo.Parent.GetName())
 		}
 	} else {
-		_ = d.Set("fork", false)
+		_ = d.Set("fork", "false")
 		_ = d.Set("source_owner", "")
 		_ = d.Set("source_repo", "")
 	}
@@ -1216,15 +1235,6 @@ func resourceGithubParseFullName(resourceDataLike interface {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
-}
-
-func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
-	if diff.HasChange("name") {
-		if err := diff.SetNewComputed("full_name"); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
