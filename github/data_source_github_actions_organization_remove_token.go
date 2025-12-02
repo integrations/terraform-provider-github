@@ -17,13 +17,15 @@ func dataSourceGithubActionsOrganizationRemoveToken() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Token used to remove a self-hosted runner from an organization.",
 			},
 			"expires_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The token expiration date.",
 			},
 		},
 	}
