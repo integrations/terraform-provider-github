@@ -32,7 +32,7 @@ func dataSourceGithubActionsOrganizationRemoveTokenRead(d *schema.ResourceData, 
 	log.Printf("[DEBUG] Creating a GitHub Actions organization remove token for %s", owner)
 	token, _, err := client.Actions.CreateOrganizationRemoveToken(context.TODO(), owner)
 	if err != nil {
-		return fmt.Errorf("error creating a GitHub Actions organization remove token for %s: %s", owner, err)
+		return fmt.Errorf("error creating a GitHub Actions organization remove token for %s: %w", owner, err)
 	}
 
 	d.SetId(owner)
