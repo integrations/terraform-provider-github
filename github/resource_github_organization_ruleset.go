@@ -93,7 +93,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
