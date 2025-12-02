@@ -604,8 +604,16 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) err
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
+	// Check if repository is archived - cannot create rulesets on archived repos (attempts PUT on read-only resource)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+	if repo.GetArchived() {
+		return fmt.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
+	}
+
 	var ruleset *github.Ruleset
-	var err error
 
 	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
 	if err != nil {
@@ -687,6 +695,16 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
+	// Check if repository is archived - skip update if it is
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+	if repo.GetArchived() {
+		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
+		return nil
+	}
+
 	var ruleset *github.Ruleset
 	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
 	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
@@ -718,7 +736,7 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) err
 
 	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return err
+	return handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName)
 }
 
 func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
