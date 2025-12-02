@@ -892,6 +892,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
+
 	repoReq := resourceGithubRepositoryObject(d)
 
 	// handle visibility updates separately from other fields
