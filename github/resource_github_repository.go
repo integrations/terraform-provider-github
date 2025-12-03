@@ -679,12 +679,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta any) error {
 
 			d.SetId(*repo.Name)
 		}
-	} else if d.Get("fork").(bool) {
+	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
 		sourceOwner := d.Get("source_owner").(string)
 		sourceRepo := d.Get("source_repo").(string)
 		requestedName := d.Get("name").(string)
-		owner := meta.(*Owner).name
 		log.Printf("[INFO] Creating fork of %s/%s in %s", sourceOwner, sourceRepo, owner)
 
 		if sourceOwner == "" || sourceRepo == "" {

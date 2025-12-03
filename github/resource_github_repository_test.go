@@ -2,12 +2,14 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -1933,4 +1935,118 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			t.Skip("anonymous account not supported for this operation")
 		})
 	})
+
+	t.Run("can migrate a forked repository from a previous framework version", func(t *testing.T) {
+		rName := fmt.Sprintf("terraform-provider-github-%s", randomID)
+		olderConfig := fmt.Sprintf(`
+			  import {
+				to = github_repository.forked
+				id = "%[1]s"
+			  }
+			  resource "github_repository" "forked" {
+					name         = "%[1]s"
+					description  = "Terraform acceptance test - forked repository %[1]s"
+			  }
+		 `, rName)
+		newerConfig := fmt.Sprintf(`
+			  resource "github_repository" "forked" {
+					name         = "%[1]s"
+					description  = "Terraform acceptance test - forked repository %[1]s"
+					fork         = true
+					source_owner = "integrations"
+					source_repo  = "terraform-provider-github"
+			  }
+		 `, rName)
+
+		testCase := func(t *testing.T, mode string) {
+			providers := []*schema.Provider{testAccProvider}
+			resource.Test(t, resource.TestCase{
+				PreCheck: func() { skipUnlessMode(t, mode) },
+				Steps: []resource.TestStep{
+					{
+						ExternalProviders: map[string]resource.ExternalProvider{
+							"github": {
+								VersionConstraint: "~> 6.7.0",
+								Source:            "integrations/github",
+							},
+						},
+						PreConfig: func() {
+							err := createForkedRepository(rName)
+							if err != nil {
+								t.Fatalf("failed to create fork of %s: %v", rName, err)
+							}
+						},
+						Config: olderConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckNoResourceAttr(
+								"github_repository.forked", "fork",
+							),
+							resource.TestCheckNoResourceAttr(
+								"github_repository.forked", "source_owner",
+							),
+							resource.TestCheckNoResourceAttr(
+								"github_repository.forked", "source_repo",
+							),
+						),
+					},
+					{
+						ProviderFactories: testAccProviderFactories(&providers),
+						Config:            newerConfig,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.forked", "fork",
+								"true",
+							),
+							resource.TestCheckResourceAttr(
+								"github_repository.forked", "source_owner",
+								"integrations",
+							),
+							resource.TestCheckResourceAttr(
+								"github_repository.forked", "source_repo",
+								"terraform-provider-github",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+	})
+
+}
+
+func createForkedRepository(repositoryName string) error {
+	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganizationFunc(), Token: testToken}
+	meta, err := config.Meta()
+	if err != nil {
+		return fmt.Errorf("failed to create client: %v", err)
+	}
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	ctx := context.TODO()
+
+	_, _, err = client.Repositories.CreateFork(ctx, "integrations", "snappydoo", &github.RepositoryCreateForkOptions{
+		Organization: orgName,
+		Name:         repositoryName,
+	})
+
+	acceptedError := &github.AcceptedError{}
+	if err != nil {
+		if errors.As(err, &acceptedError) {
+			return nil
+		}
+		return fmt.Errorf("failed to create fork: %v", err)
+	}
+	return nil
 }
