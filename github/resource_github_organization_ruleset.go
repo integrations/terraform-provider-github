@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+  "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
@@ -858,25 +859,26 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func validateConditionsFieldForBranchAndTagTargets(d *schema.ResourceDiff, _ any) error {
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	if conditions["ref_name"] == nil || conditions["repository_name"] == nil || conditions["repository_id"] == nil {
-		return fmt.Errorf("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets")
+	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]any{"conditions": conditions})
 	}
 	return nil
 }
 
-func validateConditionsFieldForPushTarget(d *schema.ResourceDiff, _ any) error {
+func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	if conditions["ref_name"] != nil {
+	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"conditions": conditions})
+
 		return fmt.Errorf("ref_name must not be set for push target")
 	}
 	return nil
 }
 
-func validateConditionsFieldForRepositoryTarget(d *schema.ResourceDiff, _ any) error {
+func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	if conditions["ref_name"] != nil {
+	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"conditions": conditions})
+
 		return fmt.Errorf("ref_name must not be set for repository target")
 	}
 	if conditions["repository_name"] == nil && conditions["repository_id"] == nil {
@@ -887,6 +889,7 @@ func validateConditionsFieldForRepositoryTarget(d *schema.ResourceDiff, _ any) e
 
 func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
 	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
 
 	// Handle empty conditions - branch and tag targets require conditions with ref_name
@@ -896,11 +899,11 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 
 	switch target {
 	case "branch", "tag":
-		return validateConditionsFieldForBranchAndTagTargets(d, meta)
+		return validateConditionsFieldForBranchAndTagTargets(ctx, d, meta)
 	case "push":
-		return validateConditionsFieldForPushTarget(d, meta)
+		return validateConditionsFieldForPushTarget(ctx, d, meta)
 	case "repository":
-		return validateConditionsFieldForRepositoryTarget(d, meta)
+		return validateConditionsFieldForRepositoryTarget(ctx, d, meta)
 	}
 	return nil
 }
