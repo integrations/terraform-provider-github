@@ -734,36 +734,39 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 }
 
 func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]interface{}{"conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]interface{}{"target": target, "conditions": conditions})
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
-		return fmt.Errorf("ref_name must be set for branch and tag targets")
+		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
-		return fmt.Errorf("Either repository_name or repository_id must be set for branch and tag targets")
+		return fmt.Errorf("Either repository_name or repository_id must be set for %s target", target)
 	}
 	return nil
 }
 
 func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for push target", map[string]interface{}{"conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for push target", map[string]interface{}{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-		return fmt.Errorf("ref_name must not be set for push target")
+		return fmt.Errorf("ref_name must not be set for %s target", target)
 	}
 	return nil
 }
 
 func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]interface{}{"conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]interface{}{"target": target, "conditions": conditions})
 
   if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-		return fmt.Errorf("ref_name must not be set for repository target")
+		return fmt.Errorf("ref_name must not be set for %s target", target)
 	}
 	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
-		return fmt.Errorf("repository_name or repository_id must be set for repository target")
+		return fmt.Errorf("repository_name or repository_id must be set for %s target", target)
 	}
 	return nil
 }
