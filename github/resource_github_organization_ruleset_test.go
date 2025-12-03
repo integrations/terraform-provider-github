@@ -633,8 +633,12 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			})
 		}
 
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
 		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
 		})
 	})
 
