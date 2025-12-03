@@ -599,6 +599,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 
 	if expandedRules == nil {
 		t.Fatal("Expected expanded rules to not be nil")
+		return
 	}
 
 	// Verify we have all expected push rule types

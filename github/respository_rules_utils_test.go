@@ -22,6 +22,7 @@ func TestExpandRulesBasicRules(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
+		return
 	}
 
 	// Check boolean rules - they use EmptyRuleParameters and are nil when false
@@ -103,10 +104,12 @@ func TestExpandRulesMaxFilePathLength(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
+		return
 	}
 
 	if result.MaxFilePathLength == nil {
 		t.Fatal("Expected MaxFilePathLength rule to be set")
+		return
 	}
 
 	if result.MaxFilePathLength.MaxFilePathLength != maxPathLength {
@@ -199,10 +202,12 @@ func TestExpandRulesMaxFileSize(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
+		return
 	}
 
 	if result.MaxFileSize == nil {
 		t.Fatal("Expected MaxFileSize rule to be set")
+		return
 	}
 
 	if result.MaxFileSize.MaxFileSize != maxFileSize {
@@ -254,10 +259,12 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
+		return
 	}
 
 	if result.FileExtensionRestriction == nil {
 		t.Fatal("Expected FileExtensionRestriction rule to be set")
+		return
 	}
 
 	if len(result.FileExtensionRestriction.RestrictedFileExtensions) != len(restrictedExtensions) {
@@ -342,6 +349,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 
 	if expandedRules == nil {
 		t.Fatal("Expected expandedRules to not be nil")
+		return
 	}
 
 	// Count how many rules we have
