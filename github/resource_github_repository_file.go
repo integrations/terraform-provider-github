@@ -455,16 +455,14 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 
 	var branch string
 
-	message := fmt.Sprintf("Delete %s", file)
-
-	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		message = commitMessage.(string)
+	opts, err := resourceGithubRepositoryFileOptions(d)
+	if err != nil {
+		return err
 	}
 
-	sha := d.Get("sha").(string)
-	opts := &github.RepositoryContentFileOptions{
-		Message: &message,
-		SHA:     &sha,
+	if *opts.Message == fmt.Sprintf("Add %s", file) {
+		m := fmt.Sprintf("Delete %s", file)
+		opts.Message = &m
 	}
 
 	if b, ok := d.GetOk("branch"); ok {
@@ -498,7 +496,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 		opts.Branch = &branch
 	}
 
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return handleArchivedRepoDelete(err, "repository file", file, owner, repo)
 }
 

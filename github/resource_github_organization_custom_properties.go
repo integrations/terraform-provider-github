@@ -59,6 +59,13 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"values_editable_by": {
+				Description:      "Who can edit the values of the custom property. Can be one of 'org_actors' or 'org_and_repo_actors'. If not specified, the default is 'org_actors' (only organization owners can edit values)",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"org_actors", "org_and_repo_actors"}),
+			},
 		},
 	}
 }
@@ -78,15 +85,19 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	for _, v := range allowedValues {
 		allowedValuesString = append(allowedValuesString, v.(string))
 	}
+	valuesEditableBy := d.Get("values_editable_by").(string)
 
-	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), &github.CustomProperty{
-		PropertyName:  &propertyName,
-		ValueType:     valueType,
-		Required:      &required,
-		DefaultValue:  &defaultValue,
-		Description:   &description,
-		AllowedValues: allowedValuesString,
-	})
+	customProperty := &github.CustomProperty{
+		PropertyName:     &propertyName,
+		ValueType:        valueType,
+		Required:         &required,
+		DefaultValue:     &defaultValue,
+		Description:      &description,
+		AllowedValues:    allowedValuesString,
+		ValuesEditableBy: &valuesEditableBy,
+	}
+
+	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
 	if err != nil {
 		return err
 	}
@@ -112,6 +123,7 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 	_ = d.Set("property_name", customProperty.PropertyName)
 	_ = d.Set("required", customProperty.Required)
 	_ = d.Set("value_type", customProperty.ValueType)
+	_ = d.Set("values_editable_by", customProperty.ValuesEditableBy)
 
 	return nil
 }

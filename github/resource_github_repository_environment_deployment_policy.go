@@ -27,7 +27,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of the repository. The name is not case sensitive.",
+				Description: "The name of the GitHub repository.",
 			},
 			"environment": {
 				Type:        schema.TypeString,
