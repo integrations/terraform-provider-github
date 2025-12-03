@@ -5,8 +5,8 @@ go 1.24.0
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/go-jose/go-jose/v3 v3.0.4
-	github.com/google/go-github/v77 v77.0.0
 	github.com/golangci/golangci-lint/v2 v2.6.2
+	github.com/google/go-github/v77 v77.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
