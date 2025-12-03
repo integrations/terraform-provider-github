@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -86,7 +86,7 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 	}
 
 	orgName := meta.(*Owner).name
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 		}
 
 		for _, t := range smTeams {
-			if t.GetID() == teamId {
+			if t.GetID() == teamID {
 				smTeam = t
 				break
 			}
@@ -142,9 +142,9 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 		return err
 	}
 
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 	orgName := meta.(*Owner).name
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,8 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
+	team, _, err := client.Teams.GetTeamByID(ctx, orgID, teamID)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -117,8 +117,8 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 
 	newTeam := github.NewTeam{
 		Name:        name,
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -126,11 +126,11 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		teamId, err := getTeamID(parentTeamID.(string), meta)
+		teamID, err := getTeamID(parentTeamID.(string), meta)
 		if err != nil {
 			return err
 		}
-		newTeam.ParentTeamID = &teamId
+		newTeam.ParentTeamID = &teamID
 	}
 	ctx := context.Background()
 
@@ -154,8 +154,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta any) error {
 		on the parent team, the operation might still fail to set the parent team.
 	*/
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
+		//nolint:staticcheck // SA1019: EditTeamByID is deprecated but still needed for legacy compatibility
 		_, _, err := client.Teams.EditTeamByID(ctx,
-			*githubTeam.Organization.ID,
+			meta.(*Owner).id,
 			*githubTeam.ID,
 			newTeam,
 			false)
@@ -183,7 +184,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -194,7 +195,8 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
+	team, resp, err := client.Teams.GetTeamByID(ctx, orgID, id)
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(err, &ghErr) {
@@ -267,32 +269,33 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
 		Name:        d.Get("name").(string),
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		Privacy:     github.Ptr(d.Get("privacy").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		teamId, err := getTeamID(parentTeamID.(string), meta)
+		teamID, err := getTeamID(parentTeamID.(string), meta)
 		if err != nil {
 			return err
 		}
-		editedTeam.ParentTeamID = &teamId
+		editedTeam.ParentTeamID = &teamID
 		removeParentTeam = false
 	} else {
 		removeParentTeam = true
 	}
 
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
+	teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
+	//nolint:staticcheck // SA1019: EditTeamByID is deprecated but still needed for legacy compatibility
+	team, _, err := client.Teams.EditTeamByID(ctx, meta.(*Owner).id, teamID, editedTeam, removeParentTeam)
 	if err != nil {
 		return err
 	}
@@ -300,7 +303,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta any) error {
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.String(ldapDN),
+			LDAPDN: github.Ptr(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {
@@ -319,7 +322,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -327,7 +330,8 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	//nolint:staticcheck // SA1019: DeleteTeamByID is deprecated but still needed for legacy compatibility
+	_, err = client.Teams.DeleteTeamByID(ctx, orgID, id)
 	/*
 		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
 		This could be the case when deleting nested teams via Terraform by looping through a module
@@ -337,7 +341,8 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		So we're checking if it still exists and if not, simply remove it from TF state.
 	*/if err != nil {
 		// Fetch the team in order to see if it exists or not (http 404)
-		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
+		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
+		_, _, err = client.Teams.GetTeamByID(ctx, orgID, id)
 		if err != nil {
 			ghErr := &github.ErrorResponse{}
 			if errors.As(err, &ghErr) {
@@ -355,12 +360,12 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 }
 
 func resourceGithubTeamImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	teamId, err := getTeamID(d.Id(), meta)
+	teamID, err := getTeamID(d.Id(), meta)
 	if err != nil {
 		return nil, err
 	}
 
-	d.SetId(strconv.FormatInt(teamId, 10))
+	d.SetId(strconv.FormatInt(teamID, 10))
 	if err = d.Set("create_default_maintainer", false); err != nil {
 		return nil, err
 	}

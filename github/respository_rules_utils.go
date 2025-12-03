@@ -1,16 +1,42 @@
 package github
 
 import (
-	"encoding/json"
-	"log"
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Ruleset {
+// Helper function to safely convert interface{} to int, handling both int and float64.
+func toInt(v any) int {
+	switch val := v.(type) {
+	case int:
+		return val
+	case float64:
+		return int(val)
+	case int64:
+		return int(val)
+	default:
+		return 0
+	}
+}
+
+// Helper function to safely convert interface{} to int64, handling both int and float64.
+func toInt64(v any) int64 {
+	switch val := v.(type) {
+	case int:
+		return int64(val)
+	case int64:
+		return val
+	case float64:
+		return int64(val)
+	default:
+		return 0
+	}
+}
+
+func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.RepositoryRuleset {
 	isOrgLevel := len(org) > 0
 
 	var source, sourceType string
@@ -22,12 +48,16 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.Rul
 		sourceType = "Repository"
 	}
 
-	return &github.Ruleset{
+	target := github.RulesetTarget(d.Get("target").(string))
+	enforcement := github.RulesetEnforcement(d.Get("enforcement").(string))
+	sourceTypeEnum := github.RulesetSourceType(sourceType)
+
+	return &github.RepositoryRuleset{
 		Name:         d.Get("name").(string),
-		Target:       github.String(d.Get("target").(string)),
+		Target:       &target,
 		Source:       source,
-		SourceType:   &sourceType,
-		Enforcement:  d.Get("enforcement").(string),
+		SourceType:   &sourceTypeEnum,
+		Enforcement:  enforcement,
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
 		Conditions:   expandConditions(d.Get("conditions").([]any), isOrgLevel),
 		Rules:        expandRules(d.Get("rules").([]any), isOrgLevel),
@@ -54,20 +84,23 @@ func expandBypassActors(input []any) []*github.BypassActor {
 	for _, v := range input {
 		inputMap := v.(map[string]any)
 		actor := &github.BypassActor{}
-		if v, ok := inputMap["actor_id"].(int); ok {
-			if v == 0 {
+		if actorIDVal, ok := inputMap["actor_id"]; ok {
+			actorID := toInt(actorIDVal)
+			if actorID == 0 {
 				actor.ActorID = nil
 			} else {
-				actor.ActorID = github.Int64(int64(v))
+				actor.ActorID = github.Ptr(int64(actorID))
 			}
 		}
 
 		if v, ok := inputMap["actor_type"].(string); ok {
-			actor.ActorType = &v
+			actorType := github.BypassActorType(v)
+			actor.ActorType = &actorType
 		}
 
 		if v, ok := inputMap["bypass_mode"].(string); ok {
-			actor.BypassMode = &v
+			bypassMode := github.BypassMode(v)
+			actor.BypassMode = &bypassMode
 		}
 		bypassActors = append(bypassActors, actor)
 	}
@@ -93,11 +126,11 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 	return actorsSlice
 }
 
-func expandConditions(input []any, org bool) *github.RulesetConditions {
+func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
-	rulesetConditions := &github.RulesetConditions{}
+	rulesetConditions := &github.RepositoryRulesetConditions{}
 	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
@@ -118,7 +151,7 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 			}
 		}
 
-		rulesetConditions.RefName = &github.RulesetRefConditionParameters{
+		rulesetConditions.RefName = &github.RepositoryRulesetRefConditionParameters{
 			Include: include,
 			Exclude: exclude,
 		}
@@ -146,7 +179,7 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 
 			protected := inputRepositoryName["protected"].(bool)
 
-			rulesetConditions.RepositoryName = &github.RulesetRepositoryNamesConditionParameters{
+			rulesetConditions.RepositoryName = &github.RepositoryRulesetRepositoryNamesConditionParameters{
 				Include:   include,
 				Exclude:   exclude,
 				Protected: &protected,
@@ -156,18 +189,18 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 
 			for _, v := range v {
 				if v != nil {
-					repositoryIDs = append(repositoryIDs, int64(v.(int)))
+					repositoryIDs = append(repositoryIDs, toInt64(v))
 				}
 			}
 
-			rulesetConditions.RepositoryID = &github.RulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
 		}
 	}
 
 	return rulesetConditions
 }
 
-func flattenConditions(conditions *github.RulesetConditions, org bool) []any {
+func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
 	if conditions == nil || conditions.RefName == nil {
 		return []any{}
 	}
@@ -209,95 +242,53 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []any {
 	return []any{conditionsMap}
 }
 
-func expandRules(input []any, org bool) []*github.RepositoryRule {
+func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	if len(input) == 0 || input[0] == nil {
-		return nil
+		return &github.RepositoryRulesetRules{}
 	}
 
 	rulesMap := input[0].(map[string]any)
-	rulesSlice := make([]*github.RepositoryRule, 0)
+	rulesetRules := &github.RepositoryRulesetRules{}
 
-	// First we expand rules without parameters
+	// Simple rules without parameters
 	if v, ok := rulesMap["creation"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewCreationRule())
-	}
-
-	if v, ok := rulesMap["update"].(bool); ok && v {
-		params := github.UpdateAllowsFetchAndMergeRuleParameters{}
-		if fetchAndMerge, ok := rulesMap["update"].(bool); ok && fetchAndMerge {
-			params.UpdateAllowsFetchAndMerge = true
-		} else {
-			params.UpdateAllowsFetchAndMerge = false
-		}
-		rulesSlice = append(rulesSlice, github.NewUpdateRule(&params))
+		rulesetRules.Creation = &github.EmptyRuleParameters{}
 	}
 
 	if v, ok := rulesMap["deletion"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewDeletionRule())
+		rulesetRules.Deletion = &github.EmptyRuleParameters{}
 	}
 
 	if v, ok := rulesMap["required_linear_history"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewRequiredLinearHistoryRule())
+		rulesetRules.RequiredLinearHistory = &github.EmptyRuleParameters{}
 	}
 
 	if v, ok := rulesMap["required_signatures"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewRequiredSignaturesRule())
+		rulesetRules.RequiredSignatures = &github.EmptyRuleParameters{}
 	}
 
 	if v, ok := rulesMap["non_fast_forward"].(bool); ok && v {
-		rulesSlice = append(rulesSlice, github.NewNonFastForwardRule())
+		rulesetRules.NonFastForward = &github.EmptyRuleParameters{}
+	}
+
+	// Update rule with parameters
+	if v, ok := rulesMap["update"].(bool); ok && v {
+		updateParams := &github.UpdateRuleParameters{}
+		if updateMerge, ok := rulesMap["update_allows_fetch_and_merge"].(bool); ok {
+			updateParams.UpdateAllowsFetchAndMerge = updateMerge
+		}
+		rulesetRules.Update = updateParams
 	}
 
 	// Required deployments rule
-	if !org {
-		if v, ok := rulesMap["required_deployments"].([]any); ok && len(v) != 0 {
-			requiredDeploymentsMap := make(map[string]any)
-			// If the rule's block is present but has an empty environments list
-			if v[0] == nil {
-				requiredDeploymentsMap["required_deployment_environments"] = make([]any, 0)
-			} else {
-				requiredDeploymentsMap = v[0].(map[string]any)
-			}
-			envs := make([]string, 0)
-			for _, v := range requiredDeploymentsMap["required_deployment_environments"].([]any) {
-				envs = append(envs, v.(string))
-			}
-
-			params := &github.RequiredDeploymentEnvironmentsRuleParameters{
-				RequiredDeploymentEnvironments: envs,
-			}
-
-			rulesSlice = append(rulesSlice, github.NewRequiredDeploymentsRule(params))
+	if v, ok := rulesMap["required_deployments"].([]any); ok && len(v) != 0 {
+		requiredDeploymentsMap := v[0].(map[string]any)
+		envs := make([]string, 0)
+		for _, env := range requiredDeploymentsMap["required_deployment_environments"].([]any) {
+			envs = append(envs, env.(string))
 		}
-	}
-
-	// Pattern parameter rules
-	for _, k := range []string{"commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern"} {
-		if v, ok := rulesMap[k].([]any); ok && len(v) != 0 {
-			patternParametersMap := v[0].(map[string]any)
-
-			name := patternParametersMap["name"].(string)
-			negate := patternParametersMap["negate"].(bool)
-
-			params := &github.RulePatternParameters{
-				Name:     &name,
-				Negate:   &negate,
-				Operator: patternParametersMap["operator"].(string),
-				Pattern:  patternParametersMap["pattern"].(string),
-			}
-
-			switch k {
-			case "commit_message_pattern":
-				rulesSlice = append(rulesSlice, github.NewCommitMessagePatternRule(params))
-			case "commit_author_email_pattern":
-				rulesSlice = append(rulesSlice, github.NewCommitAuthorEmailPatternRule(params))
-			case "committer_email_pattern":
-				rulesSlice = append(rulesSlice, github.NewCommitterEmailPatternRule(params))
-			case "branch_name_pattern":
-				rulesSlice = append(rulesSlice, github.NewBranchNamePatternRule(params))
-			case "tag_name_pattern":
-				rulesSlice = append(rulesSlice, github.NewTagNamePatternRule(params))
-			}
+		rulesetRules.RequiredDeployments = &github.RequiredDeploymentsRuleParameters{
+			RequiredDeploymentEnvironments: envs,
 		}
 	}
 
@@ -308,47 +299,44 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
 			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
 			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
-			RequiredApprovingReviewCount:   pullRequestMap["required_approving_review_count"].(int),
+			RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
 		}
-
-		rulesSlice = append(rulesSlice, github.NewPullRequestRule(params))
+		rulesetRules.PullRequest = params
 	}
 
 	// Merge queue rule
 	if v, ok := rulesMap["merge_queue"].([]any); ok && len(v) != 0 {
 		mergeQueueMap := v[0].(map[string]any)
 		params := &github.MergeQueueRuleParameters{
-			CheckResponseTimeoutMinutes:  mergeQueueMap["check_response_timeout_minutes"].(int),
-			GroupingStrategy:             mergeQueueMap["grouping_strategy"].(string),
-			MaxEntriesToBuild:            mergeQueueMap["max_entries_to_build"].(int),
-			MaxEntriesToMerge:            mergeQueueMap["max_entries_to_merge"].(int),
-			MergeMethod:                  mergeQueueMap["merge_method"].(string),
-			MinEntriesToMerge:            mergeQueueMap["min_entries_to_merge"].(int),
-			MinEntriesToMergeWaitMinutes: mergeQueueMap["min_entries_to_merge_wait_minutes"].(int),
+			CheckResponseTimeoutMinutes:  toInt(mergeQueueMap["check_response_timeout_minutes"]),
+			GroupingStrategy:             github.MergeGroupingStrategy(mergeQueueMap["grouping_strategy"].(string)),
+			MaxEntriesToBuild:            toInt(mergeQueueMap["max_entries_to_build"]),
+			MaxEntriesToMerge:            toInt(mergeQueueMap["max_entries_to_merge"]),
+			MergeMethod:                  github.MergeQueueMergeMethod(mergeQueueMap["merge_method"].(string)),
+			MinEntriesToMerge:            toInt(mergeQueueMap["min_entries_to_merge"]),
+			MinEntriesToMergeWaitMinutes: toInt(mergeQueueMap["min_entries_to_merge_wait_minutes"]),
 		}
-
-		rulesSlice = append(rulesSlice, github.NewMergeQueueRule(params))
+		rulesetRules.MergeQueue = params
 	}
 
 	// Required status checks rule
 	if v, ok := rulesMap["required_status_checks"].([]any); ok && len(v) != 0 {
 		requiredStatusMap := v[0].(map[string]any)
-		requiredStatusChecks := make([]github.RuleRequiredStatusChecks, 0)
+		requiredStatusChecks := make([]*github.RuleStatusCheck, 0)
 
 		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"]; ok {
-
 			requiredStatusChecksSet := requiredStatusChecksInput.(*schema.Set)
 			for _, checkMap := range requiredStatusChecksSet.List() {
 				check := checkMap.(map[string]any)
-				integrationID := github.Int64(int64(check["integration_id"].(int)))
+				integrationID := toInt64(check["integration_id"])
 
-				params := github.RuleRequiredStatusChecks{
+				params := &github.RuleStatusCheck{
 					Context: check["context"].(string),
 				}
 
-				if *integrationID != 0 {
-					params.IntegrationID = integrationID
+				if integrationID != 0 {
+					params.IntegrationID = github.Ptr(integrationID)
 				}
 
 				requiredStatusChecks = append(requiredStatusChecks, params)
@@ -361,109 +349,137 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
 			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
-		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
+		rulesetRules.RequiredStatusChecks = params
 	}
 
-	// Required workflows to pass before merging rule
-	if v, ok := rulesMap["required_workflows"].([]any); ok && len(v) != 0 {
-		requiredWorkflowsMap := v[0].(map[string]any)
-		requiredWorkflows := make([]*github.RuleRequiredWorkflow, 0)
+	// Pattern parameter rules
+	patternRules := map[string]*github.PatternRuleParameters{
+		"commit_message_pattern":      nil,
+		"commit_author_email_pattern": nil,
+		"committer_email_pattern":     nil,
+		"branch_name_pattern":         nil,
+		"tag_name_pattern":            nil,
+	}
 
-		if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
+	for k := range patternRules {
+		if v, ok := rulesMap[k].([]any); ok && len(v) != 0 {
+			patternParametersMap := v[0].(map[string]any)
 
-			requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
-			for _, workflowMap := range requiredWorkflowsSet.List() {
-				workflow := workflowMap.(map[string]any)
+			name := patternParametersMap["name"].(string)
+			negate := patternParametersMap["negate"].(bool)
 
-				// Get all parameters
-				repositoryID := github.Int64(int64(workflow["repository_id"].(int)))
-				ref := github.String(workflow["ref"].(string))
+			params := &github.PatternRuleParameters{
+				Name:     &name,
+				Negate:   &negate,
+				Operator: github.PatternRuleOperator(patternParametersMap["operator"].(string)),
+				Pattern:  patternParametersMap["pattern"].(string),
+			}
 
-				params := &github.RuleRequiredWorkflow{
-					RepositoryID: repositoryID,
-					Path:         workflow["path"].(string),
-					Ref:          ref,
-				}
-
-				requiredWorkflows = append(requiredWorkflows, params)
+			switch k {
+			case "commit_message_pattern":
+				rulesetRules.CommitMessagePattern = params
+			case "commit_author_email_pattern":
+				rulesetRules.CommitAuthorEmailPattern = params
+			case "committer_email_pattern":
+				rulesetRules.CommitterEmailPattern = params
+			case "branch_name_pattern":
+				rulesetRules.BranchNamePattern = params
+			case "tag_name_pattern":
+				rulesetRules.TagNamePattern = params
 			}
 		}
-
-		params := &github.RequiredWorkflowsRuleParameters{
-			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
-			RequiredWorkflows:    requiredWorkflows,
-		}
-		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
 
-	// Required code scanning to pass before merging rule
+	// Required workflows rule (org-only)
+	if org {
+		if v, ok := rulesMap["required_workflows"].([]any); ok && len(v) != 0 {
+			requiredWorkflowsMap := v[0].(map[string]any)
+			requiredWorkflows := make([]*github.RuleWorkflow, 0)
+
+			if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
+				requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
+				for _, workflowMap := range requiredWorkflowsSet.List() {
+					workflow := workflowMap.(map[string]any)
+
+					params := &github.RuleWorkflow{
+						RepositoryID: github.Ptr(toInt64(workflow["repository_id"])),
+						Path:         workflow["path"].(string),
+						Ref:          github.Ptr(workflow["ref"].(string)),
+					}
+
+					requiredWorkflows = append(requiredWorkflows, params)
+				}
+			}
+
+			doNotEnforceOnCreate := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
+			params := &github.WorkflowsRuleParameters{
+				DoNotEnforceOnCreate: &doNotEnforceOnCreate,
+				Workflows:            requiredWorkflows,
+			}
+			rulesetRules.Workflows = params
+		}
+	}
+
+	// Required code scanning rule
 	if v, ok := rulesMap["required_code_scanning"].([]any); ok && len(v) != 0 {
 		requiredCodeScanningMap := v[0].(map[string]any)
-		requiredCodeScanningTools := make([]*github.RuleRequiredCodeScanningTool, 0)
+		requiredCodeScanningTools := make([]*github.RuleCodeScanningTool, 0)
 
 		if requiredCodeScanningInput, ok := requiredCodeScanningMap["required_code_scanning_tool"]; ok {
-
 			requiredCodeScanningSet := requiredCodeScanningInput.(*schema.Set)
 			for _, codeScanningMap := range requiredCodeScanningSet.List() {
 				codeScanningTool := codeScanningMap.(map[string]any)
 
-				// Get all parameters
-				alertsThreshold := github.String(codeScanningTool["alerts_threshold"].(string))
-				securityAlertsThreshold := github.String(codeScanningTool["security_alerts_threshold"].(string))
-				tool := github.String(codeScanningTool["tool"].(string))
-
-				params := &github.RuleRequiredCodeScanningTool{
-					AlertsThreshold:         *alertsThreshold,
-					SecurityAlertsThreshold: *securityAlertsThreshold,
-					Tool:                    *tool,
+				params := &github.RuleCodeScanningTool{
+					AlertsThreshold:         github.CodeScanningAlertsThreshold(codeScanningTool["alerts_threshold"].(string)),
+					SecurityAlertsThreshold: github.CodeScanningSecurityAlertsThreshold(codeScanningTool["security_alerts_threshold"].(string)),
+					Tool:                    codeScanningTool["tool"].(string),
 				}
 
 				requiredCodeScanningTools = append(requiredCodeScanningTools, params)
 			}
 		}
 
-		params := &github.RequiredCodeScanningRuleParameters{
-			RequiredCodeScanningTools: requiredCodeScanningTools,
+		params := &github.CodeScanningRuleParameters{
+			CodeScanningTools: requiredCodeScanningTools,
 		}
-		rulesSlice = append(rulesSlice, github.NewRequiredCodeScanningRule(params))
+		rulesetRules.CodeScanning = params
 	}
 
-	// file_path_restriction rule
+	// File path restriction rule
 	if v, ok := rulesMap["file_path_restriction"].([]any); ok && len(v) != 0 {
 		filePathRestrictionMap := v[0].(map[string]any)
 		restrictedFilePaths := make([]string, 0)
 		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]any) {
 			restrictedFilePaths = append(restrictedFilePaths, path.(string))
 		}
-		params := &github.RuleFileParameters{
-			RestrictedFilePaths: &restrictedFilePaths,
+		params := &github.FilePathRestrictionRuleParameters{
+			RestrictedFilePaths: restrictedFilePaths,
 		}
-		rulesSlice = append(rulesSlice, github.NewFilePathRestrictionRule(params))
+		rulesetRules.FilePathRestriction = params
 	}
 
-	// max_file_size rule
+	// Max file size rule
 	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
 		maxFileSizeMap := v[0].(map[string]any)
-		maxFileSize := int64(maxFileSizeMap["max_file_size"].(int))
-		params := &github.RuleMaxFileSizeParameters{
+		maxFileSize := toInt64(maxFileSizeMap["max_file_size"])
+		params := &github.MaxFileSizeRuleParameters{
 			MaxFileSize: maxFileSize,
 		}
-		rulesSlice = append(rulesSlice, github.NewMaxFileSizeRule(params))
-
+		rulesetRules.MaxFileSize = params
 	}
 
-	// max_file_path_length rule
+	// Max file path length rule
 	if v, ok := rulesMap["max_file_path_length"].([]any); ok && len(v) != 0 {
 		maxFilePathLengthMap := v[0].(map[string]any)
-		maxFilePathLength := maxFilePathLengthMap["max_file_path_length"].(int)
-		params := &github.RuleMaxFilePathLengthParameters{
+		maxFilePathLength := toInt(maxFilePathLengthMap["max_file_path_length"])
+		params := &github.MaxFilePathLengthRuleParameters{
 			MaxFilePathLength: maxFilePathLength,
 		}
-		rulesSlice = append(rulesSlice, github.NewMaxFilePathLengthRule(params))
-
+		rulesetRules.MaxFilePathLength = params
 	}
 
-	// file_extension_restriction rule
+	// File extension restriction rule
 	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]any)
 		restrictedFileExtensions := make([]string, 0)
@@ -473,263 +489,220 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 		for _, extension := range extensionSet.List() {
 			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
 		}
-
-		if len(restrictedFileExtensions) > 0 {
-			params := &github.RuleFileExtensionRestrictionParameters{
-				RestrictedFileExtensions: restrictedFileExtensions,
-			}
-			rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
+		params := &github.FileExtensionRestrictionRuleParameters{
+			RestrictedFileExtensions: restrictedFileExtensions,
 		}
+		rulesetRules.FileExtensionRestriction = params
 	}
 
-	return rulesSlice
+	return rulesetRules
 }
 
-func flattenRules(rules []*github.RepositoryRule, org bool) []any {
-	if len(rules) == 0 || rules == nil {
+func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
+	if rules == nil {
 		return []any{}
 	}
 
 	rulesMap := make(map[string]any)
-	for _, v := range rules {
-		switch v.Type {
-		case "creation", "deletion", "required_linear_history", "required_signatures", "non_fast_forward":
-			rulesMap[v.Type] = true
 
-		case "update":
-			var params github.UpdateAllowsFetchAndMergeRuleParameters
-			if v.Parameters != nil {
-				err := json.Unmarshal(*v.Parameters, &params)
-				if err != nil {
-					log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-						v.Type, v.Parameters)
-				}
-				rulesMap["update_allows_fetch_and_merge"] = params.UpdateAllowsFetchAndMerge
+	// Simple boolean rules - explicitly set all to false first, then override with true if present
+	rulesMap["creation"] = rules.Creation != nil
+	rulesMap["deletion"] = rules.Deletion != nil
+	rulesMap["required_linear_history"] = rules.RequiredLinearHistory != nil
+	rulesMap["required_signatures"] = rules.RequiredSignatures != nil
+	rulesMap["non_fast_forward"] = rules.NonFastForward != nil
+
+	// Update rule with parameters
+	if rules.Update != nil {
+		rulesMap["update"] = true
+		rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+	} else {
+		rulesMap["update"] = false
+		rulesMap["update_allows_fetch_and_merge"] = false
+	} // Required deployments rule
+	if rules.RequiredDeployments != nil {
+		requiredDeploymentsSlice := make([]map[string]any, 0)
+		requiredDeploymentsSlice = append(requiredDeploymentsSlice, map[string]any{
+			"required_deployment_environments": rules.RequiredDeployments.RequiredDeploymentEnvironments,
+		})
+		rulesMap["required_deployments"] = requiredDeploymentsSlice
+	}
+
+	// Pull request rule
+	if rules.PullRequest != nil {
+		pullRequestSlice := make([]map[string]any, 0)
+		pullRequestSlice = append(pullRequestSlice, map[string]any{
+			"dismiss_stale_reviews_on_push":     rules.PullRequest.DismissStaleReviewsOnPush,
+			"require_code_owner_review":         rules.PullRequest.RequireCodeOwnerReview,
+			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
+			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
+			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
+		})
+		rulesMap["pull_request"] = pullRequestSlice
+	}
+
+	// Merge queue rule
+	if rules.MergeQueue != nil {
+		mergeQueueSlice := make([]map[string]any, 0)
+		mergeQueueSlice = append(mergeQueueSlice, map[string]any{
+			"check_response_timeout_minutes":    rules.MergeQueue.CheckResponseTimeoutMinutes,
+			"grouping_strategy":                 string(rules.MergeQueue.GroupingStrategy),
+			"max_entries_to_build":              rules.MergeQueue.MaxEntriesToBuild,
+			"max_entries_to_merge":              rules.MergeQueue.MaxEntriesToMerge,
+			"merge_method":                      string(rules.MergeQueue.MergeMethod),
+			"min_entries_to_merge":              rules.MergeQueue.MinEntriesToMerge,
+			"min_entries_to_merge_wait_minutes": rules.MergeQueue.MinEntriesToMergeWaitMinutes,
+		})
+		rulesMap["merge_queue"] = mergeQueueSlice
+	}
+
+	// Required status checks rule
+	if rules.RequiredStatusChecks != nil {
+		requiredStatusSlice := make([]map[string]any, 0)
+		requiredChecks := make([]map[string]any, 0)
+
+		for _, check := range rules.RequiredStatusChecks.RequiredStatusChecks {
+			checkMap := map[string]any{
+				"context": check.Context,
+			}
+			if check.IntegrationID != nil {
+				checkMap["integration_id"] = int(*check.IntegrationID)
 			} else {
-				rulesMap["update_allows_fetch_and_merge"] = false
+				checkMap["integration_id"] = 0
 			}
-			rulesMap[v.Type] = true
-
-		case "commit_message_pattern", "commit_author_email_pattern", "committer_email_pattern", "branch_name_pattern", "tag_name_pattern":
-			var params github.RulePatternParameters
-			var name string
-			var negate bool
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			if params.Name != nil {
-				name = *params.Name
-			}
-			if params.Negate != nil {
-				negate = *params.Negate
-			}
-
-			rule := make(map[string]any)
-			rule["name"] = name
-			rule["negate"] = negate
-			rule["operator"] = params.Operator
-			rule["pattern"] = params.Pattern
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "required_deployments":
-			if !org {
-				var params github.RequiredDeploymentEnvironmentsRuleParameters
-
-				err := json.Unmarshal(*v.Parameters, &params)
-				if err != nil {
-					log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-						v.Type, v.Parameters)
-				}
-
-				rule := make(map[string]any)
-				rule["required_deployment_environments"] = params.RequiredDeploymentEnvironments
-				rulesMap[v.Type] = []map[string]any{rule}
-			}
-
-		case "pull_request":
-			var params github.PullRequestRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			rule := make(map[string]any)
-			rule["dismiss_stale_reviews_on_push"] = params.DismissStaleReviewsOnPush
-			rule["require_code_owner_review"] = params.RequireCodeOwnerReview
-			rule["require_last_push_approval"] = params.RequireLastPushApproval
-			rule["required_approving_review_count"] = params.RequiredApprovingReviewCount
-			rule["required_review_thread_resolution"] = params.RequiredReviewThreadResolution
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "required_status_checks":
-			var params github.RequiredStatusChecksRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			requiredStatusChecksSlice := make([]map[string]any, 0)
-			for _, check := range params.RequiredStatusChecks {
-				integrationID := int64(0)
-				if check.IntegrationID != nil {
-					integrationID = *check.IntegrationID
-				}
-				requiredStatusChecksSlice = append(requiredStatusChecksSlice, map[string]any{
-					"context":        check.Context,
-					"integration_id": integrationID,
-				})
-			}
-
-			rule := make(map[string]any)
-			rule["required_check"] = requiredStatusChecksSlice
-			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
-			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "workflows":
-			var params github.RequiredWorkflowsRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			requiredWorkflowsSlice := make([]map[string]any, 0)
-			for _, check := range params.RequiredWorkflows {
-				requiredWorkflowsSlice = append(requiredWorkflowsSlice, map[string]any{
-					"repository_id": check.RepositoryID,
-					"path":          check.Path,
-					"ref":           check.Ref,
-				})
-			}
-
-			rule := make(map[string]any)
-			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
-			rule["required_workflow"] = requiredWorkflowsSlice
-			rulesMap["required_workflows"] = []map[string]any{rule}
-
-		case "code_scanning":
-			var params github.RequiredCodeScanningRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			requiredCodeScanningSlice := make([]map[string]any, 0)
-			for _, check := range params.RequiredCodeScanningTools {
-				requiredCodeScanningSlice = append(requiredCodeScanningSlice, map[string]any{
-					"alerts_threshold":          check.AlertsThreshold,
-					"security_alerts_threshold": check.SecurityAlertsThreshold,
-					"tool":                      check.Tool,
-				})
-			}
-
-			rule := make(map[string]any)
-			rule["required_code_scanning_tool"] = requiredCodeScanningSlice
-			rulesMap["required_code_scanning"] = []map[string]any{rule}
-
-		case "merge_queue":
-			var params github.MergeQueueRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			rule := make(map[string]any)
-			rule["check_response_timeout_minutes"] = params.CheckResponseTimeoutMinutes
-			rule["grouping_strategy"] = params.GroupingStrategy
-			rule["max_entries_to_build"] = params.MaxEntriesToBuild
-			rule["max_entries_to_merge"] = params.MaxEntriesToMerge
-			rule["merge_method"] = params.MergeMethod
-			rule["min_entries_to_merge"] = params.MinEntriesToMerge
-			rule["min_entries_to_merge_wait_minutes"] = params.MinEntriesToMergeWaitMinutes
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "required_code_scanning":
-			var params github.RequiredCodeScanningRuleParameters
-
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-
-			requiredCodeScanningToolSlice := make([]map[string]any, 0)
-			for _, tool := range params.RequiredCodeScanningTools {
-				requiredCodeScanningToolSlice = append(requiredCodeScanningToolSlice, map[string]any{
-					"alerts_threshold":          tool.AlertsThreshold,
-					"security_alerts_threshold": tool.SecurityAlertsThreshold,
-					"tool":                      tool.Tool,
-				})
-			}
-
-			rule := make(map[string]any)
-			rule["required_code_scanning_tool"] = requiredCodeScanningToolSlice
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "file_path_restriction":
-			var params github.RuleFileParameters
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-			rule := make(map[string]any)
-			rule["restricted_file_paths"] = params.GetRestrictedFilePaths()
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "max_file_size":
-			var params github.RuleMaxFileSizeParameters
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-			rule := make(map[string]any)
-			rule["max_file_size"] = params.MaxFileSize
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "max_file_path_length":
-			var params github.RuleMaxFilePathLengthParameters
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-			rule := make(map[string]any)
-			rule["max_file_path_length"] = params.MaxFilePathLength
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		case "file_extension_restriction":
-			var params github.RuleFileExtensionRestrictionParameters
-			err := json.Unmarshal(*v.Parameters, &params)
-			if err != nil {
-				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
-					v.Type, v.Parameters)
-			}
-			rule := make(map[string]any)
-			rule["restricted_file_extensions"] = params.RestrictedFileExtensions
-			rulesMap[v.Type] = []map[string]any{rule}
-
-		default:
-			// Handle unknown rule types (like Copilot code review, etc.) gracefully
-			// Log the unknown rule type but don't cause Terraform to fail or see a diff
-			log.Printf("[DEBUG] Ignoring unknown repository rule type: %s. This rule was likely added outside of Terraform (e.g., via GitHub UI) and is not yet supported by the provider.", v.Type)
-			// Note: We intentionally don't add this to rulesMap to avoid causing diffs for rules that aren't managed by Terraform
+			requiredChecks = append(requiredChecks, checkMap)
 		}
+
+		statusChecksMap := map[string]any{
+			"required_check":                       requiredChecks,
+			"strict_required_status_checks_policy": rules.RequiredStatusChecks.StrictRequiredStatusChecksPolicy,
+		}
+
+		if rules.RequiredStatusChecks.DoNotEnforceOnCreate != nil {
+			statusChecksMap["do_not_enforce_on_create"] = *rules.RequiredStatusChecks.DoNotEnforceOnCreate
+		} else {
+			statusChecksMap["do_not_enforce_on_create"] = false
+		}
+
+		requiredStatusSlice = append(requiredStatusSlice, statusChecksMap)
+		rulesMap["required_status_checks"] = requiredStatusSlice
+	}
+
+	// Pattern parameter rules
+	patternRules := map[string]*github.PatternRuleParameters{
+		"commit_message_pattern":      rules.CommitMessagePattern,
+		"commit_author_email_pattern": rules.CommitAuthorEmailPattern,
+		"committer_email_pattern":     rules.CommitterEmailPattern,
+		"branch_name_pattern":         rules.BranchNamePattern,
+		"tag_name_pattern":            rules.TagNamePattern,
+	}
+
+	for k, v := range patternRules {
+		if v != nil {
+			patternSlice := make([]map[string]any, 0)
+			patternMap := map[string]any{
+				"operator": string(v.Operator),
+				"pattern":  v.Pattern,
+			}
+			if v.Name != nil {
+				patternMap["name"] = *v.Name
+			}
+			if v.Negate != nil {
+				patternMap["negate"] = *v.Negate
+			}
+			patternSlice = append(patternSlice, patternMap)
+			rulesMap[k] = patternSlice
+		}
+	}
+
+	// Required workflows rule (org-only)
+	if org && rules.Workflows != nil {
+		requiredWorkflowsSlice := make([]map[string]any, 0)
+		requiredWorkflows := make([]map[string]any, 0)
+
+		for _, workflow := range rules.Workflows.Workflows {
+			workflowMap := map[string]any{
+				"path": workflow.Path,
+			}
+			if workflow.RepositoryID != nil {
+				workflowMap["repository_id"] = int(*workflow.RepositoryID)
+			}
+			if workflow.Ref != nil {
+				workflowMap["ref"] = *workflow.Ref
+			}
+			requiredWorkflows = append(requiredWorkflows, workflowMap)
+		}
+
+		workflowsMap := map[string]any{
+			"required_workflow": requiredWorkflows,
+		}
+
+		if rules.Workflows.DoNotEnforceOnCreate != nil {
+			workflowsMap["do_not_enforce_on_create"] = *rules.Workflows.DoNotEnforceOnCreate
+		} else {
+			workflowsMap["do_not_enforce_on_create"] = false
+		}
+
+		requiredWorkflowsSlice = append(requiredWorkflowsSlice, workflowsMap)
+		rulesMap["required_workflows"] = requiredWorkflowsSlice
+	}
+
+	// Required code scanning rule
+	if rules.CodeScanning != nil {
+		requiredCodeScanningSlice := make([]map[string]any, 0)
+		requiredCodeScanningTools := make([]map[string]any, 0)
+
+		for _, tool := range rules.CodeScanning.CodeScanningTools {
+			toolMap := map[string]any{
+				"alerts_threshold":          string(tool.AlertsThreshold),
+				"security_alerts_threshold": string(tool.SecurityAlertsThreshold),
+				"tool":                      tool.Tool,
+			}
+			requiredCodeScanningTools = append(requiredCodeScanningTools, toolMap)
+		}
+
+		codeScanningMap := map[string]any{
+			"required_code_scanning_tool": requiredCodeScanningTools,
+		}
+
+		requiredCodeScanningSlice = append(requiredCodeScanningSlice, codeScanningMap)
+		rulesMap["required_code_scanning"] = requiredCodeScanningSlice
+	}
+
+	// File path restriction rule
+	if rules.FilePathRestriction != nil {
+		filePathRestrictionSlice := make([]map[string]any, 0)
+		filePathRestrictionSlice = append(filePathRestrictionSlice, map[string]any{
+			"restricted_file_paths": rules.FilePathRestriction.RestrictedFilePaths,
+		})
+		rulesMap["file_path_restriction"] = filePathRestrictionSlice
+	}
+
+	// Max file size rule
+	if rules.MaxFileSize != nil {
+		maxFileSizeSlice := make([]map[string]any, 0)
+		maxFileSizeSlice = append(maxFileSizeSlice, map[string]any{
+			"max_file_size": rules.MaxFileSize.MaxFileSize,
+		})
+		rulesMap["max_file_size"] = maxFileSizeSlice
+	}
+
+	// Max file path length rule
+	if rules.MaxFilePathLength != nil {
+		maxFilePathLengthSlice := make([]map[string]any, 0)
+		maxFilePathLengthSlice = append(maxFilePathLengthSlice, map[string]any{
+			"max_file_path_length": rules.MaxFilePathLength.MaxFilePathLength,
+		})
+		rulesMap["max_file_path_length"] = maxFilePathLengthSlice
+	}
+
+	// File extension restriction rule
+	if rules.FileExtensionRestriction != nil {
+		fileExtensionRestrictionSlice := make([]map[string]any, 0)
+		fileExtensionRestrictionSlice = append(fileExtensionRestrictionSlice, map[string]any{
+			"restricted_file_extensions": rules.FileExtensionRestriction.RestrictedFileExtensions,
+		})
+		rulesMap["file_extension_restriction"] = fileExtensionRestrictionSlice
 	}
 
 	return []any{rulesMap}

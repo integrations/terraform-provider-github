@@ -118,17 +118,17 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				"1234",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
+				"github_organization_ruleset.test",
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
 				"errors",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
+				"github_organization_ruleset.test",
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
 				"high_or_higher",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
+				"github_organization_ruleset.test",
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
 				"CodeQL",
 			),
@@ -597,21 +597,49 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	// Test expand functionality (organization rulesets use org=true)
 	expandedRules := expandRules(input, true)
 
-	if len(expandedRules) != 4 {
-		t.Fatalf("Expected 4 expanded rules for organization push ruleset, got %d", len(expandedRules))
+	if expandedRules == nil {
+		t.Fatal("Expected expanded rules to not be nil")
+		return
 	}
 
 	// Verify we have all expected push rule types
-	ruleTypes := make(map[string]bool)
-	for _, rule := range expandedRules {
-		ruleTypes[rule.Type] = true
+	ruleCount := 0
+	if expandedRules.FilePathRestriction != nil {
+		ruleCount++
+		filePathRule := rulesMap["file_path_restriction"].([]any)[0].(map[string]any)
+		expectedFilePaths := len(filePathRule["restricted_file_paths"].([]any))
+		if len(expandedRules.FilePathRestriction.RestrictedFilePaths) != expectedFilePaths {
+			t.Errorf("Expected %d restricted file paths, got %d", expectedFilePaths, len(expandedRules.FilePathRestriction.RestrictedFilePaths))
+		}
+	}
+	if expandedRules.MaxFileSize != nil {
+		ruleCount++
+		maxFileSizeRule := rulesMap["max_file_size"].([]any)[0].(map[string]any)
+		expectedMaxFileSize := int64(maxFileSizeRule["max_file_size"].(int))
+		if expandedRules.MaxFileSize.MaxFileSize != expectedMaxFileSize {
+			t.Errorf("Expected max file size to be %d, got %d", expectedMaxFileSize, expandedRules.MaxFileSize.MaxFileSize)
+		}
+	}
+	if expandedRules.MaxFilePathLength != nil {
+		ruleCount++
+		maxPathLengthRule := rulesMap["max_file_path_length"].([]any)[0].(map[string]any)
+		expectedMaxPathLength := maxPathLengthRule["max_file_path_length"].(int)
+		if expandedRules.MaxFilePathLength.MaxFilePathLength != expectedMaxPathLength {
+			t.Errorf("Expected max file path length to be %d, got %d", expectedMaxPathLength, expandedRules.MaxFilePathLength.MaxFilePathLength)
+		}
+	}
+	if expandedRules.FileExtensionRestriction != nil {
+		ruleCount++
+		fileExtRule := rulesMap["file_extension_restriction"].([]any)[0].(map[string]any)
+		expectedExtensions := fileExtRule["restricted_file_extensions"].(*schema.Set).Len()
+		if len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions) != expectedExtensions {
+			t.Errorf("Expected %d restricted file extensions, got %d", expectedExtensions, len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions))
+		}
 	}
 
-	expectedPushRules := []string{"file_path_restriction", "max_file_size", "max_file_path_length", "file_extension_restriction"}
-	for _, expectedType := range expectedPushRules {
-		if !ruleTypes[expectedType] {
-			t.Errorf("Expected organization push rule type %s not found in expanded rules", expectedType)
-		}
+	expectedRuleCount := len(rulesMap)
+	if ruleCount != expectedRuleCount {
+		t.Fatalf("Expected %d expanded rules for organization push ruleset, got %d", expectedRuleCount, ruleCount)
 	}
 
 	// Test flatten functionality (organization rulesets use org=true)

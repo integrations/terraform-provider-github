@@ -42,6 +42,10 @@ linters:
         linters:
           - unparam
         text: always receives
+      - path: resource_github_team_repository\.go
+        linters:
+          - staticcheck
+        text: "SA1019.*IsTeamRepoByID.*deprecated"
 
 issues:
   max-issues-per-linter: 0

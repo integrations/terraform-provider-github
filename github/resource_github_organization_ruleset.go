@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -588,42 +588,41 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
+	org := meta.(*Owner).name
 	ctx := context.Background()
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var err error
 
-	ruleset, _, err = client.Organizations.CreateOrganizationRuleset(ctx, owner, rulesetReq)
+	ruleset, _, err = client.Organizations.CreateRepositoryRuleset(ctx, org, *rulesetReq)
 	if err != nil {
 		return err
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+
 	return resourceGithubOrganizationRulesetRead(d, meta)
 }
 
 func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
-
+	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	var ruleset *github.Ruleset
+	var ruleset *github.RepositoryRuleset
 	var resp *github.Response
 
-	ruleset, resp, err = client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
+	ruleset, resp, err = client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(err, &ghErr) {
@@ -631,13 +630,20 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s: %d from state because it no longer exists in GitHub",
-					owner, rulesetID)
+				log.Printf("[INFO] Removing organization ruleset %s: %d from state because it no longer exists in GitHub",
+					org, rulesetID)
 				d.SetId("")
 				return nil
 			}
 		}
 		return err
+	}
+
+	if ruleset == nil {
+		log.Printf("[INFO] Removing organization ruleset %s: %d from state because it no longer exists in GitHub (empty response)",
+			org, rulesetID)
+		d.SetId("")
+		return nil
 	}
 
 	_ = d.Set("etag", resp.Header.Get("ETag"))
@@ -656,18 +662,19 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
+	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	ruleset, _, err := client.Organizations.UpdateOrganizationRuleset(ctx, owner, rulesetID, rulesetReq)
+	var ruleset *github.RepositoryRuleset
+
+	ruleset, _, err = client.Organizations.UpdateRepositoryRuleset(ctx, org, rulesetID, *rulesetReq)
 	if err != nil {
 		return err
 	}
@@ -678,16 +685,16 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) e
 
 func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	org := meta.(*Owner).name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
-	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
-	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, owner, rulesetID)
+	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", org, rulesetID)
+	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, org, rulesetID)
 	return err
 }
 
@@ -702,10 +709,10 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 	log.Printf("[DEBUG] Importing organization ruleset with ID: %d", rulesetID)
 
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	org := meta.(*Owner).name
 	ctx := context.Background()
 
-	ruleset, _, err := client.Organizations.GetOrganizationRuleset(ctx, owner, rulesetID)
+	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if ruleset == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
