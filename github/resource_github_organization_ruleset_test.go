@@ -501,7 +501,7 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("validates_branch_target_requires_ref_name", func(t *testing.T) {
+	t.Run("validates_branch_target_requires_ref_name_condition", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
@@ -528,19 +528,26 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("ref_name must be set for branch and tag targets"),
+					ExpectError: regexp.MustCompile("ref_name must be set for branch target"),
 				},
 			},
 		})
 	})
 
-	t.Run("validates_tag_target_requires_conditions", func(t *testing.T) {
+	t.Run("validates_tag_target_requires_ref_name_condition", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-tag-no-conditions-%s"
 				target      = "tag"
 				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
 
 				rules {
 					creation = true
@@ -554,7 +561,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile(`conditions block is required for tag target`),
+					ExpectError: regexp.MustCompile("ref_name must be set for tag target"),
 				},
 			},
 		})
@@ -591,7 +598,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile(`ref_name must not be set for push target`),
+					ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
 				},
 			},
 		})
@@ -628,7 +635,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile(`ref_name must not be set for repository target`),
+					ExpectError: regexp.MustCompile("ref_name must not be set for repository target"),
 				},
 			},
 		})
