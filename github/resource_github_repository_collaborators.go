@@ -408,7 +408,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []us
 func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 	ctx := context.Background()
 
 	remove := make([]teamCollaborator, 0)
