@@ -2023,14 +2023,13 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			t.Skip("anonymous account not supported for this operation")
 		})
 	})
-
 }
 
 func createForkedRepository(repositoryName string) error {
 	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganizationFunc(), Token: testToken}
 	meta, err := config.Meta()
 	if err != nil {
-		return fmt.Errorf("failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
@@ -2046,7 +2045,7 @@ func createForkedRepository(repositoryName string) error {
 		if errors.As(err, &acceptedError) {
 			return nil
 		}
-		return fmt.Errorf("failed to create fork: %v", err)
+		return fmt.Errorf("failed to create fork: %w", err)
 	}
 	return nil
 }
