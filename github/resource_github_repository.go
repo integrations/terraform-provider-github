@@ -75,12 +75,14 @@ func resourceGithubRepository() *schema.Resource {
 			"source_owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				ForceNew:    true,
 				Description: "The owner of the source repository to fork from.",
 			},
 			"source_repo": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				ForceNew:    true,
 				Description: "The name of the source repository to fork from.",
 			},
@@ -484,10 +486,10 @@ func resourceGithubRepository() *schema.Resource {
 		},
 		CustomizeDiff: customdiff.All(
 			customDiffFunction,
-			customdiff.ForceNewIfChange("fork", func(ctx context.Context, old, new, meta any) bool {
-				oldVal := old.(string)
-				newVal := new.(string)
-				return oldVal != "" && oldVal != newVal
+			customdiff.ForceNewIfChange("fork", func(ctx context.Context, oldVal, newVal, meta any) bool {
+				oldValStr := oldVal.(string)
+				newValStr := newVal.(string)
+				return oldValStr != "" && oldValStr != newValStr
 			}),
 		),
 	}
