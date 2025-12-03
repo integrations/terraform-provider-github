@@ -61,10 +61,10 @@ func resourceGithubTeamMembers() *schema.Resource {
 
 func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamIDString := d.Get("team_id").(string)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -76,10 +76,10 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
 		username := memb["username"].(string)
 		role := memb["role"].(string)
 
-		log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
+		log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIDString, username, role)
 		_, _, err = client.Teams.AddTeamMembershipByID(ctx,
-			orgId,
-			teamId,
+			orgID,
+			teamID,
 			username,
 			&github.TeamAddTeamMembershipOptions{
 				Role: role,
@@ -90,17 +90,17 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
 		}
 	}
 
-	d.SetId(teamIdString)
+	d.SetId(teamIDString)
 
 	return resourceGithubTeamMembersRead(d, meta)
 }
 
 func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamIDString := d.Get("team_id").(string)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -142,9 +142,9 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 		}
 
 		if del {
-			log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
+			log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIDString, username)
 
-			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, username)
 			if err != nil {
 				return err
 			}
@@ -153,10 +153,10 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 		if create {
 			role := change.New["role"].(string)
 
-			log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
+			log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIDString, username, role)
 			_, _, err = client.Teams.AddTeamMembershipByID(ctx,
-				orgId,
-				teamId,
+				orgID,
+				teamID,
 				username,
 				&github.TeamAddTeamMembershipOptions{
 					Role: role,
@@ -168,7 +168,7 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 		}
 	}
 
-	d.SetId(teamIdString)
+	d.SetId(teamIDString)
 
 	return resourceGithubTeamMembersRead(d, meta)
 }
@@ -176,13 +176,13 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
-	teamIdString := d.Get("team_id").(string)
-	if teamIdString == "" && !d.IsNewResource() {
+	teamIDString := d.Get("team_id").(string)
+	if teamIDString == "" && !d.IsNewResource() {
 		log.Printf("[DEBUG] Importing team with id %q", d.Id())
-		teamIdString = d.Id()
+		teamIDString = d.Id()
 	}
 
-	teamSlug, err := getTeamSlug(teamIdString, meta)
+	teamSlug, err := getTeamSlug(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -190,13 +190,13 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
-	if err := d.Set("team_id", teamIdString); err != nil {
+	if err := d.Set("team_id", teamIDString); err != nil {
 		return err
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	log.Printf("[DEBUG] Reading team members: %s", teamIdString)
+	log.Printf("[DEBUG] Reading team members: %s", teamIDString)
 	var q struct {
 		Organization struct {
 			Team struct {
@@ -250,9 +250,9 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 
 func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	orgID := meta.(*Owner).id
+	teamIDString := d.Get("team_id").(string)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -264,9 +264,9 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
 		mem := member.(map[string]any)
 		username := mem["username"].(string)
 
-		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
+		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIDString, username)
 
-		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, username)
 		if err != nil {
 			return err
 		}
@@ -276,12 +276,12 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
 }
 
 func resourceGithubTeamMembersImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	teamId, err := getTeamID(d.Id(), meta)
+	teamID, err := getTeamID(d.Id(), meta)
 	if err != nil {
 		return nil, err
 	}
 
-	d.SetId(strconv.FormatInt(teamId, 10))
+	d.SetId(strconv.FormatInt(teamID, 10))
 
 	return []*schema.ResourceData{d}, nil
 }

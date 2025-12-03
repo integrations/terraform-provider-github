@@ -19,17 +19,17 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIDString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
 				}
 
-				teamId, err := getTeamID(teamIdString, meta)
+				teamID, err := getTeamID(teamIDString, meta)
 				if err != nil {
 					return nil, err
 				}
 
-				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamID, 10), username))
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -65,10 +65,10 @@ func resourceGithubTeamMembership() *schema.Resource {
 
 func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamIDString := d.Get("team_id").(string)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -78,8 +78,8 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any
 	role := d.Get("role").(string)
 
 	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
-		orgId,
-		teamId,
+		orgID,
+		teamID,
 		username,
 		&github.TeamAddTeamMembershipOptions{
 			Role: role,
@@ -89,20 +89,20 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any
 		return err
 	}
 
-	d.SetId(buildTwoPartID(teamIdString, username))
+	d.SetId(buildTwoPartID(teamIDString, username))
 
 	return resourceGithubTeamMembershipRead(d, meta)
 }
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+	orgID := meta.(*Owner).id
+	teamIDString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 	if err != nil {
 		return err
 	}
 
-	teamId, err := getTeamID(teamIdString, meta)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
-	if err = d.Set("team_id", teamIdString); err != nil {
+	if err = d.Set("team_id", teamIDString); err != nil {
 		return err
 	}
 	if err = d.Set("username", username); err != nil {
@@ -123,7 +123,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	}
 
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
-		orgId, teamId, username)
+		orgID, teamID, username)
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(err, &ghErr) {
@@ -152,16 +152,16 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	orgID := meta.(*Owner).id
+	teamIDString := d.Get("team_id").(string)
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
 	username := d.Get("username").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, username)
 
 	return err
 }

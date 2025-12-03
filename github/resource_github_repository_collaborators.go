@@ -408,7 +408,7 @@ func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []us
 func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 	ctx := context.Background()
 
 	remove := make([]teamCollaborator, 0)
@@ -432,7 +432,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 			log.Printf("[DEBUG] Updating team %s permission from %s to %s for repo: %s.", hasTeam.teamSlug, hasTeam.permission, wantPerm, repoName)
 			//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgId, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -468,7 +468,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamSlug, permission, repoName)
 		//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgId, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
@@ -480,7 +480,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 	for _, team := range remove {
 		log.Printf("[DEBUG] Removing team %s from repo: %s.", team.teamSlug, repoName)
 		//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
-		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, team.teamID, owner, repoName)
+		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
 		if err != nil {
 			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", team.teamSlug), owner, repoName)
 			if err != nil {
@@ -570,10 +570,10 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta any)
 	sourceTeams := d.Get("team").(*schema.Set).List()
 	teamSlugs := make([]string, len(sourceTeams))
 	for i, t := range sourceTeams {
-		teamIdString := t.(map[string]any)["team_id"].(string)
-		_, parseIntErr := strconv.ParseInt(teamIdString, 10, 64)
+		teamIDString := t.(map[string]any)["team_id"].(string)
+		_, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
 		if parseIntErr != nil {
-			teamSlugs[i] = teamIdString
+			teamSlugs[i] = teamIDString
 		}
 	}
 

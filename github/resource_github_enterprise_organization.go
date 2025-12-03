@@ -251,11 +251,11 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 	}
 	_ = data.Set("enterprise_id", enterpriseId)
 
-	orgId, err := getOrganizationId(ctx, v4, parts[1])
+	orgID, err := getOrganizationId(ctx, v4, parts[1])
 	if err != nil {
 		return nil, err
 	}
-	data.SetId(orgId)
+	data.SetId(orgID)
 
 	err = resourceGithubEnterpriseOrganizationRead(data, meta)
 	if err != nil {

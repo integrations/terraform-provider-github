@@ -20,17 +20,17 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Delete: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIDString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
 				}
 
-				teamId, err := getTeamID(teamIdString, meta)
+				teamID, err := getTeamID(teamIDString, meta)
 				if err != nil {
 					return nil, err
 				}
 
-				d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), username))
+				d.SetId(buildTwoPartID(strconv.FormatInt(teamID, 10), username))
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -69,12 +69,12 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 	orgName := meta.(*Owner).name
 
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
-	teamId, err := getTeamID(givenTeamId, meta)
+	teamID, err := getTeamID(givenTeamId, meta)
 	if err != nil {
 		return err
 	}
@@ -85,8 +85,8 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 
 	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+		orgID,
+		teamID,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -97,7 +97,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), repoName))
+	d.SetId(buildTwoPartID(strconv.FormatInt(teamID, 10), repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
@@ -109,9 +109,14 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	teamSlug := d.Get("slug").(string)
+	orgID := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIDString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	if err != nil {
+		return err
+	}
+
+	teamID, err := getTeamID(teamIDString, meta)
 	if err != nil {
 		return err
 	}
@@ -122,7 +127,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgID, teamID, orgName, repoName)
 	if repoErr != nil {
 		ghErr := &github.ErrorResponse{}
 		if errors.As(repoErr, &ghErr) {
@@ -145,7 +150,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	if d.Get("team_id") == "" {
 		// If team_id is empty, that means we are importing the resource.
 		// Set the team_id to be the id of the team.
-		if err = d.Set("team_id", teamIdString); err != nil {
+		if err = d.Set("team_id", teamIDString); err != nil {
 			return err
 		}
 	}
@@ -166,15 +171,15 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIDString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return unconvertibleIdErr(teamIDString, err)
 	}
 	orgName := meta.(*Owner).name
 	permission := d.Get("permission").(string)
@@ -183,8 +188,8 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
 	//nolint:staticcheck // SA1019: AddTeamRepoByID is deprecated but still needed for legacy compatibility
 	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+		orgID,
+		teamID,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -194,7 +199,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	if err != nil {
 		return err
 	}
-	d.SetId(buildTwoPartID(teamIdString, repoName))
+	d.SetId(buildTwoPartID(teamIDString, repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
@@ -206,24 +211,24 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIDString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return unconvertibleIdErr(teamIDString, err)
 	}
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
-	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, teamID, orgName, repoName)
 
 	if resp.StatusCode == 404 {
-		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
+		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIDString, repoName)
 		repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
 		if err != nil {
 			return err
@@ -234,10 +239,10 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 				"Try deleting team repository again.",
 				repoName, newRepoName)
 			//nolint:staticcheck // SA1019: RemoveTeamRepoByID is deprecated but still needed for legacy compatibility
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
-			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName)
+			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, teamID, orgName, newRepoName)
+			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIDString), orgName, newRepoName)
 		}
 	}
 
-	return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName)
+	return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIDString), orgName, repoName)
 }

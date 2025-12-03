@@ -68,22 +68,22 @@ func TestAccGithubTeamMembers(t *testing.T) {
 
 func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
+	orgID := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_members" {
 			continue
 		}
 
-		teamIdString := rs.Primary.ID
+		teamIDString := rs.Primary.ID
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
 		members, resp, err := conn.Teams.ListTeamMembersByID(context.TODO(),
-			orgId, teamId, nil)
+			orgID, teamID, nil)
 		if err == nil {
 			if len(members) > 0 {
 				return fmt.Errorf("team has still members: %v", members)
@@ -109,15 +109,15 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString := rs.Primary.ID
+		orgID := testAccProvider.Meta().(*Owner).id
+		teamIDString := rs.Primary.ID
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
-		members, _, err := conn.Teams.ListTeamMembersByID(context.TODO(), orgId, teamId, nil)
+		members, _, err := conn.Teams.ListTeamMembersByID(context.TODO(), orgID, teamID, nil)
 		if err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 			return fmt.Errorf("team has not one member: %d", len(members))
 		}
 
-		TeamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, *members[0].Login)
+		TeamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgID, teamID, *members[0].Login)
 		if err != nil {
 			return err
 		}
@@ -147,15 +147,15 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString := rs.Primary.ID
+		orgID := testAccProvider.Meta().(*Owner).id
+		teamIDString := rs.Primary.ID
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
-		members, _, err := conn.Teams.ListTeamMembersByID(context.TODO(), orgId, teamId, nil)
+		members, _, err := conn.Teams.ListTeamMembersByID(context.TODO(), orgID, teamID, nil)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 		}
 
 		TeamMembers, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
-			orgId, teamId, *members[0].Login)
+			orgID, teamID, *members[0].Login)
 		if err != nil {
 			return err
 		}

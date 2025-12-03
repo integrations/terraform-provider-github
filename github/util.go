@@ -178,9 +178,9 @@ func getTeamID(teamIDString string, meta any) (int64, error) {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	teamID, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
 	if parseIntErr == nil {
-		return teamId, nil
+		return teamID, nil
 	}
 
 	// The given id not an integer, assume it is a team slug
@@ -197,9 +197,9 @@ func getTeamSlug(teamIDString string, meta any) (string, error) {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	teamID, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
 	if parseIntErr != nil {
 		// The given id not an integer, assume it is a team slug
 		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
@@ -211,12 +211,12 @@ func getTeamSlug(teamIDString string, meta any) (string, error) {
 
 	// The given id is an integer, assume it is a team id
 	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but still needed for legacy compatibility
-	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if teamIdErr != nil {
+	team, _, teamIDErr := client.Teams.GetTeamByID(ctx, orgID, teamID)
+	if teamIDErr != nil {
 		// There isn't a team with the given ID, assume it is a teamslug
 		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
 		if slugErr != nil {
-			return "", errors.New(teamIdErr.Error() + slugErr.Error())
+			return "", errors.New(teamIDErr.Error() + slugErr.Error())
 		}
 		return team.GetSlug(), nil
 	}

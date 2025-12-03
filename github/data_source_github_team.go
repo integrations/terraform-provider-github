@@ -97,7 +97,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 	slug := d.Get("slug").(string)
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+	orgID := meta.(*Owner).id
 	ctx := context.Background()
 	summaryOnly := d.Get("summary_only").(bool)
 	resultsPerPage := d.Get("results_per_page").(int)
@@ -120,7 +120,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 
 		if d.Get("membership_type").(string) == "all" {
 			for {
-				member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
+				member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgID, team.GetID(), &options)
 				if err != nil {
 					return err
 				}
@@ -177,7 +177,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 
 		for {
 			//nolint:staticcheck // SA1019: ListTeamReposByID is deprecated but still needed for legacy compatibility
-			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
+			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgID, team.GetID(), &options.ListOptions)
 			if err != nil {
 				return err
 			}

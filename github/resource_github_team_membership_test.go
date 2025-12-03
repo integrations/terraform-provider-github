@@ -113,25 +113,25 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
+	orgID := testAccProvider.Meta().(*Owner).id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
 			continue
 		}
 
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
 		}
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
 		membership, resp, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
-			orgId, teamId, username)
+			orgID, teamID, username)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("team membership still exists")
@@ -157,18 +157,18 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		orgID := testAccProvider.Meta().(*Owner).id
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
 		}
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, username)
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgID, teamID, username)
 		if err != nil {
 			return err
 		}
@@ -189,18 +189,18 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		}
 
 		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		orgID := testAccProvider.Meta().(*Owner).id
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
 		}
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return unconvertibleIdErr(teamIDString, err)
 		}
 
 		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
-			orgId, teamId, username)
+			orgID, teamID, username)
 		if err != nil {
 			return err
 		}
