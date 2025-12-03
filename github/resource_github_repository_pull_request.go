@@ -289,7 +289,7 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 		return resourceGithubRepositoryPullRequestRead(d, meta)
 	}
 
-	errors := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
+	errs := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
 
 	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
 		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
