@@ -898,9 +898,9 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
 
-	// Handle empty conditions - branch and tag targets require conditions with ref_name
-	if len(conditionsRaw) == 0 {
-		return fmt.Errorf("conditions block is required for %s target", target)
+  if conditionsRaw == nil || len(conditionsRaw) == 0 {
+    tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]interface{}{"target": target})
+		return nil
 	}
 
 	switch target {
