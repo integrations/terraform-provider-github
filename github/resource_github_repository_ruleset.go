@@ -713,13 +713,13 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 		if err != nil {
 			return err
 		}
-		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
-	} else {
-		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
 	}
+
+	ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, *rulesetReq)
 	if err != nil {
 		return err
 	}
+
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
 	return resourceGithubRepositoryRulesetRead(d, meta)
