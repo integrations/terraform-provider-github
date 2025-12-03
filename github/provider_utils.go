@@ -13,7 +13,7 @@ var (
 	isPaidPlan       = os.Getenv("GITHUB_PAID_FEATURES")
 	testEnterprise   = os.Getenv("ENTERPRISE_SLUG")
 	testOrganization = testOrganizationFunc()
-	testOwner        = os.Getenv("GITHUB_OWNER")
+	testOwner        = testOwnerFunc()
 	testToken        = os.Getenv("GITHUB_TOKEN")
 	testBaseURLGHES  = os.Getenv("GHES_BASE_URL")
 )
