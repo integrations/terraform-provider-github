@@ -292,10 +292,10 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 	errs := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
 
 	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
-		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
+		errs = append(errs, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
 	}
 
-	return fmt.Errorf("%s", strings.Join(errors, ", "))
+	return fmt.Errorf("%s", strings.Join(errs, ", "))
 }
 
 func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any) error {
