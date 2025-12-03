@@ -47,7 +47,7 @@ var GHECDataResidencyHostMatch = regexp.MustCompile(`^[a-zA-Z0-9.\-]+\.ghe\.com\
 func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
-	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
+	client.Transport = logging.NewLoggingHTTPTransport(client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",

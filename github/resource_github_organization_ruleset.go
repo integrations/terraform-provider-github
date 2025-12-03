@@ -9,21 +9,25 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+  "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationRulesetCreate,
-		Read:   resourceGithubOrganizationRulesetRead,
-		Update: resourceGithubOrganizationRulesetUpdate,
-		Delete: resourceGithubOrganizationRulesetDelete,
+		CreateContext: resourceGithubOrganizationRulesetCreate,
+		ReadContext:   resourceGithubOrganizationRulesetRead,
+		UpdateContext: resourceGithubOrganizationRulesetUpdate,
+		DeleteContext: resourceGithubOrganizationRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubOrganizationRulesetImport,
+			StateContext: resourceGithubOrganizationRulesetImport,
 		},
 
 		SchemaVersion: 1,
+
+		CustomizeDiff: validateConditionsFieldBasedOnTarget,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -35,8 +39,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, `push` and `repository`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -86,12 +90,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. The `push` target does not require `ref_name` conditions. For `repository` target, the conditions object should only contain the `repository_name` and the `repository_id`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -585,36 +589,35 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
 
-	org := meta.(*Owner).name
-	ctx := context.Background()
+  org := meta.(*Owner).name
 
 	var ruleset *github.RepositoryRuleset
 	var err error
 
 	ruleset, _, err = client.Organizations.CreateRepositoryRuleset(ctx, org, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -659,7 +662,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
@@ -667,38 +670,38 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) e
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	var ruleset *github.RepositoryRuleset
 
 	ruleset, _, err = client.Organizations.UpdateRepositoryRuleset(ctx, org, rulesetID, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", org, rulesetID)
-	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, org, rulesetID)
-	return err
+	_, err = client.Organizations.DeleteOrganizationRuleset(ctx, org, rulesetID)
+	return diag.FromErr(err)
 }
 
-func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
@@ -710,7 +713,6 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
-	ctx := context.Background()
 
 	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if ruleset == nil || err != nil {
@@ -719,4 +721,63 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
+	conditions := d.Get("conditions").([]any)[0].(map[string]any)
+	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]interface{}{"target": target, "conditions": conditions})
+	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
+		return fmt.Errorf("ref_name must be set for %s target", target)
+	}
+	if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0){
+		return fmt.Errorf("Either repository_name or repository_id must be set for %s target", target)
+	}
+	return nil
+}
+
+func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
+	conditions := d.Get("conditions").([]any)[0].(map[string]any)
+	tflog.Debug(ctx, "Validating conditions field for push target", map[string]interface{}{"target": target, "conditions": conditions})
+
+	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+		return fmt.Errorf("ref_name must not be set for %s target", target)
+	}
+	return nil
+}
+
+func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+  target := d.Get("target").(string)
+	conditions := d.Get("conditions").([]any)[0].(map[string]any)
+	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]interface{}{"target": target, "conditions": conditions})
+
+  if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+		return fmt.Errorf("ref_name must not be set for %s target", target)
+	}
+	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
+		return fmt.Errorf("repository_name or repository_id must be set for %s target", target)
+	}
+	return nil
+}
+
+func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating conditions field based on target", map[string]interface{}{"target": target})
+	conditionsRaw := d.Get("conditions").([]any)
+
+  if conditionsRaw == nil || len(conditionsRaw) == 0 {
+    tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]interface{}{"target": target})
+		return nil
+	}
+
+	switch target {
+	case "branch", "tag":
+		return validateConditionsFieldForBranchAndTagTargets(ctx, d, meta)
+	case "push":
+		return validateConditionsFieldForPushTarget(ctx, d, meta)
+	case "repository":
+		return validateConditionsFieldForRepositoryTarget(ctx, d, meta)
+	}
+	return nil
 }

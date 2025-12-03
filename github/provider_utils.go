@@ -13,7 +13,7 @@ var (
 	isPaidPlan       = os.Getenv("GITHUB_PAID_FEATURES")
 	testEnterprise   = os.Getenv("ENTERPRISE_SLUG")
 	testOrganization = testOrganizationFunc()
-	testOwner        = os.Getenv("GITHUB_OWNER")
+	testOwner        = testOwnerFunc()
 	testToken        = os.Getenv("GITHUB_TOKEN")
 	testBaseURLGHES  = os.Getenv("GHES_BASE_URL")
 )
@@ -54,8 +54,8 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 			t.Log("GITHUB_TOKEN environment variable should be empty")
 		}
 	case enterprise:
-		if os.Getenv("GITHUB_TOKEN") == "" {
-			t.Log("GITHUB_TOKEN environment variable should be set")
+		if os.Getenv("GITHUB_TOKEN") == "" || os.Getenv("ENTERPRISE_ACCOUNT") != "true" || os.Getenv("ENTERPRISE_SLUG") == "" {
+			t.Log("GITHUB_TOKEN and ENTERPRISE_ACCOUNT and ENTERPRISE_SLUG environment variables should be set")
 		} else {
 			return
 		}
@@ -67,10 +67,10 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 			t.Log("GITHUB_TOKEN and GITHUB_OWNER environment variables should be set")
 		}
 	case organization:
-		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("GITHUB_ORGANIZATION") != "" {
+		if os.Getenv("GITHUB_TOKEN") != "" && (os.Getenv("GITHUB_ORGANIZATION") != "" || os.Getenv("GITHUB_TEST_ORGANIZATION") != "") {
 			return
 		} else {
-			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION environment variables should be set")
+			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION or GITHUB_TEST_ORGANIZATION environment variables should be set")
 		}
 	}
 
@@ -120,6 +120,7 @@ func testOrganizationFunc() string {
 	organization := os.Getenv("GITHUB_ORGANIZATION")
 	if organization == "" {
 		organization = os.Getenv("GITHUB_TEST_ORGANIZATION")
+		os.Setenv("GITHUB_ORGANIZATION", organization)
 	}
 	return organization
 }
@@ -128,6 +129,7 @@ func testOwnerFunc() string {
 	owner := os.Getenv("GITHUB_OWNER")
 	if owner == "" {
 		owner = os.Getenv("GITHUB_TEST_OWNER")
+		os.Setenv("GITHUB_OWNER", owner)
 	}
 	return owner
 }
