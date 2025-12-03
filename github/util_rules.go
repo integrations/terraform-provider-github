@@ -573,7 +573,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
-		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
+		log.Printf("[DEBUG] Flattened Pull Request rules slice: %#v", pullRequestSlice)
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
