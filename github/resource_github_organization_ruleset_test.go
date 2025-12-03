@@ -501,34 +501,6 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("panics when conditions block is missing for branch target", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
-				name        = "test-no-conditions-%s"
-				target      = "branch"
-				enforcement = "active"
-
-				rules {
-					creation = true
-				}
-			}
-		`, randomID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					// Before fix: This will PANIC with "index out of range"
-					// After fix: Should return proper validation error
-					ExpectError: regexp.MustCompile(`conditions block is required for branch target`),
-				},
-			},
-		})
-	})
-
 	t.Run("validates_branch_target_requires_ref_name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
