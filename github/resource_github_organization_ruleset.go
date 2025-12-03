@@ -9,10 +9,10 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-  "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
@@ -733,10 +733,10 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-  target := d.Get("target").(string)
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]interface{}{"target": target, "conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]any{"target": target, "conditions": conditions})
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
@@ -746,10 +746,10 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schem
 	return nil
 }
 
-func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-  target := d.Get("target").(string)
+func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for push target", map[string]interface{}{"target": target, "conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
 		return fmt.Errorf("ref_name must not be set for %s target", target)
@@ -757,12 +757,12 @@ func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
-func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-  target := d.Get("target").(string)
+func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]interface{}{"target": target, "conditions": conditions})
+	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"target": target, "conditions": conditions})
 
-  if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
 		return fmt.Errorf("ref_name must not be set for %s target", target)
 	}
 	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
@@ -771,13 +771,13 @@ func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.R
 	return nil
 }
 
-func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
 	target := d.Get("target").(string)
-	tflog.Debug(ctx, "Validating conditions field based on target", map[string]interface{}{"target": target})
+	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
 
-  if conditionsRaw == nil || len(conditionsRaw) == 0 {
-    tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]interface{}{"target": target})
+	if conditionsRaw == nil || len(conditionsRaw) == 0 {
+		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
 		return nil
 	}
 
