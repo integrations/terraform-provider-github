@@ -621,7 +621,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
-						ExpectError: regexp.MustCompile("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets"),
+						ExpectError: regexp.MustCompile("ref_name must be set for branch and tag targets"),
 					},
 				},
 			})
