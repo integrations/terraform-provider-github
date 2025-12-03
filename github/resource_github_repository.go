@@ -76,14 +76,12 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				ForceNew:    true,
 				Description: "The owner of the source repository to fork from.",
 			},
 			"source_repo": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				ForceNew:    true,
 				Description: "The name of the source repository to fork from.",
 			},
 			"security_and_analysis": {
@@ -486,13 +484,19 @@ func resourceGithubRepository() *schema.Resource {
 		},
 		CustomizeDiff: customdiff.All(
 			customDiffFunction,
-			customdiff.ForceNewIfChange("fork", func(ctx context.Context, oldVal, newVal, meta any) bool {
-				oldValStr := oldVal.(string)
-				newValStr := newVal.(string)
-				return oldValStr != "" && oldValStr != newValStr
-			}),
+			customdiff.ForceNewIfChange("fork", valueChangedButNotEmpty),
+			customdiff.ForceNewIfChange("source_repo", valueChangedButNotEmpty),
+			customdiff.ForceNewIfChange("source_owner", valueChangedButNotEmpty),
 		),
 	}
+}
+
+// valueChangedButNotEmpty is a customdiff function that triggers recreation of the resource
+// if the field's value changes from a non-empty state to a different non-empty value.
+func valueChangedButNotEmpty(ctx context.Context, oldVal, newVal, meta any) bool {
+	oldValStr := oldVal.(string)
+	newValStr := newVal.(string)
+	return oldValStr != "" && oldValStr != newValStr
 }
 
 func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
