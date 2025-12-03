@@ -527,7 +527,6 @@ resource "github_organization_ruleset" "test" {
 				},
 			},
 		})
-
 	})
 
 	t.Run("validates_branch_target_requires_ref_name", func(t *testing.T) {
@@ -557,7 +556,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("ref_name and repository_name or ref_name and repository_id must be set for branch and tag targets"),
+					ExpectError: regexp.MustCompile("ref_name must be set for branch and tag targets"),
 				},
 			},
 		})
@@ -624,7 +623,6 @@ resource "github_organization_ruleset" "test" {
 				},
 			},
 		})
-
 	})
 
 	t.Run("validates_repository_target_rejects_ref_name", func(t *testing.T) {
