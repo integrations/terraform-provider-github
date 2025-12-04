@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -63,22 +64,24 @@ func resourceGithubRepository() *schema.Resource {
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false), "visibility"),
 				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
 			},
+			// terraform-sdk-provider doesn't properly support tristate booleans: https://github.com/hashicorp/terraform-plugin-sdk/issues/817
+			// Using TypeString as the best alternative for now.
 			"fork": {
-				Type:        schema.TypeBool,
+				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "Set to 'true' to fork an existing repository.",
 			},
 			"source_owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "The owner of the source repository to fork from.",
 			},
 			"source_repo": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "The name of the source repository to fork from.",
 			},
 			"security_and_analysis": {
@@ -100,7 +103,23 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "status"),
-										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
+										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled', This value being present when split licensing is enabled will error out.",
+									},
+								},
+							},
+						},
+						"code_security": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "The code security configuration for the repository.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "code_security"),
+										Description:      "Set to 'enabled' to enable code security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -116,7 +135,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning"),
-										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -132,7 +151,39 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_push_protection"),
-										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+									},
+								},
+							},
+						},
+						"secret_scanning_ai_detection": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "The secret scanning AI detection configuration for this repository.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_ai_detection"),
+										Description:      "Set to 'enabled' to enable secret scanning AI detection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+									},
+								},
+							},
+						},
+						"secret_scanning_non_provider_patterns": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "The secret scanning non-provider patterns configuration for this repository.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_non_provider_patterns"),
+										Description:      "Set to 'enabled' to enable secret scanning non-provider patterns on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -431,8 +482,30 @@ func resourceGithubRepository() *schema.Resource {
 				Description: " Set to 'true' to always suggest updating pull request branches.",
 			},
 		},
-		CustomizeDiff: customDiffFunction,
+		CustomizeDiff: customdiff.All(
+			customDiffFunction,
+			customdiff.ForceNewIfChange("fork", valueChangedButNotEmpty),
+			customdiff.ForceNewIfChange("source_repo", valueChangedButNotEmpty),
+			customdiff.ForceNewIfChange("source_owner", valueChangedButNotEmpty),
+		),
 	}
+}
+
+// valueChangedButNotEmpty is a customdiff function that triggers recreation of the resource
+// if the field's value changes from a non-empty state to a different non-empty value.
+func valueChangedButNotEmpty(ctx context.Context, oldVal, newVal, meta any) bool {
+	oldValStr := oldVal.(string)
+	newValStr := newVal.(string)
+	return oldValStr != "" && oldValStr != newValStr
+}
+
+func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
+	if diff.HasChange("name") {
+		if err := diff.SetNewComputed("full_name"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func calculateVisibility(d *schema.ResourceData) string {
@@ -610,12 +683,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta any) error {
 
 			d.SetId(*repo.Name)
 		}
-	} else if d.Get("fork").(bool) {
+	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
 		sourceOwner := d.Get("source_owner").(string)
 		sourceRepo := d.Get("source_repo").(string)
 		requestedName := d.Get("name").(string)
-		owner := meta.(*Owner).name
 		log.Printf("[INFO] Creating fork of %s/%s in %s", sourceOwner, sourceRepo, owner)
 
 		if sourceOwner == "" || sourceRepo == "" {
@@ -790,7 +862,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	// Set fork information if this is a fork
 	if repo.GetFork() {
-		_ = d.Set("fork", true)
+		_ = d.Set("fork", "true")
 
 		// If the repository has parent information, set the source details
 		if repo.Parent != nil {
@@ -798,7 +870,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 			_ = d.Set("source_repo", repo.Parent.GetName())
 		}
 	} else {
-		_ = d.Set("fork", false)
+		_ = d.Set("fork", "false")
 		_ = d.Set("source_owner", "")
 		_ = d.Set("source_repo", "")
 	}
@@ -1162,15 +1234,6 @@ func resourceGithubParseFullName(resourceDataLike interface {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
-}
-
-func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
-	if diff.HasChange("name") {
-		if err := diff.SetNewComputed("full_name"); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {

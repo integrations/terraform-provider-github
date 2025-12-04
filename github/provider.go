@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -145,6 +144,7 @@ func Provider() *schema.Provider {
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
 			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+			"github_actions_hosted_runner":                                          resourceGithubActionsHostedRunner(),
 			"github_actions_secret":                                                 resourceGithubActionsSecret(),
 			"github_actions_variable":                                               resourceGithubActionsVariable(),
 			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
@@ -286,6 +286,7 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
+			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 		},
 	}
 
@@ -365,6 +366,11 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
+		bu, err := validateBaseURL(baseURL)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
 		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
 			appAuthAttr := appAuth[0].(map[string]any)
 
@@ -395,7 +401,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
-			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
+			appToken, err := GenerateOAuthTokenFromApp(bu, appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})
 			}
@@ -403,17 +409,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			token = appToken
 		}
 
-		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-
 		if token == "" {
-			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
-			if err != nil {
-				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
-			}
-			token = ghAuthToken
+			token = tokenFromGHCLI(bu)
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
@@ -486,41 +483,49 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	}
 }
 
+// validateBaseURL checks that the provided base URL is valid and can be used.
+func validateBaseURL(b string) (*url.URL, error) {
+	u, err := url.Parse(b)
+	if err != nil {
+		return nil, err
+	}
+
+	if !u.IsAbs() {
+		return nil, fmt.Errorf("base_url must be absolute")
+	}
+
+	hostname := u.Hostname()
+	if hostname == DotComHost || GHECDataResidencyHostMatch.MatchString(hostname) {
+		if u.Scheme != "https" {
+			return nil, fmt.Errorf("base_url for github.com or ghe.com must use the https scheme")
+		}
+		if len(u.Path) > 1 {
+			return nil, fmt.Errorf("base_url for github.com or ghe.com must not contain a path, got %s", u.Path)
+		}
+	}
+
+	return u, err
+}
+
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+func tokenFromGHCLI(u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
 	}
-	hostname := ""
-	if isGithubDotCom {
-		hostname = "github.com"
-	} else {
-		parsedURL, err := url.Parse(baseURL)
-		if err != nil {
-			return "", fmt.Errorf("parse %s: %w", baseURL, err)
-		}
-		hostname = parsedURL.Host
+
+	host := u.Host
+	if u.Hostname() == DotComHost {
+		host = "github.com"
 	}
-	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when
-	// we're using the standard base path of this provider, it doesn't align
-	// with the way `gh` CLI stores the credentials. The following doesn't work:
-	//
-	// $ gh auth token --hostname api.github.com
-	// > no oauth token
-	//
-	// ... but the following does work correctly
-	//
-	// $ gh auth token --hostname github.com
-	// > gh..<valid token>
-	hostname = strings.TrimPrefix(hostname, "api.")
-	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
-		return "", nil //nolint:nilerr
+		return ""
 	}
 
 	log.Printf("[INFO] Using the token from GitHub CLI")
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(string(out))
 }
