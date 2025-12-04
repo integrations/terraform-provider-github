@@ -482,6 +482,16 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 		}
 	}
 
+	// copilot_code_review rule
+	if v, ok := rulesMap["copilot_code_review"].([]any); ok && len(v) != 0 {
+		copilotCodeReviewMap := v[0].(map[string]any)
+		params := &github.CopilotCodeReviewRuleParameters{
+			ReviewNewPushes:         copilotCodeReviewMap["review_new_pushes"].(bool),
+			ReviewDraftPullRequests: copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		}
+		rulesSlice = append(rulesSlice, github.NewCopilotCodeReviewRule(params))
+	}
+
 	return rulesSlice
 }
 
@@ -722,6 +732,18 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []any {
 			}
 			rule := make(map[string]any)
 			rule["restricted_file_extensions"] = params.RestrictedFileExtensions
+			rulesMap[v.Type] = []map[string]any{rule}
+
+		case "copilot_code_review":
+			var params github.CopilotCodeReviewRuleParameters
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+			rule := make(map[string]any)
+			rule["review_new_pushes"] = params.ReviewNewPushes
+			rule["review_draft_pull_requests"] = params.ReviewDraftPullRequests
 			rulesMap[v.Type] = []map[string]any{rule}
 
 		default:

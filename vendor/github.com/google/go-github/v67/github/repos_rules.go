@@ -119,6 +119,12 @@ type PullRequestRuleParameters struct {
 	RequiredReviewThreadResolution bool `json:"required_review_thread_resolution"`
 }
 
+// CopilotCodeReviewRuleParameters represents the copilot_code_review rule parameters.
+type CopilotCodeReviewRuleParameters struct {
+	ReviewNewPushes         bool `json:"review_new_pushes"`
+	ReviewDraftPullRequests bool `json:"review_draft_pull_requests"`
+}
+
 // RuleRequiredStatusChecks represents the RequiredStatusChecks for the RequiredStatusChecksRuleParameters object.
 type RuleRequiredStatusChecks struct {
 	Context       string `json:"context"`
@@ -289,6 +295,7 @@ type RepositoryRulesetRule struct {
 	MaxFileSize              *RepositoryRulesetMaxFileSizeRule              `json:"max_file_size,omitempty"`
 	Workflows                *RepositoryRulesetWorkflowsRule                `json:"workflows,omitempty"`
 	CodeScanning             *RepositoryRulesetCodeScanningRule             `json:"code_scanning,omitempty"`
+	CopilotCodeReview        *RepositoryRulesetCopilotCodeReviewRule        `json:"copilot_code_review,omitempty"`
 }
 
 // RepositoryRulesetLink represents Links associated with a repository's rulesets. These links are used to provide more information about the ruleset.
@@ -386,6 +393,13 @@ type RepositoryRulesetCodeScanningRule struct {
 	// Type can be one of: "code_scanning".
 	Type       string                      `json:"type"`
 	Parameters *RuleCodeScanningParameters `json:"parameters,omitempty"`
+}
+
+// RepositoryRulesetCopilotCodeReviewRule defines a Copilot code review rule for the repository.
+type RepositoryRulesetCopilotCodeReviewRule struct {
+	// Type can be one of: "copilot_code_review".
+	Type       string                           `json:"type"`
+	Parameters *CopilotCodeReviewRuleParameters `json:"parameters,omitempty"`
 }
 
 // RuleCodeScanningParameters defines parameters for code scanning rules.
@@ -533,6 +547,15 @@ func (r *RepositoryRule) UnmarshalJSON(data []byte) error {
 		r.Parameters = &rawParams
 	case "max_file_size":
 		params := RuleMaxFileSizeParameters{}
+		if err := json.Unmarshal(*repositoryRule.Parameters, &params); err != nil {
+			return err
+		}
+		bytes, _ := json.Marshal(params)
+		rawParams := json.RawMessage(bytes)
+
+		r.Parameters = &rawParams
+	case "copilot_code_review":
+		params := CopilotCodeReviewRuleParameters{}
 		if err := json.Unmarshal(*repositoryRule.Parameters, &params); err != nil {
 			return err
 		}
@@ -782,6 +805,18 @@ func NewMaxFileSizeRule(params *RuleMaxFileSizeParameters) (rule *RepositoryRule
 
 	return &RepositoryRule{
 		Type:       "max_file_size",
+		Parameters: &rawParams,
+	}
+}
+
+// NewCopilotCodeReviewRule creates a rule to automatically request Copilot code review for new pull requests.
+func NewCopilotCodeReviewRule(params *CopilotCodeReviewRuleParameters) (rule *RepositoryRule) {
+	bytes, _ := json.Marshal(params)
+
+	rawParams := json.RawMessage(bytes)
+
+	return &RepositoryRule{
+		Type:       "copilot_code_review",
 		Parameters: &rawParams,
 	}
 }
