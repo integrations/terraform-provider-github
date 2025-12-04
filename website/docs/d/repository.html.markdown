@@ -25,7 +25,7 @@ The following arguments are supported:
 
 * `full_name` - (Optional) Full name of the repository (in `org/name` format).
 
-* `owner` - (Optional) Owner of the repository. If not provided, the owner specified in the provider configuration will be used.
+* `owner` - (Optional)  Owner of the repository. If not provided, the provider's default owner is used.
 
 ## Attributes Reference
 
