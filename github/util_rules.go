@@ -1,12 +1,15 @@
 package github
 
 import (
+	"log"
 	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var DEFAULT_PULL_REQUEST_MERGE_METHODS = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
 
 // Helper function to safely convert interface{} to int, handling both int and float64.
 func toInt(v any) int {
@@ -34,6 +37,24 @@ func toInt64(v any) int64 {
 	default:
 		return 0
 	}
+}
+
+func toPullRequestMergeMethods(input []string) []github.PullRequestMergeMethod {
+	mergeMethods := make([]github.PullRequestMergeMethod, 0)
+	for _, method := range input {
+		switch method {
+		case "merge":
+			mergeMethods = append(mergeMethods, github.PullRequestMergeMethodMerge)
+		case "rebase":
+			mergeMethods = append(mergeMethods, github.PullRequestMergeMethodRebase)
+		case "squash":
+			mergeMethods = append(mergeMethods, github.PullRequestMergeMethodSquash)
+		}
+	}
+	if len(mergeMethods) == 0 {
+		mergeMethods = append(mergeMethods, github.PullRequestMergeMethodMerge) // We need to send at least one method to the API. Defaulting to merge.
+	}
+	return mergeMethods
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
@@ -295,13 +316,19 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]any); ok && len(v) != 0 {
 		pullRequestMap := v[0].(map[string]any)
+		allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
+		if allowedMergeMethods != nil {
+			allowedMergeMethods = toPullRequestMergeMethods(allowedMergeMethods.([]string))
+		} else {
+			allowedMergeMethods = DEFAULT_PULL_REQUEST_MERGE_METHODS
+		}
 		params := &github.PullRequestRuleParameters{
-			AllowedMergeMethods:            []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodSquash, github.PullRequestMergeMethodRebase},
 			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
 			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
 			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
 			RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
+			AllowedMergeMethods:            allowedMergeMethods.([]github.PullRequestMergeMethod),
 		}
 		rulesetRules.PullRequest = params
 	}
@@ -542,7 +569,9 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
 			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
+			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
+		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
