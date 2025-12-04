@@ -81,7 +81,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_workflows {
 						do_not_enforce_on_create = true
 						required_workflow {
-							path          = "path/to/workflow.yaml"
+							path          = ".github/workflows/echo.yaml"
 							repository_id = github_repository.%[1]s.repo_id
 						}
 					}
