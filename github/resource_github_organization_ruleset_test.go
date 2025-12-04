@@ -12,8 +12,19 @@ import (
 func TestAccGithubOrganizationRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+}
+
+resource "github_actions_repository_access_level" "test" {
+	repository = github_repository.test.name
+	access_level = "organization"
+}
+
 resource "github_organization_ruleset" "test" {
 	name        = "test-%s"
 	target      = "branch"
@@ -79,8 +90,8 @@ resource "github_organization_ruleset" "test" {
 		required_workflows {
 			do_not_enforce_on_create = true
 			required_workflow {
-				path          = "path/to/workflow.yaml"
-				repository_id = 1234
+				path          = ".github/workflows/echo.yaml"
+				repository_id = github_repository.test.repo_id
 			}
 		}
 
@@ -102,7 +113,7 @@ resource "github_organization_ruleset" "test" {
 		non_fast_forward = true
 	}
 }
-`, randomID)
+`, repoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -165,6 +176,11 @@ resource "github_organization_ruleset" "test" {
 			include = ["~ALL"]
 			exclude = []
 		}
+
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
 	}
 
 	rules {
@@ -367,6 +383,12 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	conditions {
+
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
 		ref_name {
 			include = ["~ALL"]
 			exclude = []

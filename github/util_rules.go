@@ -516,14 +516,14 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 	// Update rule with parameters
 	if rules.Update != nil {
 		rulesMap["update"] = true
-    if !org {
-      rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
-    }
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+		}
 	} else {
 		rulesMap["update"] = false
-    if !org {
-      rulesMap["update_allows_fetch_and_merge"] = false
-    }
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = false
+		}
 	} // Required deployments rule
 	if rules.RequiredDeployments != nil {
 		requiredDeploymentsSlice := make([]map[string]any, 0)
