@@ -24,6 +24,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
 		resourceName := "test-create-and-update"
 		config := fmt.Sprintf(`
+			resource "github_repository" "%[1]s" {
+				name = "test-%[2]s"
+				visibility = "private"
+			}
+
 			resource "github_organization_ruleset" "%[1]s" {
 				name        = "test-%[2]s"
 				target      = "branch"
@@ -72,7 +77,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						do_not_enforce_on_create = true
 						required_workflow {
 							path          = "path/to/workflow.yaml"
-							repository_id = 1234
+							repository_id = github_repository.%[1]s.repo_id
 						}
 					}
 
