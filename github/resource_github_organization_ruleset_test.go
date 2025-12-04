@@ -29,6 +29,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				visibility = "private"
 			}
 
+      resource "github_actions_repository_access_level" "%[1]s" {
+        repository = github_repository.%[1]s.name
+        access_level = "organization"
+      }
+
 			resource "github_organization_ruleset" "%[1]s" {
 				name        = "test-%[2]s"
 				target      = "branch"
