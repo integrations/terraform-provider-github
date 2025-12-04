@@ -22,9 +22,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
+		resourceName := "test-create-and-update"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
-				name        = "test-%s"
+			resource "github_organization_ruleset" "%[1]s" {
+				name        = "test-%[2]s"
 				target      = "branch"
 				enforcement = "active"
 
@@ -89,46 +90,46 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					non_fast_forward = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"name",
 				"test",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"enforcement",
 				"active",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.do_not_enforce_on_create",
 				"true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.required_workflow.0.path",
 				"path/to/workflow.yaml",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.required_workflow.0.repository_id",
 				"1234",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
 				"errors",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
 				"high_or_higher",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
 				"CodeQL",
 			),
