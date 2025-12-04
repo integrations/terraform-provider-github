@@ -18,6 +18,17 @@ func TestAccGithubOrganizationRuleset(t *testing.T) {
 resource "github_repository" "test" {
 	name = "%s"
 	visibility = "private"
+	auto_init = true
+}
+
+resource "github_repository_file" "workflow_file" {
+	repository          = github_repository.test.name
+	branch              = "main"
+	file                = ".github/workflows/echo.yaml"
+	content             = "name: Echo Workflow\n\non: [pull_request]\n\njobs:\n    echo:\n      runs-on: linux\n      steps:\n        - run: echo \"Hello, world!\"\n"
+	commit_message      = "Managed by Terraform"
+	commit_author       = "Terraform User"
+	commit_email        = "terraform@example.com"
 }
 
 resource "github_actions_repository_access_level" "test" {
