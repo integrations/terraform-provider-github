@@ -157,7 +157,6 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

@@ -120,7 +120,6 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta any) error
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

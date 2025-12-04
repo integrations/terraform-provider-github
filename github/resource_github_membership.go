@@ -113,7 +113,6 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}
@@ -159,7 +158,6 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
 					return nil
 				}
-				return err
 			}
 
 			return err

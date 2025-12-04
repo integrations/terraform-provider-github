@@ -127,7 +127,6 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

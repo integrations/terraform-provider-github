@@ -118,7 +118,6 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta a
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

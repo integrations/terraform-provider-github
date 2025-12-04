@@ -139,7 +139,6 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}
@@ -154,7 +153,6 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

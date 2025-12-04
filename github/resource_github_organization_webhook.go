@@ -136,7 +136,6 @@ func resourceGithubOrganizationWebhookRead(d *schema.ResourceData, meta any) err
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

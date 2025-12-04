@@ -115,7 +115,6 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(d *schema.ResourceD
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}

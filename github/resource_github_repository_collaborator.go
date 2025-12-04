@@ -116,7 +116,6 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}
