@@ -29,10 +29,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				visibility = "private"
 			}
 
-      resource "github_actions_repository_access_level" "%[1]s" {
-        repository = github_repository.%[1]s.name
-        access_level = "organization"
-      }
+			resource "github_actions_repository_access_level" "%[1]s" {
+				repository = github_repository.%[1]s.name
+				access_level = "organization"
+			}
 
 			resource "github_organization_ruleset" "%[1]s" {
 				name        = "test-%[2]s"
@@ -87,11 +87,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_code_scanning {
-					  required_code_scanning_tool {
-						alerts_threshold = "errors"
-						security_alerts_threshold = "high_or_higher"
-						tool = "CodeQL"
-					  }
+						required_code_scanning_tool {
+							alerts_threshold = "errors"
+							security_alerts_threshold = "high_or_higher"
+							tool = "CodeQL"
+						}
 					}
 
 					branch_name_pattern {
