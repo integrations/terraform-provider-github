@@ -27,6 +27,18 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			resource "github_repository" "%[1]s" {
 				name = "test-%[2]s"
 				visibility = "private"
+				auto_init = true
+        lifecycle { prevent_destroy = true }
+			}
+
+			resource "github_repository_file" "workflow_file" {
+				repository          = github_repository.%[1]s.name
+				branch              = "main"
+				file                = ".github/workflows/echo.yaml"
+				content             = "name: Echo Workflow\n\non: [pull_request]\n\njobs:\n    echo:\n      runs-on: linux\n      steps:\n        - run: echo \"Hello, world!\"\n"
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
 			}
 
 			resource "github_actions_repository_access_level" "%[1]s" {
@@ -83,6 +95,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						required_workflow {
 							path          = ".github/workflows/echo.yaml"
 							repository_id = github_repository.%[1]s.repo_id
+							ref           = "main" # Default ref is master
 						}
 					}
 
@@ -103,6 +116,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 					non_fast_forward = true
 				}
+        depends_on = [github_repository_file.workflow_file]
 			}
 		`, resourceName, randomID)
 
