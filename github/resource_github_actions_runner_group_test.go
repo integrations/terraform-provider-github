@@ -12,11 +12,9 @@ import (
 )
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates runner groups without error", func(t *testing.T) {
-
 		// t.Skip("requires an enterprise cloud account")
 
 		config := fmt.Sprintf(`
@@ -79,7 +77,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				"1",
 			),
 			func(state *terraform.State) error {
-
 				githubRepository := state.RootModule().Resources["github_repository.test"].Primary
 				fullName := githubRepository.Attributes["full_name"]
 
@@ -127,7 +124,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner visibility", func(t *testing.T) {
-
 		// t.Skip("requires an enterprise cloud account")
 
 		config := fmt.Sprintf(`
@@ -293,7 +289,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a selected runner group without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"

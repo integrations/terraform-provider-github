@@ -2,24 +2,27 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryProject() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
+
 		Create: resourceGithubRepositoryProjectCreate,
 		Read:   resourceGithubRepositoryProjectRead,
 		Update: resourceGithubRepositoryProjectUpdate,
 		Delete: resourceGithubRepositoryProjectDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<project_id>")
@@ -56,13 +59,18 @@ func resourceGithubRepositoryProject() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -86,7 +94,7 @@ func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryProjectRead(d, meta)
 }
 
-func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -101,7 +109,8 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 
 	project, resp, err := client.Projects.GetProject(ctx, projectID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		ghErr := &github.ErrorResponse{}
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -132,7 +141,7 @@ func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	name := d.Get("name").(string)
@@ -157,7 +166,7 @@ func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta interfac
 	return resourceGithubRepositoryProjectRead(d, meta)
 }
 
-func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	projectID, err := strconv.ParseInt(d.Id(), 10, 64)

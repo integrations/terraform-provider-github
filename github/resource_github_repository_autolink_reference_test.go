@@ -10,11 +10,9 @@ import (
 )
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates repository autolink reference without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name        = "test-%s"
@@ -119,11 +117,9 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports repository autolink reference without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name        = "test-%s"
@@ -256,11 +252,9 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports repository autolink reference by key prefix without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "oof" {
 			  name         = "oof-%s"
@@ -310,11 +304,9 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name        = "test-%s"

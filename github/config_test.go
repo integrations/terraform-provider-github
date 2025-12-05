@@ -2,62 +2,62 @@ package github
 
 import (
 	"context"
+	"net/url"
 	"testing"
 
 	"github.com/shurcooL/githubv4"
 )
 
-func TestGHECDataResidencyMatch(t *testing.T) {
+func TestGHECDataResidencyHostMatch(t *testing.T) {
 	testCases := []struct {
 		url         string
 		matches     bool
 		description string
 	}{
 		{
-			url:         "https://customer.ghe.com",
+			url:         "https://customer.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with customer name",
 		},
 		{
-			url:         "https://customer-name.ghe.com",
+			url:         "https://customer-name.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with hyphenated name",
 		},
 		{
-			url:         "https://api.github.com",
-			matches:     false,
-			description: "GitHub.com API URL",
+			url:         "https://customer.ghe.com",
+			matches:     true,
+			description: "GHEC data residency URL without a trailing slash",
 		},
 		{
-			url:         "https://github.com",
+			url:         "https://ghe.com/",
+			matches:     false,
+			description: "GHEC domain without subdomain",
+		},
+		{
+			url:         "https://github.com/",
 			matches:     false,
 			description: "GitHub.com URL",
 		},
 		{
-			url:         "https://example.com",
+			url:         "https://api.github.com/",
+			matches:     false,
+			description: "GitHub.com API URL",
+		},
+		{
+			url:         "https://example.com/",
 			matches:     false,
 			description: "Generic URL",
-		},
-		{
-			url:         "http://customer.ghe.com",
-			matches:     false,
-			description: "Non-HTTPS GHEC URL",
-		},
-		{
-			url:         "https://customer.ghe.com/api/v3",
-			matches:     false,
-			description: "GHEC URL with path",
-		},
-		{
-			url:         "https://ghe.com",
-			matches:     false,
-			description: "GHEC domain without subdomain",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			matches := GHECDataResidencyMatch.MatchString(tc.url)
+			u, err := url.Parse(tc.url)
+			if err != nil {
+				t.Fatalf("failed to parse URL %q: %s", tc.url, err)
+			}
+			matches := GHECDataResidencyHostMatch.MatchString(u.Hostname())
 			if matches != tc.matches {
 				t.Errorf("URL %q: expected match=%v, got %v", tc.url, tc.matches, matches)
 			}
@@ -66,14 +66,12 @@ func TestGHECDataResidencyMatch(t *testing.T) {
 }
 
 func TestAccConfigMeta(t *testing.T) {
-
 	// FIXME: Skip test runs during travis lint checking
 	if testToken == "" {
 		return
 	}
 
 	t.Run("returns an anonymous client for the v3 REST API", func(t *testing.T) {
-
 		config := Config{BaseURL: "https://api.github.com/"}
 		meta, err := config.Meta()
 		if err != nil {
@@ -86,18 +84,14 @@ func TestAccConfigMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
-
 	})
 
 	t.Run("returns an anonymous client for the v4 GraphQL API", func(t *testing.T) {
-
 		// https://developer.github.com/v4/guides/forming-calls/#authenticating-with-graphql
 		t.Skip("anonymous client for the v4 GraphQL API is unsupported")
-
 	})
 
 	t.Run("returns a v3 REST API client to manage individual resources", func(t *testing.T) {
-
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
@@ -113,11 +107,9 @@ func TestAccConfigMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
-
 	})
 
 	t.Run("returns a v3 REST API client with max retries", func(t *testing.T) {
-
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
@@ -138,11 +130,9 @@ func TestAccConfigMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
-
 	})
 
 	t.Run("returns a v4 GraphQL API client to manage individual resources", func(t *testing.T) {
-
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
@@ -162,11 +152,9 @@ func TestAccConfigMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
-
 	})
 
 	t.Run("returns a v3 REST API client to manage organization resources", func(t *testing.T) {
-
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
@@ -183,11 +171,9 @@ func TestAccConfigMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
-
 	})
 
 	t.Run("returns a v4 GraphQL API client to manage organization resources", func(t *testing.T) {
-
 		config := Config{
 			Token:   testToken,
 			BaseURL: "https://api.github.com/",
@@ -205,7 +191,7 @@ func TestAccConfigMeta(t *testing.T) {
 				ViewerCanAdminister githubv4.Boolean
 			} `graphql:"organization(login: $login)"`
 		}
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			"login": githubv4.String(testOrganization),
 		}
 		err = client.Query(context.Background(), &query, variables)
@@ -216,7 +202,5 @@ func TestAccConfigMeta(t *testing.T) {
 		if query.Organization.ViewerCanAdminister != true {
 			t.Fatalf("unexpected response when validating client")
 		}
-
 	})
-
 }
