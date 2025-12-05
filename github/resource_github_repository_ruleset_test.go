@@ -74,6 +74,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						require_last_push_approval        = true
 					}
 
+					copilot_code_review {
+						review_new_pushes          = true
+						review_draft_pull_requests = false
+					}
+
 					required_status_checks {
 
 						required_check {
@@ -122,6 +127,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				"github_repository_ruleset.test",
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
 				"CodeQL",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.copilot_code_review.0.review_new_pushes",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.copilot_code_review.0.review_draft_pull_requests",
+				"false",
 			),
 		)
 
