@@ -20,7 +20,9 @@ jobs:
     # Releases need permissions to read and write the repository contents.
     # GitHub considers creating releases and uploading assets as writing contents.
     permissions:
+      attestations: write
       contents: write
+      id-token: write
     environment:
       name: release
     defaults:
