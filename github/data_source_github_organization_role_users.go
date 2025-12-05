@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -12,7 +13,7 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 	return &schema.Resource{
 		Description: "Lookup all users assigned to a custom organization role.",
 
-		Read: dataSourceGithubOrganizationRoleUsersRead,
+		ReadContext: dataSourceGithubOrganizationRoleUsersRead,
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
@@ -37,6 +38,7 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
+						// TODO: Add these fields when go-github is v68+
 						// See https://github.com/google/go-github/issues/3364
 						// "assignment": {
 						// 	Description: "Determines if the team has a direct, indirect, or mixed relationship to a role.",
@@ -60,9 +62,8 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRoleUsersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
@@ -76,7 +77,7 @@ func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta any)
 	for {
 		users, resp, err := client.Organizations.ListUsersAssignedToOrgRole(ctx, orgName, roleId, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, user := range users {
@@ -95,7 +96,7 @@ func dataSourceGithubOrganizationRoleUsersRead(d *schema.ResourceData, meta any)
 
 	d.SetId(fmt.Sprintf("%d", roleId))
 	if err := d.Set("users", allUsers); err != nil {
-		return fmt.Errorf("error setting users: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting users: %w", err))
 	}
 
 	return nil

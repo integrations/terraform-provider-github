@@ -7,16 +7,18 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 	return &schema.Resource{
 		Description: "Manage a custom organization repository role.",
-		Create:      resourceGithubOrganizationRepositoryRoleCreate,
-		Read:        resourceGithubOrganizationRepositoryRoleRead,
-		Update:      resourceGithubOrganizationRepositoryRoleUpdate,
-		Delete:      resourceGithubOrganizationRepositoryRoleDelete,
+
+		CreateContext: resourceGithubOrganizationRepositoryRoleCreate,
+		ReadContext:   resourceGithubOrganizationRepositoryRoleRead,
+		UpdateContext: resourceGithubOrganizationRepositoryRoleUpdate,
+		DeleteContext: resourceGithubOrganizationRepositoryRoleDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -54,15 +56,14 @@ func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRepositoryRoleCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
 
 	permissions := d.Get("permissions").(*schema.Set).List()
 	permissionsStr := make([]string, len(permissions))
@@ -77,29 +78,28 @@ func resourceGithubOrganizationRepositoryRoleCreate(d *schema.ResourceData, meta
 		Permissions: permissionsStr,
 	})
 	if err != nil {
-		return fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err)
+		return diag.FromErr(fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
-	return resourceGithubOrganizationRoleRead(d, meta)
+	return nil
 }
 
-func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	// TODO: Use this code when go-github adds the functionality to get a custom repo role
+	// TODO: Use this code when go-github is v68+
 	// role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
 	// if err != nil {
 	// 	if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -114,7 +114,7 @@ func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta a
 
 	roles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var role *github.CustomRepoRoles
@@ -132,37 +132,36 @@ func resourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta a
 	}
 
 	if err = d.Set("role_id", role.GetID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("name", role.Name); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("description", role.Description); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("base_role", role.BaseRole); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("permissions", role.Permissions); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryRoleUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	permissions := d.Get("permissions").(*schema.Set).List()
@@ -180,30 +179,29 @@ func resourceGithubOrganizationRepositoryRoleUpdate(d *schema.ResourceData, meta
 
 	_, _, err = client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
 	if err != nil {
-		return fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err)
+		return diag.FromErr(fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
 
-	return resourceGithubOrganizationRoleRead(d, meta)
+	return nil
 }
 
-func resourceGithubOrganizationRepositoryRoleDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleId)
 	if err != nil {
-		return fmt.Errorf("Error deleting GitHub organization repository role %s (%d): %w", orgName, roleId, err)
+		return diag.FromErr(fmt.Errorf("Error deleting organization repository role %d: %w", roleId, err))
 	}
 
 	return nil
