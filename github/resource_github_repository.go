@@ -364,9 +364,14 @@ func resourceGithubRepository() *schema.Resource {
 							Computed:    true,
 							Description: "URL to the repository on the web.",
 						},
+						"public": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the rendered GitHub Pages site is publicly availabe.",
+						},
 						"status": {
 							Type:        schema.TypeString,
-							Computed:    true,
+							Optional:    true,
 							Description: "The GitHub Pages site's build status e.g. building or built.",
 						},
 						"url": {
@@ -1094,7 +1099,12 @@ func expandPages(input []any) *github.Pages {
 		buildType = github.String(v)
 	}
 
-	return &github.Pages{Source: source, BuildType: buildType}
+	var public *bool
+	// Only set the github.PagesUpdate public field if the value is a valid boolean.
+	if v, ok := pages["public"].(bool); ok {
+		public = github.Bool(v)
+	}
+	return &github.Pages{Source: source, BuildType: buildType, Public: public}
 }
 
 func expandPagesUpdate(input []any) *github.PagesUpdate {
@@ -1129,6 +1139,11 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 		}
 		update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 	}
+	
+	// Only set the github.PagesUpdate public field if the value is a valid boolean.
+	if v, ok := pages["public"].(bool); ok {
+		update.Public = github.Bool(v)
+	}
 
 	return update
 }
@@ -1153,6 +1168,7 @@ func flattenPages(pages *github.Pages) []any {
 
 	pagesMap["url"] = pages.GetURL()
 	pagesMap["status"] = pages.GetStatus()
+	pagesMap["public"] = pages.GetPublic()
 	pagesMap["cname"] = pages.GetCNAME()
 	pagesMap["custom_404"] = pages.GetCustom404()
 	pagesMap["html_url"] = pages.GetHTMLURL()
