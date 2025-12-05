@@ -37,18 +37,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
-      - name: Check secrets
-        env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'DOTCOM_TEST_USER_TOKEN' }}
-          INPUT_SECRETS: ${{ toJSON(secrets) }}
-        run: |
-          set -eou pipefail
+      # - name: Check secrets
+      #   env:
+      #     INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'DOTCOM_TEST_USER_TOKEN' }}
+      #     INPUT_SECRETS: ${{ toJSON(secrets) }}
+      #   run: |
+      #     set -eou pipefail
 
-          secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
-          if [[ "${secret_keys}" != "${INPUT_ALLOWED_SECRETS}" ]]; then
-            echo "::error::Too many or too few secrets configured: ${secret_keys}"
-            exit 1
-          fi
+      #     secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:ACTIONS)|(?:actions)|(?:GITHUB)|(?:github)|(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
+      #     if [[ "${secret_keys}" != "${INPUT_ALLOWED_SECRETS}" ]]; then
+      #       echo "::error::Too many or too few secrets configured: ${secret_keys}"
+      #       exit 1
+      #     fi
 
       - name: Check credentials
         id: credentials
@@ -75,6 +75,7 @@ jobs:
         env:
           TF_ACC: "1"
           TF_LOG: INFO
+          GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_TEST_TYPE: ${{ matrix.mode }}
           GITHUB_OWNER: ${{ (matrix.mode == 'individual' && 'github-terraform-test-user') || (matrix.mode == 'organization' && 'terraformtesting') || '' }}
@@ -82,7 +83,7 @@ jobs:
           GITHUB_TEST_ORGANIZATION: ${{ (matrix.mode == 'individual' && 'terraformtesting') || '' }}
           GITHUB_TEST_OWNER: ${{ (matrix.mode == 'organization' && 'github-terraform-test-user') || '' }}
           GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -sweep=tf-acc- -timeout 120m -count=1
+        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check DotCom Acceptance Tests

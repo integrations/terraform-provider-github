@@ -36,7 +36,7 @@ jobs:
         run: |
           set -eou pipefail
 
-          secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
+          secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:ACTIONS)|(?:actions)|(?:GITHUB)|(?:github)|(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
           if [[ "${secret_keys}" != "${INPUT_ALLOWED_SECRETS}" ]]; then
             echo "::error::Too many or too few secrets configured: ${secret_keys}"
             exit 1
@@ -89,12 +89,13 @@ jobs:
         env:
           TF_ACC: "1"
           TF_LOG: INFO
+          GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: ${{ steps.server.outputs.address }}
           GITHUB_TEST_TYPE: enterprise
           GITHUB_OWNER: terraformtesting
           GITHUB_ORGANIZATION: terraformtesting
           GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -sweep=tf-acc- -timeout 120m -count=1
+        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check GHES Acceptance Tests

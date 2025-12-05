@@ -21,10 +21,15 @@ func sharedConfigForRegion() (any, error) {
 		return nil, fmt.Errorf("empty GITHUB_OWNER")
 	}
 
+	baseURL, ok := os.LookupEnv("GITHUB_BASE_URL")
+	if !ok {
+		baseURL = "https://api.github.com/"
+	}
+
 	config := Config{
 		Token:   os.Getenv("GITHUB_TOKEN"),
 		Owner:   os.Getenv("GITHUB_OWNER"),
-		BaseURL: "",
+		BaseURL: baseURL,
 	}
 
 	meta, err := config.Meta()
