@@ -50,6 +50,11 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 							Optional:    true,
 							Description: "Whether actions in GitHub Marketplace from verified creators are allowed. Set to 'true' to allow all GitHub Marketplace actions by verified creators.",
 						},
+						"sha_pinning_required": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in a repository.",
+						},
 					},
 				},
 			},
@@ -83,6 +88,10 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 		switch x := data["verified_allowed"].(type) {
 		case bool:
 			allowed.VerifiedAllowed = &x
+		}
+
+		if v, ok := data["sha_pinning_required"]; ok {
+			allowed.SHAPinningRequired = github.Bool(v.(bool))
 		}
 
 		patternsAllowed := []string{}
@@ -189,6 +198,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
+					"sha_pinning_required": actionsAllowed.GetShaPinningRequired(),
 				},
 			}); err != nil {
 				return err
