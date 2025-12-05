@@ -25,7 +25,7 @@ func TestAccGithubOrganizationRoleUser(t *testing.T) {
 		`, roleId, login)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{

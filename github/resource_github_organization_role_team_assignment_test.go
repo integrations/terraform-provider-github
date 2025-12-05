@@ -9,8 +9,6 @@ import (
 )
 
 func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	// Using the predefined roles since custom roles are a strictly Enterprise feature ((https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/))
 	githubPredefinedRoleMapping := make(map[string]string)
 	githubPredefinedRoleMapping["all_repo_read"] = "8132"
@@ -20,7 +18,9 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 	githubPredefinedRoleMapping["all_repo_admin"] = "8136"
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("tf-acc-test-team-repo-%s", randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "%s"
@@ -44,35 +44,23 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	// More tests can go here following the same format...
 	t.Run("create and re-creates role assignment without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("tf-acc-test-team-repo-%s", randomID)
+
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_team" "test" {
@@ -109,33 +97,19 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 }
