@@ -6,7 +6,7 @@ on:
     branches:
       - main
       - release-v*
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - synchronize
@@ -21,7 +21,6 @@ permissions: read-all
 jobs:
   test:
     name: Test ${{ matrix.mode }}
-    if: github.event_name != 'pull_request_target' || contains(github.event.pull_request.labels.*.name, 'acctest')
     runs-on: ubuntu-latest
     permissions:
       contents: read
