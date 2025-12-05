@@ -188,6 +188,24 @@ func resourceGithubRepository() *schema.Resource {
 								},
 							},
 						},
+						"private_vulnerability_reporting": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Computed:    true,
+							MaxItems:    1,
+							Description: "The private vulnerability reporting configuration for the repository.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"status": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										Computed:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "private_vulnerability_reporting"),
+										Description:      "Set to 'enabled' to enable private vulnerability reporting on the repository. Can be 'enabled' or 'disabled'.",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -568,6 +586,9 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 			Status: github.String(status),
 		}
 	}
+	// Note: private_vulnerability_reporting is handled separately via the
+	// EnablePrivateReporting/DisablePrivateReporting API, not via the
+	// repository Edit API's SecurityAndAnalysis field.
 
 	return &securityAndAnalysis
 }
@@ -773,6 +794,11 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
+	err = updatePrivateVulnerabilityReporting(d, client, ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+
 	return resourceGithubRepositoryUpdate(d, meta)
 }
 
@@ -900,7 +926,38 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 		}
 	}
 
-	if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())); err != nil {
+	securityAndAnalysis := flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())
+
+	// Private Vulnerability Reporting is not returned in the SecurityAndAnalysis
+	// from the repository API. We need to fetch it separately.
+	pvrEnabled, resp, err := client.Repositories.IsPrivateReportingEnabled(ctx, owner, repoName)
+	if err != nil {
+		// PVR is only available for public repos. A 404 means it's not available (e.g., private repo).
+		// Any other error should be returned.
+		if resp == nil || resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("error reading private vulnerability reporting status: %w", err)
+		}
+		log.Printf("[DEBUG] Private vulnerability reporting not available for repository %s/%s", owner, repoName)
+	} else {
+		// Merge the PVR status into the security_and_analysis map
+		status := "disabled"
+		if pvrEnabled {
+			status = "enabled"
+		}
+		// Initialize securityAndAnalysis if it's empty (can happen for private repos)
+		if len(securityAndAnalysis) == 0 {
+			securityAndAnalysis = []any{make(map[string]any)}
+		}
+		saMap, ok := securityAndAnalysis[0].(map[string]any)
+		if !ok {
+			return fmt.Errorf("failed to parse security_and_analysis map")
+		}
+		saMap["private_vulnerability_reporting"] = []any{map[string]any{
+			"status": status,
+		}}
+	}
+
+	if err = d.Set("security_and_analysis", securityAndAnalysis); err != nil {
 		return err
 	}
 
@@ -1002,6 +1059,13 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta any) error {
 
 	if d.HasChange("vulnerability_alerts") {
 		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("security_and_analysis") {
+		err = updatePrivateVulnerabilityReporting(d, client, ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -1218,6 +1282,9 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 		"status": securityAndAnalysis.GetSecretScanningPushProtection().GetStatus(),
 	}}
 
+	// Note: private_vulnerability_reporting is not returned by the repository API
+	// and is fetched separately via IsPrivateReportingEnabled in the Read function.
+
 	return []any{securityAndAnalysisMap}
 }
 
@@ -1250,4 +1317,32 @@ func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ct
 
 	_, err := updateVulnerabilityAlerts(ctx, owner, repoName)
 	return err
+}
+
+func updatePrivateVulnerabilityReporting(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
+	value, ok := d.GetOk("security_and_analysis")
+	if !ok {
+		return nil
+	}
+
+	asList := value.([]any)
+	if len(asList) == 0 || asList[0] == nil {
+		return nil
+	}
+
+	lookup := asList[0].(map[string]any)
+	if pvr, ok := lookup["private_vulnerability_reporting"].([]any); ok && len(pvr) > 0 && pvr[0] != nil {
+		pvrMap := pvr[0].(map[string]any)
+		if status, ok := pvrMap["status"].(string); ok {
+			if status == "enabled" {
+				_, err := client.Repositories.EnablePrivateReporting(ctx, owner, repoName)
+				return err
+			} else if status == "disabled" {
+				_, err := client.Repositories.DisablePrivateReporting(ctx, owner, repoName)
+				return err
+			}
+		}
+	}
+
+	return nil
 }
