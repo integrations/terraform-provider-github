@@ -1,9 +1,9 @@
 package github
 
 import (
+	"log"
 	"reflect"
 	"sort"
-  "log"
 
 	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -39,22 +39,19 @@ func toInt64(v any) int64 {
 	}
 }
 
-func toPullRequestMergeMethods(input []string) []github.PullRequestMergeMethod {
-  mergeMethods := make([]github.PullRequestMergeMethod, 0)
-  for _, method := range input {
-  switch method {
-    case "merge":
-      mergeMethods = append(mergeMethods, github.PullRequestMergeMethodMerge)
-    case "rebase":
-      mergeMethods = append(mergeMethods, github.PullRequestMergeMethodRebase)
-    case "squash":
-      mergeMethods = append(mergeMethods, github.PullRequestMergeMethodSquash)
-    }
-  }
-  if len(mergeMethods) == 0 {
-    mergeMethods = append(mergeMethods, github.PullRequestMergeMethodMerge) // We need to send at least one method to the API. Defaulting to merge.
-  }
-  return mergeMethods
+func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
+	value, ok := input.([]any)
+	if !ok || value == nil || len(value) == 0 {
+		log.Printf("[DEBUG] No allowed merge methods provided, using default: %#v", input)
+		return DEFAULT_PULL_REQUEST_MERGE_METHODS
+	}
+	mergeMethods := make([]github.PullRequestMergeMethod, 0, len(value))
+	for _, item := range value {
+		if method, ok := item.(string); ok {
+			mergeMethods = append(mergeMethods, github.PullRequestMergeMethod(method))
+		}
+	}
+	return mergeMethods
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.RepositoryRuleset {
@@ -316,19 +313,15 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]any); ok && len(v) != 0 {
 		pullRequestMap := v[0].(map[string]any)
-    allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
-    if allowedMergeMethods != nil {
-      allowedMergeMethods = toPullRequestMergeMethods(allowedMergeMethods.([]string))
-    } else {
-      allowedMergeMethods = DEFAULT_PULL_REQUEST_MERGE_METHODS
-    }
+		allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
+
 		params := &github.PullRequestRuleParameters{
 			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
 			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
 			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
 			RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
-      AllowedMergeMethods:            allowedMergeMethods.([]github.PullRequestMergeMethod),
+			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
 		}
 		rulesetRules.PullRequest = params
 	}
