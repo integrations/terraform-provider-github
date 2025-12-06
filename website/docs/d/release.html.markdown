@@ -69,7 +69,6 @@ data "github_release" "example" {
  * `url` - Base URL of the release
  * `html_url` - URL directing to detailed information on the release
  * `assets_url` - URL of any associated assets with the release
- * `asserts_url` - **Deprecated**: Use `assets_url` resource instead
  * `upload_url` - URL that can be used to upload Assets to the release
  * `zipball_url` - Download URL of a specific release in `zip` format
  * `tarball_url` - Download URL of a specific release in `tar.gz` format
