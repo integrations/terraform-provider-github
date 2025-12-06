@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
@@ -468,9 +469,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Description: "The repository in which the workflow is defined.",
 												},
 												"path": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The path to the workflow YAML definition file.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory"), "path"),
+													Description:      "The path to the workflow YAML definition file.",
 												},
 												"ref": {
 													Type:        schema.TypeString,
