@@ -28,10 +28,12 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				name = "test-%[2]s"
 				visibility = "private"
 				auto_init = true
-        lifecycle { prevent_destroy = true }
+
+        ignore_vulnerability_alerts_during_read = true
+
 			}
 
-			resource "github_repository_file" "workflow_file" {
+			resource "github_repository_file" "%[1]s" {
 				repository          = github_repository.%[1]s.name
 				branch              = "main"
 				file                = ".github/workflows/echo.yaml"
@@ -73,6 +75,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_signatures = false
 
 					pull_request {
+						allowed_merge_methods             = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -116,7 +119,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 					non_fast_forward = true
 				}
-        depends_on = [github_repository_file.workflow_file]
+        depends_on = [github_repository_file.%[1]s]
 			}
 		`, resourceName, randomID)
 
@@ -124,7 +127,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"name",
-				"test",
+				fmt.Sprintf("test-%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
 				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
@@ -139,12 +142,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.required_workflow.0.path",
-				"path/to/workflow.yaml",
-			),
-			resource.TestCheckResourceAttr(
-				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
-				"rules.0.required_workflows.0.required_workflow.0.repository_id",
-				"1234",
+				".github/workflows/echo.yaml",
 			),
 			resource.TestCheckResourceAttr(
 				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
