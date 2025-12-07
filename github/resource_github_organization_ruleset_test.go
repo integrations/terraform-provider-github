@@ -570,8 +570,9 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("validates_push_target_rejects_ref_name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-push-reject-ref-name"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-push-with-ref-%s"
 				target      = "push"
 				enforcement = "active"
@@ -591,7 +592,7 @@ resource "github_organization_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -607,8 +608,9 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("validates_repository_target_rejects_ref_name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repository-reject-ref-name"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-repo-with-ref-%s"
 				target      = "repository"
 				enforcement = "active"
@@ -628,7 +630,7 @@ resource "github_organization_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
