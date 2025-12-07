@@ -690,8 +690,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Validates push target rejects ref_name", func(t *testing.T) {
+		resourceName := "test-push-reject-ref-name"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-push-with-ref-%s"
 				target      = "push"
 				enforcement = "active"
@@ -711,7 +712,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -736,8 +737,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Validates repository target rejects ref_name", func(t *testing.T) {
+		resourceName := "test-repository-reject-ref-name"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-repo-with-ref-%s"
 				target      = "repository"
 				enforcement = "active"
@@ -757,7 +759,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
