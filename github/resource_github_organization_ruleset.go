@@ -735,7 +735,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
 	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]any{"target": target, "conditions": conditions})
@@ -743,12 +743,12 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schem
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 	if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
-		return fmt.Errorf("Either repository_name or repository_id must be set for %s target", target)
+		return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
 	}
 	return nil
 }
 
-func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
 	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": target, "conditions": conditions})
@@ -759,7 +759,7 @@ func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
-func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	target := d.Get("target").(string)
 	conditions := d.Get("conditions").([]any)[0].(map[string]any)
 	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"target": target, "conditions": conditions})
@@ -778,7 +778,7 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
 
-	if conditionsRaw == nil || len(conditionsRaw) == 0 {
+	if len(conditionsRaw) == 0 {
 		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
 		return nil
 	}
