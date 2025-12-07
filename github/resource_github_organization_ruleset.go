@@ -46,7 +46,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
-				Type:             schema.TypeList,
+				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
 				Optional:         true,
 				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
 				Description:      "The actors that can bypass the rules in this ruleset.",
