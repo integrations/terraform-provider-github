@@ -322,8 +322,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Creates and updates organization using bypasses", func(t *testing.T) {
+		resourceName := "test-creates-and-updates-using-bypasses"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-%s"
 				target      = "branch"
 				enforcement = "active"
@@ -363,6 +364,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_linear_history = true
 					required_signatures = false
 					pull_request {
+            allowed_merge_methods = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -371,43 +373,43 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.#",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.#",
 				"3",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.actor_type",
 				"DeployKey",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_id",
 				"5",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_type",
 				"RepositoryRole",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_id",
 				"1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_type",
 				"OrganizationAdmin",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.bypass_mode",
 				"always",
 			),
 		)
