@@ -9,18 +9,19 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationRulesetCreate,
-		Read:   resourceGithubOrganizationRulesetRead,
-		Update: resourceGithubOrganizationRulesetUpdate,
-		Delete: resourceGithubOrganizationRulesetDelete,
+		CreateContext: resourceGithubOrganizationRulesetCreate,
+		ReadContext:   resourceGithubOrganizationRulesetRead,
+		UpdateContext: resourceGithubOrganizationRulesetUpdate,
+		DeleteContext: resourceGithubOrganizationRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubOrganizationRulesetImport,
+			StateContext: resourceGithubOrganizationRulesetImport,
 		},
 
 		SchemaVersion: 1,
@@ -585,36 +586,35 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
 
 	org := meta.(*Owner).name
-	ctx := context.Background()
 
 	var ruleset *github.RepositoryRuleset
 	var err error
 
 	ruleset, _, err = client.Organizations.CreateRepositoryRuleset(ctx, org, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -636,7 +636,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ruleset == nil {
@@ -659,7 +659,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
@@ -667,38 +667,38 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) e
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	var ruleset *github.RepositoryRuleset
 
 	ruleset, _, err = client.Organizations.UpdateRepositoryRuleset(ctx, org, rulesetID, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", org, rulesetID)
 	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, org, rulesetID)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
@@ -710,7 +710,6 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
-	ctx := context.Background()
 
 	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if ruleset == nil || err != nil {
