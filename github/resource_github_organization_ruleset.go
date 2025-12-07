@@ -868,7 +868,7 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schem
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 	if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
-		return fmt.Errorf("Either repository_name or repository_id must be set for %s target", target)
+		return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
 	}
 	return nil
 }
