@@ -237,8 +237,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
+		resourceName := "test-import-rulesets"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-%s"
 				target      = "branch"
 				enforcement = "active"
@@ -265,6 +266,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_signatures = false
 
 					pull_request {
+            allowed_merge_methods = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -292,10 +294,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					non_fast_forward = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_organization_ruleset.test", "name"),
+			resource.TestCheckResourceAttrSet(fmt.Sprintf("github_organization_ruleset.%s", resourceName), "name"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -308,7 +310,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						Check:  check,
 					},
 					{
-						ResourceName:      "github_organization_ruleset.test",
+						ResourceName:      fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 						ImportState:       true,
 						ImportStateVerify: true,
 					},
