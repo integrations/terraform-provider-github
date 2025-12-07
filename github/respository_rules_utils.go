@@ -536,14 +536,14 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 	// Update rule with parameters
 	if rules.Update != nil {
 		rulesMap["update"] = true
-    if !org {
-      rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
-    }
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+		}
 	} else {
 		rulesMap["update"] = false
-    if !org {
-      rulesMap["update_allows_fetch_and_merge"] = false
-    }
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = false
+		}
 	} // Required deployments rule
 	if rules.RequiredDeployments != nil {
 		requiredDeploymentsSlice := make([]map[string]any, 0)
@@ -564,7 +564,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
-    log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
+		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
