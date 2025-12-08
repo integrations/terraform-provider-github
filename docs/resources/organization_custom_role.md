@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_custom_role"
 description: |-
   Creates and manages a custom role in a GitHub Organization for use in repositories.
@@ -15,7 +14,7 @@ This resource allows you to create and manage custom roles in a GitHub Organizat
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_custom_role" "example" {
   name = "example"
   description = "Example custom role that uses the read role as its base"
@@ -61,8 +60,7 @@ The following additional attributes are exported:
 
 ## Import
 
-Custom roles can be imported using the `id` of the role.
-The `id` of the custom role can be found using the [list custom roles in an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles#list-custom-repository-roles-in-an-organization) API.
+Custom roles can be imported using the `id` of the role. The `id` of the custom role can be found using the [list custom roles in an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles#list-custom-repository-roles-in-an-organization) API.
 
 ```
 $ terraform import github_organization_custom_role.example 1234

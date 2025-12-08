@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_team_membership"
 description: |-
   Provides a GitHub team membership resource.
@@ -9,10 +8,7 @@ description: |-
 
 Provides a GitHub team membership resource.
 
-This resource allows you to add/remove users from teams in your organization. When applied,
-the user will be added to the team. If the user hasn't accepted their invitation to the
-organization, they won't be part of the team until they do. When
-destroyed, the user will be removed from the team.
+This resource allows you to add/remove users from teams in your organization. When applied, the user will be added to the team. If the user hasn't accepted their invitation to the organization, they won't be part of the team until they do. When destroyed, the user will be removed from the team.
 
 ~> **Note** This resource is not compatible with `github_team_members`. Use either `github_team_members` or `github_team_membership`.
 
@@ -20,7 +16,7 @@ destroyed, the user will be removed from the team.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Add a user to the organization
 resource "github_membership" "membership_for_some_user" {
   username = "SomeUser"
@@ -45,8 +41,7 @@ The following arguments are supported:
 
 * `team_id` - (Required) The GitHub team id or the GitHub team slug
 * `username` - (Required) The user to add to the team.
-* `role` - (Optional) The role of the user within the team.
-            Must be one of `member` or `maintainer`. Defaults to `member`.
+* `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
 
 ## Import
 

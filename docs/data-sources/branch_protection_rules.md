@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_branch_protection_rules"
 description: |-
   Get information about a repository branch protection rules.
@@ -11,7 +10,7 @@ Use this data source to retrieve a list of repository branch protection rules.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_branch_protection_rules" "example" {
   repository = "example"
 }
@@ -27,4 +26,4 @@ The following arguments are supported:
 
 * `rules` - Collection of Branch Protection Rules. Each of the results conforms to the following scheme:
 
-    * `pattern` - Identifies the protection rule pattern.
+  * `pattern` - Identifies the protection rule pattern.

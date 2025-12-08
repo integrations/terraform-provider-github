@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: actions_registration_token"
 description: |-
   Get a GitHub Actions repository registration token.
@@ -11,7 +10,7 @@ Use this data source to retrieve a GitHub Actions repository registration token.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_actions_registration_token" "example" {
   repository = "example_repo"
 }
@@ -19,9 +18,9 @@ data "github_actions_registration_token" "example" {
 
 ## Argument Reference
 
- * `repository` - (Required) Name of the repository to get a GitHub Actions registration token for.
+* `repository` - (Required) Name of the repository to get a GitHub Actions registration token for.
 
 ## Attributes Reference
 
- * `token` - The token that has been retrieved.
- * `expires_at` - The token expiration date.
+* `token` - The token that has been retrieved.
+* `expires_at` - The token expiration date.

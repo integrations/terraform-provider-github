@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_hosted_runner"
 description: |-
   Creates and manages GitHub-hosted runners within a GitHub organization
@@ -7,8 +6,7 @@ description: |-
 
 # github_actions_hosted_runner
 
-This resource allows you to create and manage GitHub-hosted runners within your GitHub organization.
-You must have admin access to an organization to use this resource.
+This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.
 
 GitHub-hosted runners are fully managed virtual machines that run your GitHub Actions workflows. Unlike self-hosted runners, GitHub handles the infrastructure, maintenance, and scaling.
 
@@ -16,7 +14,7 @@ GitHub-hosted runners are fully managed virtual machines that run your GitHub Ac
 
 ### Basic Usage
 
-```hcl
+```terraform
 resource "github_actions_runner_group" "example" {
   name       = "example-runner-group"
   visibility = "all"
@@ -37,7 +35,7 @@ resource "github_actions_hosted_runner" "example" {
 
 ### Advanced Usage with Optional Parameters
 
-```hcl
+```terraform
 resource "github_actions_runner_group" "advanced" {
   name       = "advanced-runner-group"
   visibility = "selected"
@@ -80,7 +78,7 @@ The `timeouts` block allows you to specify timeouts for certain actions:
 
 Example:
 
-```hcl
+```terraform
 resource "github_actions_hosted_runner" "example" {
   name = "example-hosted-runner"
   
@@ -139,6 +137,7 @@ $ terraform import github_actions_hosted_runner.example 123456
 ## Getting Available Images and Sizes
 
 To get a list of available images:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Accept: application/vnd.github+json" \
@@ -146,6 +145,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ```
 
 To get available machine sizes:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Accept: application/vnd.github+json" \

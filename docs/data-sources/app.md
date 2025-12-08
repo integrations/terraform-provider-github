@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_app"
 description: |-
   Get information about an app.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about an app.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_app" "foobar" {
   slug = "foobar"
 }
@@ -22,7 +21,6 @@ data "github_app" "foobar" {
 The following arguments are supported:
 
 * `slug` - (Required) The URL-friendly name of your GitHub App.
-
 
 ## Attribute Reference
 

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub:  github_branch_protection_v3"
 description: |-
   Protects a GitHub branch using the v3 / REST implementation.  The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
@@ -15,7 +14,7 @@ This resource allows you to configure branch protection for repositories in your
 
 ## Example Usage
 
-```hcl
+```terraform
 # Protect the main branch of the foo repository. Only allow a specific user to merge to the branch.
 resource "github_branch_protection_v3" "example" {
   repository     = github_repository.example.name
@@ -27,7 +26,7 @@ resource "github_branch_protection_v3" "example" {
 }
 ```
 
-```hcl
+```terraform
 # Protect the main branch of the foo repository. Additionally, require that
 # the "ci/check" check ran by the Github Actions app is passing and only allow
 # the engineers team merge to the branch.
@@ -99,10 +98,7 @@ The following arguments are supported:
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: [**DEPRECATED**] (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 
-~> Note: This attribute can contain multiple string patterns.
-If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) is defaulted to.
-For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation]("https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy") for more information.
-For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
+~> Note: This attribute can contain multiple string patterns. If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) is defaulted to. For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy) for more information. For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
 
 * `checks`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the context and app_id like so "context:app_id".
 
@@ -112,21 +108,19 @@ For workflows that use reusable workflows, the pattern is `<initial_workflow.job
 
 * `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
 * `dismissal_users`: (Optional) The list of user logins with dismissal access
-* `dismissal_teams`: (Optional) The list of team slugs with dismissal access.
-  Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
+* `dismissal_teams`: (Optional) The list of team slugs with dismissal access. Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 * `dismissal_apps`: (Optional) The list of app slugs with dismissal access.
 * `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 * `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
 * `bypass_pull_request_allowances`: (Optional) Allow specific users, teams, or apps to bypass pull request requirements. See [Bypass Pull Request Allowances](#bypass-pull-request-allowances) below for details.
-* `require_last_push_approval`: (Optional) Require that the most recent push must be approved by someone other than the last pusher.  Defaults to `false`
+* `require_last_push_approval`: (Optional) Require that the most recent push must be approved by someone other than the last pusher. Defaults to `false`
 
 ### Restrictions
 
 `restrictions` supports the following arguments:
 
 * `users`: (Optional) The list of user logins with push access.
-* `teams`: (Optional) The list of team slugs with push access.
-  Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
+* `teams`: (Optional) The list of team slugs with push access. Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 * `apps`: (Optional) The list of app slugs with push access.
 
 `restrictions` is only available for organization-owned repositories.

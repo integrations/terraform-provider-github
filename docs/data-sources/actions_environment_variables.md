@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_environment_variables"
 description: |-
   Get Actions variables of the repository environment
@@ -11,7 +10,7 @@ Use this data source to retrieve the list of variables of the repository environ
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_actions_environment_variables" "example" {
     name        = "exampleRepo"
     environment = "exampleEnvironment"
@@ -22,8 +21,8 @@ data "github_actions_environment_variables" "example" {
 
 ## Attributes Reference
 
- * `variables` - list of variables for the environment
-   * `name`         - Name of the variable
-   * `value`        - Value of the variable
-   * `created_at`   - Timestamp of the variable creation
-   * `updated_at`   - Timestamp of the variable last update
+* `variables` - list of variables for the environment
+  * `name` - Name of the variable
+  * `value` - Value of the variable
+  * `created_at` - Timestamp of the variable creation
+  * `updated_at` - Timestamp of the variable last update

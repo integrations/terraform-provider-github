@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_user_ssh_key"
 description: |-
   Provides a GitHub user's SSH key resource.
@@ -13,7 +12,7 @@ This resource allows you to add/remove SSH keys from your user account.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_user_ssh_key" "example" {
   title = "example title"
   key   = file("~/.ssh/id_rsa.pub")

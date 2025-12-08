@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_file"
 description: |-
   Reads files within a GitHub repository
@@ -7,21 +6,17 @@ description: |-
 
 # github_repository_file
 
-This data source allows you to read files within a
-GitHub repository.
-
+This data source allows you to read files within a GitHub repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_file" "foo" {
   repository          = github_repository.foo.name
   branch              = "main"
   file                = ".gitignore"
 }
-
 ```
-
 
 ## Argument Reference
 

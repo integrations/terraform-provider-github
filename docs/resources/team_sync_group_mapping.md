@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_team_sync_group_mapping"
 description: |-
   Creates and manages the connections between a team and its IdP group(s).
@@ -7,16 +6,13 @@ description: |-
 
 # github_team_sync_group_mapping
 
-This resource allows you to create and manage Identity Provider (IdP) group connections within your GitHub teams.
-You must have team synchronization enabled for organizations owned by enterprise accounts.
+This resource allows you to create and manage Identity Provider (IdP) group connections within your GitHub teams. You must have team synchronization enabled for organizations owned by enterprise accounts.
 
-To learn more about team synchronization between IdPs and GitHub, please refer to:
-https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github
+To learn more about team synchronization between IdPs and GitHub, please refer to: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github
 
 ## Example Usage
 
-```hcl
-
+```terraform
 data "github_organization_team_sync_groups" "example_groups" {}
 
 resource "github_team_sync_group_mapping" "example_group_mapping" {
@@ -37,9 +33,10 @@ resource "github_team_sync_group_mapping" "example_group_mapping" {
 
 The following arguments are supported:
 
-* `team_slug`       - (Required) Slug of the team
-* `group`           - (Required) An Array of GitHub Identity Provider Groups (or empty []).  Each `group` block consists of the fields documented below.
-___
+* `team_slug` - (Required) Slug of the team
+* `group` - (Required) An Array of GitHub Identity Provider Groups (or empty []). Each `group` block consists of the fields documented below.
+
+---
 
 The `group` block consists of:
 

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_settings"
 description: |-
   Creates and manages settings for a GitHub Organization.
@@ -11,7 +10,7 @@ This resource allows you to create and manage settings for a GitHub Organization
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_settings" "test" {
     billing_email = "test@example.com"
     company = "Test Company"
@@ -71,8 +70,7 @@ The following arguments are supported:
 * `dependabot_security_updates_enabled_for_new_repositories` - (Optional) Whether or not dependabot security updates are enabled for new repositories. Defaults to `false`.
 * `dependency_graph_enabled_for_new_repositories` - (Optional) Whether or not dependency graph is enabled for new repositories. Defaults to `false`.
 * `secret_scanning_enabled_for_new_repositories` - (Optional) Whether or not secret scanning is enabled for new repositories. Defaults to `false`.
-* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`. 
-
+* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`.
 
 ## Attributes Reference
 
@@ -80,11 +78,9 @@ The following additional attributes are exported:
 
 * `id` - The ID of the organization settings.
 
-
 ## Import
 
-Organization settings can be imported using the `id` of the organization.
-The `id` of the organization can be found using the [get an organization](https://docs.github.com/en/rest/orgs/orgs#get-an-organization) API.
+Organization settings can be imported using the `id` of the organization. The `id` of the organization can be found using the [get an organization](https://docs.github.com/en/rest/orgs/orgs#get-an-organization) API.
 
 ```
 $ terraform import github_organization_settings.test 123456789

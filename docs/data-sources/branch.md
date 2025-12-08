@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_branch"
 description: |-
   Get information about a repository branch.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a repository branch.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_branch" "development" {
   repository = "example"
   branch     = "development"

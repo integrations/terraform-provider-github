@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_team_members"
 description: |-
   Provides an authoritative GitHub team members resource.
@@ -23,7 +22,7 @@ When destroyed, all users will be removed from the team.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Add a user to the organization
 resource "github_membership" "membership_for_some_user" {
   username = "SomeUser"
@@ -61,7 +60,7 @@ The following arguments are supported:
 
 * `team_id` - (Required) The team id or the team slug
 
-~> **Note** Although the team id or team slug can be used it is recommended to use the team id.  Using the team slug will cause the team members associations to the team to be destroyed and recreated if the team name is updated.
+~> **Note** Although the team id or team slug can be used it is recommended to use the team id. Using the team slug will cause the team members associations to the team to be destroyed and recreated if the team name is updated.
 
 * `members` - (Required) List of team members. See [Members](#members) below for details.
 
@@ -70,12 +69,11 @@ The following arguments are supported:
 `members` supports the following arguments:
 
 * `username` - (Required) The user to add to the team.
-* `role` - (Optional) The role of the user within the team.
-            Must be one of `member` or `maintainer`. Defaults to `member`.
+* `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
 
 ## Import
 
-~> **Note** Although the team id or team slug can be used it is recommended to use the team id.  Using the team slug will result in terraform doing conversions between the team slug and team id.  This will cause team members associations to the team to be destroyed and recreated on import.
+~> **Note** Although the team id or team slug can be used it is recommended to use the team id. Using the team slug will result in terraform doing conversions between the team slug and team id. This will cause team members associations to the team to be destroyed and recreated on import.
 
 GitHub Team Membership can be imported using the team ID team id or team slug, e.g.
 

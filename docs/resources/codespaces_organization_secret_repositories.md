@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_codespaces_organization_secret_repositories"
 description: |-
     Manages repository allow list for a Codespaces Secret within a GitHub organization
@@ -15,7 +14,7 @@ This resource is only applicable when `visibility` of the existing organization 
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository" "repo" {
   full_name = "my-org/repo"
 }
@@ -30,7 +29,7 @@ resource "github_codespaces_organization_secret_repositories" "org_secret_repos"
 
 The following arguments are supported:
 
-* `secret_name`             - (Required) Name of the existing secret
+* `secret_name` - (Required) Name of the existing secret
 * `selected_repository_ids` - (Required) An array of repository ids that can access the organization secret.
 
 ## Import

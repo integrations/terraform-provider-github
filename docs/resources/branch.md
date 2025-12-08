@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_branch"
 description: |-
   Creates and manages branches within GitHub repositories.
@@ -9,12 +8,11 @@ description: |-
 
 This resource allows you to create and manage branches within your repository.
 
-Additional constraints can be applied to ensure your branch is created from
-another branch or commit.
+Additional constraints can be applied to ensure your branch is created from another branch or commit.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_branch" "development" {
   repository = "example"
   branch     = "development"
@@ -59,8 +57,7 @@ Importing github branch into an instance object (when using a for each block to 
 $ terraform import github_branch.terraform["terraform"] terraform:main
 ```
 
-Optionally, a source branch may be specified using an ID of `repository:branch:source_branch`.
-This is useful for importing branches that do not branch directly off main.
+Optionally, a source branch may be specified using an ID of `repository:branch:source_branch`. This is useful for importing branches that do not branch directly off main.
 
 ```
 $ terraform import github_branch.terraform terraform:feature-branch:dev

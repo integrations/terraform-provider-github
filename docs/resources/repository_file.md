@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_file"
 description: |-
   Creates and manages files within a GitHub repository
@@ -7,16 +6,15 @@ description: |-
 
 # github_repository_file
 
-This resource allows you to create and manage files within a
-GitHub repository.
+This resource allows you to create and manage files within a GitHub repository.
 
 ~> **Note:** When a repository is archived, Terraform will skip deletion of repository files to avoid API errors, as archived repositories are read-only. The files will be removed from Terraform state without attempting to delete them from GitHub.
 
 ## Example Usage
 
 ### Existing Branch
-```hcl
 
+```terraform
 resource "github_repository" "foo" {
   name      = "tf-acc-test-%s"
   auto_init = true
@@ -32,12 +30,11 @@ resource "github_repository_file" "foo" {
   commit_email        = "terraform@example.com"
   overwrite_on_create = true
 }
-
 ```
 
 ### Auto Created Branch
-```hcl
 
+```terraform
 resource "github_repository" "foo" {
   name      = "tf-acc-test-%s"
   auto_init = true
@@ -54,9 +51,7 @@ resource "github_repository_file" "foo" {
   overwrite_on_create = true
   autocreate_branch   = true
 }
-
 ```
-
 
 ## Argument Reference
 
@@ -68,8 +63,7 @@ The following arguments are supported:
 
 * `content` - (Required) The file content.
 
-* `branch` - (Optional) Git branch (defaults to the repository's default branch).
-  The branch must already exist, it will only be created automatically if 'autocreate_branch' is set true.
+* `branch` - (Optional) Git branch (defaults to the repository's default branch). The branch must already exist, it will only be created automatically if 'autocreate_branch' is set true.
 
 * `commit_author` - (Optional) Committer author name to use. **NOTE:** GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. This maybe useful when a branch protection rule requires signed commits.
 
@@ -94,7 +88,6 @@ The following additional attributes are exported:
 * `sha` - The SHA blob of the file.
 
 * `ref` - The name of the commit/branch/tag.
-
 
 ## Import
 

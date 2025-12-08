@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "Github: github_enterprise_organization"
 description: |-
   Create and manages a GitHub enterprise organization.

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_custom_properties"
 description: |-
   Creates and manages custom properties for a GitHub organization
@@ -13,7 +12,7 @@ Custom properties enable you to add metadata to repositories within your organiz
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_custom_properties" "environment" {
   property_name = "environment"
   value_type    = "single_select"
@@ -32,7 +31,7 @@ resource "github_organization_custom_properties" "environment" {
 
 This example shows how to allow repository administrators to edit the property values:
 
-```hcl
+```terraform
 resource "github_organization_custom_properties" "team_contact" {
   property_name       = "team_contact"
   value_type          = "string"
@@ -44,7 +43,7 @@ resource "github_organization_custom_properties" "team_contact" {
 
 ## Example Usage - Text Property
 
-```hcl
+```terraform
 resource "github_organization_custom_properties" "owner" {
   property_name = "owner"
   value_type    = "string"
@@ -55,7 +54,7 @@ resource "github_organization_custom_properties" "owner" {
 
 ## Example Usage - Boolean Property
 
-```hcl
+```terraform
 resource "github_organization_custom_properties" "archived" {
   property_name = "archived"
   value_type    = "true_false"

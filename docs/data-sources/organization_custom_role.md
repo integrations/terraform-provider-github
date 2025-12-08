@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_custom_role"
 description: |-
   Get a custom role from a GitHub Organization for use in repositories.
@@ -15,7 +14,7 @@ Use this data source to retrieve information about a custom role in a GitHub Org
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_organization_custom_role" "example" {
   name = "example"
 }

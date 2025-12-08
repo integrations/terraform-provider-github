@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "github_repository_ruleset Resource - terraform-provider-github"
 description: |-
   Creates a GitHub repository ruleset.
@@ -13,7 +12,7 @@ This resource allows you to create and manage rulesets on the repository level. 
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name        = "example"
   description = "Example repository"
@@ -102,7 +101,7 @@ resource "github_repository_ruleset" "example_push" {
 
 * `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
-#### Rules ####
+### Rules
 
 The `rules` block supports the following:
 
@@ -147,7 +146,7 @@ The `rules` block supports the following:
 
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
 
-#### rules.branch_name_pattern ####
+#### rules.branch_name_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -157,7 +156,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.commit_author_email_pattern ####
+#### rules.commit_author_email_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -167,7 +166,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.commit_message_pattern ####
+#### rules.commit_message_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -177,7 +176,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.committer_email_pattern ####
+#### rules.committer_email_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -187,7 +186,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.merge_queue ####
+#### rules.merge_queue
 
 * `check_response_timeout_minutes` - (Required) (Number)Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.
 
@@ -203,7 +202,7 @@ The `rules` block supports the following:
 
 * `min_entries_to_merge_wait_minutes` - (Required) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.
 
-#### rules.pull_request ####
+#### rules.pull_request
 
 * `dismiss_stale_reviews_on_push` - (Optional) (Boolean) New, reviewable commits pushed will dismiss previous pull request review approvals. Defaults to `false`.
 
@@ -215,11 +214,11 @@ The `rules` block supports the following:
 
 * `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
 
-#### rules.required_deployments ####
+#### rules.required_deployments
 
 * `required_deployment_environments` - (Required) (List of String) The environments that must be successfully deployed to before branches can be merged.
 
-#### rules.required_status_checks ####
+#### rules.required_status_checks
 
 * `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checksrequired_check))
 
@@ -227,13 +226,13 @@ The `rules` block supports the following:
 
 * `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
-#### rules.required_status_checks.required_check ####
+#### rules.required_status_checks.required_check
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
 * `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from. It's a GitHub App ID, which can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app).
 
-#### rules.tag_name_pattern ####
+#### rules.tag_name_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -243,11 +242,11 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.required_code_scanning ####
+#### rules.required_code_scanning
 
 * `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_code_scanningrequired_code_scanning_tool))
 
-#### rules.required_code_scanning.required_code_scanning_tool ####
+#### rules.required_code_scanning.required_code_scanning_tool
 
 * `alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.
 
@@ -255,23 +254,23 @@ The `rules` block supports the following:
 
 * `tool` - (Required) (String) The name of a code scanning tool.
 
-#### rules.file_path_restriction ####
+#### rules.file_path_restriction
 
 * `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
 
-#### rules.max_file_size ####
+#### rules.max_file_size
 
 * `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
 
-#### rules.max_file_path_length ####
+#### rules.max_file_path_length
 
 * `max_file_path_length` - (Required) (Integer) The maximum number of characters allowed in file paths.
 
-#### rules.file_extension_restriction ####
+#### rules.file_extension_restriction
 
 * `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
 
-#### bypass_actors ####
+#### bypass_actors
 
 * `actor_id` - (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
 
@@ -287,11 +286,11 @@ The `rules` block supports the following:
   * `write` -> `4`
   * `admin` -> `5`
 
-#### conditions ####
+#### conditions
 
 * `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
 
-#### conditions.ref_name ####
+#### conditions.ref_name
 
 * `exclude` - (Required) (List of String) Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.
 

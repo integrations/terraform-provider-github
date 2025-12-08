@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_security_managers"
 description: |-
   Get the security managers for an organization.
@@ -13,13 +12,13 @@ Use this data source to retrieve the security managers for an organization.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_organization_security_managers" "test" {}
 ```
 
 ## Attributes Reference
 
-* `teams` - An list of GitHub teams.  Each `team` block consists of the fields documented below.
+* `teams` - An list of GitHub teams. Each `team` block consists of the fields documented below.
 
 ---___
 

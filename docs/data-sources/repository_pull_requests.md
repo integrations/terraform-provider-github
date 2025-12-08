@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_pull_requests"
 description: |-
   Get information on multiple GitHub Pull Requests.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about multiple GitHub Pull Requests
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_pull_requests" "example" {
     base_repository = "example-repository"
     base_ref        = "main"
@@ -25,7 +24,7 @@ data "github_repository_pull_requests" "example" {
 
 * `base_repository` - (Required) Name of the base repository to retrieve the Pull Requests from.
 
-* `owner`  - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
+* `owner` - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
 
 * `base_ref` - (Optional) If set, filters Pull Requests by base branch name.
 
@@ -41,34 +40,34 @@ data "github_repository_pull_requests" "example" {
 
 * `results` - Collection of Pull Requests matching the filters. Each of the results conforms to the following scheme:
 
-    * `base_ref` - Name of the ref (branch) of the Pull Request base.
+  * `base_ref` - Name of the ref (branch) of the Pull Request base.
 
-    * `base_sha` - Head commit SHA of the Pull Request base.
+  * `base_sha` - Head commit SHA of the Pull Request base.
 
-    * `body` - Body of the Pull Request.
+  * `body` - Body of the Pull Request.
 
-    * `draft` - Indicates Whether this Pull Request is a draft.
+  * `draft` - Indicates Whether this Pull Request is a draft.
 
-    * `head_owner` - Owner of the Pull Request head repository.
+  * `head_owner` - Owner of the Pull Request head repository.
 
-    * `head_ref` - Value of the Pull Request `HEAD` reference.
+  * `head_ref` - Value of the Pull Request `HEAD` reference.
 
-    * `head_repository` - Name of the Pull Request head repository.
+  * `head_repository` - Name of the Pull Request head repository.
 
-    * `head_sha` - Head commit SHA of the Pull Request head.
+  * `head_sha` - Head commit SHA of the Pull Request head.
 
-    * `labels` - List of label names set on the Pull Request.
+  * `labels` - List of label names set on the Pull Request.
 
-    * `maintainer_can_modify` - Indicates whether the base repository maintainers can modify the Pull Request.
+  * `maintainer_can_modify` - Indicates whether the base repository maintainers can modify the Pull Request.
 
-    * `number` - The number of the Pull Request within the repository.
+  * `number` - The number of the Pull Request within the repository.
 
-    * `opened_at` - Unix timestamp indicating the Pull Request creation time.
+  * `opened_at` - Unix timestamp indicating the Pull Request creation time.
 
-    * `opened_by` - GitHub login of the user who opened the Pull Request.
+  * `opened_by` - GitHub login of the user who opened the Pull Request.
 
-    * `state` - the current Pull Request state - can be "open", "closed" or "merged".
+  * `state` - the current Pull Request state - can be "open", "closed" or "merged".
 
-    * `title` - The title of the Pull Request.
+  * `title` - The title of the Pull Request.
 
-    * `updated_at` - The timestamp of the last Pull Request update.
+  * `updated_at` - The timestamp of the last Pull Request update.

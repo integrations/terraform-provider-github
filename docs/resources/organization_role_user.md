@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_role_user Resource"
 description: |-
   Manage an association between an organization role and a user.

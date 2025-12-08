@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_organization_permissions"
 description: |-
   Creates and manages Actions permissions within a GitHub organization
@@ -7,12 +6,11 @@ description: |-
 
 # github_actions_organization_permissions
 
-This resource allows you to create and manage GitHub Actions permissions within your GitHub enterprise organizations.
-You must have admin access to an organization to use this resource.
+This resource allows you to create and manage GitHub Actions permissions within your GitHub enterprise organizations. You must have admin access to an organization to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name = "my-repository"
 }
@@ -35,9 +33,9 @@ resource "github_actions_organization_permissions" "test" {
 
 The following arguments are supported:
 
-* `allowed_actions`             - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
-* `enabled_repositories`        - (Required) The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: `all`, `none`, or `selected`.
-* `allowed_actions_config`      - (Optional) Sets the actions that are allowed in an organization. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
+* `allowed_actions` - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
+* `enabled_repositories` - (Required) The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: `all`, `none`, or `selected`.
+* `allowed_actions_config` - (Optional) Sets the actions that are allowed in an organization. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
 * `enabled_repositories_config` - (Optional) Sets the list of selected repositories that are enabled for GitHub Actions in an organization. Only available when `enabled_repositories` = `selected`. See [Enabled Repositories Config](#enabled-repositories-config) below for details.
 
 ### Allowed Actions Config

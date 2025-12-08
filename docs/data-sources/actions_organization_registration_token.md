@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: actions_organization_registration_token"
 description: |-
   Get a GitHub Actions organization registration token.
@@ -11,7 +10,7 @@ Use this data source to retrieve a GitHub Actions organization registration toke
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_actions_organization_registration_token" "example" {
 }
 ```
@@ -20,5 +19,5 @@ data "github_actions_organization_registration_token" "example" {
 
 ## Attributes Reference
 
- * `token` - The token that has been retrieved.
- * `expires_at` - The token expiration date.
+* `token` - The token that has been retrieved.
+* `expires_at` - The token expiration date.

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_team_settings"
 description: |-
   Manages the team settings (in particular the request review delegation settings)
@@ -11,13 +10,13 @@ This resource manages the team settings (in particular the request review delega
 
 Creating this resource will alter the team Code Review settings.
 
-The team must both belong to the same organization configured in the provider on GitHub. 
+The team must both belong to the same organization configured in the provider on GitHub.
 
 ~> **Note**: This resource relies on the v4 GraphQl GitHub API. If this API is not available, or the Stone Crop schema preview is not available, then this resource will not work as intended.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Add a repository to the team
 resource "github_team" "some_team" {
   name        = "SomeTeam"
@@ -49,7 +48,6 @@ The following arguments are supported:
 * `member_count` - (Optional) The number of team members to assign to a pull request
 * `notify` - (Optional) whether to notify the entire team when at least one member is also assigned to the pull request
 
-
 ## Import
 
 GitHub Teams can be imported using the GitHub team ID, or the team slug e.g.
@@ -57,7 +55,9 @@ GitHub Teams can be imported using the GitHub team ID, or the team slug e.g.
 ```
 $ terraform import github_team.code_review_settings 1234567
 ```
+
 or,
+
 ```
 $ terraform import github_team_settings.code_review_settings SomeTeam
 ```

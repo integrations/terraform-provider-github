@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_environments"
 description: |-
   Get information on a GitHub repository's environments.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about environments for a repository
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_environments" "example" {
     repository = "example-repository"
 }
@@ -24,5 +23,5 @@ data "github_repository_environments" "example" {
 ## Attributes Reference
 
 * `environments` - The list of this repository's environments. Each element of `environments` has the following attributes:
-    * `name` - Environment name.
-    * `node_id` - Environment node id.
+  * `name` - Environment name.
+  * `node_id` - Environment node id.

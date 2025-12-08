@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_issue_labels"
 description: |-
   Get the labels for a given repository.
@@ -11,7 +10,7 @@ Use this data source to retrieve the labels for a given repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_labels" "test" {
   repository = "example_repository"
 }

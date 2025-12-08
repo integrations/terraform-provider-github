@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_deploy_keys"
 description: |-
   Get all deploy keys of a repository
@@ -11,7 +10,7 @@ Use this data source to retrieve all deploy keys of a repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_deploy_keys" "example" {
     repository = "example-repository"
 }
@@ -24,7 +23,7 @@ data "github_repository_deploy_keys" "example" {
 ## Attributes Reference
 
 * `keys` - The list of this repository's deploy keys. Each element of `keys` has the following attributes:
-    * `id` - Key id
-    * `title` - Key title
-    * `key` - Key itself
-    * `verified` - `true` if the key was verified.
+  * `id` - Key id
+  * `title` - Key title
+  * `key` - Key itself
+  * `verified` - `true` if the key was verified.

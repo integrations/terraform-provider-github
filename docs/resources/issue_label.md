@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_issue_label"
 description: |-
   Provides a GitHub issue label resource.
@@ -9,22 +8,17 @@ description: |-
 
 Provides a GitHub issue label resource.
 
-This resource allows you to create and manage issue labels within your
-GitHub organization.
+This resource allows you to create and manage issue labels within your GitHub organization.
 
-Issue labels are keyed off of their "name", so pre-existing issue labels result
-in a 422 HTTP error if they exist outside of Terraform. Normally this would not
-be an issue, except new repositories are created with a "default" set of labels,
-and those labels easily conflict with custom ones.
+Issue labels are keyed off of their "name", so pre-existing issue labels result in a 422 HTTP error if they exist outside of Terraform. Normally this would not be an issue, except new repositories are created with a "default" set of labels, and those labels easily conflict with custom ones.
 
-This resource will first check if the label exists, and then issue an update,
-otherwise it will create.
+This resource will first check if the label exists, and then issue an update, otherwise it will create.
 
 ~> **Note:** When a repository is archived, Terraform will skip deletion of issue labels to avoid API errors, as archived repositories are read-only. The labels will be removed from Terraform state without attempting to delete them from GitHub.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Create a new, red colored label
 resource "github_issue_label" "test_repo" {
   repository = "test-repo"

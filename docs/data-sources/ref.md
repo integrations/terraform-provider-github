@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_ref"
 description: |-
   Get information about a repository ref.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a repository ref.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_ref" "development" {
   owner      = "example"
   repository = "example"
@@ -23,7 +22,7 @@ data "github_ref" "development" {
 
 The following arguments are supported:
 
-* `owner` -  (Required) Owner of the repository.
+* `owner` - (Required) Owner of the repository.
 
 * `repository` - (Required) The GitHub repository name.
 

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_custom_properties"
 description: |-
   Get information about a GitHub organization custom property
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a GitHub organization custom 
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_organization_custom_properties" "environment" {
   property_name = "environment"
 }

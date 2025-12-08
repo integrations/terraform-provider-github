@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_collaborators"
 description: |-
   Provides a GitHub repository collaborators resource.
@@ -9,24 +8,15 @@ description: |-
 
 Provides a GitHub repository collaborators resource.
 
-~> Note: github_repository_collaborators cannot be used in conjunction with github_repository_collaborator and
-github_team_repository or they will fight over what your policy should be.
+~> Note: github_repository_collaborators cannot be used in conjunction with github_repository_collaborator and github_team_repository or they will fight over what your policy should be.
 
-This resource allows you to manage all collaborators for repositories in your
-organization or personal account. For organization repositories, collaborators can
-have explicit (and differing levels of) read, write, or administrator access to
-specific repositories, without giving the user full organization membership.
-For personal repositories, collaborators can only be granted write
-(implicitly includes read) permission.
+This resource allows you to manage all collaborators for repositories in your organization or personal account. For organization repositories, collaborators can have explicit (and differing levels of) read, write, or administrator access to specific repositories, without giving the user full organization membership. For personal repositories, collaborators can only be granted write (implicitly includes read) permission.
 
-When applied, an invitation will be sent to the user to become a collaborators
-on a repository. When destroyed, either the invitation will be cancelled or the
-collaborators will be removed from the repository.
+When applied, an invitation will be sent to the user to become a collaborators on a repository. When destroyed, either the invitation will be cancelled or the collaborators will be removed from the repository.
 
 ~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
 
-This resource is authoritative. For adding a collaborator to a repo in a non-authoritative manner, use
-github_repository_collaborator instead.
+This resource is authoritative. For adding a collaborator to a repo in a non-authoritative manner, use github_repository_collaborator instead.
 
 Further documentation on GitHub collaborators:
 
@@ -36,7 +26,7 @@ Further documentation on GitHub collaborators:
 
 ## Example Usage
 
-```hcl
+```terraform
 # Add collaborators to a repository
 resource "github_team" "some_team" {
   name        = "SomeTeam"
@@ -74,16 +64,12 @@ The following arguments are supported:
 The `user` block supports:
 
 * `username` - (Required) The user to add to the repository as a collaborator.
-* `permission` - (Optional) The permission of the outside collaborators for the repository.
-            Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories.
-            Must be `push` for personal repositories. Defaults to `push`.
+* `permission` - (Optional) The permission of the outside collaborators for the repository. Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories. Must be `push` for personal repositories. Defaults to `push`.
 
 The `team` block supports:
 
 * `team_id` - (Required) The GitHub team id or the GitHub team slug.
-* `permission` - (Optional) The permission of the outside collaborators for the repository.
-  Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
-  Must be `push` for personal repositories. Defaults to `push`.
+* `permission` - (Optional) The permission of the outside collaborators for the repository. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`. Must be `push` for personal repositories. Defaults to `push`.
 
 The `team_ignore` block supports:
 
@@ -93,8 +79,7 @@ The `team_ignore` block supports:
 
 In addition to the above arguments, the following attributes are exported:
 
-* `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to
-  be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html).
+* `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html).
 
 ## Import
 

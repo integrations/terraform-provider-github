@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "Github: github_enterprise"
 description: |-
   Get an enterprise.

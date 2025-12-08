@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_deployment_branch_policy"
 description: |-
   Creates and manages deployment branch policies
@@ -13,7 +12,7 @@ This resource allows you to create and manage deployment branch policies.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository_environment" "env" {
   repository  = "my_repo"
   environment = "my_env"

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_autolink_reference"
 description: |-
   Creates and manages autolink references for a single repository
@@ -11,7 +10,7 @@ This resource allows you to create and manage an autolink reference for a single
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "repo" {
   name         = "my-repo"
   description  = "GitHub repo managed by Terraform"

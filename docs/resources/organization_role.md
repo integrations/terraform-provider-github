@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_role Resource"
 description: |-
   Manage a custom organization role.

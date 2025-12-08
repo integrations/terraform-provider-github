@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_role_team_assignment"
 description: |-
   Manages the associations between teams and organization roles.
@@ -9,17 +8,15 @@ description: |-
 
 ~> **Note:** This resource is deprecated, please use the `github_organization_role_team` resource instead.
 
-This resource manages relationships between teams and organization roles
-in your GitHub organization. This works on predefined roles, and custom roles, where the latter is an Enterprise feature.
+This resource manages relationships between teams and organization roles in your GitHub organization. This works on predefined roles, and custom roles, where the latter is an Enterprise feature.
 
 Creating this resource assigns the role to a team.
 
-The organization role and team must both belong to the same organization
-on GitHub.
+The organization role and team must both belong to the same organization on GitHub.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_team" "test-team" {
   name     = "test-team"
 }

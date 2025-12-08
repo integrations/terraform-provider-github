@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_deployment_branch_policies"
 description: |-
   Get the list of deployment branch policies for a given repo / env.
@@ -13,7 +12,7 @@ Use this data source to retrieve deployment branch policies for a repository / e
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_deployment_branch_policies" "example" {
     repository = "example-repository"
     environment_name = "env_name"

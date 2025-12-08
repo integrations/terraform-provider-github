@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_enterprise_actions_runner_group"
 description: |-
   Creates and manages an Actions Runner Group within a GitHub enterprise.
@@ -7,12 +6,11 @@ description: |-
 
 # github_enterprise_actions_runner_group
 
-This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise.
-You must have admin access to an enterprise to use this resource.
+This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_enterprise" "enterprise" {
   slug = "my-enterprise"
 }
@@ -38,22 +36,22 @@ resource "github_enterprise_actions_runner_group" "example" {
 ## Argument Reference
 
 The following arguments are supported:
-* `enterprise_slug`            - (Required) The slug of the enterprise.
-* `name`                       - (Required) Name of the runner group
-* `visibility`                 - (Required) Visibility of a runner group to enterprise organizations. Whether the runner group can include `all` or `selected`
-* `selected_organization_ids`  - (Optional) IDs of the organizations which should be added to the runner group
+* `enterprise_slug` - (Required) The slug of the enterprise.
+* `name` - (Required) Name of the runner group
+* `visibility` - (Required) Visibility of a runner group to enterprise organizations. Whether the runner group can include `all` or `selected`
+* `selected_organization_ids` - (Optional) IDs of the organizations which should be added to the runner group
 * `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
-* `restricted_to_workflows`    - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
-* `selected_workflows`         - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
+* `restricted_to_workflows` - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
+* `selected_workflows` - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `id`                         - The ID of the runner group
-* `default`                    - Whether this is the default runner group
-* `etag`                       - An etag representing the runner group object
-* `runners_url`                - The GitHub API URL for the runner group's runners
+* `id` - The ID of the runner group
+* `default` - Whether this is the default runner group
+* `etag` - An etag representing the runner group object
+* `runners_url` - The GitHub API URL for the runner group's runners
 * `selected_organizations_url` - The GitHub API URL for the runner group's selected organizations
 
 ## Import

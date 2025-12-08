@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_pull_request"
 description: |-
   Get information on a single GitHub Pull Request.
@@ -11,7 +10,7 @@ This resource allows you to create and manage PullRequests for repositories with
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository_pull_request" "example" {
     base_repository = "example-repository"
     base_ref        = "main"
@@ -29,7 +28,7 @@ resource "github_repository_pull_request" "example" {
 
 * `head_ref` - (Required) Name of the branch serving as the head of the Pull Request.
 
-* `owner`  - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
+* `owner` - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
 
 * `title` - (Optional) The title of the Pull Request.
 

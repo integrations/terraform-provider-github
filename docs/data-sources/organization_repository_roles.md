@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_repository_roles Data Source"
 description: |-
   Lookup all custom repository roles in an organization.

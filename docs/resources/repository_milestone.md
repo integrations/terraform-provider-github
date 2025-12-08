@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_milestone"
 description: |-
   Provides a GitHub repository milestone resource.
@@ -13,7 +12,7 @@ This resource allows you to create and manage milestones for a GitHub Repository
 
 ## Example Usage
 
-```hcl
+```terraform
 # Create a milestone for a repository
 resource "github_repository_milestone" "example" {
   owner      = "example-owner"
@@ -37,7 +36,6 @@ The following arguments are supported:
 * `due_date` - (Optional) The milestone due date. In `yyyy-mm-dd` format.
 
 * `state` - (Optional) The state of the milestone. Either `open` or `closed`. Default: `open`
-
 
 ## Attributes Reference
 

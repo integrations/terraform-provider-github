@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repositories"
 description: |-
   Search for GitHub repositories
@@ -7,14 +6,13 @@ description: |-
 
 # github_repositories
 
--> **Note:** The data source will return a maximum of `1000` repositories
-	[as documented in official API docs](https://developer.github.com/v3/search/#about-the-search-api).
+-> **Note:** The data source will return a maximum of `1000` repositories [as documented in official API docs](https://developer.github.com/v3/search/#about-the-search-api).
 
 Use this data source to retrieve a list of GitHub repositories using a search query.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repositories" "example" {
   query = "org:hashicorp language:Go"
   include_repo_id = true

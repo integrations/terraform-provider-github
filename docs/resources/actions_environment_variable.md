@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_environment_variable"
 description: |-
   Creates and manages an Action variable within a GitHub repository environment
@@ -7,12 +6,11 @@ description: |-
 
 # github_actions_environment_variable
 
-This resource allows you to create and manage GitHub Actions variables within your GitHub repository environments.
-You must have write access to a repository to use this resource.
+This resource allows you to create and manage GitHub Actions variables within your GitHub repository environments. You must have write access to a repository to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_actions_environment_variable" "example_variable" {
   environment       = "example_environment"
   variable_name     = "example_variable_name"
@@ -20,7 +18,7 @@ resource "github_actions_environment_variable" "example_variable" {
 }
 ```
 
-```hcl
+```terraform
 data "github_repository" "repo" {
   full_name = "my-org/repo"
 }
@@ -42,16 +40,15 @@ resource "github_actions_environment_variable" "example_variable" {
 
 The following arguments are supported:
 
-
-* `repository`              - (Required) Name of the repository.
-* `environment`             - (Required) Name of the environment.
-* `variable_name`           - (Required) Name of the variable.
-* `value`                   - (Required) Value of the variable
+* `repository` - (Required) Name of the repository.
+* `environment` - (Required) Name of the environment.
+* `variable_name` - (Required) Name of the variable.
+* `value` - (Required) Value of the variable
 
 ## Attributes Reference
 
-* `created_at`      - Date of actions_environment_secret creation.
-* `updated_at`      - Date of actions_environment_secret update.
+* `created_at` - Date of actions_environment_secret creation.
+* `updated_at` - Date of actions_environment_secret update.
 
 ## Import
 

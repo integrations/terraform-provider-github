@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_emu_group_mapping"
 description: |-
   Manages mappings between external groups for enterprise managed users.
@@ -11,7 +10,7 @@ This resource manages mappings between external groups for enterprise managed us
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_emu_group_mapping" "example_emu_group_mapping" {
   team_slug = "emu-test-team" # The GitHub team name to modify
   group_id = 28836 # The group ID of the external group to link
@@ -24,7 +23,7 @@ resource "github_emu_group_mapping" "example_emu_group_mapping" {
 
 The following arguments are supported:
 * `team_slug` - (Required) Slug of the GitHub team
-* `group_id`  - (Required) Integer corresponding to the external group ID to be linked
+* `group_id` - (Required) Integer corresponding to the external group ID to be linked
 
 ## Import
 

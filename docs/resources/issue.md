@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_issue"
 description: |-
   Provides a GitHub issue resource.
@@ -9,12 +8,11 @@ description: |-
 
 Provides a GitHub issue resource.
 
-This resource allows you to create and manage issue within your
-GitHub repository.
+This resource allows you to create and manage issue within your GitHub repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Create a simple issue
 resource "github_repository" "test" {
   name = "tf-acc-test-%s"
@@ -31,7 +29,7 @@ resource "github_issue" "test" {
 
 ## Example Usage with milestone and project assignment
 
-```hcl
+```terraform
 # Create an issue with milestone and project assignment
 resource "github_repository" "test" {
   name = "tf-acc-test-%s"

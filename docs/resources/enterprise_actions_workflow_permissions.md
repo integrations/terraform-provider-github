@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_enterprise_actions_workflow_permissions"
 description: |-
   Manages GitHub Actions workflow permissions for a GitHub Enterprise.
@@ -13,7 +12,7 @@ You must have enterprise admin access to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Basic workflow permissions configuration
 resource "github_enterprise_actions_workflow_permissions" "example" {
   enterprise_slug = "my-enterprise"

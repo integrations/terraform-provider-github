@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_topics"
 description: |-
   Creates and manages the topics on a repository
@@ -9,12 +8,11 @@ description: |-
 
 This resource allows you to create and manage topics for repositories within your GitHub organization or personal account.
 
-~> Note: This resource is not compatible with the `topic` attribute of the `github_repository` Use either ``github_repository_topics``
-or ``topic`` in ``github_repository``. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource (see [issue #1845](https://github.com/integrations/terraform-provider-github/issues/1845)).
+~> Note: This resource is not compatible with the `topic` attribute of the `github_repository` Use either `github_repository_topics` or `topic` in `github_repository`. `github_repository_topics` is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource (see [issue #1845](https://github.com/integrations/terraform-provider-github/issues/1845)).
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository" "test" {
     name = "test"
 }

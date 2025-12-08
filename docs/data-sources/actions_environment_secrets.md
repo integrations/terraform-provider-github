@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_environment_secrets"
 description: |-
   Get Actions secrets of the repository environment
@@ -11,7 +10,7 @@ Use this data source to retrieve the list of secrets of the repository environme
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_actions_environment_secrets" "example" {
     name        = "exampleRepo"
     environment = "exampleEnvironment"
@@ -22,7 +21,7 @@ data "github_actions_environment_secrets" "example" {
 
 ## Attributes Reference
 
- * `secrets` - list of secrets for the environment
-   * `name`         - Name of the secret
-   * `created_at`   - Timestamp of the secret creation
-   * `updated_at`   - Timestamp of the secret last update
+* `secrets` - list of secrets for the environment
+  * `name` - Name of the secret
+  * `created_at` - Timestamp of the secret creation
+  * `updated_at` - Timestamp of the secret last update

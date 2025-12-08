@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_tree"
 description: |-
   Returns a single tree using the SHA1 value for that tree.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a single tree.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository" "this" {
   name = "example"
 }
@@ -30,7 +29,6 @@ data "github_tree" "this" {
 output "entries" {
   value = data.github_tree.this.entries
 }
-
 ```
 
 ## Argument Reference

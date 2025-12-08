@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_collaborators"
 description: |-
   Get the collaborators for a given repository.
@@ -11,7 +10,7 @@ Use this data source to retrieve the collaborators for a given repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_collaborators" "test" {
   owner      = "example_owner"
   repository = "example_repository"
@@ -20,19 +19,19 @@ data "github_collaborators" "test" {
 
 ## Arguments Reference
 
- * `owner` - (Required) The organization that owns the repository.
+* `owner` - (Required) The organization that owns the repository.
 
- * `repository` - (Required) The name of the repository.
+* `repository` - (Required) The name of the repository.
 
- * `affiliation` - (Optional) Filter collaborators returned by their affiliation. Can be one of: `outside`, `direct`, `all`.  Defaults to `all`.
+* `affiliation` - (Optional) Filter collaborators returned by their affiliation. Can be one of: `outside`, `direct`, `all`. Defaults to `all`.
 
- * `permission` - (Optional) Filter collaborators returned by their permission. Can be one of: `pull`, `triage`, `push`, `maintain`, `admin`.  Defaults to not doing any filtering on permission.
+* `permission` - (Optional) Filter collaborators returned by their permission. Can be one of: `pull`, `triage`, `push`, `maintain`, `admin`. Defaults to not doing any filtering on permission.
 
 ## Attributes Reference
 
- * `collaborator` - An Array of GitHub collaborators.  Each `collaborator` block consists of the fields documented below.
+* `collaborator` - An Array of GitHub collaborators. Each `collaborator` block consists of the fields documented below.
 
-___
+---
 
 The `collaborator` block consists of:
 

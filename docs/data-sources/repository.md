@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository"
 description: |-
   Get details about GitHub repository
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a GitHub repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository" "example" {
   full_name = "hashicorp/terraform"
 }
@@ -95,7 +94,7 @@ The following arguments are supported:
 
 * `repository_license` - An Array of GitHub repository licenses. Each `repository_license` block consists of the fields documented below.
 
-___
+---
 
 The `repository_license` block consists of:
 

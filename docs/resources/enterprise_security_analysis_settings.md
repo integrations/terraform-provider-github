@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_enterprise_security_analysis_settings"
 description: |-
   Manages GitHub Enterprise security analysis settings.
@@ -13,7 +12,7 @@ You must have enterprise admin access to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 # Basic security settings - enable secret scanning only
 resource "github_enterprise_security_analysis_settings" "basic" {
   enterprise_slug = "my-enterprise"

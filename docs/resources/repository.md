@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository"
 description: |-
   Creates and manages repositories within GitHub organizations or personal accounts
@@ -7,14 +6,13 @@ description: |-
 
 # github_repository
 
-This resource allows you to create and manage repositories within your
-GitHub organization or personal account.
+This resource allows you to create and manage repositories within your GitHub organization or personal account.
 
 ~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
@@ -31,7 +29,7 @@ resource "github_repository" "example" {
 
 ## Example Usage with GitHub Pages Enabled
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome web page"
@@ -49,7 +47,7 @@ resource "github_repository" "example" {
 
 ## Example Usage with Repository Forking
 
-```hcl
+```terraform
 resource "github_repository" "forked_repo" {
   name         = "forked-repository"
   description  = "This is a fork of another repository"
@@ -75,20 +73,17 @@ The following arguments are supported:
 
 * `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
-* `private` - (Optional) Set to `true` to create a private repository.
-  Repositories are created as public (e.g. open source) by default.
+* `private` - (Optional) Set to `true` to create a private repository. Repositories are created as public (e.g. open source) by default.
 
 * `visibility` - (Optional) Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The `visibility` parameter overrides the `private` parameter.
 
-* `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features
-  on the repository.
+* `has_issues` - (Optional) Set to `true` to enable the GitHub Issues features on the repository.
 
 * `has_discussions` - (Optional) Set to `true` to enable GitHub Discussions on the repository. Defaults to `false`.
 
 * `has_projects` - (Optional) Set to `true` to enable the GitHub Projects features on the repository. Per the GitHub [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to `false` and will otherwise default to `true`. If you specify `true` when it has been disabled it will return an error.
 
-* `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on
-  the repository.
+* `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on the repository.
 
 * `is_template` - (Optional) Set to `true` to tell GitHub that this is a template repository.
 
@@ -120,9 +115,7 @@ The following arguments are supported:
 
 * `license_template` - (Optional) Use the [name of the template](https://github.com/github/choosealicense.com/tree/gh-pages/_licenses) without the extension. For example, "mit" or "mpl-2.0".
 
-* `default_branch` - (Optional) (Deprecated: Use `github_branch_default` resource instead) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created,
-and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the
-initial repository creation and create the target branch inside of the repository prior to setting this attribute.
+* `default_branch` - (Optional) (Deprecated: Use `github_branch_default` resource instead) The name of the default branch of the repository. **NOTE:** This can only be set after a repository has already been created, and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 
 * `archived` - (Optional) Specifies if the repository should be archived. Defaults to `false`. **NOTE** Currently, the API does not support unarchiving.
 
@@ -154,7 +147,7 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
-#### GitHub Pages Source ####
+#### GitHub Pages Source
 
 The `source` block supports the following:
 
@@ -176,31 +169,31 @@ The `security_and_analysis` block supports the following:
 
 * `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
 
-* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details. 
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details.
 
-#### Advanced Security Configuration ####
+#### Advanced Security Configuration
 
 The `advanced_security` block supports the following:
 
 * `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
 
-#### Code Security Configuration ####
+#### Code Security Configuration
 
 * `status` - (Required) Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Configuration ####
+#### Secret Scanning Configuration
 
 * `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Push Protection Configuration ####
+#### Secret Scanning Push Protection Configuration
 
 * `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning AI Detection #### 
+#### Secret Scanning AI Detection
 
 * `status` - (Required) Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Non-Provider Patterns #### 
+#### Secret Scanning Non-Provider Patterns
 
 * `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
@@ -235,9 +228,9 @@ The following additional attributes are exported:
 * `primary_language` - The primary language used in the repository.
 
 * `pages` - The block consisting of the repository's GitHub Pages configuration with the following additional attributes:
- * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
- * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
- * `status` - The GitHub Pages site's build status e.g. `building` or `built`.
+* `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
+* `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
+* `status` - The GitHub Pages site's build status e.g. `building` or `built`.
 
 ## Import
 

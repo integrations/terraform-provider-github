@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "github_organization_ruleset Resource - terraform-provider-github"
 description: |-
   Creates a GitHub organization ruleset.
@@ -13,7 +12,7 @@ This resource allows you to create and manage rulesets on the organization level
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_ruleset" "example" {
   name        = "example"
   target      = "branch"
@@ -116,7 +115,7 @@ resource "github_organization_ruleset" "example_push" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`. (see [below for nested schema](#conditions))
 
-#### Rules ####
+### Rules
 
 The `rules` block supports the following:
 
@@ -158,7 +157,7 @@ The `rules` block supports the following:
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
-#### rules.branch_name_pattern ####
+#### rules.branch_name_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -168,7 +167,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.commit_author_email_pattern ####
+#### rules.commit_author_email_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -178,7 +177,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.commit_message_pattern ####
+#### rules.commit_message_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -188,7 +187,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.committer_email_pattern ####
+#### rules.committer_email_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -198,7 +197,7 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.pull_request ####
+#### rules.pull_request
 
 * `dismiss_stale_reviews_on_push` - (Optional) (Boolean) New, reviewable commits pushed will dismiss previous pull request review approvals. Defaults to `false`.
 
@@ -210,7 +209,7 @@ The `rules` block supports the following:
 
 * `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
 
-#### rules.required_status_checks ####
+#### rules.required_status_checks
 
 * `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rules.required_status_checks.required_check))
 
@@ -218,7 +217,7 @@ The `rules` block supports the following:
 
 * `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
-#### required_status_checks.required_check ####
+#### required_status_checks.required_check
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
@@ -226,13 +225,13 @@ The `rules` block supports the following:
 
 * `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
-#### rules.required_workflows ####
+#### rules.required_workflows
 
 * `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
 * `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_workflow))
 
-#### rules.required_workflows.required_workflow ####
+#### rules.required_workflows.required_workflow
 
 * `repository_id` - (Required) (Number) The ID of the repository. Names, full names and repository URLs are not supported.
 
@@ -240,11 +239,11 @@ The `rules` block supports the following:
 
 * `ref` - (Optional) (String) The optional ref from which to fetch the workflow. Defaults to `master`.
 
-#### rules.required_code_scanning ####
+#### rules.required_code_scanning
 
 * `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rules.required_workflows.required_code_scanning_tool))
 
-#### rules.required_code_scanning.required_code_scanning_tool ####
+#### rules.required_code_scanning.required_code_scanning_tool
 
 * `alerts_threshold` - (Required) (String) The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.
 
@@ -252,7 +251,7 @@ The `rules` block supports the following:
 
 * `tool` - (Required) (String) The name of a code scanning tool.
 
-#### rules.tag_name_pattern ####
+#### rules.tag_name_pattern
 
 * `operator` - (Required) (String) The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.
 
@@ -262,23 +261,23 @@ The `rules` block supports the following:
 
 * `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
 
-#### rules.file_path_restriction ####
+#### rules.file_path_restriction
 
 * `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
 
-#### rules.max_file_size ####
+#### rules.max_file_size
 
 * `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
 
-#### rules.max_file_path_length ####
+#### rules.max_file_path_length
 
 * `max_file_path_length` - (Required) (Integer) The maximum number of characters allowed in file paths.
 
-#### rules.file_extension_restriction ####
+#### rules.file_extension_restriction
 
 * `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
 
-#### bypass_actors ####
+#### bypass_actors
 
 * `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
 
@@ -294,7 +293,7 @@ The `rules` block supports the following:
   * `write` -> `4`
   * `admin` -> `5`
 
-#### conditions ####
+#### conditions
 
 * `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
 * `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
@@ -302,13 +301,13 @@ The `rules` block supports the following:
 
 One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
 
-#### conditions.ref_name ####
+#### conditions.ref_name
 
 * `exclude` - (Required) (List of String) Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.
 
 * `include` - (Required) (List of String) Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.
 
-#### conditions.repository_name ####
+#### conditions.repository_name
 
 * `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
 

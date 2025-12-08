@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_app_token"
 description: |-
   Generate a GitHub APP JWT.
@@ -11,7 +10,7 @@ Use this data source to generate a [GitHub App JWT](https://docs.github.com/en/a
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_app_token" "this" {
   app_id          = "123456"
   installation_id = "78910"

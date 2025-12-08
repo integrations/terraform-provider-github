@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_release"
 description: |-
   Creates and manages releases within a single GitHub repository
@@ -7,12 +6,11 @@ description: |-
 
 # github_release
 
-This resource allows you to create and manage a release in a specific
-GitHub repository.
+This resource allows you to create and manage a release in a specific GitHub repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "repo" {
   name         = "repo"
   description  = "GitHub repo managed by Terraform"
@@ -28,7 +26,7 @@ resource "github_release" "example" {
 
 ## Example Usage on Non-Default Branch
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name      = "repo"
   auto_init = true
@@ -81,7 +79,7 @@ The following additional attributes are exported:
 
 * `published_at` - This is the date when the release was published. This will be empty if the release is a draft.
 
-* `html_url` - URL of the release in GitHub. 
+* `html_url` - URL of the release in GitHub.
 
 * `url` - URL that can be provided to API calls that reference this release.
 

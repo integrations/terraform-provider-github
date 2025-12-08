@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_actions_repository_permissions"
 description: |-
   Enables and manages Actions permissions for a GitHub repository
@@ -7,12 +6,11 @@ description: |-
 
 # github_actions_repository_permissions
 
-This resource allows you to enable and manage GitHub Actions permissions for a given repository.
-You must have admin access to an repository to use this resource.
+This resource allows you to enable and manage GitHub Actions permissions for a given repository. You must have admin access to an repository to use this resource.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name = "my-repository"
 }
@@ -32,9 +30,9 @@ resource "github_actions_repository_permissions" "test" {
 
 The following arguments are supported:
 
-* `repository`             - (Required) The GitHub repository
-* `allowed_actions`        - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
-* `enabled`                - (Optional) Should GitHub actions be enabled on this repository?
+* `repository` - (Required) The GitHub repository
+* `allowed_actions` - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
+* `enabled` - (Optional) Should GitHub actions be enabled on this repository?
 * `allowed_actions_config` - (Optional) Sets the actions that are allowed in an repository. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
 
 ### Allowed Actions Config

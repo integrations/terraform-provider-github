@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_branches"
 description: |-
   Get information on a GitHub repository's branches.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about branches in a repository.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_branches" "example" {
     repository = "example-repository"
 }
@@ -28,5 +27,5 @@ data "github_repository_branches" "example" {
 ## Attributes Reference
 
 * `branches` - The list of this repository's branches. Each element of `branches` has the following attributes:
-    * `name` - Name of the branch.
-    * `protected` - Whether the branch is protected.
+  * `name` - Name of the branch.
+  * `protected` - Whether the branch is protected.

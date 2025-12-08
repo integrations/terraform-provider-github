@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_custom_property"
 description: |-
   Creates and a specific custom property for a GitHub repository
@@ -13,7 +12,7 @@ This resource allows you to create and manage a specific custom property for a G
 
 > Note that this assumes there already is a custom property defined on the org level called `my-cool-property` of type `string`
 
-```hcl
+```terraform
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
@@ -36,7 +35,7 @@ The following arguments are supported:
 
 * `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization level
 
-* `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1 
+* `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1
 
 ## Import
 

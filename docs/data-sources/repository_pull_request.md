@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: repository_pull_request"
 description: |-
   Get information on a single GitHub Pull Request.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a specific GitHub Pull Reques
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_repository_pull_request" "example" {
     base_repository = "example_repository"
     number          = 1
@@ -20,11 +19,11 @@ data "github_repository_pull_request" "example" {
 
 ## Argument Reference
 
-*  `base_repository` - (Required) Name of the base repository to retrieve the Pull Request from.
+* `base_repository` - (Required) Name of the base repository to retrieve the Pull Request from.
 
 * `number` - (Required) The number of the Pull Request within the repository.
 
-* `owner`  - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
+* `owner` - (Optional) Owner of the repository. If not provided, the provider's default owner is used.
 
 ## Attributes Reference
 
@@ -55,4 +54,3 @@ data "github_repository_pull_request" "example" {
 * `title` - The title of the Pull Request.
 
 * `updated_at` - The timestamp of the last Pull Request update.
- 

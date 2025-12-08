@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_issue_labels"
 description: |-
   Provides GitHub issue labels resource.
@@ -9,8 +8,7 @@ description: |-
 
 Provides GitHub issue labels resource.
 
-This resource allows you to create and manage issue labels within your
-GitHub organization.
+This resource allows you to create and manage issue labels within your GitHub organization.
 
 ~> Note: github_issue_labels cannot be used in conjunction with github_issue_label or they will fight over what your policy should be.
 
@@ -22,7 +20,7 @@ If you change the case of a label's name, its' color, or description, this resou
 
 ## Example Usage
 
-```hcl
+```terraform
 # Create a new, red colored label
 resource "github_issue_labels" "test_repo" {
   repository = "test-repo"

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_environment_deployment_policy"
 description: |-
   Creates and manages environment deployment branch policies for GitHub repositories
@@ -13,7 +12,7 @@ This resource allows you to create and manage environment deployment branch poli
 
 Create a branch-based deployment policy:
 
-```hcl
+```terraform
 data "github_user" "current" {
   username = ""
 }
@@ -44,8 +43,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 
 Create a tag-based deployment policy:
 
-```hcl
-
+```terraform
 data "github_user" "current" {
   username = ""
 }
@@ -74,7 +72,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 }
 ```
 
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -86,7 +83,6 @@ The following arguments are supported:
 * `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
 
 * `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
-
 
 ## Import
 

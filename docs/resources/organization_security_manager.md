@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_security_manager"
 description: |-
   Manages the Security manager teams for a GitHub Organization.
@@ -11,7 +10,7 @@ description: |-
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_team" "some_team" {
   name        = "SomeTeam"
   description = "Some cool team"

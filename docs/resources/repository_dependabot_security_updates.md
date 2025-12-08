@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_dependabot_security_updates"
 description: |-
   Manages automated security fixes for a single repository
@@ -7,13 +6,11 @@ description: |-
 
 # github_repository_dependabot_security_updates
 
-This resource allows you to manage dependabot automated security fixes for a single repository. See the 
-[documentation](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates)
-for details of usage and how this will impact your repository
+This resource allows you to manage dependabot automated security fixes for a single repository. See the [documentation](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates) for details of usage and how this will impact your repository
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_repository" "repo" {
   name         = "my-repo"
   description  = "GitHub repo managed by Terraform"

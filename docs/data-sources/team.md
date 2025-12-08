@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_team"
 description: |-
   Get information on a GitHub team.
@@ -11,7 +10,7 @@ Use this data source to retrieve information about a GitHub team.
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_team" "example" {
   slug = "example"
 }

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_role_teams Data Source"
 description: |-
   Lookup all teams assigned to a custom organization role.

@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_role_users Data Source"
 description: |-
   Lookup all users assigned to a custom organization role.

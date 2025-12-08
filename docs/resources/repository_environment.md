@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_repository_environment"
 description: |-
   Creates and manages environments for GitHub repositories
@@ -11,7 +10,7 @@ This resource allows you to create and manage environments for a GitHub reposito
 
 ## Example Usage
 
-```hcl
+```terraform
 data "github_user" "current" {
   username = ""
 }
@@ -45,7 +44,7 @@ The following arguments are supported:
 
 * `wait_timer` - (Optional) Amount of time to delay a job after the job is initially triggered.
 
-* `can_admins_bypass` - (Optional) Can repository admins bypass the environment protections.  Defaults to `true`.
+* `can_admins_bypass` - (Optional) Can repository admins bypass the environment protections. Defaults to `true`.
 
 * `prevent_self_review` - (Optional) Whether or not a user who created the job is prevented from approving their own job. Defaults to `false`.
 
@@ -57,14 +56,13 @@ The `reviewers` block supports the following:
 
 * `users` - (Optional) Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.
 
-#### Deployment Branch Policy ####
+#### Deployment Branch Policy
 
 The `deployment_branch_policy` block supports the following:
 
 * `protected_branches` - (Required) Whether only branches with branch protection rules can deploy to this environment.
 
 * `custom_branch_policies` - (Required) Whether only branches that match the specified name patterns can deploy to this environment.
-
 
 ## Import
 

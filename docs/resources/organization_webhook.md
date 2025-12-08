@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_webhook"
 description: |-
   Creates and manages webhooks for GitHub organizations
@@ -11,7 +10,7 @@ This resource allows you to create and manage webhooks for GitHub organization.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_webhook" "foo" {
   name = "web"
 
@@ -47,8 +46,7 @@ The following additional attributes are exported:
 
 ## Import
 
-Organization webhooks can be imported using the `id` of the webhook.
-The `id` of the webhook can be found in the URL of the webhook. For example, `"https://github.com/organizations/foo-org/settings/hooks/123456789"`.
+Organization webhooks can be imported using the `id` of the webhook. The `id` of the webhook can be found in the URL of the webhook. For example, `"https://github.com/organizations/foo-org/settings/hooks/123456789"`.
 
 ```
 $ terraform import github_organization_webhook.terraform 123456789

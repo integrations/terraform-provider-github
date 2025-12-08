@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_webhooks"
 description: |-
   Get information on all GitHub webhooks of the organization.
@@ -13,19 +12,20 @@ Use this data source to retrieve all webhooks of the organization.
 
 To retrieve *all* webhooks of the organization:
 
-```hcl
+```terraform
 data "github_organization_webhooks" "all" {}
 ```
 
 ## Attributes Reference
 
-* `webhooks` - An Array of GitHub Webhooks.  Each `webhook` block consists of the fields documented below.
-___
+* `webhooks` - An Array of GitHub Webhooks. Each `webhook` block consists of the fields documented below.
+
+---
 
 The `webhook` block consists of:
 
- * `id` - the ID of the webhook.
- * `type` - the type of the webhook.
- * `name` - the name of the webhook.
- * `url` - the url of the webhook.
- * `active` - `true` if the webhook is active.
+* `id` - the ID of the webhook.
+* `type` - the type of the webhook.
+* `name` - the name of the webhook.
+* `url` - the url of the webhook.
+* `active` - `true` if the webhook is active.

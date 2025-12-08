@@ -1,5 +1,4 @@
 ---
-layout: "github"
 page_title: "GitHub: github_organization_block"
 description: |-
   Creates and manages blocks for GitHub organizations
@@ -11,7 +10,7 @@ This resource allows you to create and manage blocks for GitHub organizations.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "github_organization_block" "example" {
   username = "paultyng"
 }
