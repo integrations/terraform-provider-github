@@ -73,18 +73,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view "${{ github.ref_name }}" --json body -q '.body' --repo "${{ github.repository }}" > release-notes-with-attestation.md
-          echo "" >> release-notes-with-attestation.md
-          echo "## Attestation" >> release-notes-with-attestation.md
-          echo "" >> release-notes-with-attestation.md
-          echo "Built provenance attestation: [View attestation](${{ steps.attest.outputs.attestation-url }})" >> release-notes-with-attestation.md
-          echo "" >> release-notes-with-attestation.md
-          echo "Download the artifacts:" >> release-notes-with-attestation.md
-          echo "\`\`\`bash" >> release-notes-with-attestation.md
-          echo "gh release download ${{ github.ref_name }} -repo ${{ github.repository }} -p "*.zip"" >> release-notes-with-attestation.md
-          echo "\`\`\`" >> release-notes-with-attestation.md
-          echo "Verify the artifacts by running:" >> release-notes-with-attestation.md
-          echo "\`\`\`bash" >> release-notes-with-attestation.md
-          echo "gh attestation verify <artifact-file> --repo ${{ github.repository }}" >> release-notes-with-attestation.md
-          echo "\`\`\`" >> release-notes-with-attestation.md
-          gh release edit "${{ github.ref_name }}" --notes-file release-notes-with-attestation.md --repo "${{ github.repository }}"
+          gh release view "${{ github.ref_name }}" --json body -q '.body' --repo "${{ github.repository }}" > notes.md
+          cat >> notes.md <<EOF
+          ## Attestation
+          Build provenance attestation: [View attestation](${{ steps.attest.outputs.attestation-url }})
+          Download the artifacts:
+          \`\`\`bash
+          gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --pattern "*.zip"
+          \`\`\`
+          Verify the artifacts:
+          \`\`\`bash
+          gh attestation verify <artifact-file> --repo ${{ github.repository }}
+          \`\`\`
+          EOF
+          gh release edit "${{ github.ref_name }}" --notes-file notes.md --repo "${{ github.repository }}"
