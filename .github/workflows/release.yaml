@@ -81,7 +81,7 @@ jobs:
           echo "" >> release-notes-with-attestation.md
           echo "Download the artifacts:" >> release-notes-with-attestation.md
           echo "\`\`\`bash" >> release-notes-with-attestation.md
-          echo "gh release download ${{ github.ref_name }} -repo ${{ github.repository }} -p "*.zip""
+          echo "gh release download ${{ github.ref_name }} -repo ${{ github.repository }} -p "*.zip"" >> release-notes-with-attestation.md
           echo "\`\`\`" >> release-notes-with-attestation.md
           echo "Verify the artifacts by running:" >> release-notes-with-attestation.md
           echo "\`\`\`bash" >> release-notes-with-attestation.md
