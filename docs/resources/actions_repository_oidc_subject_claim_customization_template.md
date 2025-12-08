@@ -1,7 +1,7 @@
 ---
 page_title: "GitHub: github_actions_repository_oidc_subject_claim_customization_template"
 description: |-
-Creates and manages an OpenID Connect subject claim customization template for a repository
+  Creates and manages an OpenID Connect subject claim customization template for a repository
 ---
 
 # github_actions_repository_oidc_subject_claim_customization_template
