@@ -14,10 +14,13 @@ The `gh attestation verify` command requires either `--owner` or `--repo` flags 
 > [!WARNING]
 > Not all artifacts may have attestations generated for them. Please check the [attestations](https://github.com/integrations/terraform-provider-github/attestations) page for this repository to see which artifacts have attestations available.
 
+> [!CAUTION]
+> The attestations are available only for releases created since the version `v6.9.0` of this project.
+
 Download the release artifacts first:
 
 ```bash
-gh release download vX.Y.Z -R integrations/terraform-provider-github -p "*.zip"
+gh release download vX.Y.Z --repo integrations/terraform-provider-github -p "*.zip"
 ```
 
 To verify the artifact attestations for this project, you can run the following command:
