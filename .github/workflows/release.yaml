@@ -79,6 +79,10 @@ jobs:
           echo "" >> release-notes-with-attestation.md
           echo "Built provenance attestation: [View attestation](${{ steps.attest.outputs.attestation-url }})" >> release-notes-with-attestation.md
           echo "" >> release-notes-with-attestation.md
+          echo "Download the artifacts:" >> release-notes-with-attestation.md
+          echo "\`\`\`bash" >> release-notes-with-attestation.md
+          echo "gh release download ${{ github.ref_name }} -repo ${{ github.repository }} -p "*.zip""
+          echo "\`\`\`" >> release-notes-with-attestation.md
           echo "Verify the artifacts by running:" >> release-notes-with-attestation.md
           echo "\`\`\`bash" >> release-notes-with-attestation.md
           echo "gh attestation verify <artifact-file> --repo ${{ github.repository }}" >> release-notes-with-attestation.md
