@@ -70,6 +70,8 @@ jobs:
           subject-checksums: ./dist/${{ github.event.repository.name }}_${{ fromJSON(steps.goreleaser.outputs.metadata).version }}_SHA256SUMS
 
       - name: Update release notes with attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "${{ github.ref_name }}" --json body -q '.body' --repo "${{ github.repository }}" > new-release-notes.md
           echo "" >> new-release-notes.md
