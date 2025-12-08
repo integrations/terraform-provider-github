@@ -200,10 +200,6 @@ github.com/charmbracelet/x/term
 # github.com/ckaznocha/intrange v0.3.1
 ## explicit; go 1.23.0
 github.com/ckaznocha/intrange
-# github.com/client9/misspell v0.3.4
-## explicit
-github.com/client9/misspell
-github.com/client9/misspell/cmd/misspell
 # github.com/cloudflare/circl v1.6.1
 ## explicit; go 1.22.0
 github.com/cloudflare/circl/dh/x25519

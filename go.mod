@@ -3,7 +3,6 @@ module github.com/integrations/terraform-provider-github/v6
 go 1.24.0
 
 require (
-	github.com/client9/misspell v0.3.4
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/golangci/golangci-lint/v2 v2.6.2
 	github.com/google/go-github/v77 v77.0.0
