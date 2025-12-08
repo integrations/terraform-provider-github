@@ -4,6 +4,10 @@ PKG_NAME=github
 
 default: build
 
+tools:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.24
+
 build: fmtcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
 
