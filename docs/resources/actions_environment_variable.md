@@ -13,8 +13,9 @@ This resource allows you to create and manage GitHub Actions variables within yo
 ```terraform
 resource "github_actions_environment_variable" "example_variable" {
   environment       = "example_environment"
-  variable_name     = "example_variable_name"
+  repository        = "example_repository"
   value             = "example_variable_value"
+  variable_name     = "example_variable_name"
 }
 ```
 
@@ -54,6 +55,6 @@ The following arguments are supported:
 
 This resource can be imported using an ID made up of the repository name, environment name, and variable name:
 
-```
+```sh
 $ terraform import github_actions_environment_variable.test_variable myrepo:myenv:myvariable
 ```
