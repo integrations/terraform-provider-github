@@ -2,62 +2,62 @@ package github
 
 import (
 	"context"
+	"net/url"
 	"testing"
 
 	"github.com/shurcooL/githubv4"
 )
 
-func TestGHECDataResidencyMatch(t *testing.T) {
+func TestGHECDataResidencyHostMatch(t *testing.T) {
 	testCases := []struct {
 		url         string
 		matches     bool
 		description string
 	}{
 		{
-			url:         "https://customer.ghe.com",
+			url:         "https://customer.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with customer name",
 		},
 		{
-			url:         "https://customer-name.ghe.com",
+			url:         "https://customer-name.ghe.com/",
 			matches:     true,
 			description: "GHEC data residency URL with hyphenated name",
 		},
 		{
-			url:         "https://api.github.com",
-			matches:     false,
-			description: "GitHub.com API URL",
+			url:         "https://customer.ghe.com",
+			matches:     true,
+			description: "GHEC data residency URL without a trailing slash",
 		},
 		{
-			url:         "https://github.com",
+			url:         "https://ghe.com/",
+			matches:     false,
+			description: "GHEC domain without subdomain",
+		},
+		{
+			url:         "https://github.com/",
 			matches:     false,
 			description: "GitHub.com URL",
 		},
 		{
-			url:         "https://example.com",
+			url:         "https://api.github.com/",
+			matches:     false,
+			description: "GitHub.com API URL",
+		},
+		{
+			url:         "https://example.com/",
 			matches:     false,
 			description: "Generic URL",
-		},
-		{
-			url:         "http://customer.ghe.com",
-			matches:     false,
-			description: "Non-HTTPS GHEC URL",
-		},
-		{
-			url:         "https://customer.ghe.com/api/v3",
-			matches:     false,
-			description: "GHEC URL with path",
-		},
-		{
-			url:         "https://ghe.com",
-			matches:     false,
-			description: "GHEC domain without subdomain",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			matches := GHECDataResidencyMatch.MatchString(tc.url)
+			u, err := url.Parse(tc.url)
+			if err != nil {
+				t.Fatalf("failed to parse URL %q: %s", tc.url, err)
+			}
+			matches := GHECDataResidencyHostMatch.MatchString(u.Hostname())
 			if matches != tc.matches {
 				t.Errorf("URL %q: expected match=%v, got %v", tc.url, tc.matches, matches)
 			}

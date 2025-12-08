@@ -1,0 +1,109 @@
+name: Acceptance Tests (github.com)
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches:
+  #     - main
+  #     - release-v*
+  # pull_request_target:
+  #   types:
+  #     - opened
+  #     - synchronize
+  #     - reopened
+  #     - labeled
+  #   branches:
+  #     - main
+  #     - release-v*
+
+permissions: read-all
+
+jobs:
+  test:
+    name: Test ${{ matrix.mode }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: acctest-dotcom
+    strategy:
+      matrix:
+        mode: [anonymous, individual, organization] # team, enterprise
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Check secrets
+        env:
+          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'DOTCOM_TEST_USER_TOKEN' }}
+          INPUT_SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          set -eou pipefail
+
+          secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:ACTIONS)|(?:actions)|(?:GITHUB)|(?:github)|(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
+          if [[ "${secret_keys}" != "${INPUT_ALLOWED_SECRETS}" ]]; then
+            echo "::error::Too many or too few secrets configured: ${secret_keys}"
+            exit 1
+          fi
+
+      - name: Check credentials
+        id: credentials
+        if: matrix.mode != 'anonymous'
+        env:
+          TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+        run: |
+          set -eou pipefail
+
+          if [[ -z "${TEST_USER_TOKEN}" ]]; then
+            echo "::error::Missing credentials"
+            exit 1
+          fi
+
+          echo "token=${TEST_USER_TOKEN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set-up Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        env:
+          TF_ACC: "1"
+          TF_LOG: INFO
+          GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
+          GITHUB_BASE_URL: https://api.github.com/
+          GITHUB_TEST_TYPE: ${{ matrix.mode }}
+          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && 'github-terraform-test-user') || (matrix.mode == 'organization' && 'terraformtesting') || '' }}
+          GITHUB_ORGANIZATION: ${{ (matrix.mode == 'organization' && 'terraformtesting') || '' }}
+          GITHUB_TEST_ORGANIZATION: ${{ (matrix.mode == 'individual' && 'terraformtesting') || '' }}
+          GITHUB_TEST_OWNER: ${{ (matrix.mode == 'organization' && 'github-terraform-test-user') || '' }}
+          GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
+        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
+
+  check:
+    name: Check DotCom Acceptance Tests
+    if: always() && github.event_name == 'pull_request'
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check
+        env:
+          INPUT_RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          read -a results <<< "${INPUT_RESULTS}"
+          for result in "${results[@]}"; do
+            if [[ "${result}" == "failure" ]] || [[ "${result}" == "cancelled" ]]; then
+              echo "::error::Workflow failed!"
+              exit 1
+            fi
+          done

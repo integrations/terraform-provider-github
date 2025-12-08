@@ -54,6 +54,14 @@ resource "github_organization_ruleset" "example" {
         ref           = "main"
       }
     }
+
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 

@@ -36,3 +36,5 @@ The following arguments are supported:
 * `default_value` - The default value of the custom property.
 
 * `allowed_values` - List of allowed values for the custom property. Only populated when `value_type` is `single_select` or `multi_select`.
+
+* `values_editable_by` - Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`.

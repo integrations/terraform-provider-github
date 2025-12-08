@@ -7,6 +7,8 @@ description: |-
 
 # github_organization_role_team_assignment
 
+~> **Note:** This resource is deprecated, please use the `github_organization_role_team` resource instead.
+
 This resource manages relationships between teams and organization roles
 in your GitHub organization. This works on predefined roles, and custom roles, where the latter is an Enterprise feature.
 
@@ -39,6 +41,6 @@ The following arguments are supported:
 
 GitHub Team Organization Role Assignment can be imported using an ID made up of `team_slug:role_id`
 
-```
+```text
 $ terraform import github_organization_role_team_assignment.role_assignment test-team:8132
 ```

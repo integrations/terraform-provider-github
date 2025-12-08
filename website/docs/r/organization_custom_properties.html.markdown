@@ -28,6 +28,20 @@ resource "github_organization_custom_properties" "environment" {
 }
 ```
 
+## Example Usage - Allow Repository Actors to Edit
+
+This example shows how to allow repository administrators to edit the property values:
+
+```hcl
+resource "github_organization_custom_properties" "team_contact" {
+  property_name       = "team_contact"
+  value_type          = "string"
+  required            = false
+  description         = "Contact information for the team managing this repository"
+  values_editable_by  = "org_and_repo_actors"
+}
+```
+
 ## Example Usage - Text Property
 
 ```hcl
@@ -66,6 +80,8 @@ The following arguments are supported:
 * `default_value` - (Optional) The default value of the custom property.
 
 * `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
+
+* `values_editable_by` - (Optional) Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit the property values on repositories. When set to `org_and_repo_actors`, both organization owners and repository administrators with the custom properties permission can edit the values.
 
 ## Attributes Reference
 
