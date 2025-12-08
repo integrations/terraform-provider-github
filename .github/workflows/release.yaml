@@ -65,5 +65,20 @@ jobs:
 
       - name: Attest artifacts
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        id: attest
         with:
           subject-checksums: ./dist/${{ github.event.repository.name }}_${{ fromJSON(steps.goreleaser.outputs.metadata).version }}_SHA256SUMS
+
+      - name: Update release notes with attestation
+        run: |
+          gh release view "${{ github.ref_name }}" --json body -q '.body' --repo "${{ github.repository }}" > new-release-notes.md
+          echo "" >> new-release-notes.md
+          echo "## Attestation" >> new-release-notes.md
+          echo "" >> new-release-notes.md
+          echo "Build provenance attestation: [View attestation](${{ steps.attest.outputs.attestation-url }})" >> new-release-notes.md
+          echo "" >> new-release-notes.md
+          echo "Verify the artifacts by running:" >> new-release-notes.md
+          echo "\`\`\`bash" >> new-release-notes.md
+          echo "gh attestation verify <artifact-file> --repo ${{ github.repository }}" >> new-release-notes.md
+          echo "\`\`\`" >> new-release-notes.md
+          gh release edit "${{ github.ref_name }}" --notes-file new-release-notes.md --repo "${{ github.repository }}"
