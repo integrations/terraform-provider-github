@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -37,9 +38,12 @@ type Owner struct {
 	IsOrganization bool
 }
 
-// GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
-// https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
-var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
+// DotComHost is the hostname for GitHub.com API.
+const DotComHost = "api.github.com"
+
+// GHECDataResidencyHostMatch is a regex to match a GitHub Enterprise Cloud data residency host:
+// https://[hostname].ghe.com/ instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
+var GHECDataResidencyHostMatch = regexp.MustCompile(`^[a-zA-Z0-9.\-]+\.ghe\.com\/?$`)
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
@@ -82,7 +86,8 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 		return nil, err
 	}
 
-	if uv4.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv4.String()) {
+	hostname := uv4.Hostname()
+	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
 		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	} else {
 		uv4.Path = path.Join(uv4.Path, "graphql")
@@ -97,8 +102,9 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 		return nil, err
 	}
 
-	if uv3.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv3.String()) {
-		uv3.Path = uv3.Path + "api/v3/"
+	hostname := uv3.Hostname()
+	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
+		uv3.Path = fmt.Sprintf("%s/", path.Join(uv3.Path, "api/v3"))
 	}
 
 	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")

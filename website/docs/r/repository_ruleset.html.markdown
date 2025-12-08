@@ -49,7 +49,13 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 
@@ -94,7 +100,7 @@ resource "github_repository_ruleset" "example_push" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
 
-* `repository` - (Optional) (String) Name of the repository to apply rulset to.
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
