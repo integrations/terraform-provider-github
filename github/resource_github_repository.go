@@ -32,6 +32,8 @@ func resourceGithubRepository() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceGithubRepositoryMigrateState,
 
+		Description: "Creates and manages repositories within GitHub organizations or personal accounts",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,

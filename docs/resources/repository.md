@@ -1,12 +1,12 @@
 ---
-page_title: "GitHub: github_repository"
+page_title: "github_repository Resource - terraform-provider-github"
 description: |-
   Creates and manages repositories within GitHub organizations or personal accounts
 ---
 
-# github_repository
+# github_repository (Resource)
 
-This resource allows you to create and manage repositories within your GitHub organization or personal account.
+Creates and manages repositories within GitHub organizations or personal accounts
 
 ~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
@@ -105,7 +105,7 @@ The following arguments are supported:
 
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
-* `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
+* `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more in [GitHub Documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
 
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
 
@@ -167,9 +167,9 @@ The `security_and_analysis` block supports the following:
 
 * `secret_scanning_push_protection` - (Optional) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
 
-* `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
+* `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection](#secret-scanning-ai-detection) below for details.
 
-* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details.
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns](#secret-scanning-non-provider-patterns) below for more details.
 
 #### Advanced Security Configuration
 
@@ -236,6 +236,6 @@ The following additional attributes are exported:
 
 Repositories can be imported using the `name`, e.g.
 
-```
+```sh
 $ terraform import github_repository.terraform terraform
 ```
