@@ -282,9 +282,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"context": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The status check context name that must be present on the commit.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+													Description:      "The status check context name that must be present on the commit.",
 												},
 												"integration_id": {
 													Type:        schema.TypeInt,
