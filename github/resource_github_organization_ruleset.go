@@ -25,6 +25,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+		Description: `Creates a GitHub organization ruleset.
+
+This resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.`,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -61,7 +65,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
+							Description:  "The type of actor that can bypass a ruleset. See [GitHub Documentation](https://docs.github.com/en/rest/orgs/rules) for more information",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -578,8 +582,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "The ETag of the ruleset.",
+				Computed:    true,
 			},
 		},
 	}
