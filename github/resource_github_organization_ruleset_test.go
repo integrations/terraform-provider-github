@@ -604,9 +604,12 @@ resource "github_organization_ruleset" "test" {
 			},
 		})
 	})
-	t.Run("Validates required_status_checks context is not empty", func(t *testing.T) {
-		resourceName := "test-required-status-checks-context-is-not-empty"
-		config := fmt.Sprintf(`
+
+	t.Run("Validates rules.required_status_checks", func(t *testing.T) {
+		t.Run("required_check.context should not be empty", func(t *testing.T) {
+			resourceName := "test-required-status-checks-context-is-not-empty"
+			randomID := acctest.RandString(5)
+			config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "%s" {
 				name        = "test-context-is-not-empty-%s"
 				target      = "branch"
@@ -633,25 +636,75 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, resourceName, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
+			testCase := func(t *testing.T, mode testMode) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config:      config,
+							ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
+						},
 					},
-				},
+				})
+			}
+
+			t.Run("with an enterprise account", func(t *testing.T) {
+				testCase(t, enterprise)
 			})
-		}
 
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			t.Run("with an organization account", func(t *testing.T) {
+				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+			})
 		})
+		t.Run("required_check should be required when strict_required_status_checks_policy is set", func(t *testing.T) {
+			resourceName := "test-required-check-is-required"
+			randomID := acctest.RandString(5)
+			config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-required-with-%s"
+				target      = "branch"
+				enforcement = "active"
 
-		t.Run("with an organization account", func(t *testing.T) {
-			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					required_status_checks {
+						strict_required_status_checks_policy = true
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+			testCase := func(t *testing.T, mode testMode) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config:      config,
+							ExpectError: regexp.MustCompile("Insufficient required_check blocks"),
+						},
+					},
+				})
+			}
+
+			t.Run("with an enterprise account", func(t *testing.T) {
+				testCase(t, enterprise)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+			})
 		})
 	})
 
