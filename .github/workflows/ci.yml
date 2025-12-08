@@ -23,7 +23,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: make tools
       - run: make lint
       - run: make website-lint
       - run: make build
