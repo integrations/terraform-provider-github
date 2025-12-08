@@ -22,23 +22,23 @@ You must have enterprise admin access to use this resource.
 
 The following arguments are supported:
 
-* `enterprise_slug` - (Required) The slug of the enterprise.
+- `enterprise_slug` - (Required) The slug of the enterprise.
 
-* `advanced_security_enabled_for_new_repositories` - (Optional) Whether GitHub Advanced Security is automatically enabled for new repositories. Defaults to `false`. Requires Advanced Security license.
+- `advanced_security_enabled_for_new_repositories` - (Optional) Whether GitHub Advanced Security is automatically enabled for new repositories. Defaults to `false`. Requires Advanced Security license.
 
-* `secret_scanning_enabled_for_new_repositories` - (Optional) Whether secret scanning is automatically enabled for new repositories. Defaults to `false`.
+- `secret_scanning_enabled_for_new_repositories` - (Optional) Whether secret scanning is automatically enabled for new repositories. Defaults to `false`.
 
-* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether secret scanning push protection is automatically enabled for new repositories. Defaults to `false`.
+- `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether secret scanning push protection is automatically enabled for new repositories. Defaults to `false`.
 
-* `secret_scanning_push_protection_custom_link` - (Optional) Custom URL for secret scanning push protection bypass instructions.
+- `secret_scanning_push_protection_custom_link` - (Optional) Custom URL for secret scanning push protection bypass instructions.
 
-* `secret_scanning_validity_checks_enabled` - (Optional) Whether secret scanning validity checks are enabled. Defaults to `false`.
+- `secret_scanning_validity_checks_enabled` - (Optional) Whether secret scanning validity checks are enabled. Defaults to `false`.
 
 ## Attributes Reference
 
 In addition to all arguments above, the following attributes are exported:
 
-* `id` - The enterprise slug.
+- `id` - The enterprise slug.
 
 ## Import
 
