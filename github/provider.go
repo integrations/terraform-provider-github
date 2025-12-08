@@ -247,6 +247,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_enterprise_ip_allow_list_entry":                                 resourceGithubEnterpriseIpAllowListEntry(),
 				"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
 				"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
+				"github_organization_inherited_runner_group_settings":                   resourceGithubOrganizationInheritedRunnerGroupSettings(),
 				"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 				"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 			},
