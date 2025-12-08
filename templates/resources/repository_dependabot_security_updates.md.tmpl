@@ -1,0 +1,35 @@
+---
+page_title: "GitHub: github_repository_dependabot_security_updates"
+description: |-
+  Manages automated security fixes for a single repository
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github_repository_dependabot_security_updates
+
+This resource allows you to manage dependabot automated security fixes for a single repository. See the [documentation](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates) for details of usage and how this will impact your repository
+
+## Example Usage
+
+{{tffile "examples/resources/repository_dependabot_security_updates/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `repository` - (Required) The name of the GitHub repository.
+
+* `enabled` - (Required) The state of the automated security fixes.
+
+## Import
+
+Automated security references can be imported using the `name` of the repository
+
+### Import by name
+
+```sh
+terraform import github_repository_dependabot_security_updates.example my-repo
+```

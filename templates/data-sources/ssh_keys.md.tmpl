@@ -1,0 +1,21 @@
+---
+page_title: "GitHub: github_ssh_keys"
+description: |-
+  Get information on GitHub's SSH keys.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github_ssh_keys
+
+Use this data source to retrieve information about GitHub's SSH keys.
+
+## Example Usage
+
+{{tffile "examples/data-sources/ssh_keys/example_1.tf"}}
+
+## Attributes Reference
+
+* `keys` - An array of GitHub's SSH public keys.

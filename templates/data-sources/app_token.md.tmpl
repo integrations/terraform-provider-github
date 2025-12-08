@@ -1,0 +1,33 @@
+---
+page_title: "GitHub: github_app_token"
+description: |-
+  Generate a GitHub APP JWT.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github\_app\_token
+
+Use this data source to generate a [GitHub App JWT](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app).
+
+## Example Usage
+
+{{tffile "examples/data-sources/app_token/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `app_id` - (Required) This is the ID of the GitHub App.
+
+* `installation_id` - (Required) This is the ID of the GitHub App installation.
+
+* `pem_file` - (Required) This is the contents of the GitHub App private key PEM file.
+
+## Attribute Reference
+
+The following additional attributes are exported:
+
+* `token` - The generated GitHub APP JWT.

@@ -1,0 +1,32 @@
+---
+page_title: "GitHub: github_repository_milestone"
+description: |-
+  Get information on a GitHub Repository Milestone.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github_repository_milestone
+
+Use this data source to retrieve information about a specific GitHub milestone in a repository.
+
+## Example Usage
+
+{{tffile "examples/data-sources/repository_milestone/example_1.tf"}}
+
+## Argument Reference
+
+* `owner` - (Required) Owner of the repository.
+
+* `repository` - (Required) Name of the repository to retrieve the milestone from.
+
+* `number` - (Required) The number of the milestone.
+
+## Attributes Reference
+
+* `description` - Description of the milestone.
+* `due_date` - The milestone due date (in ISO-8601 `yyyy-mm-dd` format).
+* `state` - State of the milestone.
+* `title` - Title of the milestone.

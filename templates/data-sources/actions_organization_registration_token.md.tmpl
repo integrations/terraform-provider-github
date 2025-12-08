@@ -1,0 +1,24 @@
+---
+page_title: "GitHub: actions_organization_registration_token"
+description: |-
+  Get a GitHub Actions organization registration token.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# actions_registration_token
+
+Use this data source to retrieve a GitHub Actions organization registration token. This token can then be used to register a self-hosted runner.
+
+## Example Usage
+
+{{tffile "examples/data-sources/actions_organization_registration_token/example_1.tf"}}
+
+## Argument Reference
+
+## Attributes Reference
+
+* `token` - The token that has been retrieved.
+* `expires_at` - The token expiration date.
