@@ -37,10 +37,14 @@ test-compile:
 	fi
 	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
+docs-generate:
+	@echo "==> Generating docs..."
+	tfplugindocs generate
+
 docs-lint:
 	@echo "==> Checking docs against linters..."
 	@misspell -error -source=text docs/
 	@tfplugindocs validate
 
 
-.PHONY: build test testacc fmt fmtcheck lint tools test-compile docs-lint
+.PHONY: build test testacc fmt fmtcheck lint tools test-compile docs-generate docs-lint
