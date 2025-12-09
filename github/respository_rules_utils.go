@@ -144,7 +144,10 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 				}
 			}
 
-			protected := inputRepositoryName["protected"].(bool)
+			protected, ok := inputRepositoryName["protected"].(bool)
+			if !ok {
+				protected = false
+			}
 
 			rulesetConditions.RepositoryName = &github.RulesetRepositoryNamesConditionParameters{
 				Include:   include,
@@ -277,7 +280,10 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			patternParametersMap := v[0].(map[string]any)
 
 			name := patternParametersMap["name"].(string)
-			negate := patternParametersMap["negate"].(bool)
+			negate, ok := patternParametersMap["negate"].(bool)
+			if !ok {
+				negate = false
+			}
 
 			params := &github.RulePatternParameters{
 				Name:     &name,
@@ -355,10 +361,17 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			}
 		}
 
-		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
+		doNotEnforceOnCreate, ok := requiredStatusMap["do_not_enforce_on_create"].(bool)
+		if !ok {
+			doNotEnforceOnCreate = false
+		}
+		strictRequiredStatusChecksPolicy, ok := requiredStatusMap["strict_required_status_checks_policy"].(bool)
+		if !ok {
+			strictRequiredStatusChecksPolicy = false
+		}
 		params := &github.RequiredStatusChecksRuleParameters{
 			RequiredStatusChecks:             requiredStatusChecks,
-			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+			StrictRequiredStatusChecksPolicy: strictRequiredStatusChecksPolicy,
 			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
@@ -389,8 +402,13 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate, ok := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
+		if !ok {
+			doNotEnforceOnCreate = false
+		}
+
 		params := &github.RequiredWorkflowsRuleParameters{
-			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
+			DoNotEnforceOnCreate: doNotEnforceOnCreate,
 			RequiredWorkflows:    requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
