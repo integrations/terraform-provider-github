@@ -20,12 +20,12 @@ resource "github_organization_block" "example" {
 
 The following arguments are supported:
 
-* `username` - (Required) The name of the user to block.
+- `username` - (Required) The name of the user to block.
 
 ## Import
 
 GitHub organization block can be imported using a username, e.g.
 
-```
+```sh
 $ terraform import github_github_organization_block.example someuser
 ```

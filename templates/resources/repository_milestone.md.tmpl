@@ -22,28 +22,28 @@ This resource allows you to create and manage milestones for a GitHub Repository
 
 The following arguments are supported:
 
-* `owner` - (Required) The owner of the GitHub Repository.
+- `owner` - (Required) The owner of the GitHub Repository.
 
-* `repository` - (Required) The name of the GitHub Repository.
+- `repository` - (Required) The name of the GitHub Repository.
 
-* `title` - (Required) The title of the milestone.
+- `title` - (Required) The title of the milestone.
 
-* `description` - (Optional) A description of the milestone.
+- `description` - (Optional) A description of the milestone.
 
-* `due_date` - (Optional) The milestone due date. In `yyyy-mm-dd` format.
+- `due_date` - (Optional) The milestone due date. In `yyyy-mm-dd` format.
 
-* `state` - (Optional) The state of the milestone. Either `open` or `closed`. Default: `open`
+- `state` - (Optional) The state of the milestone. Either `open` or `closed`. Default: `open`
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `number` - The number of the milestone.
+- `number` - The number of the milestone.
 
 ## Import
 
 A GitHub Repository Milestone can be imported using an ID made up of `owner/repository/number`, e.g.
 
-```
+```sh
 $ terraform import github_repository_milestone.example example-owner/example-repository/1
 ```

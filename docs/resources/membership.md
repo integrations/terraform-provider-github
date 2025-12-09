@@ -24,14 +24,14 @@ resource "github_membership" "membership_for_some_user" {
 
 The following arguments are supported:
 
-* `username` - (Required) The user to add to the organization.
-* `role` - (Optional) The role of the user within the organization. Must be one of `member` or `admin`. Defaults to `member`. `admin` role represents the `owner` role available via GitHub UI.
-* `downgrade_on_destroy` - (Optional) Defaults to `false`. If set to true, when this resource is destroyed, the member will not be removed from the organization. Instead, the member's role will be downgraded to 'member'.
+- `username` - (Required) The user to add to the organization.
+- `role` - (Optional) The role of the user within the organization. Must be one of `member` or `admin`. Defaults to `member`. `admin` role represents the `owner` role available via GitHub UI.
+- `downgrade_on_destroy` - (Optional) Defaults to `false`. If set to true, when this resource is destroyed, the member will not be removed from the organization. Instead, the member's role will be downgraded to 'member'.
 
 ## Import
 
 GitHub Membership can be imported using an ID made up of `organization:username`, e.g.
 
-```
+```sh
 $ terraform import github_membership.member hashicorp:someuser
 ```

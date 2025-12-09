@@ -22,12 +22,12 @@ data "github_codespaces_secrets" "example_2" {
 
 ## Argument Reference
 
-* `name` - (Optional) The name of the repository.
-* `full_name` - (Optional) Full name of the repository (in `org/name` format).
+- `name` - (Optional) The name of the repository.
+- `full_name` - (Optional) Full name of the repository (in `org/name` format).
 
 ## Attributes Reference
 
-* `secrets` - list of codespaces secrets for the repository
-  * `name` - Secret name
-  * `created_at` - Timestamp of the secret creation
-  * `updated_at` - Timestamp of the secret last update
+- `secrets` - list of codespaces secrets for the repository
+    - `name` - Secret name
+    - `created_at` - Timestamp of the secret creation
+    - `updated_at` - Timestamp of the secret last update

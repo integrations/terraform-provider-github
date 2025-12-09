@@ -36,30 +36,30 @@ This example shows how to allow repository administrators to edit the property v
 
 The following arguments are supported:
 
-* `property_name` - (Required) The name of the custom property.
+- `property_name` - (Required) The name of the custom property.
 
-* `value_type` - (Optional) The type of the custom property. Can be one of `string`, `single_select`, `multi_select`, or `true_false`. Defaults to `string`.
+- `value_type` - (Optional) The type of the custom property. Can be one of `string`, `single_select`, `multi_select`, or `true_false`. Defaults to `string`.
 
-* `required` - (Optional) Whether the custom property is required. Defaults to `false`.
+- `required` - (Optional) Whether the custom property is required. Defaults to `false`.
 
-* `description` - (Optional) The description of the custom property.
+- `description` - (Optional) The description of the custom property.
 
-* `default_value` - (Optional) The default value of the custom property.
+- `default_value` - (Optional) The default value of the custom property.
 
-* `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
+- `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
 
-* `values_editable_by` - (Optional) Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit the property values on repositories. When set to `org_and_repo_actors`, both organization owners and repository administrators with the custom properties permission can edit the values.
+- `values_editable_by` - (Optional) Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit the property values on repositories. When set to `org_and_repo_actors`, both organization owners and repository administrators with the custom properties permission can edit the values.
 
 ## Attributes Reference
 
 In addition to all arguments above, the following attributes are exported:
 
-* `property_name` - The name of the custom property.
+- `property_name` - The name of the custom property.
 
 ## Import
 
 Organization custom properties can be imported using the property name:
 
-```
+```sh
 terraform import github_organization_custom_properties.environment environment
 ```

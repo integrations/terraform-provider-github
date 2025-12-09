@@ -19,8 +19,8 @@ data "github_dependabot_organization_secrets" "example" {
 
 ## Attributes Reference
 
-* `secrets` - list of secrets for the repository
-  * `name` - Secret name
-  * `visibility` - Secret visibility
-  * `created_at` - Timestamp of the secret creation
-  * `updated_at` - Timestamp of the secret last update
+- `secrets` - list of secrets for the repository
+    - `name` - Secret name
+    - `visibility` - Secret visibility
+    - `created_at` - Timestamp of the secret creation
+    - `updated_at` - Timestamp of the secret last update

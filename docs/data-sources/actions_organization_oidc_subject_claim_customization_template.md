@@ -19,4 +19,4 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "ex
 
 ## Attributes Reference
 
-* `include_claim_keys` - The list of OpenID Connect claim keys.
+- `include_claim_keys` - The list of OpenID Connect claim keys.

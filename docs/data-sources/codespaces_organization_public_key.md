@@ -16,5 +16,5 @@ data "github_codespaces_organization_public_key" "example" {}
 
 ## Attributes Reference
 
-* `key_id` - ID of the key that has been retrieved.
-* `key` - Actual key retrieved.
+- `key_id` - ID of the key that has been retrieved.
+- `key` - Actual key retrieved.

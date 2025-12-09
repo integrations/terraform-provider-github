@@ -22,14 +22,14 @@ data "github_app_token" "this" {
 
 The following arguments are supported:
 
-* `app_id` - (Required) This is the ID of the GitHub App.
+- `app_id` - (Required) This is the ID of the GitHub App.
 
-* `installation_id` - (Required) This is the ID of the GitHub App installation.
+- `installation_id` - (Required) This is the ID of the GitHub App installation.
 
-* `pem_file` - (Required) This is the contents of the GitHub App private key PEM file.
+- `pem_file` - (Required) This is the contents of the GitHub App private key PEM file.
 
 ## Attribute Reference
 
 The following additional attributes are exported:
 
-* `token` - The generated GitHub APP JWT.
+- `token` - The generated GitHub APP JWT.

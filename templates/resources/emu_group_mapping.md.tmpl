@@ -19,13 +19,14 @@ This resource manages mappings between external groups for enterprise managed us
 ## Argument Reference
 
 The following arguments are supported:
-* `team_slug` - (Required) Slug of the GitHub team
-* `group_id` - (Required) Integer corresponding to the external group ID to be linked
+
+- `team_slug` - (Required) Slug of the GitHub team
+- `group_id` - (Required) Integer corresponding to the external group ID to be linked
 
 ## Import
 
 GitHub EMU External Group Mappings can be imported using the external `group_id`, e.g.
 
-```
+```sh
 $ terraform import github_emu_group_mapping.example_emu_group_mapping 28836
 ```

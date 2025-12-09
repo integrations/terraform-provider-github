@@ -18,12 +18,12 @@ data "github_labels" "test" {
 
 ## Arguments Reference
 
-* `repository` - (Required) The name of the repository.
+- `repository` - (Required) The name of the repository.
 
 ## Attributes Reference
 
-* `labels` - The list of this repository's labels. Each element of `labels` has the following attributes:
-  * `name` - The name of the label.
-  * `color` - The hexadecimal color code for the label, without the leading #.
-  * `description` - A short description of the label.
-  * `url` - The URL of the label.
+- `labels` - The list of this repository's labels. Each element of `labels` has the following attributes:
+    - `name` - The name of the label.
+    - `color` - The hexadecimal color code for the label, without the leading #.
+    - `description` - A short description of the label.
+    - `url` - The URL of the label.

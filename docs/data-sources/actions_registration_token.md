@@ -18,9 +18,9 @@ data "github_actions_registration_token" "example" {
 
 ## Argument Reference
 
-* `repository` - (Required) Name of the repository to get a GitHub Actions registration token for.
+- `repository` - (Required) Name of the repository to get a GitHub Actions registration token for.
 
 ## Attributes Reference
 
-* `token` - The token that has been retrieved.
-* `expires_at` - The token expiration date.
+- `token` - The token that has been retrieved.
+- `expires_at` - The token expiration date.

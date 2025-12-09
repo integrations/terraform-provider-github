@@ -26,14 +26,14 @@ resource "github_workflow_repository_permissions" "test" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository
-* `default_workflow_permissions` - (Optional) The default workflow permissions granted to the GITHUB_TOKEN when running workflows. Can be one of: `read` or `write`.
-* `can_approve_pull_request_reviews` - (Optional) Whether GitHub Actions can approve pull requests. Enabling this can be a security risk.
+- `repository` - (Required) The GitHub repository
+- `default_workflow_permissions` - (Optional) The default workflow permissions granted to the GITHUB_TOKEN when running workflows. Can be one of: `read` or `write`.
+- `can_approve_pull_request_reviews` - (Optional) Whether GitHub Actions can approve pull requests. Enabling this can be a security risk.
 
 ## Import
 
 This resource can be imported using the name of the GitHub repository:
 
-```
+```sh
 $ terraform import github_workflow_repository_permissions.test my-repository
 ```

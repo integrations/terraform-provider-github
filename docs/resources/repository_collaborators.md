@@ -85,6 +85,6 @@ In addition to the above arguments, the following attributes are exported:
 
 GitHub Repository Collaborators can be imported using the name `name`, e.g.
 
-```
+```sh
 $ terraform import github_repository_collaborators.collaborators terraform
 ```

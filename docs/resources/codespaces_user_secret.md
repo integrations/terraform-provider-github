@@ -36,21 +36,21 @@ resource "github_codespaces_user_secret" "example_secret" {
 
 The following arguments are supported:
 
-* `secret_name` - (Required) Name of the secret
-* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
-* `selected_repository_ids` - (Optional) An array of repository ids that can access the user secret.
+- `secret_name` - (Required) Name of the secret
+- `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+- `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
+- `selected_repository_ids` - (Optional) An array of repository ids that can access the user secret.
 
 ## Attributes Reference
 
-* `created_at` - Date of codespaces_secret creation.
-* `updated_at` - Date of codespaces_secret update.
+- `created_at` - Date of codespaces_secret creation.
+- `updated_at` - Date of codespaces_secret update.
 
 ## Import
 
 This resource can be imported using an ID made up of the secret name:
 
-```
+```sh
 terraform import github_codespaces_user_secret.test_secret test_secret_name
 ```
 

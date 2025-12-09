@@ -54,14 +54,14 @@ resource "github_branch_default" "default"{
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository
-* `branch` - (Required) The branch (e.g. `main`)
-* `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`.
+- `repository` - (Required) The GitHub repository
+- `branch` - (Required) The branch (e.g. `main`)
+- `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`.
 
 ## Import
 
 GitHub Branch Defaults can be imported using an ID made up of `repository`, e.g.
 
-```
+```sh
 $ terraform import github_branch_default.branch_default my-repo
 ```

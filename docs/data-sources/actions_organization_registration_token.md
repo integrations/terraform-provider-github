@@ -19,5 +19,5 @@ data "github_actions_organization_registration_token" "example" {
 
 ## Attributes Reference
 
-* `token` - The token that has been retrieved.
-* `expires_at` - The token expiration date.
+- `token` - The token that has been retrieved.
+- `expires_at` - The token expiration date.

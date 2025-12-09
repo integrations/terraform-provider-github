@@ -22,29 +22,29 @@ This resource allows you to create and manage webhooks for repositories within y
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository of the webhook.
+- `repository` - (Required) The repository of the webhook.
 
-* `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
+- `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/).
 
-* `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
+- `configuration` - (Required) Configuration block for the webhook. [Detailed below.](#configuration)
 
-* `active` - (Optional) Indicate if the webhook should receive events. Defaults to `true`.
+- `active` - (Optional) Indicate if the webhook should receive events. Defaults to `true`.
 
 ### configuration
 
-* `url` - (Required) The URL of the webhook.
+- `url` - (Required) The URL of the webhook.
 
-* `content_type` - (Required) The content type for the payload. Valid values are either `form` or `json`.
+- `content_type` - (Required) The content type for the payload. Valid values are either `form` or `json`.
 
-* `secret` - (Optional) The shared secret for the webhook. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
+- `secret` - (Optional) The shared secret for the webhook. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
 
-* `insecure_ssl` - (Optional) Insecure SSL boolean toggle. Defaults to `false`.
+- `insecure_ssl` - (Optional) Insecure SSL boolean toggle. Defaults to `false`.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `url` - URL of the webhook. This is a sensitive attribute because it may include basic auth credentials.
+- `url` - URL of the webhook. This is a sensitive attribute because it may include basic auth credentials.
 
 ## Import
 
@@ -52,7 +52,7 @@ Repository webhooks can be imported using the `name` of the repository, combined
 
 Importing uses the name of the repository, as well as the ID of the webhook, e.g.
 
-```
+```sh
 $ terraform import github_repository_webhook.terraform terraform/11235813
 ```
 

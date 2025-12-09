@@ -12,7 +12,7 @@ For example, the {{ .SchemaMarkdown }} template can be used to replace manual sc
 
 This resource allows you to create and manage Identity Provider (IdP) group connections within your GitHub teams. You must have team synchronization enabled for organizations owned by enterprise accounts.
 
-To learn more about team synchronization between IdPs and GitHub, please refer to: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github
+To learn more about team synchronization between IdPs and GitHub, please refer to: [Managing team synchronization for your organization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github)
 
 ## Example Usage
 
@@ -22,23 +22,23 @@ To learn more about team synchronization between IdPs and GitHub, please refer t
 
 The following arguments are supported:
 
-* `team_slug` - (Required) Slug of the team
-* `group` - (Required) An Array of GitHub Identity Provider Groups (or empty []). Each `group` block consists of the fields documented below.
+- `team_slug` - (Required) Slug of the team
+- `group` - (Required) An Array of GitHub Identity Provider Groups (or empty []). Each `group` block consists of the fields documented below.
 
 ---
 
 The `group` block consists of:
 
-* `group_id` - The ID of the IdP group.
+- `group_id` - The ID of the IdP group.
 
-* `group_name` - The name of the IdP group.
+- `group_name` - The name of the IdP group.
 
-* `group_description` - The description of the IdP group.
+- `group_description` - The description of the IdP group.
 
 ## Import
 
 GitHub Team Sync Group Mappings can be imported using the GitHub team `slug` e.g.
 
-```
+```sh
 $ terraform import github_team_sync_group_mapping.example some_team
 ```

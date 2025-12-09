@@ -111,7 +111,7 @@ The following arguments are supported:
 - `dismissal_teams`: (Optional) The list of team slugs with dismissal access. Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 - `dismissal_apps`: (Optional) The list of app slugs with dismissal access.
 - `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
-- `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
+- `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://docs.github.com/en/rest/branches/branch-protection?apiVersion=2022-11-28#update-branch-protection--parameters) for more information.
 - `bypass_pull_request_allowances`: (Optional) Allow specific users, teams, or apps to bypass pull request requirements. See [Bypass Pull Request Allowances](#bypass-pull-request-allowances) below for details.
 - `require_last_push_approval`: (Optional) Require that the most recent push must be approved by someone other than the last pusher. Defaults to `false`
 
@@ -137,6 +137,6 @@ The following arguments are supported:
 
 GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
 
-```
+```sh
 $ terraform import github_branch_protection_v3.terraform terraform:main
 ```

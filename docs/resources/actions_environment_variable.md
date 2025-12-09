@@ -41,15 +41,15 @@ resource "github_actions_environment_variable" "example_variable" {
 
 The following arguments are supported:
 
-* `repository` - (Required) Name of the repository.
-* `environment` - (Required) Name of the environment.
-* `variable_name` - (Required) Name of the variable.
-* `value` - (Required) Value of the variable
+- `repository` - (Required) Name of the repository.
+- `environment` - (Required) Name of the environment.
+- `variable_name` - (Required) Name of the variable.
+- `value` - (Required) Value of the variable
 
 ## Attributes Reference
 
-* `created_at` - Date of actions_environment_secret creation.
-* `updated_at` - Date of actions_environment_secret update.
+- `created_at` - Date of actions_environment_secret creation.
+- `updated_at` - Date of actions_environment_secret update.
 
 ## Import
 

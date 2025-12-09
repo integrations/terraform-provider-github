@@ -26,13 +26,13 @@ resource "github_actions_repository_access_level" "test" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository
-* `access_level` - (Required) Where the actions or reusable workflows of the repository may be used. Possible values are `none`, `user`, `organization`, or `enterprise`.
+- `repository` - (Required) The GitHub repository
+- `access_level` - (Required) Where the actions or reusable workflows of the repository may be used. Possible values are `none`, `user`, `organization`, or `enterprise`.
 
 ## Import
 
 This resource can be imported using the name of the GitHub repository:
 
-```
+```sh
 $ terraform import github_actions_repository_access_level.test my-repository
 ```

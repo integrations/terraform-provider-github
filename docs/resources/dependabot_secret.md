@@ -36,21 +36,21 @@ resource "github_dependabot_secret" "example_secret" {
 
 The following arguments are supported:
 
-* `repository` - (Required) Name of the repository
-* `secret_name` - (Required) Name of the secret
-* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
+- `repository` - (Required) Name of the repository
+- `secret_name` - (Required) Name of the secret
+- `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+- `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
 
 ## Attributes Reference
 
-* `created_at` - Date of dependabot_secret creation.
-* `updated_at` - Date of dependabot_secret update.
+- `created_at` - Date of dependabot_secret creation.
+- `updated_at` - Date of dependabot_secret update.
 
 ## Import
 
 This resource can be imported using an ID made up of the `repository` and `secret_name`:
 
-```
+```sh
 $ terraform import github_dependabot_secret.example_secret example_repository/example_secret
 ```
 

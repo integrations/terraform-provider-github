@@ -27,13 +27,13 @@ resource "github_actions_organization_secret_repository" "org_secret_repos" {
 
 The following arguments are supported:
 
-* `secret_name` - (Required) Name of the existing secret
-* `repository_id` - (Required) Repository id that can access the organization secret.
+- `secret_name` - (Required) Name of the existing secret
+- `repository_id` - (Required) Repository id that can access the organization secret.
 
 ## Import
 
 This resource can be imported using an ID made up of the secret name:
 
-```
+```sh
 $ terraform import github_actions_organization_secret_repository.test_secret_repos test_secret_name:repo_id
 ```

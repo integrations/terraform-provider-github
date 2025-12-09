@@ -19,12 +19,12 @@ data "github_repository_environment_deployment_policies" "example" {
 
 ## Argument Reference
 
-* `repository` - (Required) Name of the repository to retrieve the deployment branch policies from.
+- `repository` - (Required) Name of the repository to retrieve the deployment branch policies from.
 
-* `environment` - (Required) Name of the environment to retrieve the deployment branch policies from.
+- `environment` - (Required) Name of the environment to retrieve the deployment branch policies from.
 
 ## Attributes Reference
 
-* `policies` - The list of deployment policies for the repository environment. Each element of `policies` has the following attributes:
-  * `type` - Type of the policy; this could be `branch` or `tag`.
-  * `pattern` - The pattern that branch or tag names must match in order to deploy to the environment.
+- `policies` - The list of deployment policies for the repository environment. Each element of `policies` has the following attributes:
+    - `type` - Type of the policy; this could be `branch` or `tag`.
+    - `pattern` - The pattern that branch or tag names must match in order to deploy to the environment.

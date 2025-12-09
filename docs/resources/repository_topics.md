@@ -27,14 +27,14 @@ resource "github_repository_topics" "test" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository name.
+- `repository` - (Required) The repository name.
 
-* `topics` - (Required) A list of topics to add to the repository.
+- `topics` - (Required) A list of topics to add to the repository.
 
 ## Import
 
 Repository topics can be imported using the `name` of the repository.
 
-```
+```sh
 $ terraform import github_repository_topics.terraform terraform
 ```

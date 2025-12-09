@@ -22,20 +22,20 @@ This resource allows you to add/remove teams from your organization. When applie
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the team.
-* `description` - (Optional) A description of the team.
-* `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`. Defaults to `secret`.
-* `parent_team_id` - (Optional) The ID or slug of the parent team, if this is a nested team.
-* `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.
-* `create_default_maintainer` - (Optional) Adds a default maintainer to the team. Defaults to `false` and adds the creating user to the team when `true`.
+- `name` - (Required) The name of the team.
+- `description` - (Optional) A description of the team.
+- `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`. Defaults to `secret`.
+- `parent_team_id` - (Optional) The ID or slug of the parent team, if this is a nested team.
+- `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.
+- `create_default_maintainer` - (Optional) Adds a default maintainer to the team. Defaults to `false` and adds the creating user to the team when `true`.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the created team.
-* `node_id` - The Node ID of the created team.
-* `slug` - The slug of the created team, which may or may not differ from `name`, depending on whether `name` contains "URL-unsafe" characters. Useful when referencing the team in [`github_branch_protection`](../branch_protection).
+- `id` - The ID of the created team.
+- `node_id` - The Node ID of the created team.
+- `slug` - The slug of the created team, which may or may not differ from `name`, depending on whether `name` contains "URL-unsafe" characters. Useful when referencing the team in [`github_branch_protection`](../branch_protection).
 
 ## Import
 

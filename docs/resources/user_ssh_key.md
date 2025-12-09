@@ -23,20 +23,20 @@ resource "github_user_ssh_key" "example" {
 
 The following arguments are supported:
 
-* `title` - (Required) A descriptive name for the new key. e.g. `Personal MacBook Air`
-* `key` - (Required) The public SSH key to add to your GitHub account.
+- `title` - (Required) A descriptive name for the new key. e.g. `Personal MacBook Air`
+- `key` - (Required) The public SSH key to add to your GitHub account.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the SSH key
-* `url` - The URL of the SSH key
+- `id` - The ID of the SSH key
+- `url` - The URL of the SSH key
 
 ## Import
 
 SSH keys can be imported using their ID e.g.
 
-```
+```sh
 $ terraform import github_user_ssh_key.example 1234567
 ```

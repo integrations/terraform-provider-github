@@ -18,13 +18,13 @@ data "github_actions_variables" "example" {
 
 ## Argument Reference
 
-* `name` - (Optional) The name of the repository.
-* `full_name` - (Optional) Full name of the repository (in `org/name` format).
+- `name` - (Optional) The name of the repository.
+- `full_name` - (Optional) Full name of the repository (in `org/name` format).
 
 ## Attributes Reference
 
-* `variables` - list of variables for the repository
-  * `name` - Name of the variable
-  * `value` - Value of the variable
-  * `created_at` - Timestamp of the variable creation
-  * `updated_at` - Timestamp of the variable last update
+- `variables` - list of variables for the repository
+    - `name` - Name of the variable
+    - `value` - Value of the variable
+    - `created_at` - Timestamp of the variable creation
+    - `updated_at` - Timestamp of the variable last update

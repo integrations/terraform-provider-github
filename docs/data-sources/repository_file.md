@@ -22,26 +22,26 @@ data "github_repository_file" "foo" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository to read the file from. If an unqualified repo name (without an owner) is passed, the owner will be inferred from the owner of the token used to execute the plan. If a name of the type "owner/repo" (with a slash in the middle) is passed, the owner will be as specified and not the owner of the token.
+- `repository` - (Required) The repository to read the file from. If an unqualified repo name (without an owner) is passed, the owner will be inferred from the owner of the token used to execute the plan. If a name of the type "owner/repo" (with a slash in the middle) is passed, the owner will be as specified and not the owner of the token.
 
-* `file` - (Required) The path of the file to read.
+- `file` - (Required) The path of the file to read.
 
-* `branch` - (Optional) Git branch. Defaults to the repository's default branch.
+- `branch` - (Optional) Git branch. Defaults to the repository's default branch.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `content` - The file content.
+- `content` - The file content.
 
-* `commit_sha` - The SHA of the commit that modified the file.
+- `commit_sha` - The SHA of the commit that modified the file.
 
-* `sha` - The SHA blob of the file.
+- `sha` - The SHA blob of the file.
 
-* `commit_author` - Committer author name.
+- `commit_author` - Committer author name.
 
-* `commit_email` - Committer email address.
+- `commit_email` - Committer email address.
 
-* `commit_message` - Commit message when file was last updated.
+- `commit_message` - Commit message when file was last updated.
 
-* `ref` - The name of the commit/branch/tag.
+- `ref` - The name of the commit/branch/tag.

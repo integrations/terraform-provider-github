@@ -20,15 +20,15 @@ data "github_repository_milestone" "example" {
 
 ## Argument Reference
 
-* `owner` - (Required) Owner of the repository.
+- `owner` - (Required) Owner of the repository.
 
-* `repository` - (Required) Name of the repository to retrieve the milestone from.
+- `repository` - (Required) Name of the repository to retrieve the milestone from.
 
-* `number` - (Required) The number of the milestone.
+- `number` - (Required) The number of the milestone.
 
 ## Attributes Reference
 
-* `description` - Description of the milestone.
-* `due_date` - The milestone due date (in ISO-8601 `yyyy-mm-dd` format).
-* `state` - State of the milestone.
-* `title` - Title of the milestone.
+- `description` - Description of the milestone.
+- `due_date` - The milestone due date (in ISO-8601 `yyyy-mm-dd` format).
+- `state` - State of the milestone.
+- `title` - Title of the milestone.

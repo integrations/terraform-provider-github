@@ -18,12 +18,12 @@ data "github_repository_deploy_keys" "example" {
 
 ## Argument Reference
 
-* `repository` - (Required) Name of the repository to retrieve the branches from.
+- `repository` - (Required) Name of the repository to retrieve the branches from.
 
 ## Attributes Reference
 
-* `keys` - The list of this repository's deploy keys. Each element of `keys` has the following attributes:
-  * `id` - Key id
-  * `title` - Key title
-  * `key` - Key itself
-  * `verified` - `true` if the key was verified.
+- `keys` - The list of this repository's deploy keys. Each element of `keys` has the following attributes:
+    - `id` - Key id
+    - `title` - Key title
+    - `key` - Key itself
+    - `verified` - `true` if the key was verified.

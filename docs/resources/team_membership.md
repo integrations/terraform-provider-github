@@ -39,15 +39,15 @@ resource "github_team_membership" "some_team_membership" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The GitHub team id or the GitHub team slug
-* `username` - (Required) The user to add to the team.
-* `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
+- `team_id` - (Required) The GitHub team id or the GitHub team slug
+- `username` - (Required) The user to add to the team.
+- `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
 
 ## Import
 
 GitHub Team Membership can be imported using an ID made up of `teamid:username` or `teamname:username`, e.g.
 
-```
+```sh
 $ terraform import github_team_membership.member 1234567:someuser
 $ terraform import github_team_membership.member Administrators:someuser
 ```

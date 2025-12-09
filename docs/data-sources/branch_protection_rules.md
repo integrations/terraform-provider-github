@@ -20,10 +20,10 @@ data "github_branch_protection_rules" "example" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository name.
+- `repository` - (Required) The GitHub repository name.
 
 ## Attribute Reference
 
-* `rules` - Collection of Branch Protection Rules. Each of the results conforms to the following scheme:
+- `rules` - Collection of Branch Protection Rules. Each of the results conforms to the following scheme:
 
-  * `pattern` - Identifies the protection rule pattern.
+    - `pattern` - Identifies the protection rule pattern.

@@ -21,8 +21,8 @@ data "github_actions_environment_variables" "example" {
 
 ## Attributes Reference
 
-* `variables` - list of variables for the environment
-  * `name` - Name of the variable
-  * `value` - Value of the variable
-  * `created_at` - Timestamp of the variable creation
-  * `updated_at` - Timestamp of the variable last update
+- `variables` - list of variables for the environment
+    - `name` - Name of the variable
+    - `value` - Value of the variable
+    - `created_at` - Timestamp of the variable creation
+    - `updated_at` - Timestamp of the variable last update

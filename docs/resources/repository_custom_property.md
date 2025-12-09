@@ -29,18 +29,18 @@ resource "github_repository_custom_property" "string" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository of the environment.
+- `repository` - (Required) The repository of the environment.
 
-* `property_type` - (Required) Type of the custom property. Can be one of `single_select`, `multi_select`, `string`, or `true_false`
+- `property_type` - (Required) Type of the custom property. Can be one of `single_select`, `multi_select`, `string`, or `true_false`
 
-* `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization level
+- `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization level
 
-* `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1
+- `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1
 
 ## Import
 
 GitHub Repository Custom Property can be imported using an ID made up of a comibnation of the names of the organization, repository, custom property separated by a `:` character, e.g.
 
-```
+```sh
 $ terraform import github_repository_custom_property.example organization-name:repo-name:custom-property-name
 ```

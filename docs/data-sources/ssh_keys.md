@@ -16,4 +16,4 @@ data "github_ssh_keys" "test" {}
 
 ## Attributes Reference
 
-* `keys` - An array of GitHub's SSH public keys.
+- `keys` - An array of GitHub's SSH public keys.

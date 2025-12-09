@@ -76,16 +76,16 @@ resource "github_actions_environment_secret" "example_secret" {
 
 The following arguments are supported:
 
-* `repository` - (Required) Name of the repository.
-* `environment` - (Required) Name of the environment.
-* `secret_name` - (Required) Name of the secret.
-* `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted.
+- `repository` - (Required) Name of the repository.
+- `environment` - (Required) Name of the environment.
+- `secret_name` - (Required) Name of the secret.
+- `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+- `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted.
 
 ## Attributes Reference
 
-* `created_at` - Date of actions_environment_secret creation.
-* `updated_at` - Date of actions_environment_secret update.
+- `created_at` - Date of actions_environment_secret creation.
+- `updated_at` - Date of actions_environment_secret update.
 
 ## Import
 

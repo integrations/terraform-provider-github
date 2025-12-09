@@ -22,19 +22,19 @@ resource "github_actions_variable" "example_variable" {
 
 The following arguments are supported:
 
-* `repository` - (Required) Name of the repository
-* `variable_name` - (Required) Name of the variable
-* `value` - (Required) Value of the variable
+- `repository` - (Required) Name of the repository
+- `variable_name` - (Required) Name of the variable
+- `value` - (Required) Value of the variable
 
 ## Attributes Reference
 
-* `created_at` - Date of actions_variable creation.
-* `updated_at` - Date of actions_variable update.
+- `created_at` - Date of actions_variable creation.
+- `updated_at` - Date of actions_variable update.
 
 ## Import
 
 GitHub Actions variables can be imported using an ID made up of `repository:variable_name`, e.g.
 
-```
+```sh
 $ terraform import github_actions_variable.myvariable myrepo:myvariable
 ```

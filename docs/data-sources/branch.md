@@ -21,16 +21,16 @@ data "github_branch" "development" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository name.
+- `repository` - (Required) The GitHub repository name.
 
-* `branch` - (Required) The repository branch to retrieve.
+- `branch` - (Required) The repository branch to retrieve.
 
 ## Attribute Reference
 
 The following additional attributes are exported:
 
-* `etag` - An etag representing the Branch object.
+- `etag` - An etag representing the Branch object.
 
-* `ref` - A string representing a branch reference, in the form of `refs/heads/<branch>`.
+- `ref` - A string representing a branch reference, in the form of `refs/heads/<branch>`.
 
-* `sha` - A string storing the reference's `HEAD` commit's SHA1.
+- `sha` - A string storing the reference's `HEAD` commit's SHA1.

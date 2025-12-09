@@ -22,12 +22,12 @@ resource "github_actions_organization_oidc_subject_claim_customization_template"
 
 The following arguments are supported:
 
-* `include_claim_keys` - (Required) A list of OpenID Connect claims.
+- `include_claim_keys` - (Required) A list of OpenID Connect claims.
 
 ## Import
 
 This resource can be imported using the organization's name.
 
-```
+```sh
 $ terraform import github_actions_organization_oidc_subject_claim_customization_template.test example_organization
 ```

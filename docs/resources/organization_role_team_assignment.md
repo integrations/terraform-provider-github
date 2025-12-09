@@ -31,13 +31,13 @@ resource "github_organization_role_team_assignment" "test-team-role-assignment" 
 
 The following arguments are supported:
 
-* `team_slug` - (Required) The GitHub team slug
-* `role_id` - (Required) The GitHub organization role id
+- `team_slug` - (Required) The GitHub team slug
+- `role_id` - (Required) The GitHub organization role id
 
 ## Import
 
 GitHub Team Organization Role Assignment can be imported using an ID made up of `team_slug:role_id`
 
-```text
+```sh
 $ terraform import github_organization_role_team_assignment.role_assignment test-team:8132
 ```

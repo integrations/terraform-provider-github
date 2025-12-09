@@ -18,10 +18,10 @@ data "github_repository_environments" "example" {
 
 ## Argument Reference
 
-* `repository` - (Required) Name of the repository to retrieve the environments from.
+- `repository` - (Required) Name of the repository to retrieve the environments from.
 
 ## Attributes Reference
 
-* `environments` - The list of this repository's environments. Each element of `environments` has the following attributes:
-  * `name` - Environment name.
-  * `node_id` - Environment node id.
+- `environments` - The list of this repository's environments. Each element of `environments` has the following attributes:
+    - `name` - Environment name.
+    - `node_id` - Environment node id.

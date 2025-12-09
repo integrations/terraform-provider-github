@@ -33,13 +33,13 @@ resource "github_app_installation_repository" "some_app_repo" {
 
 The following arguments are supported:
 
-* `installation_id` - (Required) The GitHub app installation id.
-* `repository` - (Required) The repository to install the app on.
+- `installation_id` - (Required) The GitHub app installation id.
+- `repository` - (Required) The repository to install the app on.
 
 ## Import
 
 GitHub App Installation Repository can be imported using an ID made up of `installation_id:repository`, e.g.
 
-```
+```sh
 $ terraform import github_app_installation_repository.terraform_repo 1234567:terraform
 ```

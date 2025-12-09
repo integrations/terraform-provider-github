@@ -131,7 +131,7 @@ provider_installation {
 }
 ```
 
-See <https://www.terraform.io/docs/cli/config/config-file.html> for more details.
+See [Terraform CLI Config File](https://www.terraform.io/docs/cli/config/config-file.html) for more details.
 
 When running examples, you should spot the following warning to confirm you are using a local build:
 

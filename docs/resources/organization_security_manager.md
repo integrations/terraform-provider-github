@@ -25,12 +25,12 @@ resource "github_organization_security_manager" "some_team" {
 
 The following arguments are supported:
 
-* `team_slug` - (Required) The slug of the team to manage.
+- `team_slug` - (Required) The slug of the team to manage.
 
 ## Import
 
 GitHub Security Manager Teams can be imported using the GitHub team ID e.g.
 
-```text
+```sh
 $ terraform import github_organization_security_manager.core 1234567
 ```

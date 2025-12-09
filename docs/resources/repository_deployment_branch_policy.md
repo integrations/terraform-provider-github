@@ -35,20 +35,20 @@ resource "github_repository_deployment_branch_policy" "foo" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository to create the policy in.
+- `repository` - (Required) The repository to create the policy in.
 
-* `environment_name` - (Required) The name of the environment. This environment must have `deployment_branch_policy.custom_branch_policies` set to true or a 404 error will be thrown.
+- `environment_name` - (Required) The name of the environment. This environment must have `deployment_branch_policy.custom_branch_policies` set to true or a 404 error will be thrown.
 
-* `name` - (Required) The name pattern that branches must match in order to deploy to the environment.
+- `name` - (Required) The name pattern that branches must match in order to deploy to the environment.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `id` - The ID of the deployment branch policy.
+- `id` - The ID of the deployment branch policy.
 
 ## Import
 
-```text
+```sh
 $ terraform import github_repository_deployment_branch_policy.foo repo:env:id
 ```

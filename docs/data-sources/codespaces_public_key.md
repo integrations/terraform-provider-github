@@ -18,9 +18,9 @@ data "github_codespaces_public_key" "example" {
 
 ## Argument Reference
 
-* `repository` - (Required) Name of the repository to get public key from.
+- `repository` - (Required) Name of the repository to get public key from.
 
 ## Attributes Reference
 
-* `key_id` - ID of the key that has been retrieved.
-* `key` - Actual key retrieved.
+- `key_id` - ID of the key that has been retrieved.
+- `key` - Actual key retrieved.

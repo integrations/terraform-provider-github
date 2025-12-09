@@ -26,18 +26,18 @@ Create a tag-based deployment policy:
 
 The following arguments are supported:
 
-* `environment` - (Required) The name of the environment.
+- `environment` - (Required) The name of the environment.
 
-* `repository` - (Required) The repository of the environment.
+- `repository` - (Required) The repository of the environment.
 
-* `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
+- `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
 
-* `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
+- `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
 
 ## Import
 
 GitHub Repository Environment Deployment Policy can be imported using an ID made up of `name` of the repository combined with the `environment` name of the environment with the `Id` of the deployment policy, separated by a `:` character, e.g.
 
-```
+```sh
 $ terraform import github_repository_environment.daily terraform:daily:123456
 ```

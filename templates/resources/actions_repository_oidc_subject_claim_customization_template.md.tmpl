@@ -30,13 +30,13 @@ The following table lists the behaviour of `use_default`:
 
 The following arguments are supported:
 
-* `use_default` - (Required) Whether to use the default template or not. If `true`, `include_claim_keys` must not be set.
-* `include_claim_keys` - (Optional) A list of OpenID Connect claims.
+- `use_default` - (Required) Whether to use the default template or not. If `true`, `include_claim_keys` must not be set.
+- `include_claim_keys` - (Optional) A list of OpenID Connect claims.
 
 ## Import
 
 This resource can be imported using the repository's name.
 
-```
+```sh
 $ terraform import github_actions_repository_oidc_subject_claim_customization_template.test example_repository
 ```

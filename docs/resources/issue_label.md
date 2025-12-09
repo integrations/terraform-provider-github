@@ -31,20 +31,20 @@ resource "github_issue_label" "test_repo" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository
+- `repository` - (Required) The GitHub repository
 
-* `name` - (Required) The name of the label.
+- `name` - (Required) The name of the label.
 
-* `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
+- `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
 
-* `description` - (Optional) A short description of the label.
+- `description` - (Optional) A short description of the label.
 
-* `url` - (Computed) The URL to the issue label
+- `url` - (Computed) The URL to the issue label
 
 ## Import
 
 GitHub Issue Labels can be imported using an ID made up of `repository:name`, e.g.
 
-```
+```sh
 $ terraform import github_issue_label.panic_label terraform:panic
 ```

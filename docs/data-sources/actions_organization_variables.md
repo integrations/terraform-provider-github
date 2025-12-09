@@ -19,9 +19,9 @@ data "github_actions_organization_variables" "example" {
 
 ## Attributes Reference
 
-* `variables` - list of variables for the repository
-  * `name` - Name of the variable
-  * `value` - Value of the variable
-  * `visibility` - Visibility of the variable
-  * `created_at` - Timestamp of the variable creation
-  * `updated_at` - Timestamp of the variable last update
+- `variables` - list of variables for the repository
+    - `name` - Name of the variable
+    - `value` - Value of the variable
+    - `visibility` - Visibility of the variable
+    - `created_at` - Timestamp of the variable creation
+    - `updated_at` - Timestamp of the variable last update

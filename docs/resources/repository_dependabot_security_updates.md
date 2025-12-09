@@ -31,9 +31,9 @@ resource "github_repository_dependabot_security_updates" "example" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The name of the GitHub repository.
+- `repository` - (Required) The name of the GitHub repository.
 
-* `enabled` - (Required) The state of the automated security fixes.
+- `enabled` - (Required) The state of the automated security fixes.
 
 ## Import
 

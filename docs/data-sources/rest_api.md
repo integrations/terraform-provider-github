@@ -18,12 +18,12 @@ data "github_rest_api" "example" {
 
 ## Argument Reference
 
-* `endpoint` - (Required) REST API endpoint to send the GET request to.
+- `endpoint` - (Required) REST API endpoint to send the GET request to.
 
 ## Attributes Reference
 
-* `id` - The GitHub API Request ID
-* `code` - A response status code.
-* `status` - A response status string.
-* `headers` - A JSON string containing response headers.
-* `body` - A JSON string containing response body.
+- `id` - The GitHub API Request ID
+- `code` - A response status code.
+- `status` - A response status string.
+- `headers` - A JSON string containing response headers.
+- `body` - A JSON string containing response body.

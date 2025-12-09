@@ -21,7 +21,7 @@ data "github_actions_environment_secrets" "example" {
 
 ## Attributes Reference
 
-* `secrets` - list of secrets for the environment
-  * `name` - Name of the secret
-  * `created_at` - Timestamp of the secret creation
-  * `updated_at` - Timestamp of the secret last update
+- `secrets` - list of secrets for the environment
+    - `name` - Name of the secret
+    - `created_at` - Timestamp of the secret creation
+    - `updated_at` - Timestamp of the secret last update

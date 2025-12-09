@@ -47,21 +47,21 @@ resource "github_organization_custom_role" "example" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the custom role.
-* `description` - (Optional) The description for the custom role.
-* `base_role` - (Required) The system role from which the role inherits permissions. Can be one of: `read`, `triage`, `write`, or `maintain`.
-* `permissions` - (Required) A list of additional permissions included in this role. Must have a minimum of 1 additional permission. The list of available permissions can be found using the [list repository fine-grained permissions for an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization) API.
+- `name` - (Required) The name of the custom role.
+- `description` - (Optional) The description for the custom role.
+- `base_role` - (Required) The system role from which the role inherits permissions. Can be one of: `read`, `triage`, `write`, or `maintain`.
+- `permissions` - (Required) A list of additional permissions included in this role. Must have a minimum of 1 additional permission. The list of available permissions can be found using the [list repository fine-grained permissions for an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization) API.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `id` - The ID of the custom role.
+- `id` - The ID of the custom role.
 
 ## Import
 
 Custom roles can be imported using the `id` of the role. The `id` of the custom role can be found using the [list custom roles in an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles#list-custom-repository-roles-in-an-organization) API.
 
-```
+```sh
 $ terraform import github_organization_custom_role.example 1234
 ```

@@ -37,8 +37,8 @@ resource "github_app_installation_repositories" "some_app_repos" {
 
 The following arguments are supported:
 
-* `installation_id` - (Required) The GitHub app installation id.
-* `selected_repositories` - (Required) A list of repository names to install the app on.
+- `installation_id` - (Required) The GitHub app installation id.
+- `selected_repositories` - (Required) A list of repository names to install the app on.
 
 ~> **Note**: Due to how GitHub implements app installations, apps cannot be installed with no repositories selected. Therefore deleting this resource will leave one repository with the app installed. Manually uninstall the app or set the installation to all repositories via the GUI as after deleting this resource.
 
@@ -46,6 +46,6 @@ The following arguments are supported:
 
 GitHub App Installation Repositories can be imported using an ID made up of `installation_id`, e.g.
 
-```
+```sh
 $ terraform import github_app_installation_repositories.some_app_repos 1234567
 ```

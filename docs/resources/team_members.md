@@ -58,18 +58,18 @@ resource "github_team_members" "some_team_members" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The team id or the team slug
+- `team_id` - (Required) The team id or the team slug
 
 ~> **Note** Although the team id or team slug can be used it is recommended to use the team id. Using the team slug will cause the team members associations to the team to be destroyed and recreated if the team name is updated.
 
-* `members` - (Required) List of team members. See [Members](#members) below for details.
+- `members` - (Required) List of team members. See [Members](#members) below for details.
 
 ### Members
 
 `members` supports the following arguments:
 
-* `username` - (Required) The user to add to the team.
-* `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
+- `username` - (Required) The user to add to the team.
+- `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
 
 ## Import
 
@@ -77,7 +77,7 @@ The following arguments are supported:
 
 GitHub Team Membership can be imported using the team ID team id or team slug, e.g.
 
-```
+```sh
 $ terraform import github_team_members.some_team 1234567
 $ terraform import github_team_members.some_team Administrators
 ```

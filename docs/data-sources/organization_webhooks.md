@@ -18,14 +18,14 @@ data "github_organization_webhooks" "all" {}
 
 ## Attributes Reference
 
-* `webhooks` - An Array of GitHub Webhooks. Each `webhook` block consists of the fields documented below.
+- `webhooks` - An Array of GitHub Webhooks. Each `webhook` block consists of the fields documented below.
 
 ---
 
 The `webhook` block consists of:
 
-* `id` - the ID of the webhook.
-* `type` - the type of the webhook.
-* `name` - the name of the webhook.
-* `url` - the url of the webhook.
-* `active` - `true` if the webhook is active.
+- `id` - the ID of the webhook.
+- `type` - the type of the webhook.
+- `name` - the name of the webhook.
+- `url` - the url of the webhook.
+- `active` - `true` if the webhook is active.
