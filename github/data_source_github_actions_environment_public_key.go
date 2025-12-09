@@ -9,24 +9,29 @@ import (
 
 func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsEnvironmentPublicKeyRead,
+		Read:        dataSourceGithubActionsEnvironmentPublicKeyRead,
+		Description: "Use this data source to retrieve information about a GitHub Actions public key of a specific environment. This data source is required to be used with other GitHub secrets interactions. Note that the provider `token` must have admin rights to a repository to retrieve the action public keys of it's environments.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Description: "Name of the repository to get public key from.",
+				Required:    true,
 			},
 			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Description: "Name of the environment to get public key from.",
+				Required:    true,
 			},
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "ID of the key that has been retrieved.",
+				Computed:    true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Actual key retrieved.",
+				Computed:    true,
 			},
 		},
 	}
