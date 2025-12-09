@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_user_gpg_key"
+page_title: "github_user_gpg_key Resource - terraform-provider-github
 description: |-
   Provides a GitHub user's GPG key resource.
 ---
 
-# github_user_gpg_key
+# github_user_gpg_key (Resource)
 
 Provides a GitHub user's GPG key resource.
 

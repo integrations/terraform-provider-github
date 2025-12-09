@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_team_sync_groups"
+page_title: "github_organization_team_sync_groups Data Source - terraform-provider-github
 description: |-
   Get the external identity provider (IdP) groups for an organization.
 ---
 
-# github_organization_team_sync_groups
+# github_organization_team_sync_groups (Data Source)
 
 Use this data source to retrieve the identity provider (IdP) groups for an organization.
 

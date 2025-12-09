@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_emu_group_mapping"
+page_title: "github_emu_group_mapping Resource - terraform-provider-github
 description: |-
   Manages mappings between external groups for enterprise managed users.
 ---
 
-# github_emu_group_mapping
+# github_emu_group_mapping (Resource)
 
 This resource manages mappings between external groups for enterprise managed users and GitHub teams. It wraps the API detailed [here](https://docs.github.com/en/rest/reference/teams#external-groups). Note that this is a distinct resource from `github_team_sync_group_mapping`. `github_emu_group_mapping` is special to the Enterprise Managed User (EMU) external group feature, whereas `github_team_sync_group_mapping` is specific to Identity Provider Groups.
 

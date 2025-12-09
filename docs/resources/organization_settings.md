@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_settings"
+page_title: "github_organization_settings Resource - terraform-provider-github
 description: |-
   Creates and manages settings for a GitHub Organization.
 ---
 
-# github_organization_settings
+# github_organization_settings (Resource)
 
 This resource allows you to create and manage settings for a GitHub Organization.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_codespaces_secret"
+page_title: "github_codespaces_secret Resource - terraform-provider-github
 description: |-
   Creates and manages an Codespaces Secret within a GitHub repository
 ---
 
-# github_codespaces_secret
+# github_codespaces_secret (Resource)
 
 This resource allows you to create and manage GitHub Codespaces secrets within your GitHub repositories. You must have write access to a repository to use this resource.
 

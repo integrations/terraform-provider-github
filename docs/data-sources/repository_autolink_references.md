@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_autolink_references"
+page_title: "github_repository_autolink_references Data Source - terraform-provider-github
 description: |-
   Get autolink references for a Github repository.
 ---
 
-# github_repository_autolink_references
+# github_repository_autolink_references (Data Source)
 
 Use this data source to retrieve autolink references for a repository.
 

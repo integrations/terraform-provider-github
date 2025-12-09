@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_secret_repository"
+page_title: "github_actions_organization_secret_repository Resource - terraform-provider-github
 description: |-
   Adds/remove a repository to an organization secret when the visibility for repository access is set to selected.
 ---
 
-# github_actions_organization_secret_repository
+# github_actions_organization_secret_repository (Resource)
 
 This resource help you to allow/unallow a repository to use an existing GitHub Actions secrets within your GitHub organization. You must have write access to an organization secret to use this resource.
 

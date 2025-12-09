@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team_membership"
+page_title: "github_team_membership Resource - terraform-provider-github
 description: |-
   Provides a GitHub team membership resource.
 ---
 
-# github_team_membership
+# github_team_membership (Resource)
 
 Provides a GitHub team membership resource.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_codespaces_organization_secret_repositories"
+page_title: "github_codespaces_organization_secret_repositories Resource - terraform-provider-github
 description: |-
     Manages repository allow list for a Codespaces Secret within a GitHub organization
 ---
 
-# github_codespaces_organization_secret_repositories
+# github_codespaces_organization_secret_repositories (Resource)
 
 This resource allows you to manage repository allow list for existing GitHub Codespaces secrets within your GitHub organization.
 

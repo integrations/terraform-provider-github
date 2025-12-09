@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_dependabot_secrets"
+page_title: "github_dependabot_secrets Data Source - terraform-provider-github
 description: |-
   Get dependabot secrets for a repository
 ---
 
-# github\_dependabot\_secrets
+# github_dependabot_secrets (Data Source)
 
 Use this data source to retrieve the list of dependabot secrets for a GitHub repository.
 

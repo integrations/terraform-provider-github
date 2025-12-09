@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_ip_ranges"
+page_title: "github_ip_ranges Data Source - terraform-provider-github
 description: |-
   Get information on GitHub's IP addresses.
 ---
 
-# github_ip_ranges
+# github_ip_ranges (Data Source)
 
 Use this data source to retrieve information about GitHub's IP addresses.
 

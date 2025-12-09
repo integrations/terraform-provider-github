@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team_members"
+page_title: "github_team_members Resource - terraform-provider-github
 description: |-
   Provides an authoritative GitHub team members resource.
 ---
 
-# github_team_members
+# github_team_members (Resource)
 
 Provides a GitHub team members resource.
 

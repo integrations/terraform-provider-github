@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_membership"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
 description: |-
   Get information on user membership in an organization.
 ---
@@ -8,7 +8,7 @@ description: |-
 
 For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
 
-# github_membership
+# {{.Name}} ({{.Type}})
 
 Use this data source to find out if a user is a member of your organization, as well as what role they have within it. If the user's membership in the organization is pending their acceptance of an invite, the role they would have once they accept will be returned.
 

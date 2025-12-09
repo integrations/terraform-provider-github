@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_topics"
+page_title: "github_repository_topics Resource - terraform-provider-github
 description: |-
   Creates and manages the topics on a repository
 ---
 
-# github_repository_topics
+# github_repository_topics (Resource)
 
 This resource allows you to create and manage topics for repositories within your GitHub organization or personal account.
 

@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_role_user Resource"
+page_title: "github_organization_role_user Resource - terraform-provider-github
 description: |-
   Manage an association between an organization role and a user.
 ---

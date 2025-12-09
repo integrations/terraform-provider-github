@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team_sync_group_mapping"
+page_title: "github_team_sync_group_mapping Resource - terraform-provider-github
 description: |-
   Creates and manages the connections between a team and its IdP group(s).
 ---
 
-# github_team_sync_group_mapping
+# github_team_sync_group_mapping (Resource)
 
 This resource allows you to create and manage Identity Provider (IdP) group connections within your GitHub teams. You must have team synchronization enabled for organizations owned by enterprise accounts.
 

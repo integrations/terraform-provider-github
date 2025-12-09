@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_issue_labels"
+page_title: "github_issue_labels Data Source - terraform-provider-github
 description: |-
   Get the labels for a given repository.
 ---
 
-# github_labels
+# github_issue_labels (Data Source)
 
 Use this data source to retrieve the labels for a given repository.
 

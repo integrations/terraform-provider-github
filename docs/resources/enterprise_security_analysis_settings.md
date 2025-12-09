@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_enterprise_security_analysis_settings"
+page_title: "github_enterprise_security_analysis_settings Resource - terraform-provider-github
 description: |-
   Manages GitHub Enterprise security analysis settings.
 ---
 
-# github_enterprise_security_analysis_settings
+# github_enterprise_security_analysis_settings (Resource)
 
 This resource allows you to manage code security and analysis settings for a GitHub Enterprise account. This controls Advanced Security, Secret Scanning, and related security features that are automatically enabled for new repositories in the enterprise.
 

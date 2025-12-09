@@ -1,10 +1,10 @@
 ---
-page_title: "Github: github_enterprise"
+page_title: "github_enterprise Data Source - terraform-provider-github
 description: |-
   Get an enterprise.
 ---
 
-# github_enterprise
+# github_enterprise (Data Source)
 
 Use this data source to retrieve basic information about a GitHub enterprise.
 

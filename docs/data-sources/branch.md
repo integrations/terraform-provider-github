@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_branch"
+page_title: "github_branch Data Source - terraform-provider-github
 description: |-
   Get information about a repository branch.
 ---
 
-# github\_branch
+# github_branch (Data Source)
 
 Use this data source to retrieve information about a repository branch.
 

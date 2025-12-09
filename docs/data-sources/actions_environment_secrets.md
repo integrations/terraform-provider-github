@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_environment_secrets"
+page_title: "github_actions_environment_secrets Data Source - terraform-provider-github
 description: |-
   Get Actions secrets of the repository environment
 ---
 
-# github\_actions\_environment\_secrets
+# github_actions_environment_secrets (Data Source)
 
 Use this data source to retrieve the list of secrets of the repository environment.
 

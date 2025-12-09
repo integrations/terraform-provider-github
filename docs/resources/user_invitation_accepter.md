@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_user_invitation_accepter"
+page_title: "github_user_invitation_accepter Resource - terraform-provider-github
 description: |-
   Provides a resource to manage GitHub repository collaborator invitations.
 ---
 
-# github_user_invitation_accepter
+# github_user_invitation_accepter (Resource)
 
 Provides a resource to manage GitHub repository collaborator invitations.
 

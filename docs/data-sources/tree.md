@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_tree"
+page_title: "github_tree Data Source - terraform-provider-github
 description: |-
   Returns a single tree using the SHA1 value for that tree.
 ---
 
-# github_tree
+# github_tree (Data Source)
 
 Use this data source to retrieve information about a single tree.
 

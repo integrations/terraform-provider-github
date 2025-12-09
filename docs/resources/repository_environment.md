@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_environment"
+page_title: "github_repository_environment Resource - terraform-provider-github
 description: |-
   Creates and manages environments for GitHub repositories
 ---
 
-# github_repository_environment
+# github_repository_environment (Resource)
 
 This resource allows you to create and manage environments for a GitHub repository.
 

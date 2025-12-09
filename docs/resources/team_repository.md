@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team_repository"
+page_title: "github_team_repository Resource - terraform-provider-github
 description: |-
   Manages the associations between teams and repositories.
 ---
 
-# github_team_repository
+# github_team_repository (Resource)
 
 ~> Note: github_team_repository cannot be used in conjunction with github_repository_collaborators or they will fight over what your policy should be.
 

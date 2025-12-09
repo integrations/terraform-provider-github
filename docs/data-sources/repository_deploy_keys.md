@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_deploy_keys"
+page_title: "github_repository_deploy_keys Data Source - terraform-provider-github
 description: |-
   Get all deploy keys of a repository
 ---
 
-# github_repository_deploy_keys
+# github_repository_deploy_keys (Data Source)
 
 Use this data source to retrieve all deploy keys of a repository.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team_settings"
+page_title: "github_team_settings Resource - terraform-provider-github
 description: |-
   Manages the team settings (in particular the request review delegation settings)
 ---
 
-# github_team_settings
+# github_team_settings (Resource)
 
 This resource manages the team settings (in particular the request review delegation settings) within the organization
 

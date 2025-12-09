@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_webhooks"
+page_title: "github_organization_webhooks Data Source - terraform-provider-github
 description: |-
   Get information on all GitHub webhooks of the organization.
 ---
 
-# github\_organization\_webhooks
+# github_organization_webhooks (Data Source)
 
 Use this data source to retrieve all webhooks of the organization.
 

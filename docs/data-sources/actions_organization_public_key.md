@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_public_key"
+page_title: "github_actions_organization_public_key Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub Actions Organization Public Key.
 ---
 
-# github_actions_organization_public_key
+# github_actions_organization_public_key (Data Source)
 
 Use this data source to retrieve information about a GitHub Actions Organization public key. This data source is required to be used with other GitHub secrets interactions. Note that the provider `token` must have admin rights to an organization to retrieve it's action public key.
 

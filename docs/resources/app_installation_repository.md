@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_app_installation_repository"
+page_title: "github_app_installation_repository Resource - terraform-provider-github
 description: |-
   Manages the associations between app installations and repositories.
 ---
 
-# github_app_installation_repository
+# github_app_installation_repository (Resource)
 
 ~> **Note**: This resource is not compatible with the GitHub App Installation authentication method.
 

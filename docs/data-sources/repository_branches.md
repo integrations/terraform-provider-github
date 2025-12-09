@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_branches"
+page_title: "github_repository_branches Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub repository's branches.
 ---
 
-# github_repository_branches
+# github_repository_branches (Data Source)
 
 Use this data source to retrieve information about branches in a repository.
 

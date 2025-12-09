@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_custom_properties"
+page_title: "github_repository_custom_properties Data Source - terraform-provider-github
 description: |-
   Get all custom properties of a repository
 ---
 
-# github_repository_custom_properties
+# github_repository_custom_properties (Data Source)
 
 Use this data source to retrieve all custom properties of a repository.
 

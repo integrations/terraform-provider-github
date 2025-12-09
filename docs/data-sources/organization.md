@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization"
+page_title: "github_organization Data Source - terraform-provider-github
 description: |-
   Get an organization.
 ---
 
-# github_organization
+# github_organization (Data Source)
 
 Use this data source to retrieve basic information about a GitHub Organization.
 

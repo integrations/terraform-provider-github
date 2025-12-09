@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_enterprise_actions_runner_group"
+page_title: "github_enterprise_actions_runner_group Resource - terraform-provider-github
 description: |-
   Creates and manages an Actions Runner Group within a GitHub enterprise.
 ---
 
-# github_enterprise_actions_runner_group
+# github_enterprise_actions_runner_group (Resource)
 
 This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
 

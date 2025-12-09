@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_repository_permissions"
+page_title: "github_actions_repository_permissions Resource - terraform-provider-github
 description: |-
   Enables and manages Actions permissions for a GitHub repository
 ---
 
-# github_actions_repository_permissions
+# github_actions_repository_permissions (Resource)
 
 This resource allows you to enable and manage GitHub Actions permissions for a given repository. You must have admin access to an repository to use this resource.
 

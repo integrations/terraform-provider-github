@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_environment_variable"
+page_title: "github_actions_environment_variable Resource - terraform-provider-github
 description: |-
   Creates and manages an Action variable within a GitHub repository environment
 ---
 
-# github_actions_environment_variable
+# github_actions_environment_variable (Resource)
 
 This resource allows you to create and manage GitHub Actions variables within your GitHub repository environments. You must have write access to a repository to use this resource.
 

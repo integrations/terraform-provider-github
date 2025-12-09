@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_repository_roles Data Source"
+page_title: "github_organization_repository_roles Data Source - terraform-provider-github
 description: |-
   Lookup all custom repository roles in an organization.
 ---

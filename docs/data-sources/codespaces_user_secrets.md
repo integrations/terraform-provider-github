@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_codespaces_user_secrets"
+page_title: "github_codespaces_user_secrets Data Source - terraform-provider-github
 description: |-
   Get codespaces secrets of the user
 ---
 
-# github\_codespaces\_user\_secrets
+# github_codespaces_user_secrets (Data Source)
 
 Use this data source to retrieve the list of codespaces secrets of the user.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_security_manager"
+page_title: "github_organization_security_manager Resource - terraform-provider-github
 description: |-
   Manages the Security manager teams for a GitHub Organization.
 ---
 
-# github_organization_security_manager
+# github_organization_security_manager (Resource)
 
 ~> **Note:** This resource is deprecated, please use the `github_organization_role_team` resource instead.
 

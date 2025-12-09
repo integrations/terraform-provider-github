@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_autolink_reference"
+page_title: "github_repository_autolink_reference Resource - terraform-provider-github
 description: |-
   Creates and manages autolink references for a single repository
 ---
 
-# github_repository_autolink_reference
+# github_repository_autolink_reference (Resource)
 
 This resource allows you to create and manage an autolink reference for a single repository.
 

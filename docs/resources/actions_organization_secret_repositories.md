@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_secret_repositories"
+page_title: "github_actions_organization_secret_repositories Resource - terraform-provider-github
 description: |-
   Manages repository allow list for an Action Secret within a GitHub organization
 ---
 
-# github_actions_organization_secret_repositories
+# github_actions_organization_secret_repositories (Resource)
 
 This resource allows you to manage repository allow list for existing GitHub Actions secrets within your GitHub organization. You must have write access to an organization secret to use this resource.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_branch_protection_rules"
+page_title: "github_branch_protection_rules Data Source - terraform-provider-github
 description: |-
   Get information about a repository branch protection rules.
 ---
 
-# github\_branch\_protection\_rules
+# github_branch_protection_rules (Data Source)
 
 Use this data source to retrieve a list of repository branch protection rules.
 

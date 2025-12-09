@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_custom_role"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
 description: |-
   Get a custom role from a GitHub Organization for use in repositories.
 ---
@@ -8,7 +8,7 @@ description: |-
 
 For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
 
-# github\_organization\_custom\_role
+# {{.Name}} ({{.Type}})
 
 ~> **Note:** This data source is deprecated, please use the `github_organization_repository_role` data source instead.
 

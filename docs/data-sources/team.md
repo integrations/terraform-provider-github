@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team"
+page_title: "github_team Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub team.
 ---
 
-# github\_team
+# github_team (Data Source)
 
 Use this data source to retrieve information about a GitHub team.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_users"
+page_title: "github_users Data Source - terraform-provider-github
 description: |-
   Get information about multiple GitHub users.
 ---
 
-# github\_users
+# github_users (Data Source)
 
 Use this data source to retrieve information about multiple GitHub users at once.
 

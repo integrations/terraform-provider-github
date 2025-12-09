@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_branch_protection"
+page_title: "github_branch_protection Resource - terraform-provider-github
 description: |-
   Protects a GitHub branch.
 ---
 
-# github\_branch\_protection
+# github_branch_protection (Resource)
 
 Protects a GitHub branch.
 

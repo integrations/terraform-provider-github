@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_custom_properties"
+page_title: "github_organization_custom_properties Data Source - terraform-provider-github
 description: |-
   Get information about a GitHub organization custom property
 ---
 
-# github_organization_custom_properties
+# github_organization_custom_properties (Data Source)
 
 Use this data source to retrieve information about a GitHub organization custom property.
 

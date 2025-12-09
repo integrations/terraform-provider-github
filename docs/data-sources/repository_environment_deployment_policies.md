@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_environment_deployment_policies"
+page_title: "github_repository_environment_deployment_policies Data Source - terraform-provider-github
 description: |-
   Get the list of environment deployment policies for a given repository environment.
 ---
 
-# github_repository_environment_deployment_policies
+# github_repository_environment_deployment_policies (Data Source)
 
 Use this data source to retrieve deployment branch policies for a repository environment.
 

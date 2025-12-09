@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_repository_role Resource"
+page_title: "github_organization_repository_role Resource - terraform-provider-github
 description: |-
   Manage a custom organization repository role.
 ---

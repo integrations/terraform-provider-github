@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_repository_access_level"
+page_title: "github_actions_repository_access_level Resource - terraform-provider-github
 description: |-
   Manages Actions and Reusable Workflow access for a GitHub repository
 ---
 
-# github_actions_repository_access_level
+# github_actions_repository_access_level (Resource)
 
 This resource allows you to set the access level of a non-public repositories actions and reusable workflows for use in other repositories. You must have admin access to a repository to use this resource.
 

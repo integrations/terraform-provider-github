@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_webhook"
+page_title: "github_repository_webhook Resource - terraform-provider-github
 description: |-
   Creates and manages repository webhooks within GitHub organizations or personal accounts
 ---
 
-# github_repository_webhook
+# github_repository_webhook (Resource)
 
 This resource allows you to create and manage webhooks for repositories within your GitHub organization or personal account.
 

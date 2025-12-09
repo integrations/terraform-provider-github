@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_issue"
+page_title: "github_issue Resource - terraform-provider-github
 description: |-
   Provides a GitHub issue resource.
 ---
 
-# github_issue
+# github_issue (Resource)
 
 Provides a GitHub issue resource.
 

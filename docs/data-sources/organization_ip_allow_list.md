@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_ip_allow_list"
+page_title: "github_organization_ip_allow_list Data Source - terraform-provider-github
 description: |-
   Get the IP allow list of an organization.
 ---
 
-# github_organization_ip_allow_list
+# github_organization_ip_allow_list (Data Source)
 
 Use this data source to retrieve information about the IP allow list of an organization. The allow list for IP addresses will block access to private resources via the web, API, and Git from any IP addresses that are not on the allow list.
 

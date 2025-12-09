@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_environment_variables"
+page_title: "github_actions_environment_variables Data Source - terraform-provider-github
 description: |-
   Get Actions variables of the repository environment
 ---
 
-# github\_actions\_environment\_variables
+# github_actions_environment_variables (Data Source)
 
 Use this data source to retrieve the list of variables of the repository environment.
 

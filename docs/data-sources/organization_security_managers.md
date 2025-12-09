@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_security_managers"
+page_title: "github_organization_security_managers Data Source - terraform-provider-github
 description: |-
   Get the security managers for an organization.
 ---
 
-# github_organization_security_managers
+# github_organization_security_managers (Data Source)
 
 ~> **Note:** This data source is deprecated, please use the `github_organization_role_team` resource instead.
 

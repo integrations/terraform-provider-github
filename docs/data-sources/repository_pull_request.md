@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_pull_request"
+page_title: "github_repository_pull_request Data Source - terraform-provider-github
 description: |-
   Get information on a single GitHub Pull Request.
 ---
 
-# github_repository_pull_request
+# github_repository_pull_request (Data Source)
 
 Use this data source to retrieve information about a specific GitHub Pull Request in a repository.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_block"
+page_title: "github_organization_block Resource - terraform-provider-github
 description: |-
   Creates and manages blocks for GitHub organizations
 ---
 
-# github_organization_block
+# github_organization_block (Resource)
 
 This resource allows you to create and manage blocks for GitHub organizations.
 

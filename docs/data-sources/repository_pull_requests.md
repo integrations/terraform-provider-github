@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_pull_requests"
+page_title: "github_repository_pull_requests Data Source - terraform-provider-github
 description: |-
   Get information on multiple GitHub Pull Requests.
 ---
 
-# github_repository_pull_requests
+# github_repository_pull_requests (Data Source)
 
 Use this data source to retrieve information about multiple GitHub Pull Requests in a repository.
 

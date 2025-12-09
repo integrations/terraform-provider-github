@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_variables"
+page_title: "github_actions_variables Data Source - terraform-provider-github
 description: |-
   Get Actions variables for a repository
 ---
 
-# github\_actions\_variables
+# github_actions_variables (Data Source)
 
 Use this data source to retrieve the list of variables for a GitHub repository.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_deploy_key"
+page_title: "github_repository_deploy_key Resource - terraform-provider-github
 description: |-
   Provides a GitHub repository deploy key resource.
 ---
 
-# github_repository_deploy_key
+# github_repository_deploy_key (Resource)
 
 Provides a GitHub repository deploy key resource.
 

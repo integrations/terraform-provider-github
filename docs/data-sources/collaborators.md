@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_collaborators"
+page_title: "github_collaborators Data Source - terraform-provider-github
 description: |-
   Get the collaborators for a given repository.
 ---
 
-# github_collaborators
+# github_collaborators (Data Source)
 
 Use this data source to retrieve the collaborators for a given repository.
 

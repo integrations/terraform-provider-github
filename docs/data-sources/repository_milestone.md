@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_milestone"
+page_title: "github_repository_milestone Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub Repository Milestone.
 ---
 
-# github_repository_milestone
+# github_repository_milestone (Data Source)
 
 Use this data source to retrieve information about a specific GitHub milestone in a repository.
 

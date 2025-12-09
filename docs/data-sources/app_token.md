@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_app_token"
+page_title: "github_app_token Data Source - terraform-provider-github
 description: |-
   Generate a GitHub APP JWT.
 ---
 
-# github\_app\_token
+# github_app_token (Data Source)
 
 Use this data source to generate a [GitHub App JWT](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app).
 

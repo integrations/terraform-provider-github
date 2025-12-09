@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_repository_teams"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
 description: |-
   Get teams which have permission on the given repo.
 ---
@@ -8,7 +8,7 @@ description: |-
 
 For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
 
-# github\_repository\_teams
+# {{.Name}} ({{.Type}})
 
 Use this data source to retrieve the list of teams which have access to a GitHub repository.
 

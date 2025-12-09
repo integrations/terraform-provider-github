@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_rest_api"
+page_title: "github_rest_api Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub resource with a custom GET request to GitHub REST API.
 ---
 
-# github_rest_api
+# github_rest_api (Data Source)
 
 Use this data source to retrieve information about a GitHub resource through REST API.
 

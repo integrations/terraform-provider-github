@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_role_teams Data Source"
+page_title: "github_organization_role_teams Data Source - terraform-provider-github
 description: |-
   Lookup all teams assigned to a custom organization role.
 ---

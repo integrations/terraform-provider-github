@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_file"
+page_title: "github_repository_file Resource - terraform-provider-github
 description: |-
   Creates and manages files within a GitHub repository
 ---
 
-# github_repository_file
+# github_repository_file (Resource)
 
 This resource allows you to create and manage files within a GitHub repository.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_dependabot_secret"
+page_title: "github_dependabot_secret Resource - terraform-provider-github
 description: |-
   Creates and manages an Dependabot Secret within a GitHub repository
 ---
 
-# github_dependabot_secret
+# github_dependabot_secret (Resource)
 
 This resource allows you to create and manage GitHub Dependabot secrets within your GitHub repositories. You must have write access to a repository to use this resource.
 

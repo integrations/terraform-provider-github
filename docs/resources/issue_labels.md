@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_issue_labels"
+page_title: "github_issue_labels Resource - terraform-provider-github
 description: |-
   Provides GitHub issue labels resource.
 ---
 
-# github_issue_labels
+# github_issue_labels (Resource)
 
 Provides GitHub issue labels resource.
 

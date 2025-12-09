@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_release"
+page_title: "github_release Resource - terraform-provider-github
 description: |-
   Creates and manages releases within a single GitHub repository
 ---
 
-# github_release
+# github_release (Resource)
 
 This resource allows you to create and manage a release in a specific GitHub repository.
 

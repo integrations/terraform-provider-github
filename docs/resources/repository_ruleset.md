@@ -1,10 +1,10 @@
 ---
-page_title: "github_repository_ruleset Resource - terraform-provider-github"
+page_title: "github_repository_ruleset Resource - terraform-provider-github
 description: |-
   Creates a GitHub repository ruleset.
 ---
 
-# github_repository_ruleset
+# github_repository_ruleset (Resource)
 
 Creates a GitHub repository ruleset.
 

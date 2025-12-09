@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_dependabot_security_updates"
+page_title: "github_repository_dependabot_security_updates Resource - terraform-provider-github
 description: |-
   Manages automated security fixes for a single repository
 ---
 
-# github_repository_dependabot_security_updates
+# github_repository_dependabot_security_updates (Resource)
 
 This resource allows you to manage dependabot automated security fixes for a single repository. See the [documentation](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates) for details of usage and how this will impact your repository
 

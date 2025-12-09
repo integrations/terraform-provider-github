@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_role_team_assignment"
+page_title: "github_organization_role_team_assignment Resource - terraform-provider-github
 description: |-
   Manages the associations between teams and organization roles.
 ---
 
-# github_organization_role_team_assignment
+# github_organization_role_team_assignment (Resource)
 
 ~> **Note:** This resource is deprecated, please use the `github_organization_role_team` resource instead.
 

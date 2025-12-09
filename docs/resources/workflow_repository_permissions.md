@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_workflow_repository_permissions"
+page_title: "github_workflow_repository_permissions Resource - terraform-provider-github
 description: |-
   Enables and manages Workflow permissions for a GitHub repository
 ---
 
-# github_workflow_repository_permissions
+# github_workflow_repository_permissions (Resource)
 
 This resource allows you to manage GitHub Workflow permissions for a given repository. You must have admin access to a repository to use this resource.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_collaborator"
+page_title: "github_repository_collaborator Resource - terraform-provider-github
 description: |-
   Provides a GitHub repository collaborator resource.
 ---
 
-# github_repository_collaborator
+# github_repository_collaborator (Resource)
 
 Provides a GitHub repository collaborator resource.
 

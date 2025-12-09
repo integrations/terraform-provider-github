@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_custom_role"
+page_title: "github_organization_custom_role Resource - terraform-provider-github
 description: |-
   Creates and manages a custom role in a GitHub Organization for use in repositories.
 ---
 
-# github\_organization\_custom\_role
+# github_organization_custom_role (Resource)
 
 ~> **Note:** This resource is deprecated, please use the `github_organization_repository_role` resource instead.
 

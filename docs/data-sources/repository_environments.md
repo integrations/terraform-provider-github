@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_environments"
+page_title: "github_repository_environments Data Source - terraform-provider-github
 description: |-
   Get information on a GitHub repository's environments.
 ---
 
-# github_repository_environments
+# github_repository_environments (Data Source)
 
 Use this data source to retrieve information about environments for a repository.
 

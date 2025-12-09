@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_ref"
+page_title: "github_ref Data Source - terraform-provider-github
 description: |-
   Get information about a repository ref.
 ---
 
-# github_ref
+# github_ref (Data Source)
 
 Use this data source to retrieve information about a repository ref.
 

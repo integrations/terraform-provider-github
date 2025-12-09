@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_secrets"
+page_title: "github_actions_organization_secrets Data Source - terraform-provider-github
 description: |-
   Get actions secrets of the organization
 ---
 
-# github\_actions\_organization\_secrets
+# github_actions_organization_secrets (Data Source)
 
 Use this data source to retrieve the list of secrets of the organization.
 

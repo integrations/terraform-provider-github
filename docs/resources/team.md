@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_team"
+page_title: "github_team Resource - terraform-provider-github
 description: |-
   Provides a GitHub team resource.
 ---
 
-# github_team
+# github_team (Resource)
 
 Provides a GitHub team resource.
 

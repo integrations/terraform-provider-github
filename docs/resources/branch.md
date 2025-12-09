@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_branch"
+page_title: "github_branch Resource - terraform-provider-github
 description: |-
   Creates and manages branches within GitHub repositories.
 ---
 
-# github\_branch
+# github_branch (Resource)
 
 This resource allows you to create and manage branches within your repository.
 

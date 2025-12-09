@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_custom_property"
+page_title: "github_repository_custom_property Resource - terraform-provider-github
 description: |-
   Creates and a specific custom property for a GitHub repository
 ---
 
-# github_repository_custom_property
+# github_repository_custom_property (Resource)
 
 This resource allows you to create and manage a specific custom property for a GitHub repository.
 

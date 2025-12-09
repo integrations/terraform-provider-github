@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_custom_properties"
+page_title: "github_organization_custom_properties Resource - terraform-provider-github
 description: |-
   Creates and manages custom properties for a GitHub organization
 ---
 
-# github_organization_custom_properties
+# github_organization_custom_properties (Resource)
 
 This resource allows you to create and manage custom properties for a GitHub organization.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_milestone"
+page_title: "github_repository_milestone Resource - terraform-provider-github
 description: |-
   Provides a GitHub repository milestone resource.
 ---
 
-# github_repository_milestone
+# github_repository_milestone (Resource)
 
 Provides a GitHub repository milestone resource.
 

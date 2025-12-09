@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_enterprise_actions_workflow_permissions"
+page_title: "github_enterprise_actions_workflow_permissions Resource - terraform-provider-github
 description: |-
   Manages GitHub Actions workflow permissions for a GitHub Enterprise.
 ---
 
-# github_enterprise_actions_workflow_permissions
+# github_enterprise_actions_workflow_permissions (Resource)
 
 This resource allows you to manage GitHub Actions workflow permissions for a GitHub Enterprise account. This controls the default permissions granted to the GITHUB_TOKEN when running workflows and whether GitHub Actions can approve pull request reviews.
 

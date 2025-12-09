@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_branch_default"
+page_title: "github_branch_default Resource - terraform-provider-github
 description: |-
   Provides a GitHub branch default for a given repository.
 ---
 
-# github_branch_default
+# github_branch_default (Resource)
 
 Provides a GitHub branch default resource.
 

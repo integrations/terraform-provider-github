@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_secret"
+page_title: "github_actions_organization_secret Resource - terraform-provider-github
 description: |-
   Creates and manages an Action Secret within a GitHub organization
 ---
 
-# github_actions_organization_secret
+# github_actions_organization_secret (Resource)
 
 This resource allows you to create and manage GitHub Actions secrets within your GitHub organization. You must have write access to a repository to use this resource.
 

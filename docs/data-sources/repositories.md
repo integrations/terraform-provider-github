@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repositories"
+page_title: "github_repositories Data Source - terraform-provider-github
 description: |-
   Search for GitHub repositories
 ---
 
-# github_repositories
+# github_repositories (Data Source)
 
 -> **Note:** The data source will return a maximum of `1000` repositories [as documented in official API docs](https://developer.github.com/v3/search/#about-the-search-api).
 

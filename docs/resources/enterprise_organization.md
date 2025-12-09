@@ -1,10 +1,10 @@
 ---
-page_title: "Github: github_enterprise_organization"
+page_title: "github_enterprise_organization Resource - terraform-provider-github
 description: |-
   Create and manages a GitHub enterprise organization.
 ---
 
-# github_enterprise_organization
+# github_enterprise_organization (Resource)
 
 This resource allows you to create and manage a GitHub enterprise organization.
 

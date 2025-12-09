@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_external_identities"
+page_title: "github_organization_external_identities Data Source - terraform-provider-github
 description: |-
   Get a list of organization members and their SAML linked external identity NameID
 ---
 
-# github_organization_external_identities
+# github_organization_external_identities (Data Source)
 
 Use this data source to retrieve each organization member's SAML or SCIM user attributes.
 

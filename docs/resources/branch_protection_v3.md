@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub:  github_branch_protection_v3"
+page_title: "github_branch_protection_v3 Resource - terraform-provider-github
 description: |-
   Protects a GitHub branch using the v3 / REST implementation.  The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
 ---
 
-# github_branch_protection_v3
+# github_branch_protection_v3 (Resource)
 
 Protects a GitHub branch.
 

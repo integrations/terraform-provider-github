@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_teams"
+page_title: "github_organization_teams Data Source - terraform-provider-github
 description: |-
   Get information on all GitHub teams of an organization.
 ---
 
-# github\_organization\_teams
+# github_organization_teams (Data Source)
 
 Use this data source to retrieve information about all GitHub teams in an organization.
 

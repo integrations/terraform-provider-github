@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_team_repository"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
 description: |-
   Manages the associations between teams and repositories.
 ---
@@ -8,7 +8,7 @@ description: |-
 
 For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
 
-# github_team_repository
+# {{.Name}} ({{.Type}})
 
 ~> Note: github_team_repository cannot be used in conjunction with github_repository_collaborators or they will fight over what your policy should be.
 

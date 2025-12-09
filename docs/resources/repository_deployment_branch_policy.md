@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_deployment_branch_policy"
+page_title: "github_repository_deployment_branch_policy Resource - terraform-provider-github
 description: |-
   Creates and manages deployment branch policies
 ---
 
-# github_repository_deployment_branch_policy
+# github_repository_deployment_branch_policy (Resource)
 
 ~> **Note:** This resource is deprecated, please use the `github_repository_environment_deployment_policy` resource instead.
 

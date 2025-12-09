@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_repository_oidc_subject_claim_customization_template"
+page_title: "github_actions_repository_oidc_subject_claim_customization_template Resource - terraform-provider-github
 description: |-
   Creates and manages an OpenID Connect subject claim customization template for a repository
 ---
 
-# github_actions_repository_oidc_subject_claim_customization_template
+# github_actions_repository_oidc_subject_claim_customization_template (Resource)
 
 This resource allows you to create and manage an OpenID Connect subject claim customization template for a GitHub repository.
 

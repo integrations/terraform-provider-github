@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_actions_organization_permissions"
+page_title: "github_actions_organization_permissions Resource - terraform-provider-github
 description: |-
   Creates and manages Actions permissions within a GitHub organization
 ---
 
-# github_actions_organization_permissions
+# github_actions_organization_permissions (Resource)
 
 This resource allows you to create and manage GitHub Actions permissions within your GitHub enterprise organizations. You must have admin access to an organization to use this resource.
 

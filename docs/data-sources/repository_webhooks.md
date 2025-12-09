@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_webhooks"
+page_title: "github_repository_webhooks Data Source - terraform-provider-github
 description: |-
   Get information on all GitHub webhooks of the organization.
 ---
 
-# github\_repository\_webhooks
+# github_repository_webhooks (Data Source)
 
 Use this data source to retrieve webhooks for a given repository.
 

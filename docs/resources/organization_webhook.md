@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_webhook"
+page_title: "github_organization_webhook Resource - terraform-provider-github
 description: |-
   Creates and manages webhooks for GitHub organizations
 ---
 
-# github_organization_webhook
+# github_organization_webhook (Resource)
 
 This resource allows you to create and manage webhooks for GitHub organization.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository"
+page_title: "github_repository Data Source - terraform-provider-github
 description: |-
   Get details about GitHub repository
 ---
 
-# github_repository
+# github_repository (Data Source)
 
 Use this data source to retrieve information about a GitHub repository.
 

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: repository_pull_request"
+page_title: "github_repository_pull_request Resource - terraform-provider-github
 description: |-
   Get information on a single GitHub Pull Request.
 ---
 
-# github_repository_pull_request
+# github_repository_pull_request (Resource)
 
 This resource allows you to create and manage PullRequests for repositories within your GitHub organization or personal account.
 

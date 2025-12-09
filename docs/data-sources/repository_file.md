@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_file"
+page_title: "github_repository_file Data Source - terraform-provider-github
 description: |-
   Reads files within a GitHub repository
 ---
 
-# github_repository_file
+# github_repository_file (Data Source)
 
 This data source allows you to read files within a GitHub repository.
 

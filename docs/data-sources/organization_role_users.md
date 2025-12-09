@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_role_users Data Source"
+page_title: "github_organization_role_users Data Source - terraform-provider-github
 description: |-
   Lookup all users assigned to a custom organization role.
 ---

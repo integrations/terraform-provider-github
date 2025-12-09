@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_repository_teams"
+page_title: "github_repository_teams Data Source - terraform-provider-github
 description: |-
   Get teams which have permission on the given repo.
 ---
 
-# github\_repository\_teams
+# github_repository_teams (Data Source)
 
 Use this data source to retrieve the list of teams which have access to a GitHub repository.
 

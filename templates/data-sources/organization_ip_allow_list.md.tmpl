@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_organization_ip_allow_list"
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
 description: |-
   Get the IP allow list of an organization.
 ---
@@ -8,7 +8,7 @@ description: |-
 
 For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
 
-# github_organization_ip_allow_list
+# {{.Name}} ({{.Type}})
 
 Use this data source to retrieve information about the IP allow list of an organization. The allow list for IP addresses will block access to private resources via the web, API, and Git from any IP addresses that are not on the allow list.
 
