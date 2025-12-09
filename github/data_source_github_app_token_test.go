@@ -23,7 +23,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 	t.Run("creates a application token without error", func(t *testing.T) {
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri: fmt.Sprintf("/api/v3/app/installations/%s/access_tokens", testGitHubAppInstallationID),
+				ExpectedUri: fmt.Sprintf("/app/installations/%s/access_tokens", testGitHubAppInstallationID),
 				ExpectedHeaders: map[string]string{
 					"Accept": "application/vnd.github.v3+json",
 				},
