@@ -1,0 +1,65 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Creates and manages custom properties for a GitHub organization
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage custom properties for a GitHub organization.
+
+Custom properties enable you to add metadata to repositories within your organization. You can use custom properties to add context about repositories, such as who owns them, when they expire, or compliance requirements.
+
+## Example Usage
+
+{{tffile "examples/resources/organization_custom_properties/example_1.tf"}}
+
+## Example Usage - Allow Repository Actors to Edit
+
+This example shows how to allow repository administrators to edit the property values:
+
+{{tffile "examples/resources/organization_custom_properties/example_2.tf"}}
+
+## Example Usage - Text Property
+
+{{tffile "examples/resources/organization_custom_properties/example_3.tf"}}
+
+## Example Usage - Boolean Property
+
+{{tffile "examples/resources/organization_custom_properties/example_4.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `property_name` - (Required) The name of the custom property.
+
+- `value_type` - (Optional) The type of the custom property. Can be one of `string`, `single_select`, `multi_select`, or `true_false`. Defaults to `string`.
+
+- `required` - (Optional) Whether the custom property is required. Defaults to `false`.
+
+- `description` - (Optional) The description of the custom property.
+
+- `default_value` - (Optional) The default value of the custom property.
+
+- `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
+
+- `values_editable_by` - (Optional) Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit the property values on repositories. When set to `org_and_repo_actors`, both organization owners and repository administrators with the custom properties permission can edit the values.
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+- `property_name` - The name of the custom property.
+
+## Import
+
+Organization custom properties can be imported using the property name:
+
+```sh
+terraform import github_organization_custom_properties.environment environment
+```

@@ -1,0 +1,29 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get the labels for a given repository.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve the labels for a given repository.
+
+## Example Usage
+
+{{tffile "examples/data-sources/issue_labels/example_1.tf"}}
+
+## Arguments Reference
+
+- `repository` - (Required) The name of the repository.
+
+## Attributes Reference
+
+- `labels` - The list of this repository's labels. Each element of `labels` has the following attributes:
+    - `name` - The name of the label.
+    - `color` - The hexadecimal color code for the label, without the leading #.
+    - `description` - A short description of the label.
+    - `url` - The URL of the label.

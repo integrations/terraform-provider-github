@@ -1,0 +1,31 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Retrieve external groups belonging to an organization.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve external groups belonging to an organization.
+
+## Example Usage
+
+{{tffile "examples/data-sources/external_groups/example_1.tf"}}
+
+## Argument Reference
+
+N/A. This resource will retrieve all the external groups belonging to an organization.
+
+## Attributes Reference
+
+- `external_groups` - an array of external groups belonging to the organization. Each group consists of the fields documented below.
+
+---
+
+- `group_id` - the ID of the group.
+- `group_name` - the name of the group.
+- `updated_at` - the date the group was last updated.

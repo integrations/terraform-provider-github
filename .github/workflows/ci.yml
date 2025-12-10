@@ -25,7 +25,15 @@ jobs:
           cache: true
       - run: make tools
       - run: make lint
-      - run: make website-lint
+      - run: make docs-lint
+
+      - name: Check for uncommitted docs changes
+        run: |
+          tfplugindocs generate
+          if ! [[ -z $(git status --porcelain) ]]; then
+            echo "::error::Uncommitted changes after tfplugindocs generate"
+            exit 1
+          fi
       - run: make build
       - run: make test
 

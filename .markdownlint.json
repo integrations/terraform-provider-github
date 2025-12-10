@@ -1,0 +1,17 @@
+{
+  "MD004": {
+    "style": "dash"
+  },
+  "MD007": {
+    "indent": 4
+  },
+  "MD013": false,
+  "MD014": false,
+  "MD022": false,
+  "MD029": {
+    "style": "ordered"
+  },
+  "MD033": {
+    "allowed_elements": ["a"]
+  }
+}

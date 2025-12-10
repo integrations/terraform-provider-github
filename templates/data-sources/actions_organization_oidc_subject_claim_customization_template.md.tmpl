@@ -1,0 +1,15 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get a GitHub Actions organization OpenID Connect customization template
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{tffile "examples/data-sources/actions_organization_oidc_subject_claim_customization_template/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

@@ -1,0 +1,34 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Search for GitHub repositories
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+-> **Note:** The data source will return a maximum of `1000` repositories [as documented in official API docs](https://developer.github.com/v3/search/#about-the-search-api).
+
+Use this data source to retrieve a list of GitHub repositories using a search query.
+
+## Example Usage
+
+{{tffile "examples/data-sources/repositories/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `query` - (Required) Search query. See [documentation for the search syntax](https://help.github.com/articles/understanding-the-search-syntax/).
+- `sort` - (Optional) Sorts the repositories returned by the specified attribute. Valid values include `stars`, `fork`, and `updated`. Defaults to `updated`.
+- `include_repo_id` - (Optional) Returns a list of found repository IDs
+- `results_per_page` - (Optional) Set the number of repositories requested per API call. Can be useful to decrease if requests are timing out or to increase to reduce the number of API calls. Defaults to 100.
+
+## Attributes Reference
+
+- `full_names` - A list of full names of found repositories (e.g. `hashicorp/terraform`)
+- `names` - A list of found repository names (e.g. `terraform`)
+- `repo_ids` - (Optional) A list of found repository IDs (e.g. `449898861`)

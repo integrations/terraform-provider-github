@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get Actions variables of the organization
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve the list of variables of the organization.
+
+## Example Usage
+
+{{tffile "examples/data-sources/actions_organization_variables/example_1.tf"}}
+
+## Argument Reference
+
+## Attributes Reference
+
+- `variables` - list of variables for the repository
+    - `name` - Name of the variable
+    - `value` - Value of the variable
+    - `visibility` - Visibility of the variable
+    - `created_at` - Timestamp of the variable creation
+    - `updated_at` - Timestamp of the variable last update

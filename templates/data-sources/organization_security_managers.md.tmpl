@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get the security managers for an organization.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+~> **Note:** This data source is deprecated, please use the `github_organization_role_team` resource instead.
+
+Use this data source to retrieve the security managers for an organization.
+
+## Example Usage
+
+{{tffile "examples/data-sources/organization_security_managers/example_1.tf"}}
+
+## Attributes Reference
+
+- `teams` - An list of GitHub teams. Each `team` block consists of the fields documented below.
+
+---___
+
+The `team` block consists of:
+
+- `id` - Unique identifier of the team.
+- `slug` - Name based identifier of the team.
+- `name` - Name of the team.
+- `permission` - Permission that the team will have for its repositories.

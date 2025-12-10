@@ -1,0 +1,36 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Lookup all teams assigned to a custom organization role.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Lookup all teams assigned to a custom organization role.
+
+## Example Usage
+
+{{tffile "examples/data-sources/organization_role_teams/example_1.tf"}}
+
+## Schema
+
+### Required
+
+- `role_id` (Number) The ID of the organization role.
+
+### Read-Only
+
+- `teams` (Set of Object, see [schema](#nested-schema-for-teams)) Teams assigned to the organization role.
+
+## Nested Schema for `teams`
+
+### Read-Only
+
+- `team_id` (Number) The ID of the team.
+- `slug` (String) The Slug of the team name.
+- `name` (String) The name of the team.
+- `permission` (String) The permission that the team will have for its repositories.

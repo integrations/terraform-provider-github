@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get all custom properties of a repository
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve all custom properties of a repository.
+
+## Example Usage
+
+{{tffile "examples/data-sources/repository_custom_properties/example_1.tf"}}
+
+## Argument Reference
+
+- `repository` - (Required) Name of the repository to retrieve the custom properties from.
+
+## Attributes Reference
+
+- `property` - The list of this repository's custom properties. Each element of `property` has the following attributes:
+    - `property_name` - Name of the property
+    - `property_value` - Value of the property

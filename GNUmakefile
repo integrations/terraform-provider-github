@@ -1,12 +1,12 @@
 TEST?=$$(go list ./... |grep -v 'vendor')
-WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/golangci/misspell/cmd/misspell@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.24
 
 build: fmtcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -37,22 +37,14 @@ test-compile:
 	fi
 	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
-website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+docs-generate:
+	@echo "==> Generating docs..."
+	tfplugindocs generate
 
-website-lint:
-	@echo "==> Checking website against linters..."
-	@misspell -error -source=text website/
+docs-lint:
+	@echo "==> Checking docs against linters..."
+	@misspell -error -source=text docs/
+	@tfplugindocs validate
 
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt fmtcheck lint tools test-compile website website-lint website-test
+.PHONY: build test testacc fmt fmtcheck lint tools test-compile docs-generate docs-lint

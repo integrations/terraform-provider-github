@@ -1,0 +1,29 @@
+---
+page_title: "github_actions_secrets Data Source - terraform-provider-github
+description: |-
+  Get actions secrets for a repository
+---
+
+# github_actions_secrets (Data Source)
+
+Use this data source to retrieve the list of secrets for a GitHub repository.
+
+## Example Usage
+
+```terraform
+data "github_actions_secrets" "example" {
+  name = "example"
+}
+```
+
+## Argument Reference
+
+- `name` - (Optional) The name of the repository.
+- `full_name` - (Optional) Full name of the repository (in `org/name` format).
+
+## Attributes Reference
+
+- `secrets` - list of secrets for the repository
+    - `name` - Secret name
+    - `created_at` - Timestamp of the secret creation
+    - `updated_at` - Timestamp of the secret last update

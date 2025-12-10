@@ -1,0 +1,38 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Creates and manages an Action variable within a GitHub repository
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage GitHub Actions variables within your GitHub repositories. You must have write access to a repository to use this resource.
+
+## Example Usage
+
+{{tffile "examples/resources/actions_variable/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) Name of the repository
+- `variable_name` - (Required) Name of the variable
+- `value` - (Required) Value of the variable
+
+## Attributes Reference
+
+- `created_at` - Date of actions_variable creation.
+- `updated_at` - Date of actions_variable update.
+
+## Import
+
+GitHub Actions variables can be imported using an ID made up of `repository:variable_name`, e.g.
+
+```sh
+$ terraform import github_actions_variable.myvariable myrepo:myvariable
+```

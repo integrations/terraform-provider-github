@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Manages Actions and Reusable Workflow access for a GitHub repository
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to set the access level of a non-public repositories actions and reusable workflows for use in other repositories. You must have admin access to a repository to use this resource.
+
+## Example Usage
+
+{{tffile "examples/resources/actions_repository_access_level/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The GitHub repository
+- `access_level` - (Required) Where the actions or reusable workflows of the repository may be used. Possible values are `none`, `user`, `organization`, or `enterprise`.
+
+## Import
+
+This resource can be imported using the name of the GitHub repository:
+
+```sh
+$ terraform import github_actions_repository_access_level.test my-repository
+```

@@ -1,0 +1,35 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Lookup all custom repository roles in an organization.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Lookup all custom repository roles in an organization.
+
+~> **Note**: Custom organization repository roles are currently only available in GitHub Enterprise Cloud.
+
+## Example Usage
+
+{{tffile "examples/data-sources/organization_repository_roles/example_1.tf"}}
+
+## Schema
+
+### Read-Only
+
+- `roles` (Set of Object, see [schema](#nested-schema-for-roles)) Available organization repository roles.
+
+## Nested Schema for `roles`
+
+### Read-Only
+
+- `role_id` (Number) The ID of the organization repository role.
+- `name` (String) The name of the organization repository role.
+- `description` (String) The description of the organization repository role.
+- `base_role` (String) The system role from which this role inherits permissions.
+- `permissions` (Set of String) The permissions included in this role.

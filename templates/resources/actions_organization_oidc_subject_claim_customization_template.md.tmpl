@@ -1,0 +1,33 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Creates and manages an OpenID Connect subject claim customization template for an organization
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage an OpenID Connect subject claim customization template within a GitHub organization.
+
+More information on integrating GitHub with cloud providers using OpenID Connect and a list of available claims is available in the [Actions documentation](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect).
+
+## Example Usage
+
+{{tffile "examples/resources/actions_organization_oidc_subject_claim_customization_template/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `include_claim_keys` - (Required) A list of OpenID Connect claims.
+
+## Import
+
+This resource can be imported using the organization's name.
+
+```sh
+$ terraform import github_actions_organization_oidc_subject_claim_customization_template.test example_organization
+```

@@ -1,0 +1,49 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Provides a GitHub repository milestone resource.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub repository milestone resource.
+
+This resource allows you to create and manage milestones for a GitHub Repository within an organization or user account.
+
+## Example Usage
+
+{{tffile "examples/resources/repository_milestone/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `owner` - (Required) The owner of the GitHub Repository.
+
+- `repository` - (Required) The name of the GitHub Repository.
+
+- `title` - (Required) The title of the milestone.
+
+- `description` - (Optional) A description of the milestone.
+
+- `due_date` - (Optional) The milestone due date. In `yyyy-mm-dd` format.
+
+- `state` - (Optional) The state of the milestone. Either `open` or `closed`. Default: `open`
+
+## Attributes Reference
+
+The following additional attributes are exported:
+
+- `number` - The number of the milestone.
+
+## Import
+
+A GitHub Repository Milestone can be imported using an ID made up of `owner/repository/number`, e.g.
+
+```sh
+$ terraform import github_repository_milestone.example example-owner/example-repository/1
+```

@@ -8,10 +8,13 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() 
 	return &schema.Resource{
 		Read: dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead,
 
+		Description: "Use this data source to retrieve the OpenID Connect subject claim customization template for an organization",
+
 		Schema: map[string]*schema.Schema{
 			"include_claim_keys": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The list of OpenID Connect claim keys",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

@@ -1,0 +1,33 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}
+description: |-
+  Get information on all GitHub webhooks of the organization.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve all webhooks of the organization.
+
+## Example Usage
+
+To retrieve *all* webhooks of the organization:
+
+{{tffile "examples/data-sources/organization_webhooks/example_1.tf"}}
+
+## Attributes Reference
+
+- `webhooks` - An Array of GitHub Webhooks. Each `webhook` block consists of the fields documented below.
+
+---
+
+The `webhook` block consists of:
+
+- `id` - the ID of the webhook.
+- `type` - the type of the webhook.
+- `name` - the name of the webhook.
+- `url` - the url of the webhook.
+- `active` - `true` if the webhook is active.

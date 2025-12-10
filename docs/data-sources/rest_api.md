@@ -1,0 +1,29 @@
+---
+page_title: "github_rest_api Data Source - terraform-provider-github
+description: |-
+  Get information on a GitHub resource with a custom GET request to GitHub REST API.
+---
+
+# github_rest_api (Data Source)
+
+Use this data source to retrieve information about a GitHub resource through REST API.
+
+## Example Usage
+
+```terraform
+data "github_rest_api" "example" {
+  endpoint = "repos/example_repo/git/refs/heads/main"
+}
+```
+
+## Argument Reference
+
+- `endpoint` - (Required) REST API endpoint to send the GET request to.
+
+## Attributes Reference
+
+- `id` - The GitHub API Request ID
+- `code` - A response status code.
+- `status` - A response status string.
+- `headers` - A JSON string containing response headers.
+- `body` - A JSON string containing response body.
