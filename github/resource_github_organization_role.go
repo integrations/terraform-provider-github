@@ -103,7 +103,7 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 
 	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] organization role (%s/%d) not found, removing from state", orgName, roleId)

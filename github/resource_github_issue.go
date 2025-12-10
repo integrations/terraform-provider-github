@@ -153,7 +153,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	issue, resp, err := client.Issues.Get(ctx,
 		orgName, repoName, number)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

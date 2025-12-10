@@ -98,9 +98,9 @@ func resourceGithubProjectColumnRead(d *schema.ResourceData, meta any) error {
 
 	column, _, err := client.Projects.GetProjectColumn(ctx, columnID)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing project column %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
 				return nil

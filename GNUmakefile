@@ -8,17 +8,18 @@ tools:
 	go install github.com/client9/misspell/cmd/misspell@v0.3.4
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 
-build: fmtcheck
+build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
 
 fmt:
 	@echo "==> Fixing source code with golangci-lint..."
 	golangci-lint fmt ./...
 
-fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
 lint:
+	@echo "==> Checking source code against linters and fixing..."
+	golangci-lint run --fix ./...
+
+lintcheck:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
 
@@ -55,4 +56,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt fmtcheck lint tools test-compile website website-lint website-test
+.PHONY: build test testacc fmt lint lintcheck tools test-compile website website-lint website-test

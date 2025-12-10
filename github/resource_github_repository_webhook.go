@@ -142,7 +142,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta any) error
 
 	hook, _, err := client.Repositories.GetHook(ctx, owner, repoName, hookID)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

@@ -133,7 +133,7 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) er
 
 	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",

@@ -196,7 +196,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
@@ -339,7 +339,7 @@ func resourceGithubTeamDelete(d *schema.ResourceData, meta any) error {
 		// Fetch the team in order to see if it exists or not (http 404)
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {
-			ghErr := &github.ErrorResponse{}
+			var ghErr *github.ErrorResponse
 			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					// If team we failed to delete does not exist, remove it from TF state.
