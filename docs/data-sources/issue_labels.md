@@ -11,7 +11,7 @@ Use this data source to retrieve the labels for a given repository.
 ## Example Usage
 
 ```terraform
-data "github_labels" "test" {
+data "github_issue_labels" "test" {
   repository = "example_repository"
 }
 ```
