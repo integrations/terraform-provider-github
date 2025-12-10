@@ -605,8 +605,8 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("Validates rules.required_status_checks", func(t *testing.T) {
-		t.Run("required_check.context should not be empty", func(t *testing.T) {
+	t.Run("validates_rules__required_status_checks_block", func(t *testing.T) {
+		t.Run("required_check__context_block_should_not_be_empty", func(t *testing.T) {
 			resourceName := "test-required-status-checks-context-is-not-empty"
 			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
@@ -636,28 +636,18 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, resourceName, randomID)
 
-			testCase := func(t *testing.T, mode testMode) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config:      config,
-							ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
-						},
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
 					},
-				})
-			}
-
-			t.Run("with an enterprise account", func(t *testing.T) {
-				testCase(t, enterprise)
-			})
-
-			t.Run("with an organization account", func(t *testing.T) {
-				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+				},
 			})
 		})
-		t.Run("required_check should be required when strict_required_status_checks_policy is set", func(t *testing.T) {
+		t.Run("required_check_should_be_required_when_strict_required_status_checks_policy_is_set", func(t *testing.T) {
 			resourceName := "test-required-check-is-required"
 			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
@@ -685,25 +675,15 @@ resource "github_organization_ruleset" "test" {
 			}
 		`, resourceName, randomID)
 
-			testCase := func(t *testing.T, mode testMode) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config:      config,
-							ExpectError: regexp.MustCompile("Insufficient required_check blocks"),
-						},
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("Insufficient required_check blocks"),
 					},
-				})
-			}
-
-			t.Run("with an enterprise account", func(t *testing.T) {
-				testCase(t, enterprise)
-			})
-
-			t.Run("with an organization account", func(t *testing.T) {
-				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+				},
 			})
 		})
 	})
