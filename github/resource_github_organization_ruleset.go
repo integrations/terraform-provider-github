@@ -40,8 +40,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
-				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, `push` and `repository`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, and `push`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -91,7 +91,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. The `push` target does not require `ref_name` conditions. For `repository` target, the conditions object should only contain the `repository_name` and the `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. The `push` target does not require `ref_name` conditions.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -760,20 +760,6 @@ func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
-func validateConditionsFieldForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	target := d.Get("target").(string)
-	conditions := d.Get("conditions").([]any)[0].(map[string]any)
-	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"target": target, "conditions": conditions})
-
-	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-		return fmt.Errorf("ref_name must not be set for %s target", target)
-	}
-	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
-		return fmt.Errorf("repository_name or repository_id must be set for %s target", target)
-	}
-	return nil
-}
-
 func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
 	target := d.Get("target").(string)
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
@@ -789,8 +775,6 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 		return validateConditionsFieldForBranchAndTagTargets(ctx, d, meta)
 	case "push":
 		return validateConditionsFieldForPushTarget(ctx, d, meta)
-	case "repository":
-		return validateConditionsFieldForRepositoryTarget(ctx, d, meta)
 	}
 	return nil
 }

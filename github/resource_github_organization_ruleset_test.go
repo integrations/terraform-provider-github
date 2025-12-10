@@ -836,53 +836,6 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			})
 		})
 	})
-
-	t.Run("Validates repository target rejects ref_name", func(t *testing.T) {
-		resourceName := "test-repository-reject-ref-name"
-		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "%s" {
-				name        = "test-repo-with-ref-%s"
-				target      = "repository"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-					repository_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-				}
-			}
-		`, resourceName, randomID)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile("ref_name must not be set for repository target"),
-					},
-				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
-		})
-	})
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
