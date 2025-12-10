@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -180,21 +181,10 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T
 		`, randomID)
 
 		check2 := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_environment_deployment_policy.test", "repository",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_environment_deployment_policy.test", "environment",
-				"environment/test",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_environment_deployment_policy.test", "branch_pattern",
-				"release/*",
-			),
-			resource.TestCheckNoResourceAttr(
-				"github_repository_environment_deployment_policy.test", "tag_pattern",
-			),
+			resource.TestCheckResourceAttr("github_repository_environment_deployment_policy.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("github_repository_environment_deployment_policy.test", "environment", "environment/test"),
+			resource.TestCheckResourceAttr("github_repository_environment_deployment_policy.test", "branch_pattern", "release/*"),
+			resource.TestCheckNoResourceAttr("github_repository_environment_deployment_policy.test", "tag_pattern"),
 			testSameDeploymentPolicyId(
 				"github_repository_environment_deployment_policy.test",
 				&deploymentPolicyId,
@@ -720,6 +710,208 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyTagToBranchUpdate(t *test
 					{
 						Config: config2,
 						Check:  check2,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func TestAccGithubRepositoryEnvironmentDeploymentPolicyErrors(t *testing.T) {
+	t.Run("errors when no patterns are set", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("one of `branch_pattern,tag_pattern` must be specified"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("errors when both patterns are set", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository     = github_repository.test.name
+				environment    = github_repository_environment.test.environment
+				branch_pattern = "main"
+				tag_pattern    = "v*"
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("only one of `branch_pattern,tag_pattern` can be specified"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("errors when an empty branch pattern is set", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository     = github_repository.test.name
+				environment    = github_repository_environment.test.environment
+				branch_pattern = ""
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("`branch_pattern` must be a valid non-empty string"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("errors when an empty tag pattern is set", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-%s"
+				ignore_vulnerability_alerts_during_read = true
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository     = github_repository.test.name
+				environment    = github_repository_environment.test.environment
+				tag_pattern = ""
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("`tag_pattern` must be a valid non-empty string"),
 					},
 				},
 			})
