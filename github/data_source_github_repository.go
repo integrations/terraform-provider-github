@@ -21,13 +21,20 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"name"},
+				ConflictsWith: []string{"name", "owner"},
 			},
 			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
+			},
+			"owner": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"full_name"},
+				Description:   "Owner of the repository. If not provided, the provider's default owner is used.",
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -353,6 +360,9 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 	if name, ok := d.GetOk("name"); ok {
 		repoName = name.(string)
+	}
+	if ownerName, ok := d.GetOk("owner"); ok {
+		owner = ownerName.(string)
 	}
 
 	if repoName == "" {
