@@ -440,7 +440,7 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
+	if opts.Message == nil || *opts.Message == fmt.Sprintf("Add %s", file) {
 		m := fmt.Sprintf("Update %s", file)
 		opts.Message = &m
 	}
@@ -483,7 +483,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
+	if opts.Message == nil || *opts.Message == fmt.Sprintf("Add %s", file) {
 		m := fmt.Sprintf("Delete %s", file)
 		opts.Message = &m
 	}
