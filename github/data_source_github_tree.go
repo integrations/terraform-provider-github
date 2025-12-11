@@ -55,7 +55,7 @@ func dataSourceGithubTree() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubTreeRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
 	sha := d.Get("tree_sha").(string)
@@ -65,15 +65,14 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.Background()
 
 	tree, _, err := client.Git.GetTree(ctx, owner, repository, sha, recursive)
-
 	if err != nil {
 		return err
 	}
 
-	entries := make([]interface{}, 0, len(tree.Entries))
+	entries := make([]any, 0, len(tree.Entries))
 
 	for _, entry := range tree.Entries {
-		entries = append(entries, map[string]interface{}{
+		entries = append(entries, map[string]any{
 			"path": entry.Path,
 			"mode": entry.Mode,
 			"type": entry.Type,

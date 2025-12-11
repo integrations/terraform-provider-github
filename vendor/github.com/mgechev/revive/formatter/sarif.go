@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chavacava/garif"
+	"codeberg.org/chavacava/garif"
+
 	"github.com/mgechev/revive/lint"
 )
 
@@ -15,7 +16,7 @@ type Sarif struct {
 	Metadata lint.FormatterMetadata
 }
 
-// Name returns the name of the formatter
+// Name returns the name of the formatter.
 func (*Sarif) Name() string {
 	return "sarif"
 }
@@ -27,7 +28,7 @@ func (*Sarif) Format(failures <-chan lint.Failure, cfg lint.Config) (string, err
 	sarifLog := newReviveRunLog(cfg)
 
 	for failure := range failures {
-		sarifLog.AddResult(failure)
+		sarifLog.addResult(failure)
 	}
 
 	buf := new(bytes.Buffer)
@@ -72,7 +73,7 @@ func (l *reviveRunLog) addRules(cfg map[string]lint.RuleConfig) {
 	}
 }
 
-func (l *reviveRunLog) AddResult(failure lint.Failure) {
+func (l *reviveRunLog) addResult(failure lint.Failure) {
 	positiveOrZero := func(x int) int {
 		if x > 0 {
 			return x

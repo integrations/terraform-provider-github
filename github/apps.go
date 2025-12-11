@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
@@ -16,7 +18,7 @@ import (
 
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
 // The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
-func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string) (string, error) {
+func GenerateOAuthTokenFromApp(baseURL *url.URL, appID, appInstallationID, pemData string) (string, error) {
 	appJWT, err := generateAppJWT(appID, time.Now(), []byte(pemData))
 	if err != nil {
 		return "", err
@@ -30,14 +32,15 @@ func GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, pemData string
 	return token, nil
 }
 
-func getInstallationAccessToken(baseURL string, jwt string, installationID string) (string, error) {
-	if baseURL != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(baseURL) {
-		baseURL += "api/v3/"
+func getInstallationAccessToken(baseURL *url.URL, jwt, installationID string) (string, error) {
+	hostname := baseURL.Hostname()
+	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
+		baseURL.Path = path.Join(baseURL.Path, "api/v3/")
 	}
 
-	url := fmt.Sprintf("%sapp/installations/%s/access_tokens", baseURL, installationID)
+	baseURL.Path = path.Join(baseURL.Path, "app/installations/", installationID, "access_tokens")
 
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	req, err := http.NewRequest(http.MethodPost, baseURL.String(), nil)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +90,6 @@ func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error)
 		jose.SigningKey{Algorithm: jose.RS256, Key: privateKey},
 		(&jose.SignerOptions{}).WithType("JWT"),
 	)
-
 	if err != nil {
 		return "", err
 	}

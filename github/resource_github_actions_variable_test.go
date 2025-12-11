@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccGithubActionsVariable(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates and updates repository variables without error", func(t *testing.T) {
@@ -126,7 +125,6 @@ func TestAccGithubActionsVariable(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("imports repository variables without error", func(t *testing.T) {
