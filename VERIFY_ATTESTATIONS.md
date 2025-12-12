@@ -33,8 +33,9 @@ gh release download "v${version}" --repo integrations/terraform-provider-github 
 To verify the artifact attestations for this project, you can run the following command:
 
 ```bash
-gh attestation verify --repo integrations/terraform-provider-github \
-  terraform-provider-github_X.Y.Z_darwin_amd64.zip
+gh attestation verify --repo integrations/terraform-provider-github --source-ref "v${version}"\
+  --signer-workflow integrations/terraform-provider-github/.github/workflows/release.yaml \
+  "terraform-provider-github_X.Y.Z_darwin_amd64.zip"
 ```
 
 ### Using optional flags
