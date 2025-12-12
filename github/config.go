@@ -87,10 +87,11 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 	}
 
 	hostname := uv4.Hostname()
-	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
-		uv4.Path = path.Join(uv4.Path, "api/graphql/")
-	} else {
+	if hostname == DotComHost {
 		uv4.Path = path.Join(uv4.Path, "graphql")
+	} else {
+		// GHE Server and GHEC Data Residency hosts use /api/graphql/
+		uv4.Path = path.Join(uv4.Path, "api/graphql/")
 	}
 
 	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
@@ -103,7 +104,8 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 	}
 
 	hostname := uv3.Hostname()
-	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
+	if hostname != DotComHost {
+		// GHE Server and GHEC Data Residency hosts need /api/v3 path
 		uv3.Path = fmt.Sprintf("%s/", path.Join(uv3.Path, "api/v3"))
 	}
 

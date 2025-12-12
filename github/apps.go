@@ -34,7 +34,8 @@ func GenerateOAuthTokenFromApp(baseURL *url.URL, appID, appInstallationID, pemDa
 
 func getInstallationAccessToken(baseURL *url.URL, jwt, installationID string) (string, error) {
 	hostname := baseURL.Hostname()
-	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
+	if hostname != DotComHost {
+		// GHE Server and GHEC Data Residency hosts need /api/v3 path
 		baseURL.Path = path.Join(baseURL.Path, "api/v3/")
 	}
 
