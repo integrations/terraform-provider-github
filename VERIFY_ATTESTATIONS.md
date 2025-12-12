@@ -26,7 +26,8 @@ The `gh attestation verify` command requires either `--owner` or `--repo` flags 
 Download the release artifacts first:
 
 ```bash
-gh release download vX.Y.Z --repo integrations/terraform-provider-github -p "*.zip"
+version="x.y.z"
+gh release download "v${version}" --repo integrations/terraform-provider-github -p "*.zip"
 ```
 
 To verify the artifact attestations for this project, you can run the following command:
