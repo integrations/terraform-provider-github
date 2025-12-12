@@ -89,10 +89,10 @@ Verify the checksums file signature:
 
 ```bash
 cosign verify-blob \
-  --bundle terraform-provider-github_X.Y.Z_SHA256SUMS.sbom.json.bundle \
-  --certificate-identity-regexp "^https://github.com/integrations/terraform-provider-github" \
+  --bundle "terraform-provider-github_${version}_SHA256SUMS.sbom.json.bundle" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  terraform-provider-github_X.Y.Z_SHA256SUMS
+  --certificate-identity "https://github.com/integrations/terraform-provider-github/.github/workflows/release.yaml@refs/tags/v${version}" \
+  "terraform-provider-github_${version}_SHA256SUMS"
 ```
 
 ### Verify artifact checksums
