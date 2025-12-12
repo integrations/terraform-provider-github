@@ -21,7 +21,7 @@ To verify artifact attestations generated during the build process, use the `gh 
 The `gh attestation verify` command requires either `--owner` or `--repo` flags to be used with it.
 
 > [!NOTE]
-> Make sure to replace X.Y.Z with the actual release tag you want to verify.
+> Make sure to replace x.y.z with the actual release tag you want to verify.
 
 Download the release artifacts first:
 
@@ -35,7 +35,7 @@ To verify the artifact attestations for this project, you can run the following 
 ```bash
 gh attestation verify --repo integrations/terraform-provider-github --source-ref "v${version}"\
   --signer-workflow integrations/terraform-provider-github/.github/workflows/release.yaml \
-  "terraform-provider-github_X.Y.Z_darwin_amd64.zip"
+  "terraform-provider-github_${version}_darwin_amd64.zip"
 ```
 
 ### Using optional flags
@@ -47,7 +47,7 @@ Use the `--signer-repo` flag to specify the repository:
 ```bash
 gh attestation verify --owner integrations --signer-repo \
   integrations/terraform-provider-github \
-  terraform-provider-github_X.Y.Z_darwin_amd64.zip
+  terraform-provider-github_${version}_darwin_amd64.zip
 ```
 
 If you would like to require an artifact attestation to be signed with a specific workflow, use the `--signer-workflow` flag to indicate the workflow file that should be used.
@@ -55,7 +55,7 @@ If you would like to require an artifact attestation to be signed with a specifi
 ```bash
 gh attestation verify --owner integrations --signer-workflow \
   integrations/terraform-provider-github/.github/workflows/release.yaml \
-  terraform-provider-github_X.Y.Z_darwin_amd64.zip
+  terraform-provider-github_${version}_darwin_amd64.zip
 ```
 
 ## Verifying release artifacts with Cosign
@@ -80,9 +80,9 @@ First, install Cosign if you haven't already. See the [installation instructions
 Download the checksums file and its signature bundle:
 
 ```bash
-gh release download vX.Y.Z --repo integrations/terraform-provider-github \
-  -p "terraform-provider-github_X.Y.Z_SHA256SUMS" \
-  -p "terraform-provider-github_X.Y.Z_SHA256SUMS.sbom.json.bundle"
+gh release download v${version} --repo integrations/terraform-provider-github \
+  -p "terraform-provider-github_${version}_SHA256SUMS" \
+  -p "terraform-provider-github_${version}_SHA256SUMS.sbom.json.bundle"
 ```
 
 Verify the checksums file signature:
@@ -102,14 +102,14 @@ After verifying the checksums file, verify your downloaded artifacts match the c
 Download the artifact you want to verify:
 
 ```bash
-gh release download vX.Y.Z --repo integrations/terraform-provider-github \
-  -p "terraform-provider-github_X.Y.Z_darwin_amd64.zip"
+gh release download v${version} --repo integrations/terraform-provider-github \
+  -p "terraform-provider-github_${version}_darwin_amd64.zip"
 ```
 
 Verify the checksum:
 
 ```bash
-shasum -a 256 -c terraform-provider-github_X.Y.Z_SHA256SUMS --ignore-missing
+shasum -a 256 -c terraform-provider-github_${version}_SHA256SUMS --ignore-missing
 ```
 
 This will verify that your downloaded artifact matches the signed checksum, confirming its integrity and authenticity.
