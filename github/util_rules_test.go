@@ -473,3 +473,49 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 		t.Errorf("Expected review_draft_pull_requests to be false, got %v", copilotRules[0]["review_draft_pull_requests"])
 	}
 }
+
+func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
+	// Push rulesets don't use ref_name - they only have repository_name or repository_id.
+	// flattenConditions should return the conditions even when RefName is nil.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: nil, // Push rulesets don't have ref_name
+		RepositoryName: &github.RepositoryRulesetRepositoryNamesConditionParameters{
+			Include: []string{"~ALL"},
+			Exclude: []string{},
+		},
+	}
+
+	result := flattenConditions(conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be empty for push rulesets
+	refNameSlice, ok := conditionsMap["ref_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected ref_name to be []map[string]any, got %T", conditionsMap["ref_name"])
+	}
+	if len(refNameSlice) != 0 {
+		t.Errorf("Expected ref_name to be empty for push ruleset, got %d elements", len(refNameSlice))
+	}
+
+	// repository_name should be present
+	repoNameSlice, ok := conditionsMap["repository_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_name to be []map[string]any, got %T", conditionsMap["repository_name"])
+	}
+	if len(repoNameSlice) != 1 {
+		t.Fatalf("Expected 1 repository_name block, got %d", len(repoNameSlice))
+	}
+
+	include, ok := repoNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected include to be []string, got %T", repoNameSlice[0]["include"])
+	}
+	if len(include) != 1 || include[0] != "~ALL" {
+		t.Errorf("Expected include to be [~ALL], got %v", include)
+	}
+}
