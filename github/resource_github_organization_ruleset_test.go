@@ -709,7 +709,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				}
 
 				rules {
-					creation = true
+					# Push rulesets only support push-specific rules
+					max_file_size {
+						max_file_size = 100
+					}
 				}
 			}
 		`, resourceName, randomID)
@@ -722,6 +725,76 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					{
 						Config:      config,
 						ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Creates push ruleset with repository_name only", func(t *testing.T) {
+		resourceName := "test-push-repo-name-only"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Push rulesets only support push-specific rules:
+					# file_path_restriction, max_file_path_length, file_extension_restriction, max_file_size
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"name",
+				fmt.Sprintf("test-push-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"target",
+				"push",
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"enforcement",
+				"active",
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"rules.0.max_file_size.0.max_file_size",
+				"100",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
 					},
 				},
 			})
