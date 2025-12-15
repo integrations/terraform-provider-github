@@ -516,3 +516,112 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 		t.Errorf("Expected include to be [~ALL], got %v", include)
 	}
 }
+
+func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing.T) {
+	// Branch/tag rulesets have both ref_name and repository_name.
+	// This test ensures we didn't break the existing behavior.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: &github.RepositoryRulesetRefConditionParameters{
+			Include: []string{"~DEFAULT_BRANCH", "refs/heads/main"},
+			Exclude: []string{"refs/heads/experimental-*"},
+		},
+		RepositoryName: &github.RepositoryRulesetRepositoryNamesConditionParameters{
+			Include: []string{"~ALL"},
+			Exclude: []string{"test-*"},
+		},
+	}
+
+	result := flattenConditions(conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be present for branch/tag rulesets
+	refNameSlice, ok := conditionsMap["ref_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected ref_name to be []map[string]any, got %T", conditionsMap["ref_name"])
+	}
+	if len(refNameSlice) != 1 {
+		t.Fatalf("Expected 1 ref_name block, got %d", len(refNameSlice))
+	}
+
+	refInclude, ok := refNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected ref_name include to be []string, got %T", refNameSlice[0]["include"])
+	}
+	if len(refInclude) != 2 {
+		t.Errorf("Expected 2 ref_name includes, got %d", len(refInclude))
+	}
+
+	refExclude, ok := refNameSlice[0]["exclude"].([]string)
+	if !ok {
+		t.Fatalf("Expected ref_name exclude to be []string, got %T", refNameSlice[0]["exclude"])
+	}
+	if len(refExclude) != 1 {
+		t.Errorf("Expected 1 ref_name exclude, got %d", len(refExclude))
+	}
+
+	// repository_name should also be present
+	repoNameSlice, ok := conditionsMap["repository_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_name to be []map[string]any, got %T", conditionsMap["repository_name"])
+	}
+	if len(repoNameSlice) != 1 {
+		t.Fatalf("Expected 1 repository_name block, got %d", len(repoNameSlice))
+	}
+
+	repoInclude, ok := repoNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected repository_name include to be []string, got %T", repoNameSlice[0]["include"])
+	}
+	if len(repoInclude) != 1 || repoInclude[0] != "~ALL" {
+		t.Errorf("Expected repository_name include to be [~ALL], got %v", repoInclude)
+	}
+
+	repoExclude, ok := repoNameSlice[0]["exclude"].([]string)
+	if !ok {
+		t.Fatalf("Expected repository_name exclude to be []string, got %T", repoNameSlice[0]["exclude"])
+	}
+	if len(repoExclude) != 1 || repoExclude[0] != "test-*" {
+		t.Errorf("Expected repository_name exclude to be [test-*], got %v", repoExclude)
+	}
+}
+
+func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
+	// Push rulesets can also use repository_id instead of repository_name.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: nil, // Push rulesets don't have ref_name
+		RepositoryID: &github.RepositoryRulesetRepositoryIDsConditionParameters{
+			RepositoryIDs: []int64{12345, 67890},
+		},
+	}
+
+	result := flattenConditions(conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be nil for push rulesets
+	refNameSlice := conditionsMap["ref_name"]
+	if refNameSlice != nil {
+		t.Fatalf("Expected ref_name to be nil, got %T", conditionsMap["ref_name"])
+	}
+
+	// repository_id should be present
+	repoIDs, ok := conditionsMap["repository_id"].([]int64)
+	if !ok {
+		t.Fatalf("Expected repository_id to be []int64, got %T", conditionsMap["repository_id"])
+	}
+	if len(repoIDs) != 2 {
+		t.Fatalf("Expected 2 repository IDs, got %d", len(repoIDs))
+	}
+	if repoIDs[0] != 12345 || repoIDs[1] != 67890 {
+		t.Errorf("Expected repository IDs [12345, 67890], got %v", repoIDs)
+	}
+}
