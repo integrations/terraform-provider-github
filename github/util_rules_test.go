@@ -494,12 +494,9 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 	conditionsMap := result[0].(map[string]any)
 
 	// ref_name should be empty for push rulesets
-	refNameSlice, ok := conditionsMap["ref_name"].([]map[string]any)
-	if !ok {
-		t.Fatalf("Expected ref_name to be []map[string]any, got %T", conditionsMap["ref_name"])
-	}
-	if len(refNameSlice) != 0 {
-		t.Errorf("Expected ref_name to be empty for push ruleset, got %d elements", len(refNameSlice))
+	refNameSlice := conditionsMap["ref_name"]
+	if refNameSlice != nil {
+		t.Fatalf("Expected ref_name to be nil, got %T", conditionsMap["ref_name"])
 	}
 
 	// repository_name should be present

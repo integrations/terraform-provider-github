@@ -218,19 +218,21 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 }
 
 func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
-	if conditions == nil || conditions.RefName == nil {
+	if conditions == nil {
 		return []any{}
 	}
 
 	conditionsMap := make(map[string]any)
 	refNameSlice := make([]map[string]any, 0)
 
-	refNameSlice = append(refNameSlice, map[string]any{
-		"include": conditions.RefName.Include,
-		"exclude": conditions.RefName.Exclude,
-	})
+	if conditions.RefName != nil {
+		refNameSlice = append(refNameSlice, map[string]any{
+			"include": conditions.RefName.Include,
+			"exclude": conditions.RefName.Exclude,
+		})
 
-	conditionsMap["ref_name"] = refNameSlice
+		conditionsMap["ref_name"] = refNameSlice
+	}
 
 	// org-only fields
 	if org {
