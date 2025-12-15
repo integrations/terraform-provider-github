@@ -1,11 +1,13 @@
 package github
 
 import (
+	"context"
 	"log"
 	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -218,7 +220,12 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 }
 
 func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
+	return flattenConditionsWithContext(context.TODO(), conditions, org)
+}
+
+func flattenConditionsWithContext(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
 	if conditions == nil {
+		tflog.Debug(ctx, "Conditions are nil, returning empty list", map[string]any{"conditions": conditions})
 		return []any{}
 	}
 
