@@ -224,8 +224,8 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 }
 
 func flattenConditionsWithContext(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
-	if conditions == nil {
-		tflog.Debug(ctx, "Conditions are nil, returning empty list", map[string]any{"conditions": conditions})
+	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
+		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
 	}
 
