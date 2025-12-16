@@ -49,7 +49,13 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 
@@ -66,7 +72,7 @@ resource "github_repository_ruleset" "example_push" {
     }
     
     max_file_size {
-      max_file_size = 104857600  # 100 MB in bytes
+      max_file_size = 100  # 100 MB
     }
     
     max_file_path_length {
@@ -94,7 +100,7 @@ resource "github_repository_ruleset" "example_push" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
 
-* `repository` - (Optional) (String) Name of the repository to apply rulset to.
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
@@ -255,7 +261,7 @@ The `rules` block supports the following:
 
 #### rules.max_file_size ####
 
-* `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
 
 #### rules.max_file_path_length ####
 

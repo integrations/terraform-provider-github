@@ -144,7 +144,10 @@ func expandConditions(input []any, org bool) *github.RulesetConditions {
 				}
 			}
 
-			protected := inputRepositoryName["protected"].(bool)
+			protected, ok := inputRepositoryName["protected"].(bool)
+			if !ok {
+				protected = false
+			}
 
 			rulesetConditions.RepositoryName = &github.RulesetRepositoryNamesConditionParameters{
 				Include:   include,
@@ -277,7 +280,10 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			patternParametersMap := v[0].(map[string]any)
 
 			name := patternParametersMap["name"].(string)
-			negate := patternParametersMap["negate"].(bool)
+			negate, ok := patternParametersMap["negate"].(bool)
+			if !ok {
+				negate = false
+			}
 
 			params := &github.RulePatternParameters{
 				Name:     &name,
@@ -355,10 +361,17 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			}
 		}
 
-		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
+		doNotEnforceOnCreate, ok := requiredStatusMap["do_not_enforce_on_create"].(bool)
+		if !ok {
+			doNotEnforceOnCreate = false
+		}
+		strictRequiredStatusChecksPolicy, ok := requiredStatusMap["strict_required_status_checks_policy"].(bool)
+		if !ok {
+			strictRequiredStatusChecksPolicy = false
+		}
 		params := &github.RequiredStatusChecksRuleParameters{
 			RequiredStatusChecks:             requiredStatusChecks,
-			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
+			StrictRequiredStatusChecksPolicy: strictRequiredStatusChecksPolicy,
 			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredStatusChecksRule(params))
@@ -389,8 +402,13 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 			}
 		}
 
+		doNotEnforceOnCreate, ok := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
+		if !ok {
+			doNotEnforceOnCreate = false
+		}
+
 		params := &github.RequiredWorkflowsRuleParameters{
-			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
+			DoNotEnforceOnCreate: doNotEnforceOnCreate,
 			RequiredWorkflows:    requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
@@ -444,7 +462,7 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 	// max_file_size rule
 	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
 		maxFileSizeMap := v[0].(map[string]any)
-		maxFileSize := int64(maxFileSizeMap["max_file_size"].(float64))
+		maxFileSize := int64(maxFileSizeMap["max_file_size"].(int))
 		params := &github.RuleMaxFileSizeParameters{
 			MaxFileSize: maxFileSize,
 		}
@@ -467,13 +485,19 @@ func expandRules(input []any, org bool) []*github.RepositoryRule {
 	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]any)
 		restrictedFileExtensions := make([]string, 0)
-		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]any) {
+
+		// Handle schema.TypeSet
+		extensionSet := fileExtensionRestrictionMap["restricted_file_extensions"].(*schema.Set)
+		for _, extension := range extensionSet.List() {
 			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
 		}
-		params := &github.RuleFileExtensionRestrictionParameters{
-			RestrictedFileExtensions: restrictedFileExtensions,
+
+		if len(restrictedFileExtensions) > 0 {
+			params := &github.RuleFileExtensionRestrictionParameters{
+				RestrictedFileExtensions: restrictedFileExtensions,
+			}
+			rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
 		}
-		rulesSlice = append(rulesSlice, github.NewFileExtensionRestrictionRule(params))
 	}
 
 	return rulesSlice
@@ -650,6 +674,28 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []any {
 			rule["merge_method"] = params.MergeMethod
 			rule["min_entries_to_merge"] = params.MinEntriesToMerge
 			rule["min_entries_to_merge_wait_minutes"] = params.MinEntriesToMergeWaitMinutes
+			rulesMap[v.Type] = []map[string]any{rule}
+
+		case "required_code_scanning":
+			var params github.RequiredCodeScanningRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredCodeScanningToolSlice := make([]map[string]any, 0)
+			for _, tool := range params.RequiredCodeScanningTools {
+				requiredCodeScanningToolSlice = append(requiredCodeScanningToolSlice, map[string]any{
+					"alerts_threshold":          tool.AlertsThreshold,
+					"security_alerts_threshold": tool.SecurityAlertsThreshold,
+					"tool":                      tool.Tool,
+				})
+			}
+
+			rule := make(map[string]any)
+			rule["required_code_scanning_tool"] = requiredCodeScanningToolSlice
 			rulesMap[v.Type] = []map[string]any{rule}
 
 		case "file_path_restriction":

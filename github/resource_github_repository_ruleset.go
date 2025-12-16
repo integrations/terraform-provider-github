@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v67/github"
@@ -39,9 +40,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the repository to apply rulset to.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -539,9 +541,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_size": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The maximum allowed size of a file in bytes.",
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
 									},
 								},
 							},
@@ -601,8 +604,16 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) err
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
+	// Check if repository is archived - cannot create rulesets on archived repos (attempts PUT on read-only resource)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+	if repo.GetArchived() {
+		return fmt.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
+	}
+
 	var ruleset *github.Ruleset
-	var err error
 
 	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
 	if err != nil {
@@ -646,6 +657,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 				return nil
 			}
 		}
+		return err
 	}
 
 	if ruleset == nil {
@@ -683,6 +695,16 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 
 	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
+	// Check if repository is archived - skip update if it is
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return err
+	}
+	if repo.GetArchived() {
+		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
+		return nil
+	}
+
 	var ruleset *github.Ruleset
 	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
 	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
@@ -714,7 +736,7 @@ func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) err
 
 	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return err
+	return handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName)
 }
 
 func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {

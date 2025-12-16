@@ -78,14 +78,11 @@ func resourceGithubActionsEnvironmentVariableCreateOrUpdate(d *schema.ResourceDa
 	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
 	if err != nil {
 		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusConflict {
-				// Variable already exists, try to update instead
-				_, err = client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
-				if err != nil {
-					return err
-				}
-			} else {
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusConflict {
+			// Variable already exists, try to update instead
+			// If it fails here, we want to return the error otherwise continue
+			_, err = client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+			if err != nil {
 				return err
 			}
 		} else {
