@@ -895,7 +895,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	repoReq := resourceGithubRepositoryObject(d)
 
-	// handle visibility updates separately from other fields
+	// handle visibility updates separately from other fields // TODO: Review if this behaviour is still needed
 	repoReq.Visibility = nil
 
 	if !d.HasChange("security_and_analysis") {
@@ -983,7 +983,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	if d.HasChange("visibility") {
+	if d.HasChange("visibility") && !d.Get("archived").(bool) {
 		o, n := d.GetChange("visibility")
 		repoReq.Visibility = github.Ptr(n.(string))
 		log.Printf("[DEBUG] Updating repository visibility from %s to %s", o, n)
@@ -997,7 +997,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		log.Printf("[DEBUG] No visibility update required. visibility: %s", d.Get("visibility"))
 	}
 
-	if d.HasChange("private") {
+	if d.HasChange("private") && !d.Get("archived").(bool) {
 		o, n := d.GetChange("private")
 		repoReq.Private = github.Ptr(n.(bool))
 		log.Printf("[DEBUG] Updating repository privacy from %v to %v", o, n)
