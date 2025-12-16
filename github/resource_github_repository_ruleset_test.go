@@ -1095,6 +1095,8 @@ func TestGithubRepositoryRulesetArchived(t *testing.T) {
 				name      = "tf-acc-test-archive-%s"
 				auto_init = true
 				archived  = false
+
+				visibility = "private" # Enables test even in GHEC EMU
 			}
 			resource "github_repository_ruleset" "test" {
 				name        = "test"
@@ -1122,6 +1124,8 @@ func TestGithubRepositoryRulesetArchived(t *testing.T) {
 				name      = "tf-acc-test-archive-create-%s"
 				auto_init = true
 				archived  = true
+
+				visibility = "private" # Enables test even in GHEC EMU
 			}
 			resource "github_repository_ruleset" "test" {
 				name       = "test"
