@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -27,7 +28,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
-		CustomizeDiff: validateConditionsFieldBasedOnTarget,
+		CustomizeDiff: customdiff.All(
+			validateConditionsFieldBasedOnTarget,
+			validateRulesFieldBasedOnTarget,
+		),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -920,5 +924,126 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 	case "repository":
 		return validateConditionsFieldForRepositoryTarget(ctx, d, meta)
 	}
+	return nil
+}
+
+// branchTagOnlyRules contains rules that are only valid for branch and tag targets.
+//
+// These rules apply to ref-based operations (branches and tags) and are not supported
+// for push rulesets which operate on file content.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for organization rulesets:
+//     https://docs.github.com/en/rest/orgs/rules?apiVersion=2022-11-28#create-an-organization-repository-ruleset
+//  2. The API docs don't clearly separate push vs branch/tag rules. To verify,
+//     attempt to create a push ruleset via API or UI with each rule type.
+//     Push rulesets will reject branch/tag rules with "Invalid rule '<name>'" error.
+//  3. Generally, push rules deal with file content (paths, sizes, extensions),
+//     while branch/tag rules deal with ref lifecycle and merge requirements.
+var branchTagOnlyRules = []string{
+	"creation",
+	"update",
+	"deletion",
+	"required_linear_history",
+	"required_signatures",
+	"pull_request",
+	"required_status_checks",
+	"non_fast_forward",
+	"commit_message_pattern",
+	"commit_author_email_pattern",
+	"committer_email_pattern",
+	"branch_name_pattern",
+	"tag_name_pattern",
+	"required_workflows",
+	"required_code_scanning",
+}
+
+// pushOnlyRules contains rules that are only valid for push targets.
+//
+// These rules apply to push operations and control what content can be pushed
+// to repositories. They are not supported for branch or tag rulesets.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for organization rulesets:
+//     https://docs.github.com/en/rest/orgs/rules?apiVersion=2022-11-28#create-an-organization-repository-ruleset
+//  2. The API docs don't clearly separate push vs branch/tag rules. To verify,
+//     attempt to create a branch ruleset via API or UI with each rule type.
+//     Branch rulesets will reject push-only rules with an error.
+//  3. Push rules control file content: paths, sizes, extensions, path lengths.
+var pushOnlyRules = []string{
+	"file_path_restriction",
+	"max_file_path_length",
+	"file_extension_restriction",
+	"max_file_size",
+}
+
+func validateRulesForPushTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	tflog.Debug(ctx, "Validating rules for push target")
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	rules := rulesRaw[0].(map[string]any)
+
+	for _, ruleName := range branchTagOnlyRules {
+		ruleValue := rules[ruleName]
+		if ruleValue == nil {
+			continue
+		}
+		switch v := ruleValue.(type) {
+		case bool:
+			if v {
+				tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
+				return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
+			}
+		case []any:
+			if len(v) > 0 {
+				tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
+				return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
+			}
+		}
+	}
+	tflog.Debug(ctx, "Rules validation passed for push target")
+	return nil
+}
+
+func validateRulesForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating rules for branch/tag target", map[string]any{"target": target})
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	rules := rulesRaw[0].(map[string]any)
+
+	for _, ruleName := range pushOnlyRules {
+		ruleValue := rules[ruleName]
+		if ruleValue == nil {
+			continue
+		}
+		if ruleList, ok := ruleValue.([]any); ok && len(ruleList) > 0 {
+			tflog.Debug(ctx, "Invalid rule for branch/tag target", map[string]any{"rule": ruleName, "target": target})
+			return fmt.Errorf("rule %q is only valid for push target, not for %s target", ruleName, target)
+		}
+	}
+	tflog.Debug(ctx, "Rules validation passed for branch/tag target", map[string]any{"target": target})
+	return nil
+}
+
+func validateRulesFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating rules field based on target", map[string]any{"target": target})
+
+	switch target {
+	case "branch", "tag":
+		return validateRulesForBranchAndTagTargets(ctx, d, meta)
+	case "push":
+		return validateRulesForPushTarget(ctx, d, meta)
+	}
+
 	return nil
 }
