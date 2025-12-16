@@ -739,6 +739,100 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		})
 	})
 
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		resourceName := "test-push-reject-branch-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-branch-rule-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		resourceName := "test-branch-reject-push-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-branch-push-rule-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
 	t.Run("Creates push ruleset with repository_name only", func(t *testing.T) {
 		resourceName := "test-push-repo-name-only"
 		config := fmt.Sprintf(`
