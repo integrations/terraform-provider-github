@@ -885,7 +885,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// Can only update a repository if it is not archived or the update is to
-	// archive the repository (unarchiving is not supported by the GitHub API)
+	// archive the repository
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
 		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
