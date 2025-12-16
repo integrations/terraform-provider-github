@@ -1086,7 +1086,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 	})
 }
 
-func TestGithubRepositoryRulesetArchived(t *testing.T) {
+func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
