@@ -98,13 +98,15 @@ resource "github_repository_ruleset" "example_push" {
 
 - `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
+- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset condition. For `branch` and `tag` targets, `ref_name` is required. For `push` targets, `ref_name` must NOT be set - conditions are optional for push targets. (see [below for nested schema](#conditions))
 
 - `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
 The `rules` block supports the following:
+
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
 
 - `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applied to rulesets with target `branch`. (see [below for nested schema](#rulesbranch_name_pattern))
 
@@ -294,7 +296,7 @@ The `rules` block supports the following:
 
 #### conditions ####
 
-- `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
+- `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditionsref_name))
 
 #### conditions.ref_name ####
 
