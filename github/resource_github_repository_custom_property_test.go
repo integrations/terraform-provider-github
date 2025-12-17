@@ -12,7 +12,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	t.Skip("You need an org with custom properties already setup as described in the variables below") // TODO: at the time of writing org_custom_properties are not supported by this terraform provider, so cant be setup in the test itself for now
 	singleSelectPropertyName := "single-select"                                                        // Needs to be a of type single_select, and have "option1" as an option
 	multiSelectPropertyName := "multi-select"                                                          // Needs to be a of type multi_select, and have "option1" and "option2" as an options
-	trueFlasePropertyName := "true-false"                                                              // Needs to be a of type true_false
+	trueFalsePropertyName := "true-false"                                                              // Needs to be a of type true_false
 	stringPropertyName := "string"                                                                     // Needs to be a of type string
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -45,6 +45,12 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+					{
+						ResourceName:      "github_repository_custom_property.test",
+						ImportStateId:     fmt.Sprintf(`%s:tf-acc-test-%s:%s`, testOrganization, randomID, singleSelectPropertyName),
+						ImportState:       true,
+						ImportStateVerify: true,
 					},
 				},
 			})
@@ -93,6 +99,12 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 						Config: config,
 						Check:  checkWithOwner,
 					},
+					{
+						ResourceName:      "github_repository_custom_property.test",
+						ImportStateId:     fmt.Sprintf(`%s:tf-acc-test-%s:%s`, testOrganization, randomID, multiSelectPropertyName),
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
 				},
 			})
 		}
@@ -122,10 +134,10 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_type = "true_false"
 				property_value = ["true"]
 			}
-		`, randomID, trueFlasePropertyName)
+		`, randomID, trueFalsePropertyName)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", trueFlasePropertyName),
+			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", trueFalsePropertyName),
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "true"),
 		)
@@ -138,6 +150,12 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 					{
 						Config: config,
 						Check:  checkWithOwner,
+					},
+					{
+						ResourceName:      "github_repository_custom_property.test",
+						ImportStateId:     fmt.Sprintf(`%s:tf-acc-test-%s:%s`, testOrganization, randomID, trueFalsePropertyName),
+						ImportState:       true,
+						ImportStateVerify: true,
 					},
 				},
 			})
@@ -184,6 +202,12 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 					{
 						Config: config,
 						Check:  checkWithOwner,
+					},
+					{
+						ResourceName:      "github_repository_custom_property.test",
+						ImportStateId:     fmt.Sprintf(`%s:tf-acc-test-%s:%s`, testOrganization, randomID, stringPropertyName),
+						ImportState:       true,
+						ImportStateVerify: true,
 					},
 				},
 			})
