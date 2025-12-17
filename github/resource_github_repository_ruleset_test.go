@@ -576,6 +576,177 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
+	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-ref-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-with-ref"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-rules-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-branch-rule"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-branch-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-branch-push-rule"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-tag-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-tag-push-rule"
+				repository  = github_repository.test.id
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'file_path_restriction' is a push-only rule, not valid for tag target
+					file_path_restriction {
+						restricted_file_paths = ["secrets/"]
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+				},
+			},
+		})
+	})
+}
+
 func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName string) resource.ImportStateIdFunc {
 	// test importing using an ID of the form <repo-node-id>:<ruleset-id>
 	return func(s *terraform.State) (string, error) {
