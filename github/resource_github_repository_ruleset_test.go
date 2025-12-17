@@ -442,7 +442,7 @@ func TestAccGithubRepositoryRulesets(t *testing.T) {
 						restricted_file_paths = ["test.txt"]
 					 }
 					max_file_size {
-						max_file_size = 1048576
+						max_file_size = 10  # Value is in megabytes (MB), valid range is 1-100
 					}
 					file_extension_restriction {
 						 restricted_file_extensions = ["*.zip"]
@@ -466,7 +466,7 @@ func TestAccGithubRepositoryRulesets(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "rules.0.max_file_size.0.max_file_size",
-				"1048576",
+				"10",
 			),
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "rules.0.file_extension_restriction.0.restricted_file_extensions.0",
@@ -1183,6 +1183,238 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
 			},
+		})
+	})
+}
+
+func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		if isPaidPlan != "true" {
+			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
+		}
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-ref-%s"
+				auto_init    = true
+				visibility   = "internal"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-with-ref"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for push rulesets")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		if isPaidPlan != "true" {
+			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
+		}
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-rules-%s"
+				auto_init    = true
+				visibility   = "internal"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-branch-rule"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for push rulesets")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-branch-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-branch-push-rule"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-tag-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-tag-push-rule"
+				repository  = github_repository.test.id
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'file_path_restriction' is a push-only rule, not valid for tag target
+					file_path_restriction {
+						restricted_file_paths = ["secrets/"]
+					}
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
 		})
 	})
 }
