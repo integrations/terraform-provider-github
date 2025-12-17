@@ -1,0 +1,106 @@
+package github
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+func dataSourceGithubEnterpriseTeams() *schema.Resource {
+	return &schema.Resource{
+		Read: dataSourceGithubEnterpriseTeamsRead,
+
+		Schema: map[string]*schema.Schema{
+			"enterprise_slug": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The slug of the enterprise.",
+			},
+			"teams": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "All teams in the enterprise.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"team_id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The numeric ID of the enterprise team.",
+						},
+						"slug": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The slug of the enterprise team.",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the enterprise team.",
+						},
+						"description": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "A description of the enterprise team.",
+						},
+						"organization_selection_type": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Specifies which organizations in the enterprise should have access to this team.",
+						},
+						"group_id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the IdP group to assign team membership with.",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func dataSourceGithubEnterpriseTeamsRead(d *schema.ResourceData, meta any) error {
+	client := meta.(*Owner).v3client
+	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
+	if enterpriseSlug == "" {
+		return fmt.Errorf("enterprise_slug must not be empty")
+	}
+
+	ctx := context.Background()
+	teams, err := listEnterpriseTeams(ctx, client, enterpriseSlug)
+	if err != nil {
+		return err
+	}
+
+	flat := make([]any, 0, len(teams))
+	for _, t := range teams {
+		m := map[string]any{
+			"team_id": int(t.ID),
+			"slug":    t.Slug,
+			"name":    t.Name,
+		}
+		if t.Description != nil {
+			m["description"] = *t.Description
+		} else {
+			m["description"] = ""
+		}
+		orgSel := t.OrganizationSelectionType
+		if orgSel == "" {
+			orgSel = "disabled"
+		}
+		m["organization_selection_type"] = orgSel
+		if t.GroupID != nil {
+			m["group_id"] = *t.GroupID
+		} else {
+			m["group_id"] = ""
+		}
+		flat = append(flat, m)
+	}
+
+	d.SetId(enterpriseSlug)
+	_ = d.Set("enterprise_slug", enterpriseSlug)
+	_ = d.Set("teams", flat)
+	return nil
+}
