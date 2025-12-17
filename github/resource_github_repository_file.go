@@ -1,6 +1,7 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -314,9 +315,31 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		return nil
 	}
 
-	content, err := fc.GetContent()
-	if err != nil {
-		return err
+	encoding := fc.GetEncoding()
+
+	var content string
+
+	if encoding == "" || encoding == "none" {
+		rawURL := fc.GetURL()
+
+		req, err := client.NewRequest("GET", rawURL, nil)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Accept", "application/vnd.github.raw+json")
+
+		var buf bytes.Buffer
+		if _, err := client.Do(ctx, req, &buf); err != nil {
+			return err
+		}
+
+		content = buf.String()
+	} else {
+		content, err = fc.GetContent()
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = d.Set("content", content); err != nil {
