@@ -697,6 +697,14 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 
 	var ruleset *github.RepositoryRuleset
 
+	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
+		// Clear bypass actors first, then update with new ruleset
+		_, err = client.Organizations.UpdateRepositoryRulesetClearBypassActor(ctx, org, rulesetID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	ruleset, _, err = client.Organizations.UpdateRepositoryRuleset(ctx, org, rulesetID, *rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)

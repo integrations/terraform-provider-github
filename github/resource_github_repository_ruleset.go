@@ -724,7 +724,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 
 	var ruleset *github.RepositoryRuleset
 
-	if d.HasChange("bypass_actors") {
+	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
 		// Clear bypass actors first, then update with new ruleset
 		_, err = client.Repositories.UpdateRulesetClearBypassActor(ctx, owner, repoName, rulesetID)
 		if err != nil {
