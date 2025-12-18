@@ -6,24 +6,33 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationRulesetCreate,
-		Read:   resourceGithubOrganizationRulesetRead,
-		Update: resourceGithubOrganizationRulesetUpdate,
-		Delete: resourceGithubOrganizationRulesetDelete,
+		CreateContext: resourceGithubOrganizationRulesetCreate,
+		ReadContext:   resourceGithubOrganizationRulesetRead,
+		UpdateContext: resourceGithubOrganizationRulesetUpdate,
+		DeleteContext: resourceGithubOrganizationRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubOrganizationRulesetImport,
+			StateContext: resourceGithubOrganizationRulesetImport,
 		},
 
 		SchemaVersion: 1,
+
+		CustomizeDiff: customdiff.All(
+			validateConditionsFieldBasedOnTarget,
+			validateRulesFieldBasedOnTarget,
+		),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -36,16 +45,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, and `push`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
+				Description:  "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
 			},
 			"bypass_actors": {
-				Type:             schema.TypeList,
+				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
 				Optional:         true,
 				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
 				Description:      "The actors that can bypass the rules in this ruleset.",
@@ -61,7 +70,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
+							Description:  "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -86,13 +95,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` targets. One of `repository_name` or `repository_id` is always required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -118,6 +128,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
+							Description:  "Targets repositories that match the specified name patterns.",
 							ExactlyOneOf: []string{"conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
@@ -197,6 +208,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"allowed_merge_methods": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
+										Elem: &schema.Schema{
+											Type:             schema.TypeString,
+											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -245,9 +266,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"context": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The status check context name that must be present on the commit.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+													Description:      "The status check context name that must be present on the commit.",
 												},
 												"integration_id": {
 													Type:        schema.TypeInt,
@@ -275,7 +297,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Prevent users with push access from force pushing to branches.",
+							Description: "Prevent users with push access from force pushing to refs.",
 						},
 						"commit_message_pattern": {
 							Type:        schema.TypeList,
@@ -454,9 +476,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Description: "The repository in which the workflow is defined.",
 												},
 												"path": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The path to the workflow YAML definition file.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory"), "path"),
+													Description:      "The path to the workflow YAML definition file.",
 												},
 												"ref": {
 													Type:        schema.TypeString,
@@ -578,43 +601,43 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset for caching purposes.",
 			},
 		},
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
 
 	org := meta.(*Owner).name
-	ctx := context.Background()
 
 	var ruleset *github.RepositoryRuleset
 	var err error
 
 	ruleset, _, err = client.Organizations.CreateRepositoryRuleset(ctx, org, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -636,7 +659,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ruleset == nil {
@@ -651,7 +674,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 	_ = d.Set("target", ruleset.GetTarget())
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
+	_ = d.Set("conditions", flattenConditionsWithContext(ctx, ruleset.GetConditions(), true))
 	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("ruleset_id", ruleset.ID)
@@ -659,7 +682,7 @@ func resourceGithubOrganizationRulesetRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, meta.(*Owner).name)
@@ -667,38 +690,46 @@ func resourceGithubOrganizationRulesetUpdate(d *schema.ResourceData, meta any) e
 	org := meta.(*Owner).name
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	var ruleset *github.RepositoryRuleset
 
+	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
+		// Clear bypass actors first, then update with new ruleset
+		_, err = client.Organizations.UpdateRepositoryRulesetClearBypassActor(ctx, org, rulesetID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	ruleset, _, err = client.Organizations.UpdateRepositoryRuleset(ctx, org, rulesetID, *rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubOrganizationRulesetRead(d, meta)
+	return resourceGithubOrganizationRulesetRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationRulesetDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
+	ctx = context.WithValue(ctx, ctxId, rulesetID)
 
 	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", org, rulesetID)
 	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, org, rulesetID)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
@@ -710,7 +741,6 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
-	ctx := context.Background()
 
 	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, org, rulesetID)
 	if ruleset == nil || err != nil {
@@ -719,4 +749,168 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	conditions := d.Get("conditions").([]any)[0].(map[string]any)
+	tflog.Debug(ctx, "Validating conditions field for branch and tag targets", map[string]any{"target": target, "conditions": conditions})
+	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
+		return fmt.Errorf("ref_name must be set for %s target", target)
+	}
+	if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
+		return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
+	}
+	return nil
+}
+
+func validateConditionsFieldForPushTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	conditions := d.Get("conditions").([]any)[0].(map[string]any)
+	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": target, "conditions": conditions})
+
+	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+		return fmt.Errorf("ref_name must not be set for %s target", target)
+	}
+	return nil
+}
+
+func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
+	conditionsRaw := d.Get("conditions").([]any)
+
+	if len(conditionsRaw) == 0 {
+		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
+		return nil
+	}
+
+	switch target {
+	case "branch", "tag":
+		return validateConditionsFieldForBranchAndTagTargets(ctx, d, meta)
+	case "push":
+		return validateConditionsFieldForPushTarget(ctx, d, meta)
+	}
+	return nil
+}
+
+// branchTagOnlyRules contains rules that are only valid for branch and tag targets.
+//
+// These rules apply to ref-based operations (branches and tags) and are not supported
+// for push rulesets which operate on file content.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for organization rulesets:
+//     https://docs.github.com/en/rest/orgs/rules?apiVersion=2022-11-28#create-an-organization-repository-ruleset
+//  2. The API docs don't clearly separate push vs branch/tag rules. To verify,
+//     attempt to create a push ruleset via API or UI with each rule type.
+//     Push rulesets will reject branch/tag rules with "Invalid rule '<name>'" error.
+//  3. Generally, push rules deal with file content (paths, sizes, extensions),
+//     while branch/tag rules deal with ref lifecycle and merge requirements.
+var branchTagOnlyRules = []string{
+	"creation",
+	"update",
+	"deletion",
+	"required_linear_history",
+	"required_signatures",
+	"pull_request",
+	"required_status_checks",
+	"non_fast_forward",
+	"commit_message_pattern",
+	"commit_author_email_pattern",
+	"committer_email_pattern",
+	"branch_name_pattern",
+	"tag_name_pattern",
+	"required_workflows",
+	"required_code_scanning",
+}
+
+// pushOnlyRules contains rules that are only valid for push targets.
+//
+// These rules apply to push operations and control what content can be pushed
+// to repositories. They are not supported for branch or tag rulesets.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for organization rulesets:
+//     https://docs.github.com/en/rest/orgs/rules?apiVersion=2022-11-28#create-an-organization-repository-ruleset
+//  2. The API docs don't clearly separate push vs branch/tag rules. To verify,
+//     attempt to create a branch ruleset via API or UI with each rule type.
+//     Branch rulesets will reject push-only rules with an error.
+//  3. Push rules control file content: paths, sizes, extensions, path lengths.
+var pushOnlyRules = []string{
+	"file_path_restriction",
+	"max_file_path_length",
+	"file_extension_restriction",
+	"max_file_size",
+}
+
+func validateRulesForPushTarget(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	tflog.Debug(ctx, "Validating rules for push target")
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	rules := rulesRaw[0].(map[string]any)
+
+	for _, ruleName := range branchTagOnlyRules {
+		ruleValue := rules[ruleName]
+		if ruleValue == nil {
+			continue
+		}
+		switch v := ruleValue.(type) {
+		case bool:
+			if v {
+				tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
+				return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
+			}
+		case []any:
+			if len(v) > 0 {
+				tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
+				return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
+			}
+		}
+	}
+	tflog.Debug(ctx, "Rules validation passed for push target")
+	return nil
+}
+
+func validateRulesForBranchAndTagTargets(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating rules for branch/tag target", map[string]any{"target": target})
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	rules := rulesRaw[0].(map[string]any)
+
+	for _, ruleName := range pushOnlyRules {
+		ruleValue := rules[ruleName]
+		if ruleValue == nil {
+			continue
+		}
+		if ruleList, ok := ruleValue.([]any); ok && len(ruleList) > 0 {
+			tflog.Debug(ctx, "Invalid rule for branch/tag target", map[string]any{"rule": ruleName, "target": target})
+			return fmt.Errorf("rule %q is only valid for push target, not for %s target", ruleName, target)
+		}
+	}
+	tflog.Debug(ctx, "Rules validation passed for branch/tag target", map[string]any{"target": target})
+	return nil
+}
+
+func validateRulesFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating rules field based on target", map[string]any{"target": target})
+
+	switch target {
+	case "branch", "tag":
+		return validateRulesForBranchAndTagTargets(ctx, d, meta)
+	case "push":
+		return validateRulesForPushTarget(ctx, d, meta)
+	}
+
+	return nil
 }
