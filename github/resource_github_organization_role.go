@@ -84,6 +84,9 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
+	if err = d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
