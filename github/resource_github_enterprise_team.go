@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	githubv3 "github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -17,11 +18,11 @@ import (
 
 func resourceGithubEnterpriseTeam() *schema.Resource {
 	return &schema.Resource{
-		Create:   resourceGithubEnterpriseTeamCreate,
-		Read:     resourceGithubEnterpriseTeamRead,
-		Update:   resourceGithubEnterpriseTeamUpdate,
-		Delete:   resourceGithubEnterpriseTeamDelete,
-		Importer: &schema.ResourceImporter{State: resourceGithubEnterpriseTeamImport},
+		CreateContext: resourceGithubEnterpriseTeamCreate,
+		ReadContext:   resourceGithubEnterpriseTeamRead,
+		UpdateContext: resourceGithubEnterpriseTeamUpdate,
+		DeleteContext: resourceGithubEnterpriseTeamDelete,
+		Importer:      &schema.ResourceImporter{StateContext: resourceGithubEnterpriseTeamImport},
 
 		CustomizeDiff: customdiff.Sequence(
 			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
@@ -75,7 +76,7 @@ func resourceGithubEnterpriseTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseTeamCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
@@ -93,26 +94,26 @@ func resourceGithubEnterpriseTeamCreate(d *schema.ResourceData, meta any) error 
 		req.GroupID = githubv3.String(groupID)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	te, _, err := createEnterpriseTeam(ctx, client, enterpriseSlug, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(te.ID, 10))
-	return resourceGithubEnterpriseTeamRead(d, meta)
+	return resourceGithubEnterpriseTeamRead(context.WithValue(ctx, ctxId, d.Id()), d, meta)
 }
 
-func resourceGithubEnterpriseTeamRead(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
 	teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// Try to fetch by slug first (faster), but if the team was renamed we need
 	// to fall back to listing all teams and matching by numeric ID.
@@ -125,7 +126,7 @@ func resourceGithubEnterpriseTeamRead(d *schema.ResourceData, meta any) error {
 			} else {
 				ghErr := &githubv3.ErrorResponse{}
 				if errors.As(getErr, &ghErr) && ghErr.Response.StatusCode != http.StatusNotFound {
-					return getErr
+					return diag.FromErr(getErr)
 				}
 			}
 		}
@@ -134,7 +135,7 @@ func resourceGithubEnterpriseTeamRead(d *schema.ResourceData, meta any) error {
 	if te == nil {
 		te, err = findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if te == nil {
 			log.Printf("[INFO] Removing enterprise team %s/%s from state because it no longer exists in GitHub", enterpriseSlug, d.Id())
@@ -144,47 +145,47 @@ func resourceGithubEnterpriseTeamRead(d *schema.ResourceData, meta any) error {
 	}
 
 	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("name", te.Name); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if te.Description != nil {
 		if err = d.Set("description", *te.Description); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		if err = d.Set("description", ""); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if err = d.Set("slug", te.Slug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("team_id", int(te.ID)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	orgSelection := te.OrganizationSelectionType
 	if orgSelection == "" {
 		orgSelection = "disabled"
 	}
 	if err = d.Set("organization_selection_type", orgSelection); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if te.GroupID != nil {
 		if err = d.Set("group_id", *te.GroupID); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		if err = d.Set("group_id", ""); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseTeamUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
@@ -193,15 +194,15 @@ func resourceGithubEnterpriseTeamUpdate(d *schema.ResourceData, meta any) error 
 	if teamSlug == "" {
 		teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(d.Id(), err)
+			return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 		}
-		ctx := context.WithValue(context.Background(), ctxId, d.Id())
+		ctx = context.WithValue(ctx, ctxId, d.Id())
 		te, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if te == nil {
-			return fmt.Errorf("enterprise team %s no longer exists", d.Id())
+			return diag.FromErr(fmt.Errorf("enterprise team %s no longer exists", d.Id()))
 		}
 		teamSlug = te.Slug
 	}
@@ -220,29 +221,29 @@ func resourceGithubEnterpriseTeamUpdate(d *schema.ResourceData, meta any) error 
 		req.GroupID = githubv3.String(groupID)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	_, _, err := updateEnterpriseTeam(ctx, client, enterpriseSlug, teamSlug, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubEnterpriseTeamRead(d, meta)
+	return resourceGithubEnterpriseTeamRead(ctx, d, meta)
 }
 
-func resourceGithubEnterpriseTeamDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	teamSlug := strings.TrimSpace(d.Get("slug").(string))
 	if teamSlug == "" {
 		teamID, err := strconv.ParseInt(d.Id(), 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(d.Id(), err)
+			return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 		}
 		te, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if te == nil {
 			return nil
@@ -259,13 +260,13 @@ func resourceGithubEnterpriseTeamDelete(d *schema.ResourceData, meta any) error 
 			return nil
 		}
 		_ = resp
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseTeamImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseTeamImport(_ context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	// Import format: <enterprise_slug>/<team_id>
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 2 {

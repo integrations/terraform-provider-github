@@ -8,15 +8,16 @@ import (
 	"net/http"
 
 	githubv3 "github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 	return &schema.Resource{
-		Create:   resourceGithubEnterpriseTeamMembershipCreate,
-		Read:     resourceGithubEnterpriseTeamMembershipRead,
-		Delete:   resourceGithubEnterpriseTeamMembershipDelete,
-		Importer: &schema.ResourceImporter{State: resourceGithubEnterpriseTeamMembershipImport},
+		CreateContext: resourceGithubEnterpriseTeamMembershipCreate,
+		ReadContext:   resourceGithubEnterpriseTeamMembershipRead,
+		DeleteContext: resourceGithubEnterpriseTeamMembershipDelete,
+		Importer:      &schema.ResourceImporter{StateContext: resourceGithubEnterpriseTeamMembershipImport},
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -42,44 +43,44 @@ func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseTeamMembershipCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamMembershipCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	enterpriseTeam := d.Get("enterprise_team").(string)
 	username := d.Get("username").(string)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// The API is idempotent, so we don't need to check if they're already a member
 	_, err := addEnterpriseTeamMember(ctx, client, enterpriseSlug, enterpriseTeam, username)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// NOTE: enterprise team slugs have the "ent:" prefix, so we must not use
 	// colon-delimited IDs here.
 	d.SetId(buildSlashThreePartID(enterpriseSlug, enterpriseTeam, username))
-	return resourceGithubEnterpriseTeamMembershipRead(d, meta)
+	return resourceGithubEnterpriseTeamMembershipRead(context.WithValue(ctx, ctxId, d.Id()), d, meta)
 }
 
-func resourceGithubEnterpriseTeamMembershipRead(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug, enterpriseTeam, username, err := parseSlashThreePartID(d.Id(), "enterprise_slug", "enterprise_team", "username")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("enterprise_team", enterpriseTeam); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("username", username); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	_, err = getEnterpriseTeamMembership(ctx, client, enterpriseSlug, enterpriseTeam, username)
 	if err != nil {
 		ghErr := &githubv3.ErrorResponse{}
@@ -90,19 +91,19 @@ func resourceGithubEnterpriseTeamMembershipRead(d *schema.ResourceData, meta any
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseTeamMembershipDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	enterpriseTeam := d.Get("enterprise_team").(string)
 	username := d.Get("username").(string)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	resp, err := removeEnterpriseTeamMember(ctx, client, enterpriseSlug, enterpriseTeam, username)
 	if err != nil {
 		ghErr := &githubv3.ErrorResponse{}
@@ -110,13 +111,13 @@ func resourceGithubEnterpriseTeamMembershipDelete(d *schema.ResourceData, meta a
 			return nil
 		}
 		_ = resp
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseTeamMembershipImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseTeamMembershipImport(_ context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	enterpriseSlug, enterpriseTeam, username, err := parseSlashThreePartID(d.Id(), "enterprise_slug", "enterprise_team", "username")
 	if err != nil {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>/<enterprise_team>/<username>")

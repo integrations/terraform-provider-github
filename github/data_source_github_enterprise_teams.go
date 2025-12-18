@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubEnterpriseTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEnterpriseTeamsRead,
+		ReadContext: dataSourceGithubEnterpriseTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -61,17 +62,15 @@ func dataSourceGithubEnterpriseTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseTeamsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubEnterpriseTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 	if enterpriseSlug == "" {
-		return fmt.Errorf("enterprise_slug must not be empty")
+		return diag.FromErr(fmt.Errorf("enterprise_slug must not be empty"))
 	}
-
-	ctx := context.Background()
 	teams, err := listEnterpriseTeams(ctx, client, enterpriseSlug)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	flat := make([]any, 0, len(teams))
@@ -100,7 +99,11 @@ func dataSourceGithubEnterpriseTeamsRead(d *schema.ResourceData, meta any) error
 	}
 
 	d.SetId(enterpriseSlug)
-	_ = d.Set("enterprise_slug", enterpriseSlug)
-	_ = d.Set("teams", flat)
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("teams", flat); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
