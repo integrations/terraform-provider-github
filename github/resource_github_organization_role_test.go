@@ -12,7 +12,6 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	t.Run("can create an empty organization role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
-		baseRole := "none"
 		config := fmt.Sprintf(`
 			resource "github_organization_role" "test" {
 				name        = "%s"
@@ -30,7 +29,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "role_id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
-						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", baseRole),
+						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", "none"),
 						resource.TestCheckNoResourceAttr("github_organization_role.test", "permissions"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "0"),
 					),
