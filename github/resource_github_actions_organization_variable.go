@@ -156,7 +156,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 
 	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, name)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",

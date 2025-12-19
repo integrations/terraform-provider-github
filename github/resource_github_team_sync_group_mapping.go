@@ -105,7 +105,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

@@ -115,9 +115,9 @@ func resourceGithubProjectCardRead(d *schema.ResourceData, meta any) error {
 	log.Printf("[DEBUG] Reading project card: %s", nodeID)
 	card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing project card %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
 				return nil

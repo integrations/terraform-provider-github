@@ -67,7 +67,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, _, err := client.Users.GetGPGKey(ctx, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

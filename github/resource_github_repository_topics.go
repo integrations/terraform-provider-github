@@ -72,7 +72,7 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error 
 
 	topics, _, err := client.Repositories.ListAllTopics(ctx, owner, repoName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

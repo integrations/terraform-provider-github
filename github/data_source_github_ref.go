@@ -52,9 +52,9 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
 
 	refData, resp, err := client.Git.GetRef(context.TODO(), owner, repoName, ref)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", owner, repoName, ref)
 				d.SetId("")
 				return nil

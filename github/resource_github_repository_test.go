@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -2026,7 +2027,12 @@ func TestAccGithubRepository_fork(t *testing.T) {
 }
 
 func createForkedRepository(repositoryName string) error {
-	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganizationFunc(), Token: testToken}
+	baseURL, isGHES, err := getBaseURL(os.Getenv("GITHUB_BASE_URL"))
+	if err != nil {
+		return err
+	}
+
+	config := Config{BaseURL: baseURL, IsGHES: isGHES, Owner: testOrganizationFunc(), Token: testToken}
 	meta, err := config.Meta()
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)

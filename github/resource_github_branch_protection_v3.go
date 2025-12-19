@@ -282,7 +282,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {

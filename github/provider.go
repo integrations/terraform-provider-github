@@ -340,7 +340,6 @@ func init() {
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
-		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
 
@@ -360,15 +359,15 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 		// END backwards compatibility
 
+		baseURL, isGHES, err := getBaseURL(d.Get("base_url").(string))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
 		org := d.Get("organization").(string)
 		if org != "" {
 			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
 			owner = org
-		}
-
-		bu, err := validateBaseURL(baseURL)
-		if err != nil {
-			return nil, diag.FromErr(err)
 		}
 
 		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
@@ -401,7 +400,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
-			appToken, err := GenerateOAuthTokenFromApp(bu, appID, appInstallationID, appPemFile)
+			apiPath := ""
+			if isGHES {
+				apiPath = GHESRESTAPIPath
+			}
+
+			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})
 			}
@@ -410,7 +414,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 
 		if token == "" {
-			token = tokenFromGHCLI(bu)
+			token = tokenFromGHCLI(baseURL)
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
@@ -472,6 +476,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			RetryableErrors:  retryableErrors,
 			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
+			IsGHES:           isGHES,
 		}
 
 		meta, err := config.Meta()
@@ -483,30 +488,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	}
 }
 
-// validateBaseURL checks that the provided base URL is valid and can be used.
-func validateBaseURL(b string) (*url.URL, error) {
-	u, err := url.Parse(b)
-	if err != nil {
-		return nil, err
-	}
-
-	if !u.IsAbs() {
-		return nil, fmt.Errorf("base_url must be absolute")
-	}
-
-	hostname := u.Hostname()
-	if hostname == DotComHost || GHECDataResidencyHostMatch.MatchString(hostname) {
-		if u.Scheme != "https" {
-			return nil, fmt.Errorf("base_url for github.com or ghe.com must use the https scheme")
-		}
-		if len(u.Path) > 1 {
-			return nil, fmt.Errorf("base_url for github.com or ghe.com must not contain a path, got %s", u.Path)
-		}
-	}
-
-	return u, err
-}
-
 // See https://github.com/integrations/terraform-provider-github/issues/1822
 func tokenFromGHCLI(u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
@@ -515,8 +496,8 @@ func tokenFromGHCLI(u *url.URL) string {
 	}
 
 	host := u.Host
-	if u.Hostname() == DotComHost {
-		host = "github.com"
+	if host == DotComAPIHost {
+		host = DotComHost
 	}
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()

@@ -1,4 +1,4 @@
-name: GitHub Actions CI
+name: CI
 
 on:
   push:
@@ -21,11 +21,11 @@ jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash
-    env:
-      GITHUB_TEST_ORGANIZATION: kfcampbell-terraform-provider
     steps:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -35,7 +35,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - run: make tools
-      - run: make lint
+      - run: make lintcheck
       - run: make website-lint
       - run: make build
       - run: make test

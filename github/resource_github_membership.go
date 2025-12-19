@@ -102,7 +102,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
 		username, orgName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
@@ -152,7 +152,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 		var membership *github.Membership
 		membership, _, err = client.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
-			ghErr := &github.ErrorResponse{}
+			var ghErr *github.ErrorResponse
 			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)

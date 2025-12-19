@@ -23,6 +23,9 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
+				if err := d.Set("destroy_on_drift", true); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -161,7 +164,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 
 	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",

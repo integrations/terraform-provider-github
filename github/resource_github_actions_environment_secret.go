@@ -131,7 +131,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
@@ -145,7 +145,7 @@ func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta any
 
 	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
