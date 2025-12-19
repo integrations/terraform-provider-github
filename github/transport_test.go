@@ -263,7 +263,7 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 		t.Fatal("Expected 422 error, got nil")
 	}
 
-	ghErr := &github.ErrorResponse{}
+	var ghErr *github.ErrorResponse
 	ok := errors.As(err, &ghErr)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
@@ -396,7 +396,7 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 		t.Fatal("Expected error not to be nil")
 	}
 
-	ghErr := &github.ErrorResponse{}
+	var ghErr *github.ErrorResponse
 	ok := errors.As(err, &ghErr)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
@@ -459,7 +459,7 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 		t.Fatalf("Expected error to be nil, got %v", err)
 	}
 
-	ghErr := &github.ErrorResponse{}
+	var ghErr *github.ErrorResponse
 	ok := errors.As(err, &ghErr)
 	if ok {
 		t.Fatalf("Expected successful github call, got: %q", ghErr.Message)

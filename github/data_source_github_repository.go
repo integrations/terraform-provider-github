@@ -361,9 +361,9 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
 				d.SetId("")
 				return nil

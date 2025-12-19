@@ -159,7 +159,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	githubLabel, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, name)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

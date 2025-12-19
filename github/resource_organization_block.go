@@ -68,7 +68,7 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
 
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
