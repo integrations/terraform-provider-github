@@ -78,7 +78,11 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 }
 
 func testAccCheckOrganization() error {
-	baseURL := os.Getenv("GITHUB_BASE_URL")
+	baseURL, isGHES, err := getBaseURL(os.Getenv("GITHUB_BASE_URL"))
+	if err != nil {
+		return err
+	}
+
 	token := os.Getenv("GITHUB_TOKEN")
 
 	owner := os.Getenv("GITHUB_OWNER")
@@ -94,6 +98,7 @@ func testAccCheckOrganization() error {
 		BaseURL: baseURL,
 		Token:   token,
 		Owner:   owner,
+		IsGHES:  isGHES,
 	}
 
 	meta, err := config.Meta()

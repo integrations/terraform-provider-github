@@ -17,7 +17,12 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	inOrgUser := os.Getenv("GITHUB_IN_ORG_USER")
 	inOrgUser2 := os.Getenv("GITHUB_IN_ORG_USER2")
 
-	config := Config{BaseURL: "https://api.github.com/", Owner: testOwnerFunc(), Token: testToken}
+	baseURL, isGHES, err := getBaseURL(os.Getenv("GITHUB_BASE_URL"))
+	if err != nil {
+		t.Fatalf("failed to parse base URL: %s", err.Error())
+	}
+
+	config := Config{BaseURL: baseURL, IsGHES: isGHES, Owner: testOwnerFunc(), Token: testToken}
 	meta, err := config.Meta()
 	if err != nil {
 		t.Fatalf("failed to return meta without error: %s", err.Error())

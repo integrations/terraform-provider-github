@@ -2,64 +2,155 @@ package github
 
 import (
 	"context"
-	"net/url"
 	"testing"
 
 	"github.com/shurcooL/githubv4"
 )
 
-func TestGHECDataResidencyHostMatch(t *testing.T) {
+func Test_getBaseURL(t *testing.T) {
 	testCases := []struct {
+		name        string
 		url         string
-		matches     bool
-		description string
+		expectedURL string
+		isGHES      bool
+		errors      bool
 	}{
 		{
-			url:         "https://customer.ghe.com/",
-			matches:     true,
-			description: "GHEC data residency URL with customer name",
-		},
-		{
-			url:         "https://customer-name.ghe.com/",
-			matches:     true,
-			description: "GHEC data residency URL with hyphenated name",
-		},
-		{
-			url:         "https://customer.ghe.com",
-			matches:     true,
-			description: "GHEC data residency URL without a trailing slash",
-		},
-		{
-			url:         "https://ghe.com/",
-			matches:     false,
-			description: "GHEC domain without subdomain",
-		},
-		{
-			url:         "https://github.com/",
-			matches:     false,
-			description: "GitHub.com URL",
-		},
-		{
+			name:        "dotcom",
 			url:         "https://api.github.com/",
-			matches:     false,
-			description: "GitHub.com API URL",
+			expectedURL: "https://api.github.com/",
+			isGHES:      false,
+			errors:      false,
 		},
 		{
+			name:        "dotcom no trailing slash",
+			url:         "https://api.github.com",
+			expectedURL: "https://api.github.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "dotcom ui",
+			url:         "https://github.com/",
+			expectedURL: "https://api.github.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "dotcom http errors",
+			url:         "http://api.github.com/",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
+		},
+		{
+			name:        "dotcom with path errors",
+			url:         "https://api.github.com/xxx/",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
+		},
+		{
+			name:        "ghec",
+			url:         "https://api.customer.ghe.com/",
+			expectedURL: "https://api.customer.ghe.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "ghec no trailing slash",
+			url:         "https://api.customer.ghe.com",
+			expectedURL: "https://api.customer.ghe.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "ghec ui",
+			url:         "https://customer.ghe.com/",
+			expectedURL: "https://api.customer.ghe.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "ghec http errors",
+			url:         "http://api.customer.ghe.com/",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
+		},
+		{
+			name:        "ghec with path errors",
+			url:         "https://api.customer.ghe.com/xxx/",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
+		},
+		{
+			name:        "ghes",
 			url:         "https://example.com/",
-			matches:     false,
-			description: "Generic URL",
+			expectedURL: "https://example.com/",
+			isGHES:      true,
+			errors:      false,
+		},
+		{
+			name:        "ghes no trailing slash",
+			url:         "https://example.com",
+			expectedURL: "https://example.com/",
+			isGHES:      true,
+			errors:      false,
+		},
+		{
+			name:        "ghes with path prefix",
+			url:         "https://example.com/test/",
+			expectedURL: "https://example.com/test/",
+			isGHES:      true,
+			errors:      false,
+		},
+		{
+			name:        "empty url returns dotcom",
+			url:         "",
+			expectedURL: "https://api.github.com/",
+			isGHES:      false,
+			errors:      false,
+		},
+		{
+			name:        "not absolute url errors",
+			url:         "example.com/",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
+		},
+		{
+			name:        "invalid url errors",
+			url:         "xxx",
+			expectedURL: "",
+			isGHES:      false,
+			errors:      true,
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.description, func(t *testing.T) {
-			u, err := url.Parse(tc.url)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			baseURL, isGHES, err := getBaseURL(tc.url)
 			if err != nil {
-				t.Fatalf("failed to parse URL %q: %s", tc.url, err)
+				if tc.errors {
+					return
+				}
+				t.Fatalf("expected no error, got: %v", err)
 			}
-			matches := GHECDataResidencyHostMatch.MatchString(u.Hostname())
-			if matches != tc.matches {
-				t.Errorf("URL %q: expected match=%v, got %v", tc.url, tc.matches, matches)
+
+			if tc.errors {
+				t.Fatalf("expected error, got none")
+			}
+
+			if baseURL.String() != tc.expectedURL {
+				t.Errorf("expected base URL %q, got %q", tc.expectedURL, baseURL.String())
+			}
+
+			if isGHES != tc.isGHES {
+				t.Errorf("expected isGHES to be %v, got %v", tc.isGHES, isGHES)
 			}
 		})
 	}
@@ -71,8 +162,13 @@ func TestAccConfigMeta(t *testing.T) {
 		return
 	}
 
+	baseURL, _, err := getBaseURL(DotComAPIURL)
+	if err != nil {
+		t.Fatalf("failed to parse test base URL: %s", err.Error())
+	}
+
 	t.Run("returns an anonymous client for the v3 REST API", func(t *testing.T) {
-		config := Config{BaseURL: "https://api.github.com/"}
+		config := Config{BaseURL: baseURL}
 		meta, err := config.Meta()
 		if err != nil {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
@@ -86,15 +182,10 @@ func TestAccConfigMeta(t *testing.T) {
 		}
 	})
 
-	t.Run("returns an anonymous client for the v4 GraphQL API", func(t *testing.T) {
-		// https://developer.github.com/v4/guides/forming-calls/#authenticating-with-graphql
-		t.Skip("anonymous client for the v4 GraphQL API is unsupported")
-	})
-
 	t.Run("returns a v3 REST API client to manage individual resources", func(t *testing.T) {
 		config := Config{
 			Token:   testToken,
-			BaseURL: "https://api.github.com/",
+			BaseURL: baseURL,
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -112,7 +203,7 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v3 REST API client with max retries", func(t *testing.T) {
 		config := Config{
 			Token:   testToken,
-			BaseURL: "https://api.github.com/",
+			BaseURL: baseURL,
 			RetryableErrors: map[int]bool{
 				500: true,
 				502: true,
@@ -135,7 +226,7 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v4 GraphQL API client to manage individual resources", func(t *testing.T) {
 		config := Config{
 			Token:   testToken,
-			BaseURL: "https://api.github.com/",
+			BaseURL: baseURL,
 		}
 		meta, err := config.Meta()
 		if err != nil {
@@ -157,7 +248,7 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v3 REST API client to manage organization resources", func(t *testing.T) {
 		config := Config{
 			Token:   testToken,
-			BaseURL: "https://api.github.com/",
+			BaseURL: baseURL,
 			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
@@ -176,7 +267,7 @@ func TestAccConfigMeta(t *testing.T) {
 	t.Run("returns a v4 GraphQL API client to manage organization resources", func(t *testing.T) {
 		config := Config{
 			Token:   testToken,
-			BaseURL: "https://api.github.com/",
+			BaseURL: baseURL,
 			Owner:   testOrganization,
 		}
 		meta, err := config.Meta()
