@@ -41,7 +41,7 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet("data.github_organization_role_teams.test", "teams.#"),
 						resource.TestCheckResourceAttr("data.github_organization_role_teams.test", "teams.#", "1"),
-						resource.TestCheckResourceAttrPair("data.github_organization_role_teams.test", "teams.0.team_id", "github_team.test", "id"),
+						resource.TestCheckResourceAttrPair("data.github_organization_role_teams.test", "teams.0.team_id", "github_team.test", "team_id"),
 						resource.TestCheckResourceAttrPair("data.github_organization_role_teams.test", "teams.0.slug", "github_team.test", "slug"),
 						resource.TestCheckResourceAttrPair("data.github_organization_role_teams.test", "teams.0.name", "github_team.test", "name"),
 					),
