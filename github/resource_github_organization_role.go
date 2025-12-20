@@ -73,17 +73,26 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 		permissionsStr[i] = v.(string)
 	}
 
-	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, &github.CreateOrUpdateOrgRoleOptions{
+	createOrUpdateOrgRoleOptions := &github.CreateOrUpdateOrgRoleOptions{
 		Name:        github.String(d.Get("name").(string)),
 		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
-	})
+	}
+
+	baseRole := d.Get("base_role").(string)
+	if baseRole != "none" {
+		createOrUpdateOrgRoleOptions.BaseRole = github.String(baseRole)
+	}
+
+	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, createOrUpdateOrgRoleOptions)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error creating organization role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
+	if err = d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -123,8 +132,14 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 	if err = d.Set("description", role.Description); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("base_role", role.BaseRole); err != nil {
-		return diag.FromErr(err)
+	if role.BaseRole != nil {
+		if err = d.Set("base_role", role.BaseRole); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err = d.Set("base_role", "none"); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("permissions", role.Permissions); err != nil {
 		return diag.FromErr(err)

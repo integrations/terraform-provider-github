@@ -25,12 +25,12 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "role_id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", "none"),
-						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
+						resource.TestCheckNoResourceAttr("github_organization_role.test", "permissions"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "0"),
 					),
 				},
@@ -57,11 +57,11 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", baseRole),
-						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
+						resource.TestCheckNoResourceAttr("github_organization_role.test", "permissions"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "0"),
 					),
 				},
@@ -167,7 +167,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "role_id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
@@ -175,8 +175,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", baseRole),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.0", permission0),
-						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.1", permission1),
+						resource.TestCheckTypeSetElemAttr("github_organization_role.test", "permissions.*", permission0),
+						resource.TestCheckTypeSetElemAttr("github_organization_role.test", "permissions.*", permission1),
 					),
 				},
 			},
