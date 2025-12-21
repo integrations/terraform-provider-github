@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/shurcooL/githubv4"
@@ -299,4 +301,217 @@ func TestAccConfigMeta(t *testing.T) {
 			t.Fatalf("unexpected response when validating client")
 		}
 	})
+}
+
+func TestPreviewHeaderInjectorTransport_RoundTrip(t *testing.T) {
+	tests := []struct {
+		name                string
+		previewHeaders      map[string]string
+		existingHeaders     map[string]string
+		expectedHeaders     map[string]string
+		expectRoundTripCall bool
+	}{
+		{
+			name:                "empty preview headers",
+			previewHeaders:      map[string]string{},
+			existingHeaders:     map[string]string{"User-Agent": "test"},
+			expectedHeaders:     map[string]string{"User-Agent": "test"},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "add new preview header",
+			previewHeaders: map[string]string{
+				"Accept": "application/vnd.github.v3+json",
+			},
+			existingHeaders: map[string]string{},
+			expectedHeaders: map[string]string{
+				"Accept": "application/vnd.github.v3+json",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "append to existing header",
+			previewHeaders: map[string]string{
+				"Accept": "application/vnd.github.preview+json",
+			},
+			existingHeaders: map[string]string{
+				"Accept": "application/json",
+			},
+			expectedHeaders: map[string]string{
+				"Accept": "application/json,application/vnd.github.preview+json",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "preserve existing Accept application/octet-stream",
+			previewHeaders: map[string]string{
+				"Accept": "application/vnd.github.preview+json",
+			},
+			existingHeaders: map[string]string{
+				"Accept": "application/octet-stream",
+			},
+			expectedHeaders: map[string]string{
+				"Accept": "application/octet-stream",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "preserve existing accept application/octet-stream (lowercase)",
+			previewHeaders: map[string]string{
+				"accept": "application/vnd.github.preview+json",
+			},
+			existingHeaders: map[string]string{
+				"accept": "application/octet-stream",
+			},
+			expectedHeaders: map[string]string{
+				"Accept": "application/octet-stream",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "preserve existing Accept application/octet-stream (mixed case)",
+			previewHeaders: map[string]string{
+				"AcCePt": "application/vnd.github.preview+json",
+			},
+			existingHeaders: map[string]string{
+				"Accept": "application/octet-stream",
+			},
+			expectedHeaders: map[string]string{
+				"Accept": "application/octet-stream",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "multiple preview headers",
+			previewHeaders: map[string]string{
+				"Accept":               "application/vnd.github.v3+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+			existingHeaders: map[string]string{},
+			expectedHeaders: map[string]string{
+				"Accept":               "application/vnd.github.v3+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "append multiple preview headers to existing",
+			previewHeaders: map[string]string{
+				"Accept":               "application/vnd.github.v3+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+			existingHeaders: map[string]string{
+				"Accept":               "application/json",
+				"X-GitHub-Api-Version": "2021-01-01",
+			},
+			expectedHeaders: map[string]string{
+				"Accept":               "application/json,application/vnd.github.v3+json",
+				"X-GitHub-Api-Version": "2021-01-01,2022-11-28",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "non-accept headers always append",
+			previewHeaders: map[string]string{
+				"X-Custom-Header": "preview-value",
+			},
+			existingHeaders: map[string]string{
+				"X-Custom-Header": "application/octet-stream",
+			},
+			expectedHeaders: map[string]string{
+				"X-Custom-Header": "application/octet-stream,preview-value",
+			},
+			expectRoundTripCall: true,
+		},
+		{
+			name: "accept header with different value appends",
+			previewHeaders: map[string]string{
+				"Accept": "application/vnd.github.preview+json",
+			},
+			existingHeaders: map[string]string{
+				"Accept": "application/json",
+			},
+			expectedHeaders: map[string]string{
+				"Accept": "application/json,application/vnd.github.preview+json",
+			},
+			expectRoundTripCall: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock RoundTripper that records the request
+			var capturedRequest *http.Request
+			mockRT := &mockRoundTripper{
+				roundTripFunc: func(req *http.Request) (*http.Response, error) {
+					capturedRequest = req
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       http.NoBody,
+					}, nil
+				},
+			}
+
+			injector := &previewHeaderInjectorTransport{
+				rt:             mockRT,
+				previewHeaders: tt.previewHeaders,
+			}
+
+			// Create a test request with existing headers
+			req := httptest.NewRequest(http.MethodGet, "https://api.github.com/test", nil)
+			for name, value := range tt.existingHeaders {
+				req.Header.Set(name, value)
+			}
+
+			// Execute RoundTrip
+			resp, err := injector.RoundTrip(req)
+
+			// Verify no error
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Verify response
+			if resp == nil {
+				t.Fatal("expected non-nil response")
+			}
+
+			// Verify RoundTrip was called on the underlying transport
+			if tt.expectRoundTripCall && capturedRequest == nil {
+				t.Fatal("expected RoundTrip to be called on underlying transport")
+			}
+
+			// Verify headers in the captured request
+			if capturedRequest != nil {
+				for name, expectedValue := range tt.expectedHeaders {
+					actualValue := capturedRequest.Header.Get(name)
+					if actualValue != expectedValue {
+						t.Errorf("header %q: expected %q, got %q", name, expectedValue, actualValue)
+					}
+				}
+
+				// Verify no unexpected headers were added
+				for name := range capturedRequest.Header {
+					if _, exists := tt.expectedHeaders[name]; !exists {
+						// Allow headers that were in existingHeaders but not in expectedHeaders
+						if _, wasExisting := tt.existingHeaders[name]; !wasExisting {
+							t.Errorf("unexpected header %q: %q", name, capturedRequest.Header.Get(name))
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// mockRoundTripper is a mock implementation of http.RoundTripper for testing
+type mockRoundTripper struct {
+	roundTripFunc func(*http.Request) (*http.Response, error)
+}
+
+func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if m.roundTripFunc != nil {
+		return m.roundTripFunc(req)
+	}
+	return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 }
