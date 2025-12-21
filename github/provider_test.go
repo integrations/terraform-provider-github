@@ -49,19 +49,21 @@ func TestProvider(t *testing.T) {
 	})
 }
 
-// TODO: this is failing.
 func TestAccProviderConfigure(t *testing.T) {
 	t.Run("can be configured to run anonymously", func(t *testing.T) {
 		config := `
-			provider "github" {}
+		provider "github" {
+		  token = ""
+		}
+		data "github_ip_ranges" "test" {}
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, anonymous) },
-			Providers: testAccProviders,
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
+					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
 				},
 			},
@@ -69,20 +71,20 @@ func TestAccProviderConfigure(t *testing.T) {
 	})
 
 	t.Run("can be configured to run insecurely", func(t *testing.T) {
-		config := fmt.Sprintf(`
-				provider "github" {
-					token = "%s"
-					insecure = true
-				}`,
-			testToken,
-		)
+		config := `
+		provider "github" {
+			token = ""
+			insecure = true
+		}
+		data "github_ip_ranges" "test" {}
+    `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, anonymous) },
-			Providers: testAccProviders,
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
+					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
 				},
 			},
@@ -94,16 +96,16 @@ func TestAccProviderConfigure(t *testing.T) {
 			provider "github" {
 				token = "%s"
 				owner = "%s"
-			}`,
-			testToken, testOwnerFunc(),
-		)
+			}
+			`, testAccConf.token, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
+					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
 				},
 			},
@@ -114,20 +116,39 @@ func TestAccProviderConfigure(t *testing.T) {
 		config := fmt.Sprintf(`
 			provider "github" {
 				token = "%s"
-				organization = "%s"
-			}`,
-			testToken, testOrganizationFunc(),
-		)
+				owner = "%s"
+			}`, testAccConf.token, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
+					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
 				},
 			},
+		})
+
+		t.Run("can be configured with an organization account legacy", func(t *testing.T) {
+			config := fmt.Sprintf(`
+			provider "github" {
+				token = "%s"
+				organization = "%s"
+			}`, testAccConf.token, testAccConf.owner)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:             config,
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: false,
+					},
+				},
+			})
 		})
 	})
 
@@ -136,13 +157,11 @@ func TestAccProviderConfigure(t *testing.T) {
 			provider "github" {
 				token = "%s"
 				base_url = "%s"
-			}`,
-			testToken, testBaseURLGHES,
-		)
+			}`, testAccConf.token, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
@@ -155,16 +174,13 @@ func TestAccProviderConfigure(t *testing.T) {
 	t.Run("can be configured with max retries", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			provider "github" {
-				token = "%s"
 				owner = "%s"
 				max_retries = 3
-			}`,
-			testToken, testOwnerFunc(),
-		)
+			}`, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
@@ -175,25 +191,22 @@ func TestAccProviderConfigure(t *testing.T) {
 	})
 
 	t.Run("can be configured with max per page", func(t *testing.T) {
-		config := fmt.Sprintf(`
+		config := `
 			provider "github" {
-				token = "%s"
 				owner = "%s"
-				max_per_page = 999
-			}`,
-			testToken, testOwnerFunc(),
-		)
+				max_per_page = 100
+			}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:             config,
 					ExpectNonEmptyPlan: false,
 					Check: func(_ *terraform.State) error {
-						if maxPerPage != 999 {
-							return fmt.Errorf("max_per_page should be set to 999, got %d", maxPerPage)
+						if maxPerPage != 100 {
+							return fmt.Errorf("max_per_page should be set to 100, got %d", maxPerPage)
 						}
 						return nil
 					},

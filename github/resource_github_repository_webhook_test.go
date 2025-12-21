@@ -9,9 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name         = "test-%[1]s"
@@ -19,7 +18,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			}
 
 			resource "github_repository_webhook" "test" {
-			  depends_on = ["github_repository.test"]
+			  depends_on = [github_repository.test]
 			  repository = "test-%[1]s"
 
 			  configuration {
@@ -41,33 +40,20 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name         = "test-%[1]s"
@@ -75,7 +61,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			}
 
 			resource "github_repository_webhook" "test" {
-				depends_on = ["github_repository.test"]
+				depends_on = [github_repository.test]
 				repository = "test-%[1]s"
 				configuration {
 					url          = "https://google.de/webhook"
@@ -88,39 +74,26 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:        "github_repository_webhook.test",
-						ImportState:         true,
-						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:        "github_repository_webhook.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+				},
+			},
 		})
 	})
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_repository" "test" {
@@ -129,7 +102,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				}
 
 				resource "github_repository_webhook" "test" {
-				  depends_on = ["github_repository.test"]
+				  depends_on = [github_repository.test]
 				  repository = "test-%[1]s"
 
 				  configuration {
@@ -148,7 +121,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				}
 
 				resource "github_repository_webhook" "test" {
-				  depends_on = ["github_repository.test"]
+				  depends_on = [github_repository.test]
 				  repository = "test-%[1]s"
 
 				  configuration {
@@ -172,33 +145,19 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 }

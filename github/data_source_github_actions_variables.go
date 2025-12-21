@@ -55,6 +55,7 @@ func dataSourceGithubActionsVariables() *schema.Resource {
 }
 
 func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -81,7 +82,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListRepoVariables(context.TODO(), owner, repoName, &options)
+		variables, resp, err := client.Actions.ListRepoVariables(ctx, owner, repoName, &options)
 		if err != nil {
 			return err
 		}

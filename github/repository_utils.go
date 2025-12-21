@@ -28,8 +28,7 @@ func checkRepositoryBranchExists(client *github.Client, owner, repo, branch stri
 	return nil
 }
 
-func getFileCommit(client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
-	ctx := context.WithValue(context.Background(), ctxId, fmt.Sprintf("%s/%s", repo, file))
+func getFileCommit(ctx context.Context, client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
 	opts := &github.CommitsListOptions{
 		SHA:  branch,
 		Path: file,

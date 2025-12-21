@@ -14,8 +14,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read # for actions/checkout
+permissions: read-all
 
 jobs:
   ci:

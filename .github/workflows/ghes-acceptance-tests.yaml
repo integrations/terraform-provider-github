@@ -12,6 +12,10 @@ on:
   #     - main
   #     - release-v*
 
+concurrency:
+  group: acctest-ghes-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
@@ -30,6 +34,7 @@ jobs:
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Check secrets
+        if: github.event_name == 'pull_request_target'
         env:
           INPUT_ALLOWED_SECRETS: ${{ vars.GHES_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GHES_TEST_USER_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
@@ -85,17 +90,40 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: latest
+          terraform_wrapper: false
+
+      - name: Terraform lookup
+        id: tf
+        run: |
+          set -euo pipefail
+
+          {
+            echo "version=$(terraform version -json | jq --raw-output '.terraform_version')"
+            echo "path=$(command -v terraform || true)"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Run tests
         env:
+          TF_ACC_PROVIDER_NAMESPACE: ""
+          TF_ACC_TERRAFORM_VERSION: ${{ steps.tf.outputs.version }}
+          TF_ACC_TERRAFORM_PATH: ${{ steps.tf.outputs.path }}
           TF_ACC: "1"
-          TF_LOG: INFO
+          TF_LOG: WARN
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: ${{ steps.server.outputs.address }}
-          GITHUB_TEST_TYPE: enterprise
-          GITHUB_OWNER: terraformtesting
-          GITHUB_ORGANIZATION: terraformtesting
-          GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
+          GITHUB_OWNER: ""
+          GITHUB_USERNAME: ""
+          GITHUB_ENTERPRISE_SLUG: ""
+          GH_TEST_AUTH_MODE: enterprise
+        run: |
+          set -eou pipefail
+
+          go test ./github -v -sweep=all
+          go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check GHES Acceptance Tests

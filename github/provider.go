@@ -353,7 +353,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		// an explicitly set value in a provider block), but is necessary
 		// for backwards compatibility. We could remove this backwards compatibility
 		// code in a future major release.
-		env, _ := OwnerOrOrgEnvDefaultFunc()
+		env := ownerOrOrgEnvDefaultFunc()
 		if env.(string) != "" {
 			owner = env.(string)
 		}
@@ -509,4 +509,14 @@ func tokenFromGHCLI(u *url.URL) string {
 
 	log.Printf("[INFO] Using the token from GitHub CLI")
 	return strings.TrimSpace(string(out))
+}
+
+func ownerOrOrgEnvDefaultFunc() any {
+	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
+		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		return organization
+	}
+	owner := os.Getenv("GITHUB_OWNER")
+	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	return owner
 }

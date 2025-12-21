@@ -51,6 +51,7 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 }
 
 func dataSourceGithubTeamsRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -77,7 +78,7 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta any) error {
 
 	var all_teams []map[string]string
 	for {
-		teams, resp, err := client.Repositories.ListTeams(context.TODO(), owner, repoName, &options)
+		teams, resp, err := client.Repositories.ListTeams(ctx, owner, repoName, &options)
 		if err != nil {
 			return err
 		}

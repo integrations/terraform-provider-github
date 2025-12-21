@@ -136,7 +136,7 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 }
 
 func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	// For convenience, by default we expect that the base repository and head
@@ -175,7 +175,7 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 }
 
 func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
@@ -264,7 +264,7 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) e
 }
 
 func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
@@ -308,7 +308,7 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 		return nil
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)

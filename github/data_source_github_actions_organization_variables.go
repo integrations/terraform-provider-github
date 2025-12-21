@@ -46,6 +46,7 @@ func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 }
 
 func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -55,7 +56,7 @@ func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, me
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListOrgVariables(context.TODO(), owner, &options)
+		variables, resp, err := client.Actions.ListOrgVariables(ctx, owner, &options)
 		if err != nil {
 			return err
 		}

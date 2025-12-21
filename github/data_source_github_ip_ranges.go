@@ -9,8 +9,8 @@ import (
 
 func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIpRangesRead,
-
+		Description: "Get the GitHub IP ranges used by various GitHub services.",
+		Read:        dataSourceGithubIpRangesRead,
 		Schema: map[string]*schema.Schema{
 			"hooks": {
 				Type:     schema.TypeList,
@@ -53,9 +53,10 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"hooks_ipv4": {
 				Type:     schema.TypeList,
@@ -98,9 +99,10 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"hooks_ipv6": {
 				Type:     schema.TypeList,
@@ -143,9 +145,10 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
