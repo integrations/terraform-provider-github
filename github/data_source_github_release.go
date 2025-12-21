@@ -87,11 +87,6 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"asserts_url": {
-				Type:       schema.TypeString,
-				Computed:   true,
-				Deprecated: "use assets_url instead",
-			},
 			"upload_url": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -233,10 +228,6 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 	err = d.Set("assets_url", release.GetAssetsURL())
-	if err != nil {
-		return err
-	}
-	err = d.Set("asserts_url", release.GetAssetsURL()) // Deprecated, original version of assets_url
 	if err != nil {
 		return err
 	}
