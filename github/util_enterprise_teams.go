@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -144,6 +145,10 @@ func listEnterpriseTeams(ctx context.Context, client *githubv3.Client, enterpris
 
 //nolint:unparam
 func getEnterpriseTeamBySlug(ctx context.Context, client *githubv3.Client, enterpriseSlug, teamSlug string) (*enterpriseTeam, *githubv3.Response, error) {
+	if te, resp, err := getEnterpriseTeamBySlugSDK(ctx, client, enterpriseSlug, teamSlug); err != errEnterpriseSDKUnavailable {
+		return te, resp, err
+	}
+
 	u := fmt.Sprintf("enterprises/%s/teams/%s", enterpriseSlug, teamSlug)
 	req, err := enterpriseTeamsNewRequest(client, "GET", u, nil)
 	if err != nil {
@@ -158,6 +163,64 @@ func getEnterpriseTeamBySlug(ctx context.Context, client *githubv3.Client, enter
 
 	te, err := parseEnterpriseTeam(raw)
 	return te, resp, err
+}
+
+var errEnterpriseSDKUnavailable = errors.New("enterprise SDK GetTeam not available")
+
+// getEnterpriseTeamBySlugSDK attempts to use the go-github EnterpriseService.GetTeam
+// method if present (available in go-github >= v81). When the method is not yet
+// available in the SDK, it returns errEnterpriseSDKUnavailable so callers can
+// fall back to the custom REST implementation. This keeps the provider forward
+// compatible without requiring the SDK upgrade immediately.
+func getEnterpriseTeamBySlugSDK(ctx context.Context, client *githubv3.Client, enterpriseSlug, teamSlug string) (*enterpriseTeam, *githubv3.Response, error) {
+	if client == nil || client.Enterprise == nil {
+		return nil, nil, errEnterpriseSDKUnavailable
+	}
+
+	method := reflect.ValueOf(client.Enterprise).MethodByName("GetTeam")
+	if !method.IsValid() {
+		return nil, nil, errEnterpriseSDKUnavailable
+	}
+
+	results := method.Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+		reflect.ValueOf(enterpriseSlug),
+		reflect.ValueOf(teamSlug),
+	})
+	if len(results) != 3 {
+		return nil, nil, errEnterpriseSDKUnavailable
+	}
+
+	var resp *githubv3.Response
+	if !results[1].IsNil() {
+		if r, ok := results[1].Interface().(*githubv3.Response); ok {
+			resp = r
+		}
+	}
+
+	if errVal := results[2]; !errVal.IsNil() {
+		if err, ok := errVal.Interface().(error); ok {
+			return nil, resp, err
+		}
+		return nil, resp, errEnterpriseSDKUnavailable
+	}
+
+	teamVal := results[0]
+	if !teamVal.IsValid() || teamVal.IsNil() {
+		return nil, resp, nil
+	}
+
+	bytes, err := json.Marshal(teamVal.Interface())
+	if err != nil {
+		return nil, resp, err
+	}
+
+	var te enterpriseTeam
+	if err := json.Unmarshal(bytes, &te); err != nil {
+		return nil, resp, err
+	}
+
+	return &te, resp, nil
 }
 
 func createEnterpriseTeam(ctx context.Context, client *githubv3.Client, enterpriseSlug string, reqBody enterpriseTeamCreateRequest) (*enterpriseTeam, *githubv3.Response, error) {
