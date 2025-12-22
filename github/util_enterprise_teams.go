@@ -142,6 +142,7 @@ func listEnterpriseTeams(ctx context.Context, client *githubv3.Client, enterpris
 	return all, nil
 }
 
+//nolint:unparam
 func getEnterpriseTeamBySlug(ctx context.Context, client *githubv3.Client, enterpriseSlug, teamSlug string) (*enterpriseTeam, *githubv3.Response, error) {
 	u := fmt.Sprintf("enterprises/%s/teams/%s", enterpriseSlug, teamSlug)
 	req, err := enterpriseTeamsNewRequest(client, "GET", u, nil)
@@ -213,8 +214,8 @@ func findEnterpriseTeamByID(ctx context.Context, client *githubv3.Client, enterp
 	}
 	for _, t := range teams {
 		if t.ID == id {
-			copy := t
-			return &copy, nil
+			t := t
+			return &t, nil
 		}
 	}
 	return nil, nil
@@ -272,6 +273,7 @@ func addEnterpriseTeamOrganizations(ctx context.Context, client *githubv3.Client
 	return err
 }
 
+// nolint:unparam
 func removeEnterpriseTeamOrganizations(ctx context.Context, client *githubv3.Client, enterpriseSlug, enterpriseTeam string, orgSlugs []string) (*githubv3.Response, error) {
 	if len(orgSlugs) == 0 {
 		return nil, nil
@@ -300,6 +302,7 @@ type enterpriseTeamMembership struct {
 	Role  string `json:"role"`
 }
 
+// nolint:unparam
 func parseEnterpriseTeamMembership(raw json.RawMessage) (*enterpriseTeamMembership, error) {
 	var m enterpriseTeamMembership
 	if err := json.Unmarshal(raw, &m); err == nil {
