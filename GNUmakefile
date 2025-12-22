@@ -27,7 +27,7 @@ test:
 	CGO_ENABLED=0 go test ./...
 	# commenting this out for release tooling, please run testacc instead
 
-testacc: fmtcheck
+testacc: fmt
 	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
 test-compile:
