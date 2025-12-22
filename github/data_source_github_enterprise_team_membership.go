@@ -11,6 +11,7 @@ import (
 
 func dataSourceGithubEnterpriseTeamMembership() *schema.Resource {
 	return &schema.Resource{
+		Description: "Manages membership in a GitHub enterprise team.",
 		ReadContext: dataSourceGithubEnterpriseTeamMembershipRead,
 
 		Schema: map[string]*schema.Schema{
