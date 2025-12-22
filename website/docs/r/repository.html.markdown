@@ -178,6 +178,8 @@ The `security_and_analysis` block supports the following:
 
 * `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details. 
 
+* `private_vulnerability_reporting` - (Optional) The private vulnerability reporting configuration for the repository. See [Private Vulnerability Reporting Configuration](#private-vulnerability-reporting-configuration) below for details.
+
 #### Advanced Security Configuration ####
 
 The `advanced_security` block supports the following:
@@ -203,6 +205,10 @@ The `advanced_security` block supports the following:
 #### Secret Scanning Non-Provider Patterns #### 
 
 * `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Private Vulnerability Reporting Configuration ####
+
+* `status` - (Optional) Set to `enabled` to enable private vulnerability reporting on the repository. Can be `enabled` or `disabled`. This feature allows security researchers to privately report potential security vulnerabilities to repository maintainers. See [GitHub Security Advisories](https://docs.github.com/en/code-security/security-advisories/working-with-repository-security-advisories/about-repository-security-advisories) for more details. Only available for public repositories.
 
 ### Template Repositories
 

@@ -14,6 +14,9 @@ resource "github_repository" "terraformed" {
     secret_scanning_push_protection {
       status = "enabled"
     }
+    private_vulnerability_reporting {
+      status = "enabled"
+    }
   }
 }
 
