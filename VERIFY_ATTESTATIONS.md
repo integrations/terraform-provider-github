@@ -22,11 +22,14 @@ The `gh attestation verify` command requires either `--owner` or `--repo` flags 
 
 > [!NOTE]
 > Make sure to replace x.y.z with the actual release tag you want to verify.
+> Replace artifact name with the actual artifact you want to verify.
 
 Download the release artifacts first:
 
 ```bash
 version="x.y.z"
+artifact="terraform-provider-github_${version}_darwin_amd64.zip"
+
 gh release download "v${version}" --repo integrations/terraform-provider-github -p "*.zip" --clobber
 ```
 
@@ -35,7 +38,7 @@ To verify the artifact attestations for this project, you can run the following 
 ```bash
 gh attestation verify --repo integrations/terraform-provider-github --source-ref "refs/tags/v${version}"\
   --signer-workflow integrations/terraform-provider-github/.github/workflows/release.yaml@refs/tags/v${version} \
-  "terraform-provider-github_${version}_darwin_amd64.zip"
+  "$artifact"
 ```
 
 ### Verifying all artifacts at once
@@ -60,7 +63,7 @@ Use the `--signer-repo` flag to specify the repository:
 ```bash
 gh attestation verify --owner integrations --signer-repo \
   integrations/terraform-provider-github \
-  terraform-provider-github_${version}_darwin_amd64.zip
+  "$artifact"
 ```
 
 If you would like to require an artifact attestation to be signed with a specific workflow, use the `--signer-workflow` flag to indicate the workflow file that should be used.
@@ -68,7 +71,7 @@ If you would like to require an artifact attestation to be signed with a specifi
 ```bash
 gh attestation verify --owner integrations --signer-workflow \
   integrations/terraform-provider-github/.github/workflows/release.yaml@refs/tags/v${version} \
-  terraform-provider-github_${version}_darwin_amd64.zip
+  "$artifact"
 ```
 
 ## Verifying checksums file signature with Cosign and checking artifact integrity
@@ -112,8 +115,9 @@ After verifying the checksums file, verify your downloaded artifacts match the c
 Download the artifact you want to verify:
 
 ```bash
+artifact="terraform-provider-github_${version}_darwin_amd64.zip"
 gh release download v${version} --repo integrations/terraform-provider-github \
-  -p "terraform-provider-github_${version}_darwin_amd64.zip" --clobber
+  -p "$artifact" --clobber
 ```
 
 Verify the checksum:
@@ -137,6 +141,7 @@ In addition to using the GitHub CLI, you can verify SLSA provenance attestations
 
 > [!NOTE]
 > Make sure to replace x.y.z with the actual release tag you want to verify.
+> Replace artifact name with the actual artifact you want to verify.
 
 > [!CAUTION]
 > The attestations are available only for the releases created since the version `v6.9.0` of this project.
@@ -145,14 +150,16 @@ First, download the artifact you want to verify:
 
 ```bash
 version="x.y.z"
+artifact="terraform-provider-github_${version}_darwin_amd64.zip"
+
 gh release download "v${version}" --repo integrations/terraform-provider-github \
-  -p "terraform-provider-github_${version}_darwin_amd64.zip" --clobber
+  -p "$artifact" --clobber
 ```
 
 Then, download the attestation associated with the artifact:
 
 ```bash
-gh attestation download "terraform-provider-github_${version}_darwin_amd64.zip" \
+gh attestation download "$artifact" \
   --repo integrations/terraform-provider-github
 ```
 
@@ -162,13 +169,13 @@ Verify the attestation using Cosign:
 
 ```bash
 # Calculate the digest and verify using the specific bundle file
-digest=$(shasum -a 256 "terraform-provider-github_${version}_darwin_amd64.zip" | awk '{ print $1 }')
+digest=$(shasum -a 256 "$artifact" | awk '{ print $1 }')
 cosign verify-blob-attestation \
   --bundle "sha256:${digest}.jsonl" \
   --new-bundle-format \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity "https://github.com/integrations/terraform-provider-github/.github/workflows/release.yaml@refs/tags/v${version}" \
-  "terraform-provider-github_${version}_darwin_amd64.zip"
+  "$artifact"
 ```
 
 A successful verification will output `Verified OK`, confirming that the artifact was built by the trusted GitHub Actions workflow and its provenance is securely recorded.
