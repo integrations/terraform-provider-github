@@ -36,11 +36,13 @@ func resourceGithubEnterpriseTeam() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The slug of the enterprise (e.g. from the enterprise URL).",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the enterprise team.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"description": {
 				Type:        schema.TypeString,

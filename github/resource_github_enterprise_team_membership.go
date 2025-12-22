@@ -10,6 +10,7 @@ import (
 	githubv3 "github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubEnterpriseTeamMembership() *schema.Resource {
@@ -25,12 +26,14 @@ func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The slug of the enterprise.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"enterprise_team": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The slug or ID of the enterprise team.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"username": {
 				Type:             schema.TypeString,
@@ -38,6 +41,7 @@ func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
 				Description:      "The login handle of the user.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 		},
 	}
