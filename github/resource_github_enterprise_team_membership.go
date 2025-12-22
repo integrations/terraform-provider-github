@@ -15,6 +15,7 @@ import (
 
 func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages membership in a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamMembershipCreate,
 		ReadContext:   resourceGithubEnterpriseTeamMembershipRead,
 		DeleteContext: resourceGithubEnterpriseTeamMembershipDelete,
@@ -22,17 +23,17 @@ func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The slug of the enterprise.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"enterprise_team": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug or ID of the enterprise team.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The slug or ID of the enterprise team.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"username": {

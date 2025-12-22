@@ -18,6 +18,7 @@ import (
 
 func resourceGithubEnterpriseTeam() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamCreate,
 		ReadContext:   resourceGithubEnterpriseTeamRead,
 		UpdateContext: resourceGithubEnterpriseTeamUpdate,
@@ -32,16 +33,16 @@ func resourceGithubEnterpriseTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug of the enterprise (e.g. from the enterprise URL).",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The slug of the enterprise (e.g. from the enterprise URL).",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the enterprise team.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The name of the enterprise team.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
 			},
 			"description": {
