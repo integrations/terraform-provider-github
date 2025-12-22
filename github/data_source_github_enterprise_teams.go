@@ -2,22 +2,24 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubEnterpriseTeams() *schema.Resource {
 	return &schema.Resource{
+		Description: "Lists all GitHub enterprise teams in an enterprise.",
 		ReadContext: dataSourceGithubEnterpriseTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The slug of the enterprise.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"teams": {
 				Type:        schema.TypeList,
@@ -65,9 +67,6 @@ func dataSourceGithubEnterpriseTeams() *schema.Resource {
 func dataSourceGithubEnterpriseTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
-	if enterpriseSlug == "" {
-		return diag.FromErr(fmt.Errorf("enterprise_slug must not be empty"))
-	}
 	teams, err := listEnterpriseTeams(ctx, client, enterpriseSlug)
 	if err != nil {
 		return diag.FromErr(err)

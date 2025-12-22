@@ -11,10 +11,12 @@ import (
 	githubv3 "github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubEnterpriseTeamOrganizations() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages organization assignments for a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamOrganizationsCreateOrUpdate,
 		ReadContext:   resourceGithubEnterpriseTeamOrganizationsRead,
 		UpdateContext: resourceGithubEnterpriseTeamOrganizationsCreateOrUpdate,
@@ -23,16 +25,18 @@ func resourceGithubEnterpriseTeamOrganizations() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The slug of the enterprise.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"enterprise_team": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug or ID of the enterprise team.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The slug or ID of the enterprise team.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"organization_slugs": {
 				Type:        schema.TypeSet,
