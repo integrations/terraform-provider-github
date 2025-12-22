@@ -2,11 +2,11 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubEnterpriseTeamMembership() *schema.Resource {
@@ -15,19 +15,22 @@ func dataSourceGithubEnterpriseTeamMembership() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The slug of the enterprise.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"enterprise_team": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The slug or ID of the enterprise team.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The slug or ID of the enterprise team.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"username": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The GitHub username.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The GitHub username.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(validation.StringIsNotWhiteSpace, validation.StringIsNotEmpty)),
 			},
 			"role": {
 				Type:        schema.TypeString,
@@ -53,15 +56,6 @@ func dataSourceGithubEnterpriseTeamMembershipRead(ctx context.Context, d *schema
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 	enterpriseTeam := strings.TrimSpace(d.Get("enterprise_team").(string))
 	username := strings.TrimSpace(d.Get("username").(string))
-	if enterpriseSlug == "" {
-		return diag.FromErr(fmt.Errorf("enterprise_slug must not be empty"))
-	}
-	if enterpriseTeam == "" {
-		return diag.FromErr(fmt.Errorf("enterprise_team must not be empty"))
-	}
-	if username == "" {
-		return diag.FromErr(fmt.Errorf("username must not be empty"))
-	}
 	m, resp, err := getEnterpriseTeamMembershipDetails(ctx, client, enterpriseSlug, enterpriseTeam, username)
 	if err != nil {
 		return diag.FromErr(err)
