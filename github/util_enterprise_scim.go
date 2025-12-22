@@ -115,7 +115,7 @@ func enterpriseSCIMGet[T any](ctx context.Context, client *gh.Client, urlStr str
 	return client.Do(ctx, req, out)
 }
 
-func enterpriseSCIMListAllGroups(ctx context.Context, client *gh.Client, enterprise string, filter string, excludedAttributes string, count int) ([]enterpriseSCIMGroup, *enterpriseSCIMListResponse[enterpriseSCIMGroup], error) {
+func enterpriseSCIMListAllGroups(ctx context.Context, client *gh.Client, enterprise, filter, excludedAttributes string, count int) ([]enterpriseSCIMGroup, *enterpriseSCIMListResponse[enterpriseSCIMGroup], error) {
 	startIndex := 1
 	all := make([]enterpriseSCIMGroup, 0)
 	var firstResp *enterpriseSCIMListResponse[enterpriseSCIMGroup]
@@ -168,7 +168,7 @@ func enterpriseSCIMListAllGroups(ctx context.Context, client *gh.Client, enterpr
 	return all, firstResp, nil
 }
 
-func enterpriseSCIMListAllUsers(ctx context.Context, client *gh.Client, enterprise string, filter string, excludedAttributes string, count int) ([]enterpriseSCIMUser, *enterpriseSCIMListResponse[enterpriseSCIMUser], error) {
+func enterpriseSCIMListAllUsers(ctx context.Context, client *gh.Client, enterprise, filter, excludedAttributes string, count int) ([]enterpriseSCIMUser, *enterpriseSCIMListResponse[enterpriseSCIMUser], error) {
 	startIndex := 1
 	all := make([]enterpriseSCIMUser, 0)
 	var firstResp *enterpriseSCIMListResponse[enterpriseSCIMUser]
@@ -219,26 +219,6 @@ func enterpriseSCIMListAllUsers(ctx context.Context, client *gh.Client, enterpri
 	}
 
 	return all, firstResp, nil
-}
-
-func enterpriseSCIMGetGroup(ctx context.Context, client *gh.Client, enterprise, scimGroupID string) (*enterpriseSCIMGroup, error) {
-	path := fmt.Sprintf("scim/v2/enterprises/%s/Groups/%s", enterprise, scimGroupID)
-	group := enterpriseSCIMGroup{}
-	_, err := enterpriseSCIMGet(ctx, client, path, &group)
-	if err != nil {
-		return nil, err
-	}
-	return &group, nil
-}
-
-func enterpriseSCIMGetUser(ctx context.Context, client *gh.Client, enterprise, scimUserID string) (*enterpriseSCIMUser, error) {
-	path := fmt.Sprintf("scim/v2/enterprises/%s/Users/%s", enterprise, scimUserID)
-	user := enterpriseSCIMUser{}
-	_, err := enterpriseSCIMGet(ctx, client, path, &user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
 }
 
 func flattenEnterpriseSCIMMeta(meta *enterpriseSCIMMeta) []any {
