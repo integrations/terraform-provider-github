@@ -286,6 +286,10 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
+			"github_enterprise_scim_groups":                                         dataSourceGithubEnterpriseSCIMGroups(),
+			"github_enterprise_scim_group":                                          dataSourceGithubEnterpriseSCIMGroup(),
+			"github_enterprise_scim_users":                                          dataSourceGithubEnterpriseSCIMUsers(),
+			"github_enterprise_scim_user":                                           dataSourceGithubEnterpriseSCIMUser(),
 			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 		},
 	}
