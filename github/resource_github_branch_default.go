@@ -98,7 +98,7 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 
 	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

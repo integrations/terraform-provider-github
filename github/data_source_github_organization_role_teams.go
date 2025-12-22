@@ -92,7 +92,7 @@ func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.Re
 
 		for _, team := range teams {
 			t := map[string]any{
-				"id":         team.GetID(),
+				"team_id":    team.GetID(),
 				"slug":       team.GetSlug(),
 				"name":       team.GetName(),
 				"permission": team.GetPermission(),

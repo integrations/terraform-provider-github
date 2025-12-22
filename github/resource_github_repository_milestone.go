@@ -144,7 +144,7 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) err
 
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

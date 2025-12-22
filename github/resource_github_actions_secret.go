@@ -132,7 +132,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",

@@ -126,7 +126,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(repoErr, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil

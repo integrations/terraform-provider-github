@@ -116,7 +116,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 
 	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
