@@ -24,7 +24,7 @@ type GithubActionsOrganizationWorkflowPermissionsErrorResponse struct {
 
 func resourceGithubActionsOrganizationWorkflowPermissions() *schema.Resource {
 	return &schema.Resource{
-		Description:   "GitHub Actions Organization Workflow Permissions management.",
+		Description:   "This resource allows you to manage GitHub Actions workflow permissions for a GitHub Organization account. This controls the default permissions granted to the GITHUB_TOKEN when running workflows and whether GitHub Actions can approve pull request reviews.\n\nYou must have organization admin access to use this resource.",
 		CreateContext: resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate,
 		ReadContext:   resourceGithubActionsOrganizationWorkflowPermissionsRead,
 		UpdateContext: resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate,
