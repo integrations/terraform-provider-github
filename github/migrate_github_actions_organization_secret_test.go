@@ -3,13 +3,10 @@ package github
 import (
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestMigrateGithubActionsOrganizationSecretStateV0toV1(t *testing.T) {
-	// Secret without destroy_on_drift should get default value
-	oldAttributes := map[string]string{
+func testResourceGithubActionsOrganizationSecretInstanceStateDataV0() map[string]any {
+	return map[string]any{
 		"id":              "test-secret",
 		"secret_name":     "test-secret",
 		"visibility":      "private",
@@ -17,53 +14,42 @@ func TestMigrateGithubActionsOrganizationSecretStateV0toV1(t *testing.T) {
 		"updated_at":      "2023-01-01T00:00:00Z",
 		"plaintext_value": "secret-value",
 	}
+}
 
-	newState, err := migrateGithubActionsOrganizationSecretStateV0toV1(&terraform.InstanceState{
-		ID:         "test-secret",
-		Attributes: oldAttributes,
+func testResourceGithubActionsOrganizationSecretInstanceStateDataV0_WithDrift() map[string]any {
+	v0 := testResourceGithubActionsOrganizationSecretInstanceStateDataV0()
+	v0["destroy_on_drift"] = false
+	return v0
+}
+
+func testResourceGithubActionsOrganizationSecretInstanceStateDataV1() map[string]any {
+	v0 := testResourceGithubActionsOrganizationSecretInstanceStateDataV0()
+	v0["destroy_on_drift"] = true
+	return v0
+}
+
+func TestGithub_MigrateActionsOrganizationSecretStateV0toV1(t *testing.T) {
+	t.Run("without destroy_on_drift", func(t *testing.T) {
+		expected := testResourceGithubActionsOrganizationSecretInstanceStateDataV1()
+		actual, err := resourceGithubActionsOrganizationSecretInstanceStateUpgradeV0(t.Context(), testResourceGithubActionsOrganizationSecretInstanceStateDataV0(), nil)
+		if err != nil {
+			t.Fatalf("error migrating state: %s", err)
+		}
+
+		if !reflect.DeepEqual(expected, actual) {
+			t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
+		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	expectedAttributes := map[string]string{
-		"id":               "test-secret",
-		"secret_name":      "test-secret",
-		"visibility":       "private",
-		"created_at":       "2023-01-01T00:00:00Z",
-		"updated_at":       "2023-01-01T00:00:00Z",
-		"plaintext_value":  "secret-value",
-		"destroy_on_drift": "true",
-	}
-	if !reflect.DeepEqual(newState.Attributes, expectedAttributes) {
-		t.Fatalf("Expected attributes:\n%#v\n\nGiven:\n%#v\n",
-			expectedAttributes, newState.Attributes)
-	}
+	t.Run("with destroy_on_drift", func(t *testing.T) {
+		expected := testResourceGithubActionsOrganizationSecretInstanceStateDataV0_WithDrift()
+		actual, err := resourceGithubActionsOrganizationSecretInstanceStateUpgradeV0(t.Context(), testResourceGithubActionsOrganizationSecretInstanceStateDataV0_WithDrift(), nil)
+		if err != nil {
+			t.Fatalf("error migrating state: %s", err)
+		}
 
-	// Secret with existing destroy_on_drift should be preserved
-	oldAttributesWithDrift := map[string]string{
-		"id":               "test-secret",
-		"secret_name":      "test-secret",
-		"visibility":       "private",
-		"destroy_on_drift": "false",
-	}
-
-	newState2, err := migrateGithubActionsOrganizationSecretStateV0toV1(&terraform.InstanceState{
-		ID:         "test-secret",
-		Attributes: oldAttributesWithDrift,
+		if !reflect.DeepEqual(expected, actual) {
+			t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
+		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedAttributesWithDrift := map[string]string{
-		"id":               "test-secret",
-		"secret_name":      "test-secret",
-		"visibility":       "private",
-		"destroy_on_drift": "false",
-	}
-	if !reflect.DeepEqual(newState2.Attributes, expectedAttributesWithDrift) {
-		t.Fatalf("Expected attributes:\n%#v\n\nGiven:\n%#v\n",
-			expectedAttributesWithDrift, newState2.Attributes)
-	}
 }
