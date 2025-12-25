@@ -3,28 +3,29 @@ package github
 import (
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestMigrateGithubRepositoryStateV0toV1(t *testing.T) {
-	oldAttributes := map[string]string{
+func testResourceGithubRepositoryInstanceStateDataV0() map[string]any {
+	return map[string]any{
 		"branches.#":           "1",
 		"branches.0.name":      "foobar",
 		"branches.0.protected": "false",
 	}
+}
 
-	newState, err := migrateGithubRepositoryStateV0toV1(&terraform.InstanceState{
-		ID:         "nonempty",
-		Attributes: oldAttributes,
+func testResourceGithubRepositoryInstanceStateDataV1() map[string]any {
+	return map[string]any{}
+}
+
+func TestGithub_MigrateRepositoryStateV0toV1(t *testing.T) {
+	t.Run("migrates state without errors", func(t *testing.T) {
+		expected := testResourceGithubRepositoryInstanceStateDataV1()
+		actual, err := resourceGithubRepositoryInstanceStateUpgradeV0(t.Context(), testResourceGithubRepositoryInstanceStateDataV0(), nil)
+		if err != nil {
+			t.Fatalf("error migrating state: %s", err)
+		}
+		if !reflect.DeepEqual(expected, actual) {
+			t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
+		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedAttributes := map[string]string{}
-	if !reflect.DeepEqual(newState.Attributes, expectedAttributes) {
-		t.Fatalf("Expected attributes:\n%#v\n\nGiven:\n%#v\n",
-			expectedAttributes, newState.Attributes)
-	}
 }
