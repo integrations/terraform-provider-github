@@ -15,17 +15,17 @@ Resolves #ISSUE_NUMBER
 * 
 
 ### Pull request checklist
-- [ ] Schema migrations have been created if needed ([example](https://github.com/integrations/terraform-provider-github/pull/2820/files))
-- [ ] Tests for the changes have been added (for bug fixes / features)
-- [ ] Docs have been reviewed and added / updated if needed (for bug fixes / features)
+
+* [ ] Schema migrations have been created if needed ([example](https://github.com/F-Secure-web/terraform-provider-github/blob/main/github/migrate_github_actions_organization_secret.go))
+* [ ] Tests for the changes have been added (for bug fixes / features)
+* [ ] Docs have been reviewed and added / updated if needed (for bug fixes / features)
 
 ### Does this introduce a breaking change?
 <!-- If this introduces a breaking change make sure to note it here any what the impact might be -->
 
 Please see our docs on [breaking changes](https://github.com/octokit/.github/blob/master/community/breaking_changes.md) to help!
 
-- [ ] Yes
-- [ ] No
+* [ ] Yes
+* [ ] No
 
 ----
-
