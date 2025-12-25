@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestGithubRepositoryRulesets(t *testing.T) {
+func TestAccGithubRepositoryRulesets(t *testing.T) {
 	t.Run("creates and updates repository rulesets without errors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -1013,7 +1013,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 	})
 }
 
-func TestGithubRepositoryRulesetArchived(t *testing.T) {
+func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {

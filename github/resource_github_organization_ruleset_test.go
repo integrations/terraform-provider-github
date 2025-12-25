@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func TestGithubOrganizationRulesets(t *testing.T) {
+func TestAccGithubOrganizationRulesets(t *testing.T) {
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
