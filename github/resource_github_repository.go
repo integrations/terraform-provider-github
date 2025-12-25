@@ -31,7 +31,13 @@ func resourceGithubRepository() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubRepositoryMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
