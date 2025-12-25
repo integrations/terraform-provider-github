@@ -34,7 +34,13 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubWebhookMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryWebhookResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
