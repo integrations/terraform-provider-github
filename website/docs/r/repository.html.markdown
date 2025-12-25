@@ -112,7 +112,7 @@ The following arguments are supported:
 
 * `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
 
-* `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
+* `has_downloads` - (**DEPRECATED**) (Optional) Set to `true` to enable the (deprecated) downloads features on the repository. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
 * `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.
 
@@ -176,7 +176,7 @@ The `security_and_analysis` block supports the following:
 
 * `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
 
-* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details. 
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details.
 
 #### Advanced Security Configuration ####
 
@@ -196,11 +196,11 @@ The `advanced_security` block supports the following:
 
 * `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning AI Detection #### 
+#### Secret Scanning AI Detection ####
 
 * `status` - (Required) Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Non-Provider Patterns #### 
+#### Secret Scanning Non-Provider Patterns ####
 
 * `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
