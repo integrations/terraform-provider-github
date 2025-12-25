@@ -8,15 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubRepositoryWebhookResourceV0() *schema.Resource {
+func resourceGithubOrganizationWebhookResourceV0() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -44,8 +39,8 @@ func resourceGithubRepositoryWebhookResourceV0() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Repository Webhook State before migration: %#v", rawState)
+func resourceGithubOrganizationWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	log.Printf("[DEBUG] GitHub Organization Webhook State before migration: %#v", rawState)
 
 	prefix := "configuration."
 	delete(rawState, prefix+"%")
@@ -69,7 +64,7 @@ func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, 
 
 	rawState[prefix+"#"] = "1"
 
-	log.Printf("[DEBUG] GitHub Repository Webhook State after migration: %#v", rawState)
+	log.Printf("[DEBUG] GitHub Organization Webhook State after migration: %#v", rawState)
 
 	return rawState, nil
 }
