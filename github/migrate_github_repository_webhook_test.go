@@ -3,36 +3,39 @@ package github
 import (
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestMigrateGithubWebhookStateV0toV1(t *testing.T) {
-	oldAttributes := map[string]string{
+func testResourceGithubWebhookInstanceStateDataV0() map[string]any {
+	return map[string]any{
 		"configuration.%":            "4",
 		"configuration.content_type": "form",
 		"configuration.insecure_ssl": "0",
 		"configuration.secret":       "blablah",
 		"configuration.url":          "https://google.co.uk/",
 	}
+}
 
-	newState, err := migrateGithubWebhookStateV0toV1(&terraform.InstanceState{
-		ID:         "nonempty",
-		Attributes: oldAttributes,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedAttributes := map[string]string{
+func testResourceGithubWebhookInstanceStateDataV1() map[string]any {
+	v0 := testResourceGithubWebhookInstanceStateDataV0()
+	return map[string]any{
 		"configuration.#":              "1",
-		"configuration.0.content_type": "form",
-		"configuration.0.insecure_ssl": "0",
-		"configuration.0.secret":       "blablah",
-		"configuration.0.url":          "https://google.co.uk/",
+		"configuration.0.content_type": v0["configuration.content_type"],
+		"configuration.0.insecure_ssl": v0["configuration.insecure_ssl"],
+		"configuration.0.secret":       v0["configuration.secret"],
+		"configuration.0.url":          v0["configuration.url"],
 	}
-	if !reflect.DeepEqual(newState.Attributes, expectedAttributes) {
-		t.Fatalf("Expected attributes:\n%#v\n\nGiven:\n%#v\n",
-			expectedAttributes, newState.Attributes)
-	}
+}
+
+func TestGithub_MigrateRepositoryWebhookStateV0toV1(t *testing.T) {
+	t.Run("migrates state without errors", func(t *testing.T) {
+		expected := testResourceGithubWebhookInstanceStateDataV1()
+		actual, err := resourceGithubRepositoryWebhookInstanceStateUpgradeV0(t.Context(), testResourceGithubWebhookInstanceStateDataV0(), nil)
+		if err != nil {
+			t.Fatalf("error migrating state: %s", err)
+		}
+
+		if !reflect.DeepEqual(expected, actual) {
+			t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
+		}
+	})
 }

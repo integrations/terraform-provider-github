@@ -22,7 +22,13 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubWebhookMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubOrganizationWebhookResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubOrganizationWebhookInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"events": {
