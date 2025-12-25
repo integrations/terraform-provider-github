@@ -60,7 +60,7 @@ test:
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
+	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
 
 test-compile:
 	@if [ "$(TEST)" = "./..." ]; then \
