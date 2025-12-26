@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/google/go-github/v67/github"
@@ -163,14 +162,37 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta an
 
 	var adminLogins []any
 
+	owner := meta.(*Owner)
+
 	for {
-		v4 := meta.(*Owner).v4client
+		v4 := owner.v4client
 		err := v4.Query(context.Background(), &query, variables)
 		if err != nil {
 			if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-				log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
-				data.SetId("")
-				return nil
+				// The GraphQL error "Could not resolve to a node" can mean either:
+				// 1. The org was actually deleted
+				// 2. The org exists but the PAT hasn't been authorized for it yet (EMU/SSO)
+				//
+				// In EMU/SSO environments, both GraphQL and REST may return not-found errors
+				// for orgs that exist but the PAT isn't authorized to access. We cannot
+				// reliably distinguish "deleted" from "unauthorized" based on API responses.
+				//
+				// To avoid incorrectly removing the org from state (which causes Terraform
+				// to destroy it), we always return an error and let the user investigate.
+				// If the org was truly deleted, use: terraform state rm <resource_address>
+				orgName := data.Get("name").(string)
+				v3 := owner.v3client
+				ctx := context.WithValue(context.Background(), ctxId, data.Id())
+				_, _, restErr := v3.Organizations.Get(ctx, orgName)
+
+				if restErr == nil {
+					// REST succeeded - org definitely exists, GraphQL access issue
+					return fmt.Errorf("organization %q exists but cannot be read via GraphQL. This typically occurs when the PAT has not been authorized for the organization yet. Please authorize the PAT via GitHub UI and retry. Original error: %w", orgName, err)
+				}
+
+				// REST also failed - could be deleted OR unauthorized
+				// Do NOT remove from state to avoid accidental destruction
+				return fmt.Errorf("cannot read organization %q via GraphQL or REST API. If the organization was deleted, remove it from state with: terraform state rm <resource_address>. GraphQL error: %v, REST error: %w", orgName, err, restErr)
 			}
 			return err
 		}
