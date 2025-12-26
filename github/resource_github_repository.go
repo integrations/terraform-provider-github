@@ -1243,11 +1243,17 @@ func resourceGithubParseFullName(resourceDataLike interface {
 }
 
 func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
-	updateVulnerabilityAlerts := client.Repositories.DisableVulnerabilityAlerts
-	if vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts"); ok && vulnerabilityAlerts.(bool) {
-		updateVulnerabilityAlerts = client.Repositories.EnableVulnerabilityAlerts
+	updateVulnerabilityAlertsSDK := client.Repositories.DisableVulnerabilityAlerts
+	vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts")
+	if ok && vulnerabilityAlerts.(bool) {
+		updateVulnerabilityAlertsSDK = client.Repositories.EnableVulnerabilityAlerts
 	}
 
-	_, err := updateVulnerabilityAlerts(ctx, owner, repoName)
+	resp, err := updateVulnerabilityAlertsSDK(ctx, owner, repoName)
+	if err != nil {
+		if resp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "An enforced security configuration prevented modifying") && !ok {
+			return nil // An Organization or Enterprise policy is preventing the change
+		}
+	}
 	return err
 }
