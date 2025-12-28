@@ -12,12 +12,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"iter"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 
 	"github.com/hashicorp/terraform-exec/internal/version"
+	tfjson "github.com/hashicorp/terraform-json"
 )
 
 const (
@@ -214,6 +216,72 @@ func (tf *Terraform) runTerraformCmdJSON(ctx context.Context, cmd *exec.Cmd, v i
 	dec := json.NewDecoder(&outbuf)
 	dec.UseNumber()
 	return dec.Decode(v)
+}
+
+func (tf *Terraform) runTerraformCmdJSONLog(ctx context.Context, cmd *exec.Cmd) iter.Seq[NextMessage] {
+	pr, pw := io.Pipe()
+	tf.SetStdout(pw)
+
+	emitter := newLogMsgEmitter(pr)
+
+	go func() {
+		err := tf.runTerraformCmd(ctx, cmd)
+		emitter.done <- errors.Join(err, pw.Close())
+	}()
+
+	return func(yield func(msg NextMessage) bool) {
+		for {
+			nextMsg := emitter.NextMessage()
+			ok := yield(nextMsg)
+			if !ok || nextMsg.Msg == nil {
+				return
+			}
+		}
+	}
+}
+
+func newLogMsgEmitter(stdoutReader io.ReadCloser) *logMsgEmitter {
+	return &logMsgEmitter{
+		scanner:      bufio.NewScanner(stdoutReader),
+		stdoutReader: stdoutReader,
+		done:         make(chan error, 1),
+	}
+}
+
+type logMsgEmitter struct {
+	scanner      *bufio.Scanner
+	stdoutReader io.Closer
+	done         chan error
+}
+
+type NextMessage struct {
+	Msg tfjson.LogMsg
+	Err error
+}
+
+// NextMessage returns next decoded message, if any, along with any errors.
+// Stdout reader is closed when the last message is received.
+//
+// Error returned can be related to decoding of the message, the Terraform command
+// or closing of stdout reader.
+//
+// Any error coming from Terraform (such as wrong configuration syntax) is
+// represented as LogMsg of Level [tfjson.Error].
+func (e *logMsgEmitter) NextMessage() NextMessage {
+	if e.scanner.Scan() {
+		msg, err := tfjson.UnmarshalLogMessage(e.scanner.Bytes())
+		return NextMessage{
+			Msg: msg,
+			Err: err,
+		}
+	}
+
+	err := <-e.done
+	err = errors.Join(err, e.scanner.Err(), e.stdoutReader.Close())
+	return NextMessage{
+		Msg: nil,
+		Err: err,
+	}
 }
 
 // mergeUserAgent does some minor deduplication to ensure we aren't
