@@ -1,0 +1,5 @@
+# https://git-scm.com/docs/gitattributes
+# https://docs.github.com/en/repositories/working-with-files/managing-files/customizing-how-changed-files-appear-on-github
+
+# Ignore vendor directory in language statistics
+vendor/** linguist-generated=true
