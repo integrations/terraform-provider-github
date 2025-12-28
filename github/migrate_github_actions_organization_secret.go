@@ -1,36 +1,79 @@
 package github
 
 import (
-	"fmt"
+	"context"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceGithubActionsOrganizationSecretMigrateState(v int, is *terraform.InstanceState, meta any) (*terraform.InstanceState, error) {
-	switch v {
-	case 0:
-		log.Printf("[INFO] Found GitHub Actions Organization Secret State v0; migrating to v1")
-		return migrateGithubActionsOrganizationSecretStateV0toV1(is)
-	default:
-		return is, fmt.Errorf("unexpected schema version: %d", v)
+func resourceGithubActionsOrganizationSecretResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"secret_name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the secret.",
+				ValidateDiagFunc: validateSecretNameFunc,
+			},
+			"encrypted_value": {
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				Sensitive:        true,
+				ConflictsWith:    []string{"plaintext_value"},
+				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
+			},
+			"plaintext_value": {
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"encrypted_value"},
+				Description:   "Plaintext value of the secret to be encrypted.",
+			},
+			"visibility": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
+				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+			},
+			"selected_repository_ids": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Set:         schema.HashInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "An array of repository ids that can access the organization secret.",
+			},
+			"created_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_secret' creation.",
+			},
+			"updated_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of 'actions_secret' update.",
+			},
+		},
 	}
 }
 
-func migrateGithubActionsOrganizationSecretStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
-	if is.Empty() {
-		log.Printf("[DEBUG] Empty InstanceState; nothing to migrate.")
-		return is, nil
-	}
-
-	log.Printf("[DEBUG] GitHub Actions Organization Secret Attributes before migration: %#v", is.Attributes)
-
+func resourceGithubActionsOrganizationSecretInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	log.Printf("[DEBUG] GitHub Actions Organization Secret Attributes before migration: %#v", rawState)
 	// Add the destroy_on_drift field with default value true if it doesn't exist
-	if _, ok := is.Attributes["destroy_on_drift"]; !ok {
-		is.Attributes["destroy_on_drift"] = "true"
+	if _, ok := rawState["destroy_on_drift"]; !ok {
+		rawState["destroy_on_drift"] = true
 	}
 
-	log.Printf("[DEBUG] GitHub Actions Organization Secret Attributes after State Migration: %#v", is.Attributes)
+	log.Printf("[DEBUG] GitHub Actions Organization Secret Attributes after migration: %#v", rawState)
 
-	return is, nil
+	return rawState, nil
 }

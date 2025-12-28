@@ -1,54 +1,75 @@
 package github
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubWebhookMigrateState(v int, is *terraform.InstanceState, meta any) (*terraform.InstanceState, error) {
-	switch v {
-	case 0:
-		log.Printf("[INFO] Found GitHub Webhook State v0; migrating to v1")
-		return migrateGithubWebhookStateV0toV1(is)
-	default:
-		return is, fmt.Errorf("unexpected schema version: %d", v)
+func resourceGithubRepositoryWebhookResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"repository": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"events": {
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"configuration": {
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
+			"url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"active": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+		},
 	}
 }
 
-func migrateGithubWebhookStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
-	if is.Empty() {
-		log.Printf("[DEBUG] Empty InstanceState; nothing to migrate.")
-		return is, nil
-	}
-
-	log.Printf("[DEBUG] GitHub Webhook Attributes before migration: %#v", is.Attributes)
+func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	log.Printf("[DEBUG] GitHub Repository Webhook State before migration: %#v", rawState)
 
 	prefix := "configuration."
-
-	delete(is.Attributes, prefix+"%")
+	delete(rawState, prefix+"%")
 
 	// Read & delete old keys
-	oldKeys := make(map[string]string)
-	for k, v := range is.Attributes {
+	oldKeys := make(map[string]any)
+	for k, v := range rawState {
 		if strings.HasPrefix(k, prefix) {
 			oldKeys[k] = v
 
 			// Delete old keys
-			delete(is.Attributes, k)
+			delete(rawState, k)
 		}
 	}
 
 	// Write new keys
 	for k, v := range oldKeys {
 		newKey := "configuration.0." + strings.TrimPrefix(k, prefix)
-		is.Attributes[newKey] = v
+		rawState[newKey] = v
 	}
 
-	is.Attributes[prefix+"#"] = "1"
-	log.Printf("[DEBUG] GitHub Webhook Attributes after State Migration: %#v", is.Attributes)
+	rawState[prefix+"#"] = "1"
 
-	return is, nil
+	log.Printf("[DEBUG] GitHub Repository Webhook State after migration: %#v", rawState)
+
+	return rawState, nil
 }
