@@ -2,7 +2,28 @@ TEST?=$$(go list ./... |grep -v 'vendor')
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
-export TESTARGS=-race -coverprofile=coverage.txt -covermode=atomic
+COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+export CGO_ENABLED=0
+
+# VARIABLE REFERENCE:
+#
+# Test-specific variables:
+#   T=<pattern>       - Test name pattern (e.g., TestAccGithubRepository)
+#   COV=true          - Enable coverage
+#
+#
+# Examples:
+#   make test T=TestMigrate                               # Run only schema migration unit tests
+#   make test COV=true                                    # Run all unit tests with coverage
+#   make testacc T=TestAccGithubRepositories\$$ COV=true  # Run only acceptance tests for a specific Test name with coverage
+
+ifneq ($(origin T), undefined)
+	RUNARGS = -run='$(T)'
+endif
+
+ifneq ($(origin COV), undefined)
+	RUNARGS += $(COVERAGEARGS)
+endif
 
 default: build
 
@@ -11,7 +32,7 @@ tools:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 
 build: lintcheck
-	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
+	go build -ldflags="-s -w" ./...
 
 fmt:
 	@echo "==> Fixing source code formatting..."
@@ -26,11 +47,20 @@ lintcheck:
 	golangci-lint run ./...
 
 test:
-	CGO_ENABLED=0 go test ./...
-	# commenting this out for release tooling, please run testacc instead
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	go test $(TEST) \
+		-timeout=30s \
+		-parallel=4 \
+		-v \
+		-run '^Test[^A]|^TestA[^c]|^TestAc[^c]' \
+		$(RUNARGS) $(TESTARGS) \
+		-count 1;
 
 testacc:
-	TF_ACC=1 CGO_ENABLED=0 go test -run "^TestAcc*" $(TEST) -v $(TESTARGS) -timeout 120m -count=1
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
 
 test-compile:
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -38,7 +68,7 @@ test-compile:
 		echo "  make test-compile TEST=./$(PKG_NAME)"; \
 		exit 1; \
 	fi
-	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
+	go test -c $(TEST) $(TESTARGS)
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
