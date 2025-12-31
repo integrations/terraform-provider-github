@@ -678,7 +678,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
 				},
 			},
 		})
