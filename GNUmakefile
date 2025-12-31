@@ -3,6 +3,7 @@ WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+export CGO_ENABLED=0
 
 # VARIABLE REFERENCE:
 #
@@ -31,7 +32,7 @@ tools:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 
 build: lintcheck
-	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
+	go build -ldflags="-s -w" ./...
 
 fmt:
 	@echo "==> Fixing source code formatting..."
@@ -67,7 +68,7 @@ test-compile:
 		echo "  make test-compile TEST=./$(PKG_NAME)"; \
 		exit 1; \
 	fi
-	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
+	go test -c $(TEST) $(TESTARGS)
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
