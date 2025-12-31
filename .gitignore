@@ -36,3 +36,5 @@ terraform-provider-github
 
 # do not commit secrets
 .env
+*_rsa
+*_rsa.pub

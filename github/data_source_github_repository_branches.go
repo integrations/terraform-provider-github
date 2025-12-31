@@ -65,6 +65,7 @@ func flattenBranches(branches []*github.Branch) []map[string]any {
 }
 
 func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -86,7 +87,7 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) er
 
 	results := make([]map[string]any, 0)
 	for {
-		branches, resp, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
+		branches, resp, err := client.Repositories.ListBranches(ctx, orgName, repoName, listBranchOptions)
 		if err != nil {
 			return err
 		}

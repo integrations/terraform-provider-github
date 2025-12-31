@@ -60,6 +60,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 }
 
 func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	includeRepoId := d.Get("include_repo_id").(bool)
@@ -73,7 +74,7 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta any) error {
 		},
 	}
 
-	fullNames, names, repoIDs, err := searchGithubRepositories(client, query, opt)
+	fullNames, names, repoIDs, err := searchGithubRepositories(ctx, client, query, opt)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
+func searchGithubRepositories(ctx context.Context, client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
 	fullNames := make([]string, 0)
 
 	names := make([]string, 0)
@@ -105,7 +106,7 @@ func searchGithubRepositories(client *github.Client, query string, opt *github.S
 	repoIDs := make([]int64, 0)
 
 	for {
-		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
+		results, resp, err := client.Search.Repositories(ctx, query, opt)
 		if err != nil {
 			return fullNames, names, repoIDs, err
 		}

@@ -33,6 +33,7 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 }
 
 func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
@@ -40,12 +41,12 @@ func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, met
 	envName := d.Get("environment").(string)
 	escapedEnvName := url.PathEscape(envName)
 
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repository)
+	repo, _, err := client.Repositories.Get(ctx, owner, repository)
 	if err != nil {
 		return err
 	}
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(context.TODO(), int(repo.GetID()), escapedEnvName)
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), escapedEnvName)
 	if err != nil {
 		return err
 	}
