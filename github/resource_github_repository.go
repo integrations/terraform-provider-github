@@ -391,7 +391,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
+				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
 				Type:        schema.TypeBool,
@@ -1245,6 +1245,9 @@ func resourceGithubParseFullName(resourceDataLike interface {
 func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
 	updateVulnerabilityAlertsSDK := client.Repositories.DisableVulnerabilityAlerts
 	vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts")
+
+	// Only if the vulnerability alerts are specifically set to true, enable them.
+	// Otherwise, disable them as GitHub defaults to enabled and we have not wanted to introduce a breaking change for this yet.
 	if ok && vulnerabilityAlerts.(bool) {
 		updateVulnerabilityAlertsSDK = client.Repositories.EnableVulnerabilityAlerts
 	}
