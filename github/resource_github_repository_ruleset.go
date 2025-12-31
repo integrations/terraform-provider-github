@@ -803,8 +803,6 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 }
 
 // validateRepositoryRulesetConditions validates conditions based on target type.
-// For push targets, ref_name must not be set.
-// For branch/tag targets, ref_name can be set in conditions.
 func validateRepositoryRulesetConditions(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	target := d.Get("target").(string)
 	tflog.Debug(ctx, "Validating repository ruleset conditions", map[string]any{"target": target})
@@ -817,26 +815,18 @@ func validateRepositoryRulesetConditions(ctx context.Context, d *schema.Resource
 
 	conditions := conditionsRaw[0].(map[string]any)
 
-	if target == "push" {
-		if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-			tflog.Debug(ctx, "Invalid ref_name for push target")
-			return fmt.Errorf("ref_name must not be set for push target")
-		}
+	switch target {
+	case "branch", "tag":
+		return validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
+	case "push":
+		return validateConditionsFieldForPushTarget(ctx, conditions)
 	}
-
-	tflog.Debug(ctx, "Conditions validation passed", map[string]any{"target": target})
 	return nil
 }
 
-// validateRepositoryRulesetRules validates rules based on target type.
-// Push targets can only use push-specific rules (file_path_restriction, max_file_size, etc.).
-// Branch/tag targets cannot use push-only rules.
-//
-// Note: This function reuses branchTagOnlyRules and pushOnlyRules from
-// resource_github_organization_ruleset.go since they're in the same package.
 func validateRepositoryRulesetRules(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	target := d.Get("target").(string)
-	tflog.Debug(ctx, "Validating repository ruleset rules", map[string]any{"target": target})
+	tflog.Debug(ctx, "Validating repository ruleset rules based on target", map[string]any{"target": target})
 
 	rulesRaw := d.Get("rules").([]any)
 	if len(rulesRaw) == 0 {
@@ -844,41 +834,8 @@ func validateRepositoryRulesetRules(ctx context.Context, d *schema.ResourceDiff,
 		return nil
 	}
 
-	rules := rulesRaw[0].(map[string]any)
+	value, exists := d.GetOk("rules.0.update_allows_fetch_and_merge")
+	tflog.Debug(ctx, "FOO", map[string]any{"foo": value, "exists": exists})
 
-	switch target {
-	case "push":
-		for _, ruleName := range branchTagOnlyRules {
-			ruleValue := rules[ruleName]
-			if ruleValue == nil {
-				continue
-			}
-			switch v := ruleValue.(type) {
-			case bool:
-				if v {
-					tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
-					return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
-				}
-			case []any:
-				if len(v) > 0 {
-					tflog.Debug(ctx, "Invalid rule for push target", map[string]any{"rule": ruleName, "value": v})
-					return fmt.Errorf("rule %q is not valid for push target; push targets only support: %v", ruleName, pushOnlyRules)
-				}
-			}
-		}
-	case "branch", "tag":
-		for _, ruleName := range pushOnlyRules {
-			ruleValue := rules[ruleName]
-			if ruleValue == nil {
-				continue
-			}
-			if ruleList, ok := ruleValue.([]any); ok && len(ruleList) > 0 {
-				tflog.Debug(ctx, "Invalid rule for branch/tag target", map[string]any{"rule": ruleName, "target": target})
-				return fmt.Errorf("rule %q is only valid for push target, not for %s target", ruleName, target)
-			}
-		}
-	}
-
-	tflog.Debug(ctx, "Rules validation passed", map[string]any{"target": target})
-	return nil
+	return validateRulesForTarget(ctx, d)
 }
