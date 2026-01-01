@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -210,6 +211,32 @@ func TestAccProviderConfigure(t *testing.T) {
 						}
 						return nil
 					},
+				},
+			},
+		})
+	})
+	t.Run("should not allow both token and app_auth to be configured", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			provider "github" {
+				owner = "%s"
+				token = "%s"
+				app_auth {
+					id = "1234567890"
+					installation_id = "1234567890"
+					pem_file = "1234567890"
+				}
+			}
+
+			data "github_ip_ranges" "test" {}
+			`, testAccConf.owner, testAccConf.token)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("\"app_auth\": conflicts with token"),
 				},
 			},
 		})
