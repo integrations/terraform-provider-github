@@ -192,11 +192,15 @@ func TestAccProviderConfigure(t *testing.T) {
 	})
 
 	t.Run("can be configured with max per page", func(t *testing.T) {
-		config := `
+		testMaxPerPage := 101
+		config := fmt.Sprintf(`
 			provider "github" {
 				owner = "%s"
-				max_per_page = 100
-			}`
+				max_per_page = %d
+			}
+
+			data "github_ip_ranges" "test" {}
+			`, testAccConf.owner, testMaxPerPage)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -206,8 +210,8 @@ func TestAccProviderConfigure(t *testing.T) {
 					Config:             config,
 					ExpectNonEmptyPlan: false,
 					Check: func(_ *terraform.State) error {
-						if maxPerPage != 100 {
-							return fmt.Errorf("max_per_page should be set to 100, got %d", maxPerPage)
+						if maxPerPage != testMaxPerPage {
+							return fmt.Errorf("max_per_page should be set to %d, got %d", testMaxPerPage, maxPerPage)
 						}
 						return nil
 					},
