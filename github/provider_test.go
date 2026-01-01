@@ -173,11 +173,15 @@ func TestAccProviderConfigure(t *testing.T) {
 	})
 
 	t.Run("can be configured with max retries", func(t *testing.T) {
+		testMaxRetries := -1
 		config := fmt.Sprintf(`
 			provider "github" {
 				owner = "%s"
-				max_retries = 3
-			}`, testAccConf.owner)
+				max_retries = %d
+			}
+
+      data "github_ip_ranges" "test" {}
+      `, testAccConf.owner, testMaxRetries)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -186,6 +190,7 @@ func TestAccProviderConfigure(t *testing.T) {
 				{
 					Config:             config,
 					ExpectNonEmptyPlan: false,
+					ExpectError:        regexp.MustCompile("max_retries must be greater than or equal to 0"),
 				},
 			},
 		})
