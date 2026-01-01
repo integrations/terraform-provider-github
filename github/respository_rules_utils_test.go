@@ -491,3 +491,50 @@ func TestAllPushRulesWithUnknownRules(t *testing.T) {
 		t.Error("Unknown rule type should not appear in flattened rules to avoid causing diffs")
 	}
 }
+
+func TestCopilotCodeReviewRoundTrip(t *testing.T) {
+	// Test that copilot_code_review rule survives expand -> flatten round trip
+	rulesMap := map[string]any{
+		"copilot_code_review": []any{
+			map[string]any{
+				"review_new_pushes":          true,
+				"review_draft_pull_requests": false,
+			},
+		},
+	}
+
+	input := []any{rulesMap}
+
+	// Expand to GitHub API format
+	expandedRules := expandRules(input, false)
+
+	if len(expandedRules) != 1 {
+		t.Fatalf("Expected 1 expanded rule, got %d", len(expandedRules))
+	}
+
+	if expandedRules[0].Type != "copilot_code_review" {
+		t.Errorf("Expected rule type copilot_code_review, got %s", expandedRules[0].Type)
+	}
+
+	// Flatten back to terraform format
+	flattenedResult := flattenRules(expandedRules, false)
+
+	if len(flattenedResult) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
+	}
+
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	copilotRules := flattenedRulesMap["copilot_code_review"].([]map[string]any)
+
+	if len(copilotRules) != 1 {
+		t.Fatalf("Expected 1 copilot_code_review rule after round trip, got %d", len(copilotRules))
+	}
+
+	if copilotRules[0]["review_new_pushes"] != true {
+		t.Errorf("Expected review_new_pushes to be true, got %v", copilotRules[0]["review_new_pushes"])
+	}
+
+	if copilotRules[0]["review_draft_pull_requests"] != false {
+		t.Errorf("Expected review_draft_pull_requests to be false, got %v", copilotRules[0]["review_draft_pull_requests"])
+	}
+}
