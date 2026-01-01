@@ -18,10 +18,11 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description: descriptions["token"],
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description:   descriptions["token"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -93,10 +94,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: descriptions["app_auth"],
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				Description:   descriptions["app_auth"],
+				ConflictsWith: []string{"token"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
