@@ -54,7 +54,7 @@ func TestAccProviderConfigure(t *testing.T) {
 	t.Run("can be configured to run anonymously", func(t *testing.T) {
 		config := `
 		provider "github" {
-		  token = ""
+			token = ""
 		}
 		data "github_ip_ranges" "test" {}
 		`
@@ -78,7 +78,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			insecure = true
 		}
 		data "github_ip_ranges" "test" {}
-    `
+		`
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -180,8 +180,8 @@ func TestAccProviderConfigure(t *testing.T) {
 				max_retries = %d
 			}
 
-      data "github_ip_ranges" "test" {}
-      `, testAccConf.owner, testMaxRetries)
+			data "github_ip_ranges" "test" {}
+			`, testAccConf.owner, testMaxRetries)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
