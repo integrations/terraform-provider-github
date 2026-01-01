@@ -143,8 +143,9 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 			},
 		})
 	})
+}
 
-	// Unit tests for drift detection behavior
+func TestGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 	t.Run("destroyOnDrift false clears sensitive values instead of recreating", func(t *testing.T) {
 		originalTimestamp := "2023-01-01T00:00:00Z"
 		newTimestamp := "2023-01-02T00:00:00Z"
