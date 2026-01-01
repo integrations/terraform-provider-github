@@ -241,4 +241,29 @@ func TestAccProviderConfigure(t *testing.T) {
 			},
 		})
 	})
+	t.Run("should not allow app_auth and GITHUB_TOKEN to be configured", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			provider "github" {
+				owner = "%s"
+				app_auth {
+					id = "1234567890"
+					installation_id = "1234567890"
+					pem_file = "1234567890"
+				}
+			}
+
+			data "github_ip_ranges" "test" {}
+			`, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t); t.Setenv("GITHUB_TOKEN", "1234567890") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("\"app_auth\": conflicts with token"),
+				},
+			},
+		})
+	})
 }
