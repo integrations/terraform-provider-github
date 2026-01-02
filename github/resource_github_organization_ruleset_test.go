@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -11,25 +12,46 @@ import (
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-
-	if testEnterprise == "" {
-		t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-	}
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
+		resourceName := "test-create-and-update"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
-				name        = "test-%s"
+			resource "github_repository" "%[1]s" {
+				name = "test-%[2]s"
+				visibility = "private"
+				auto_init = true
+
+        ignore_vulnerability_alerts_during_read = true
+
+			}
+
+			resource "github_repository_file" "%[1]s" {
+				repository          = github_repository.%[1]s.name
+				branch              = "main"
+				file                = ".github/workflows/echo.yaml"
+				content             = "name: Echo Workflow\n\non: [pull_request]\n\njobs:\n    echo:\n      runs-on: linux\n      steps:\n        - run: echo \"Hello, world!\"\n"
+				commit_message      = "Managed by Terraform"
+				commit_author       = "Terraform User"
+				commit_email        = "terraform@example.com"
+			}
+
+			resource "github_actions_repository_access_level" "%[1]s" {
+				repository = github_repository.%[1]s.name
+				access_level = "organization"
+			}
+
+			resource "github_organization_ruleset" "%[1]s" {
+				name        = "test-%[2]s"
 				target      = "branch"
 				enforcement = "active"
 
 				conditions {
 					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
 						include = ["~ALL"]
 						exclude = []
 					}
@@ -46,6 +68,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_signatures = false
 
 					pull_request {
+						allowed_merge_methods             = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -66,17 +89,18 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_workflows {
 						do_not_enforce_on_create = true
 						required_workflow {
-							path          = "path/to/workflow.yaml"
-							repository_id = 1234
+							path          = ".github/workflows/echo.yaml"
+							repository_id = github_repository.%[1]s.repo_id
+							ref           = "main" # Default ref is master
 						}
 					}
 
 					required_code_scanning {
-					  required_code_scanning_tool {
-						alerts_threshold = "errors"
-						security_alerts_threshold = "high_or_higher"
-						tool = "CodeQL"
-					  }
+						required_code_scanning_tool {
+							alerts_threshold = "errors"
+							security_alerts_threshold = "high_or_higher"
+							tool = "CodeQL"
+						}
 					}
 
 					branch_name_pattern {
@@ -88,47 +112,43 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 					non_fast_forward = true
 				}
+        depends_on = [github_repository_file.%[1]s]
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"name",
-				"test",
+				fmt.Sprintf("test-%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"enforcement",
 				"active",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.do_not_enforce_on_create",
 				"true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_workflows.0.required_workflow.0.path",
-				"path/to/workflow.yaml",
+				".github/workflows/echo.yaml",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
-				"rules.0.required_workflows.0.required_workflow.0.repository_id",
-				"1234",
-			),
-			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
 				"errors",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
 				"high_or_higher",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
 				"CodeQL",
 			),
@@ -210,14 +230,19 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
+		resourceName := "test-import-rulesets"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-%s"
 				target      = "branch"
 				enforcement = "active"
 
 				conditions {
 					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
 						include = ["~ALL"]
 						exclude = []
 					}
@@ -234,6 +259,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_signatures = false
 
 					pull_request {
+            allowed_merge_methods = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -261,10 +287,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					non_fast_forward = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_organization_ruleset.test", "name"),
+			resource.TestCheckResourceAttrSet(fmt.Sprintf("github_organization_ruleset.%s", resourceName), "name"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -277,7 +303,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						Check:  check,
 					},
 					{
-						ResourceName:      "github_organization_ruleset.test",
+						ResourceName:      fmt.Sprintf("github_organization_ruleset.%s", resourceName),
 						ImportState:       true,
 						ImportStateVerify: true,
 					},
@@ -291,8 +317,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Creates and updates organization using bypasses", func(t *testing.T) {
+		resourceName := "test-creates-and-updates-using-bypasses"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-%s"
 				target      = "branch"
 				enforcement = "active"
@@ -319,6 +346,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						include = ["~ALL"]
 						exclude = []
 					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
 				}
 
 				rules {
@@ -328,6 +359,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					required_linear_history = true
 					required_signatures = false
 					pull_request {
+            allowed_merge_methods = ["merge", "squash", "rebase"]
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
 						require_code_owner_review         = true
@@ -336,43 +368,43 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.#",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.#",
 				"3",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.actor_type",
 				"DeployKey",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_id",
 				"5",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_type",
 				"RepositoryRole",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_id",
 				"1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_type",
 				"OrganizationAdmin",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.bypass_mode",
 				"always",
 			),
 		)
@@ -396,8 +428,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	})
 
 	t.Run("Creates organization ruleset with all bypass_modes", func(t *testing.T) {
+		resourceName := "test-create-with-bypass-modes"
 		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "test" {
+			resource "github_organization_ruleset" "%s" {
 				name        = "test-bypass-modes-%s"
 				target      = "branch"
 				enforcement = "active"
@@ -425,53 +458,57 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						include = ["~ALL"]
 						exclude = []
 					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
 				}
 
 				rules {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, resourceName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.#",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.#",
 				"3",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.actor_id",
 				"1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.actor_type",
 				"OrganizationAdmin",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.0.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.0.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_id",
 				"5",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.actor_type",
 				"RepositoryRole",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.1.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.2.bypass_mode",
 				"pull_request",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_id",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_id",
 				"2",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.actor_type",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.actor_type",
 				"RepositoryRole",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "bypass_actors.2.bypass_mode",
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName), "bypass_actors.1.bypass_mode",
 				"exempt",
 			),
 		)
@@ -509,6 +546,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 				conditions {
 					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
 						include = ["~ALL"]
 						exclude = []
 					}
@@ -561,6 +602,405 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
+		})
+	})
+
+	t.Run("Validates branch target requires `ref_name` condition", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-validation-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("ref_name must be set for branch target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates tag target requires `ref_name` condition", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-tag-no-conditions-%s"
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("ref_name must be set for tag target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates push target rejects ref_name", func(t *testing.T) {
+		resourceName := "test-push-reject-ref-name"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-with-ref-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Push rulesets only support push-specific rules
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		resourceName := "test-push-reject-branch-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-branch-rule-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		resourceName := "test-branch-reject-push-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-branch-push-rule-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Creates push ruleset with repository_name only", func(t *testing.T) {
+		resourceName := "test-push-repo-name-only"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Push rulesets only support push-specific rules:
+					# file_path_restriction, max_file_path_length, file_extension_restriction, max_file_size
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"name",
+				fmt.Sprintf("test-push-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"target",
+				"push",
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"enforcement",
+				"active",
+			),
+			resource.TestCheckResourceAttr(
+				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
+				"rules.0.max_file_size.0.max_file_size",
+				"100",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+		})
+	})
+
+	t.Run("Validates rules.required_status_checks", func(t *testing.T) {
+		t.Run("required_check.context should not be empty", func(t *testing.T) {
+			resourceName := "test-required-status-checks-context-is-not-empty"
+			config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-context-is-not-empty-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					required_status_checks {
+						required_check {
+							context = ""
+						}
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config:      config,
+							ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
+						},
+					},
+				})
+			}
+
+			t.Run("with an enterprise account", func(t *testing.T) {
+				testCase(t, enterprise)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+			})
+		})
+		t.Run("required_check should be required when strict_required_status_checks_policy is set", func(t *testing.T) {
+			resourceName := "test-required-check-is-required"
+			config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-required-with-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					required_status_checks {
+						strict_required_status_checks_policy = true
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+			testCase := func(t *testing.T, mode string) {
+				resource.Test(t, resource.TestCase{
+					PreCheck:  func() { skipUnlessMode(t, mode) },
+					Providers: testAccProviders,
+					Steps: []resource.TestStep{
+						{
+							Config:      config,
+							ExpectError: regexp.MustCompile("Insufficient required_check blocks"),
+						},
+					},
+				})
+			}
+
+			t.Run("with an enterprise account", func(t *testing.T) {
+				testCase(t, enterprise)
+			})
+
+			t.Run("with an organization account", func(t *testing.T) {
+				t.Skip("organization account not supported for this operation, since it needs a paid Team plan.")
+			})
 		})
 	})
 }

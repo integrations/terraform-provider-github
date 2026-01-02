@@ -65,24 +65,23 @@ resource "github_organization_ruleset" "example" {
   }
 }
 
-# Example with push ruleset  
+# Example with push ruleset
+# Note: Push targets must NOT have ref_name in conditions, only repository_name or repository_id
 resource "github_organization_ruleset" "example_push" {
   name        = "example_push"
   target      = "push"
   enforcement = "active"
 
   conditions {
-    ref_name {
-      include = ["~ALL"]
-      exclude = []
-    }
     repository_name {
-      include = ["~ALL"] 
+      include = ["~ALL"]
       exclude = []
     }
   }
 
   rules {
+    # Push targets only support these rules:
+    # file_path_restriction, max_file_size, max_file_path_length, file_extension_restriction
     file_path_restriction {
       restricted_file_paths = [".github/workflows/*", "*.env"]
     }
@@ -114,11 +113,13 @@ resource "github_organization_ruleset" "example_push" {
 
 * `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-* `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`. (see [below for nested schema](#conditions))
+* `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. For `push` targets, `ref_name` must NOT be set - only `repository_name` or `repository_id` should be used. (see [below for nested schema](#conditions))
 
 #### Rules ####
 
 The `rules` block supports the following:
+
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
 
 * `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#rules.branch_name_pattern))
 
@@ -296,11 +297,13 @@ The `rules` block supports the following:
 
 #### conditions ####
 
-* `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
+* `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` targets. (see [below for nested schema](#conditions.ref_name))
 * `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
 * `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditions.repository_name))
 
 One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
+
+~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs.
 
 #### conditions.ref_name ####
 

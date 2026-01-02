@@ -10,6 +10,8 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v77/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -25,6 +27,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
+
+		CustomizeDiff: customdiff.All(
+			validateRepositoryRulesetConditions,
+			validateRepositoryRulesetRules,
+		),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -188,6 +195,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"allowed_merge_methods": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
+										Elem: &schema.Schema{
+											Type:             schema.TypeString,
+											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -707,7 +724,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 
 	var ruleset *github.RepositoryRuleset
 
-	if d.HasChange("bypass_actors") {
+	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
 		// Clear bypass actors first, then update with new ruleset
 		_, err = client.Repositories.UpdateRulesetClearBypassActor(ctx, owner, repoName, rulesetID)
 		if err != nil {
@@ -772,4 +789,42 @@ func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+// validateRepositoryRulesetConditions validates conditions based on target type.
+func validateRepositoryRulesetConditions(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating repository ruleset conditions", map[string]any{"target": target})
+
+	conditionsRaw := d.Get("conditions").([]any)
+	if len(conditionsRaw) == 0 {
+		tflog.Debug(ctx, "No conditions block, skipping validation")
+		return nil
+	}
+
+	conditions := conditionsRaw[0].(map[string]any)
+
+	switch target {
+	case "branch", "tag":
+		return validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
+	case "push":
+		return validateConditionsFieldForPushTarget(ctx, conditions)
+	}
+	return nil
+}
+
+func validateRepositoryRulesetRules(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	target := d.Get("target").(string)
+	tflog.Debug(ctx, "Validating repository ruleset rules based on target", map[string]any{"target": target})
+
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	value, exists := d.GetOk("rules.0.update_allows_fetch_and_merge")
+	tflog.Debug(ctx, "FOO", map[string]any{"foo": value, "exists": exists})
+
+	return validateRulesForTarget(ctx, d)
 }
