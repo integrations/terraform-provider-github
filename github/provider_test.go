@@ -131,25 +131,25 @@ func TestAccProviderConfigure(t *testing.T) {
 				},
 			},
 		})
+	})
 
-		t.Run("can be configured with an organization account legacy", func(t *testing.T) {
-			config := fmt.Sprintf(`
+	t.Run("can be configured with an organization account legacy", func(t *testing.T) {
+		config := fmt.Sprintf(`
 			provider "github" {
 				token = "%s"
 				organization = "%s"
 			}`, testAccConf.token, testAccConf.owner)
 
-			resource.Test(t, resource.TestCase{
-				PreCheck:          func() { skipUnlessHasOrgs(t) },
-				ProviderFactories: providerFactories,
-				Steps: []resource.TestStep{
-					{
-						Config:             config,
-						PlanOnly:           true,
-						ExpectNonEmptyPlan: false,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
-			})
+			},
 		})
 	})
 
