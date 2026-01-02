@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... |grep -v 'vendor')
+SWEEP?=repositories,teams
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
@@ -39,6 +39,10 @@ test-compile:
 		exit 1; \
 	fi
 	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
+
+sweep:
+	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
+	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
