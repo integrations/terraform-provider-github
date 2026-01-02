@@ -818,7 +818,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
-						ExpectError: regexp.MustCompile("rule .* is only valid for push target"),
+						ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
 					},
 				},
 			})
