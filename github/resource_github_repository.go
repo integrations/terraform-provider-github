@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -752,6 +755,12 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta any) error {
 		d.SetId(repo.GetName())
 	}
 
+	retryErr := waitForRepositoryToBeCreated(ctx, client, owner, repoName)
+
+	if retryErr != nil {
+		return fmt.Errorf("error waiting for repository to be created: %w", retryErr)
+	}
+
 	topics := repoReq.Topics
 	if len(topics) > 0 {
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
@@ -1250,4 +1259,30 @@ func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ct
 
 	_, err := updateVulnerabilityAlerts(ctx, owner, repoName)
 	return err
+}
+
+// The Repository Create API doesn't wait for the repository to be created, so we need to enable a retry mechanism to wait for it.
+// Resolves https://github.com/integrations/terraform-provider-github/issues/2604
+func waitForRepositoryToBeCreated(ctx context.Context, client *github.Client, owner, repoName string) error {
+	timeout := 2 * time.Minute
+	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
+		tflog.Info(ctx, fmt.Sprintf("Waiting for repository to be created: %s/%s", owner, repoName))
+		_, resp, err := client.Repositories.Get(ctx, owner, repoName)
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("Error getting repository: %s", err))
+			if resp.StatusCode == http.StatusForbidden {
+				return retry.NonRetryableError(fmt.Errorf("forbidden from accessing repository: %w", err))
+			}
+			return retry.RetryableError(fmt.Errorf("expected repository to be created but was in state %s", resp.Status))
+
+		}
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusMovedPermanently {
+			return retry.RetryableError(fmt.Errorf("expected repository to be created but was in state %s", resp.Status))
+		}
+
+		tflog.Info(ctx, fmt.Sprintf("Repository created: %s/%s", owner, repoName))
+
+		return nil
+	})
 }
