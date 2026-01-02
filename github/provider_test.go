@@ -117,17 +117,20 @@ func TestAccProviderConfigure(t *testing.T) {
 		config := fmt.Sprintf(`
 			provider "github" {
 				token = "%s"
-				owner = "%s"
-			}`, testAccConf.token, testAccConf.owner)
+				owner = "%[2]s"
+			}
+
+			data "github_organization" "test" {
+				name = "%[2]s"
+			}
+			`, testAccConf.token, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
+					Config: config,
 				},
 			},
 		})
