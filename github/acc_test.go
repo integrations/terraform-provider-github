@@ -25,7 +25,7 @@ const (
 	enterprise   testMode = "enterprise"
 )
 
-const testResourcePrefix = "test-acc-"
+const testResourcePrefix = "tf-acc-test-"
 
 var (
 	orgTestModes     = []testMode{organization, team, enterprise}
