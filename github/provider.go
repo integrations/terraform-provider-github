@@ -416,6 +416,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 
 		if token == "" {
+			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
 			token = tokenFromGHCLI(baseURL)
 		}
 
