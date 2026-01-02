@@ -439,6 +439,10 @@ func TestAccGithubRepository(t *testing.T) {
 	})
 
 	t.Run("creates a repository using an org template", func(t *testing.T) {
+		if len(testAccConf.testOrgTemplateRepository) == 0 {
+			t.Skip("No org template repository provided")
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
