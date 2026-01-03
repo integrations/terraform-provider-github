@@ -10,18 +10,19 @@ import (
 
 func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-actions-pubkey-%s", testResourcePrefix, randomID)
 
 	t.Run("queries a repository public key without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
 			data "github_actions_public_key" "test" {
 				repository = github_repository.test.name
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(

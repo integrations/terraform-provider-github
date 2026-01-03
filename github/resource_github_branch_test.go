@@ -11,9 +11,10 @@ import (
 func TestAccGithubBranch(t *testing.T) {
 	t.Run("creates a branch directly", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%[1]s"
+			name = "%[1]s"
 			auto_init = true
 		}
 
@@ -21,7 +22,7 @@ func TestAccGithubBranch(t *testing.T) {
 			repository = github_repository.test.name
 			branch     = "test"
 		}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -41,9 +42,10 @@ func TestAccGithubBranch(t *testing.T) {
 
 	t.Run("creates a branch named main directly and a repository with a gitignore template", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%[1]s"
+			name = "%[1]s"
 			auto_init = true
 			gitignore_template = "Python"
 		}
@@ -52,7 +54,7 @@ func TestAccGithubBranch(t *testing.T) {
 			repository = github_repository.test.id
 			branch     = "main"
 		}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -80,9 +82,10 @@ func TestAccGithubBranch(t *testing.T) {
 
 	t.Run("creates a branch from a source branch", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%[1]s"
+			name = "%[1]s"
 			auto_init = true
 		}
 
@@ -96,7 +99,7 @@ func TestAccGithubBranch(t *testing.T) {
 			source_branch = github_branch.source.branch
 			branch        = "test"
 		}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -116,9 +119,10 @@ func TestAccGithubBranch(t *testing.T) {
 
 	t.Run("renames a branch without replacement", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		initialConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 			  auto_init = true
 			}
 
@@ -126,11 +130,11 @@ func TestAccGithubBranch(t *testing.T) {
 			  repository = github_repository.test.id
 			  branch     = "initial"
 			}
-		`, randomID)
+		`, repoName)
 
 		renamedConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 			  auto_init = true
 			}
 
@@ -138,7 +142,7 @@ func TestAccGithubBranch(t *testing.T) {
 			  repository = github_repository.test.id
 			  branch     = "renamed"
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },

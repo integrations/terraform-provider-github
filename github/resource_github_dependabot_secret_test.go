@@ -14,17 +14,18 @@ import (
 func TestAccGithubDependabotSecret(t *testing.T) {
 	t.Run("reads a repository public key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-dependabot-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			data "github_dependabot_public_key" "test_pk" {
 			  repository = github_repository.test.name
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -49,12 +50,13 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-dependabot-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_dependabot_secret" "plaintext_secret" {
@@ -68,7 +70,7 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
 			}
-			`, randomID, secretValue, secretValue)
+			`, repoName, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -125,8 +127,8 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 
 	t.Run("creates and updates repository name without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		updatedRepoName := fmt.Sprintf("tf-acc-test-%s-updated", randomID)
+		repoName := fmt.Sprintf("%srepo-dependabot-%s", testResourcePrefix, randomID)
+		updatedRepoName := fmt.Sprintf("%srepo-dependabot-%s-upd", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 
 		config := fmt.Sprintf(`
@@ -210,9 +212,10 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-dependabot-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
+					name = "%s"
 				}
 
 				resource "github_dependabot_secret" "plaintext_secret" {
@@ -224,7 +227,7 @@ func TestAccGithubDependabotSecret(t *testing.T) {
 					repository 	= github_repository.test.name
 					secret_name	= "test_encrypted_secret"
 				}
-			`, randomID)
+			`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

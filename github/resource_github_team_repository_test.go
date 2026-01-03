@@ -12,14 +12,17 @@ import (
 func TestAccGithubTeamRepository(t *testing.T) {
 	t.Run("manages team permissions to a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-repo-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%srepo-team-repo-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-repo-%s"
+				name        = "%s"
 				description = "test"
 			}
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -27,7 +30,7 @@ func TestAccGithubTeamRepository(t *testing.T) {
 				repository = "${github_repository.test.name}"
 				permission = "pull"
 			}
-		`, randomID)
+		`, teamName, repoName)
 
 		checks := map[string]resource.TestCheckFunc{
 			"pull": resource.ComposeTestCheckFunc(
@@ -100,14 +103,17 @@ func TestAccGithubTeamRepository(t *testing.T) {
 
 	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-repo-slug-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%srepo-team-repo-slug-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-repo-%s"
+				name        = "%s"
 				description = "test"
 			}
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -115,7 +121,7 @@ func TestAccGithubTeamRepository(t *testing.T) {
 				repository = "${github_repository.test.name}"
 				permission = "pull"
 			}
-		`, randomID)
+		`, teamName, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_team_repository.test", "team_id"),
@@ -142,16 +148,18 @@ func TestAccGithubTeamRepository(t *testing.T) {
 
 func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	teamName := fmt.Sprintf("%steam-archive-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-team-archive-%s", testResourcePrefix, randomID)
 
 	t.Run("can delete team repository access from archived repositories without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-archive-%s"
+				name        = "%s"
 				description = "test team for archived repo"
 			}
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-team-archive-%[1]s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -160,16 +168,16 @@ func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
 				repository = github_repository.test.name
 				permission = "pull"
 			}
-		`, randomID)
+		`, teamName, repoName)
 
 		archivedConfig := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-archive-%s"
+				name        = "%s"
 				description = "test team for archived repo"
 			}
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-team-archive-%[1]s"
+				name = "%s"
 				auto_init = true
 				archived = true
 			}
@@ -179,7 +187,7 @@ func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
 				repository = github_repository.test.name
 				permission = "pull"
 			}
-		`, randomID)
+		`, teamName, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasOrgs(t) },
@@ -206,16 +214,16 @@ func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_team" "test" {
-								name        = "tf-acc-test-team-archive-%s"
+								name        = "%s"
 								description = "test team for archived repo"
 							}
 
 							resource "github_repository" "test" {
-								name = "tf-acc-test-team-archive-%[1]s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, teamName, repoName),
 				},
 			},
 		})

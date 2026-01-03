@@ -11,10 +11,11 @@ import (
 func TestAccGithubActionsVariablesDataSource(t *testing.T) {
 	t.Run("queries actions variables from a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-actions-vars-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -23,7 +24,7 @@ func TestAccGithubActionsVariablesDataSource(t *testing.T) {
 				repository  		= github_repository.test.name
 				value = "foo"
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_actions_variables" "test" {
@@ -32,7 +33,7 @@ func TestAccGithubActionsVariablesDataSource(t *testing.T) {
 		`
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_variables.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_actions_variables.test", "name", repoName),
 			resource.TestCheckResourceAttr("data.github_actions_variables.test", "variables.#", "1"),
 			resource.TestCheckResourceAttr("data.github_actions_variables.test", "variables.0.name", "VARIABLE_1"),
 			resource.TestCheckResourceAttr("data.github_actions_variables.test", "variables.0.value", "foo"),

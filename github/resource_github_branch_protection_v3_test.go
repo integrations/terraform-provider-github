@@ -10,17 +10,18 @@ import (
 
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews", func(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
+			  name      = "%s"
 			  auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -51,7 +52,7 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 
 			  depends_on = [github_team_repository.test]
 			}
-	`, randomID)
+	`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -107,17 +108,18 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 
 func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
+			  name      = "%s"
 			  auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -139,7 +141,7 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 				depends_on = [github_team_repository.test]
 			}
 
-	`, randomID)
+	`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -165,16 +167,17 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 
 func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures branch push restrictions", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
+			  name      = "%s"
 			  auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -193,7 +196,7 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 			  }
 
 			}
-			`, randomID)
+			`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(

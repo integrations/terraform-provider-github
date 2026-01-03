@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	t.Run("manages branches of a new repository", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-branches-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
@@ -42,7 +42,7 @@ func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	})
 
 	t.Run("manages branches of a new repository with filtering", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-branches-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"

@@ -16,10 +16,12 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 
 	t.Run("installs an app to a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-app-install-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -29,7 +31,7 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 				repository         = github_repository.test.name
 			}
 
-		`, randomID, testAccConf.testOrgAppInstallationId)
+		`, repoName, testAccConf.testOrgAppInstallationId)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(

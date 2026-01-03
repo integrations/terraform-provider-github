@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryWebhooksDataSource(t *testing.T) {
 	t.Run("manages repository webhooks", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-webhooks-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-webhooks-%s", testResourcePrefix, acctest.RandString(5))
 
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {

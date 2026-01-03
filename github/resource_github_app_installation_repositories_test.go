@@ -15,9 +15,9 @@ func TestAccGithubAppInstallationRepositories(t *testing.T) {
 	}
 
 	t.Run("installs an app to multiple repositories", func(t *testing.T) {
-		randomId := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName0 := fmt.Sprintf("tf-acc-test-0-%s", randomId)
-		repoName1 := fmt.Sprintf("tf-acc-test-1-%s", randomId)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName0 := fmt.Sprintf("%srepo-app-install-0-%s", testResourcePrefix, randomID)
+		repoName1 := fmt.Sprintf("%srepo-app-install-1-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_repository" "test_0" {
@@ -26,7 +26,7 @@ func TestAccGithubAppInstallationRepositories(t *testing.T) {
 		}
 
 		resource "github_repository" "test_1" {
-			name      = "tf-acc-test-%s"
+			name      = "%s"
 			auto_init = true
 		}
 

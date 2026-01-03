@@ -11,10 +11,11 @@ import (
 func TestAccGithubRepositoryTopics(t *testing.T) {
 	t.Run("create repository topics and import them", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -22,7 +23,7 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2"]
 			}
-		`, randomID)
+		`, repoName)
 
 		const resourceName = "github_repository_topics.test"
 
@@ -49,10 +50,11 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 
 	t.Run("create repository topics and update them", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		configBefore := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -60,11 +62,11 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2"]
 			}
-		`, randomID)
+		`, repoName)
 
 		configAfter := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -72,7 +74,7 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2", "extra-topic"]
 			}
-		`, randomID)
+		`, repoName)
 
 		const resourceName = "github_repository_topics.test"
 

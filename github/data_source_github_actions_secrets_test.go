@@ -11,10 +11,11 @@ import (
 func TestAccGithubActionsSecretsDataSource(t *testing.T) {
 	t.Run("queries actions secrets from a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-actions-secrets-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -23,7 +24,7 @@ func TestAccGithubActionsSecretsDataSource(t *testing.T) {
 				repository  		= github_repository.test.name
 				plaintext_value = "foo"
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_actions_secrets" "test" {
@@ -32,7 +33,7 @@ func TestAccGithubActionsSecretsDataSource(t *testing.T) {
 		`
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "name", repoName),
 			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "secrets.#", "1"),
 			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "secrets.0.name", "SECRET_1"),
 			resource.TestCheckResourceAttrSet("data.github_actions_secrets.test", "secrets.0.created_at"),

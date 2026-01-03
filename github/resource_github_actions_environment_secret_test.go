@@ -14,12 +14,13 @@ import (
 func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-env-secret-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -40,7 +41,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 			  secret_name      = "test_encrypted_secret_name"
 			  encrypted_value  = "%s"
 			}
-		`, randomID, secretValue, secretValue)
+		`, repoName, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -97,11 +98,12 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-env-secret-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
+					name = "%s"
 				}
 
 				resource "github_repository_environment" "test" {
@@ -122,7 +124,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 					secret_name      = "test_encrypted_secret_name"
 					encrypted_value  = "%s"
 				}
-			`, randomID, secretValue, secretValue)
+			`, repoName, secretValue, secretValue)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -139,6 +141,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 
 func TestAccGithubActionsEnvironmentSecretIgnoreChanges(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-act-env-secret-ic-%s", testResourcePrefix, randomID)
 
 	t.Run("creates environment secrets using lifecycle ignore_changes", func(t *testing.T) {
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -146,7 +149,7 @@ func TestAccGithubActionsEnvironmentSecretIgnoreChanges(t *testing.T) {
 
 		configFmtStr := `
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 
 				# TODO: provider appears to have issues destroying repositories while running the tests.
 				#
@@ -227,18 +230,18 @@ func TestAccGithubActionsEnvironmentSecretIgnoreChanges(t *testing.T) {
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(configFmtStr, randomID, secretValue, secretValue),
+					Config: fmt.Sprintf(configFmtStr, repoName, secretValue, secretValue),
 					Check:  checks["before"],
 				},
 				{
-					Config: fmt.Sprintf(configFmtStr, randomID, secretValue, secretValue),
+					Config: fmt.Sprintf(configFmtStr, repoName, secretValue, secretValue),
 					Check:  checks["after"],
 				},
 				{
 					// In this case the values change in the config, but the lifecycle ignore_changes should
 					// not cause the actual values to be updated. This would also be the case when a secret
 					// is externally modified (when what is in state does not match what is given).
-					Config: fmt.Sprintf(configFmtStr, randomID, modifiedSecretValue, modifiedSecretValue),
+					Config: fmt.Sprintf(configFmtStr, repoName, modifiedSecretValue, modifiedSecretValue),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(
 							"github_actions_environment_secret.plaintext_secret", "plaintext_value",

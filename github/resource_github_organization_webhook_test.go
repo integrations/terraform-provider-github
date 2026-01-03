@@ -12,10 +12,11 @@ import (
 func TestAccGithubOrganizationWebhook(t *testing.T) {
 	t.Run("creates and updates webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init = true
 			}
 
@@ -29,7 +30,7 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 			  events = ["pull_request"]
 			}
 
-		`, randomID)
+		`, repoName)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -66,10 +67,11 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 
 	t.Run("imports webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init = true
 			}
 
@@ -83,7 +85,7 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 			  events = ["issues"]
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

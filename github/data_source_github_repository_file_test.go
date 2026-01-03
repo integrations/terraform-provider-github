@@ -11,9 +11,10 @@ import (
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	t.Run("reads a file with a branch name provided without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 
 				lifecycle {
@@ -36,7 +37,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 				branch         = "main"
 				file           = github_repository_file.test.file
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -61,7 +62,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 
 	t.Run("reads a file from a short repo name without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
@@ -114,10 +115,11 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 
 	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      			= "tf-acc-test-%s"
+				name      			= "%s"
 				auto_init 			= true
 
 				lifecycle {
@@ -139,7 +141,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 				repository     = github_repository.test.name
 				file           = github_repository_file.test.file
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -206,9 +208,10 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 
 	t.Run("reads a directory without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      			= "tf-acc-test-%s"
+				name      			= "%s"
 				auto_init 			= true
 
 				lifecycle {
@@ -220,7 +223,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 				repository     = github_repository.test.name
 				file           = "."
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

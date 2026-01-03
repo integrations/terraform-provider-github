@@ -11,18 +11,19 @@ import (
 
 func TestAccGithubRestApiDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
 
 	t.Run("queries an existing branch without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
 			data "github_rest_api" "test" {
 				endpoint = "repos/${github_repository.test.full_name}/git/refs/heads/${github_repository.test.default_branch}"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
@@ -50,14 +51,14 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 	t.Run("queries a collection without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
 			data "github_rest_api" "test" {
 				endpoint = "repos/${github_repository.test.full_name}/git/refs/heads/"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr("data.github_rest_api.test", "body", regexp.MustCompile(`\[.*refs/heads/.*\]`)),
@@ -78,14 +79,14 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 	t.Run("queries an invalid branch without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
 			data "github_rest_api" "test" {
 				endpoint = "repos/${github_repository.test.full_name}/git/refs/heads/xxxxxx"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(

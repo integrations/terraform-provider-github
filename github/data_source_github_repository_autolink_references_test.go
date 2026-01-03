@@ -10,11 +10,12 @@ import (
 
 func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-autolink-refs-%s", testResourcePrefix, randomID)
 
 	t.Run("queries autolink references", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
@@ -24,7 +25,7 @@ func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
 				key_prefix          = "TEST1-"
 				target_url_template = "https://example.com/TEST-<num>"
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_repository_autolink_references" "all" {

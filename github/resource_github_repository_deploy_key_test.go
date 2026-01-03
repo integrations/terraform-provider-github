@@ -62,7 +62,7 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 
 		rn := "github_repository_deploy_key.test_repo_deploy_key"
 		rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-		repositoryName := fmt.Sprintf("acctest-%s", rs)
+		repositoryName := fmt.Sprintf("%srepo-deploy-key-%s", testResourcePrefix, rs)
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
 		resource.Test(t, resource.TestCase{
@@ -180,10 +180,11 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 		}
 
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
+		repoName := fmt.Sprintf("%srepo-deploy-key-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-deploy-key-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -193,11 +194,11 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 				repository = github_repository.test.name
 				title      = "test-archived-deploy-key"
 			}
-		`, randomID, keyPath)
+		`, repoName, keyPath)
 
 		archivedConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-deploy-key-archive-%s"
+				name = "%s"
 				auto_init = true
 				archived = true
 			}
@@ -208,7 +209,7 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 				repository = github_repository.test.name
 				title      = "test-archived-deploy-key"
 			}
-		`, randomID, keyPath)
+		`, repoName, keyPath)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -235,11 +236,11 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-deploy-key-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, repoName),
 				},
 			},
 		})

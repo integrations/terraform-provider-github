@@ -12,10 +12,11 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 	t.Run("test setting of basic workflow repository permissions", func(t *testing.T) {
 		defaultWorkflowPermissions := "read"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -24,7 +25,7 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 				default_workflow_permissions = "%s"
 				repository = github_repository.test.name
 			}
-		`, randomID, defaultWorkflowPermissions)
+		`, repoName, defaultWorkflowPermissions)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -49,10 +50,11 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 		canApprovePullRequestReviews := "true"
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -62,7 +64,7 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 				can_approve_pull_request_reviews = %s
 				repository = github_repository.test.name
 			}
-		`, randomID, defaultWorkflowPermissions, canApprovePullRequestReviews)
+		`, repoName, defaultWorkflowPermissions, canApprovePullRequestReviews)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

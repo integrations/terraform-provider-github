@@ -11,10 +11,11 @@ import (
 func TestAccGithubRepositoryEnvironmentDeploymentPolicies(t *testing.T) {
 	t.Run("queries environment deployment policies", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-deploy-pol-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -45,7 +46,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicies(t *testing.T) {
 
 				depends_on = [github_repository_environment_deployment_policy.branch, github_repository_environment_deployment_policy.tag]
 			}
-	`, randomID)
+	`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },

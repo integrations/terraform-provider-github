@@ -11,6 +11,7 @@ import (
 func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -21,7 +22,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				value_type     = "single_select"
 			}
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 			resource "github_repository_custom_property" "test" {
@@ -30,7 +31,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_type = github_organization_custom_properties.test.value_type
 				property_value = ["option1"]
 			}
-		`, propertyName, randomID)
+		`, propertyName, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", propertyName),
@@ -52,6 +53,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 
 	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -62,7 +64,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				value_type     = "multi_select"
 			}
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 			resource "github_repository_custom_property" "test" {
@@ -71,7 +73,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_type = github_organization_custom_properties.test.value_type
 				property_value = ["option1", "option2"]
 			}
-		`, propertyName, randomID)
+		`, propertyName, repoName)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", propertyName),
@@ -94,6 +96,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 
 	t.Run("creates custom property of type true-false without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -103,7 +106,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				value_type     = "true_false"
 			}
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 			resource "github_repository_custom_property" "test" {
@@ -112,7 +115,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_type = github_organization_custom_properties.test.value_type
 				property_value = ["true"]
 			}
-		`, propertyName, randomID)
+		`, propertyName, repoName)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", propertyName),
@@ -134,6 +137,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 
 	t.Run("creates custom property of type string without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -143,7 +147,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				value_type     = "string"
 			}
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 			resource "github_repository_custom_property" "test" {
@@ -152,7 +156,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 				property_type = github_organization_custom_properties.test.value_type
 				property_value = ["text"]
 			}
-		`, propertyName, randomID)
+		`, propertyName, repoName)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", propertyName),

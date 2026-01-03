@@ -12,12 +12,13 @@ import (
 func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 	t.Run("enables automated security fixes without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		enabled := "enabled = false"
 		updatedEnabled := "enabled = true"
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				visibility = "private"
 			  	auto_init = true
 				vulnerability_alerts   = true
@@ -28,7 +29,7 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 			  repository  = github_repository.test.id
 			  %s
 			}
-		`, randomID, enabled)
+		`, repoName, enabled)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -65,13 +66,14 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 
 	t.Run("disables automated security fixes without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		enabled := "enabled = true"
 		updatedEnabled := "enabled = false"
 
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				visibility = "private"
 			  	auto_init = true
 				vulnerability_alerts   = true
@@ -82,7 +84,7 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 			  repository  = github_repository.test.id
 			  %s
 			}
-		`, randomID, enabled)
+		`, repoName, enabled)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -119,9 +121,10 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 
 	t.Run("imports automated security fixes without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			  vulnerability_alerts   = true
 			}
 
@@ -129,7 +132,7 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 			  repository  = github_repository.test.id
 			  enabled = false
 			}
-    `, randomID)
+    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_repository_dependabot_security_updates.test", "repository"),

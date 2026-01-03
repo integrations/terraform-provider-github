@@ -57,10 +57,11 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 
 	t.Run("queries for an organization with archived repos", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-archived-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "archived" {
-				name         = "tf-acc-archived-%s"
+				name         = "%s"
 				archived     = true
 		  	}
 
@@ -85,7 +86,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			output "should_be_true" {
 				value = contains(data.github_organization.all_repos.repositories, github_repository.archived.full_name)
 			}
-		`, randomID, testAccConf.owner, testAccConf.owner)
+		`, repoName, testAccConf.owner, testAccConf.owner)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckOutput("should_be_false", "false"),

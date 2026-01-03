@@ -27,9 +27,9 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 		`
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("ORG_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.0.visibility", "all"),
+			// resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.#", "1"), // There is no feasible way to know how many secrets exist in the Org during test runs. And I couldn't find a "greater than" operator
+			resource.TestCheckTypeSetElemAttr("data.github_actions_organization_secrets.test", "secrets.*.*", strings.ToUpper(fmt.Sprintf("ORG_SECRET_1_%s", randomID))),
+			resource.TestCheckTypeSetElemAttr("data.github_actions_organization_secrets.test", "secrets.*.*", "all"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.created_at"),
 			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.updated_at"),
 		)

@@ -11,15 +11,17 @@ import (
 func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 	t.Run("queries teams of an existing repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -27,7 +29,7 @@ func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 				repository = github_repository.test.name
 				permission = "push"
 			}
-		`, randomID, randomID)
+		`, repoName, teamName)
 
 		config2 := config + `
 			data "github_repository_teams" "test" {
@@ -36,9 +38,9 @@ func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 		`
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_repository_teams.test", "name", repoName),
 			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.#", "1"),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.slug", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.slug", teamName),
 			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.permission", "push"),
 		)
 
