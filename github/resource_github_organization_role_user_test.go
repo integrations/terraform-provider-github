@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"testing"
 
@@ -11,18 +10,13 @@ import (
 
 func TestAccGithubOrganizationRoleUser(t *testing.T) {
 	t.Run("adds user to an organization org role", func(t *testing.T) {
-		login := os.Getenv("GITHUB_IN_ORG_USER")
-		if len(login) == 0 {
-			t.Skip("set inOrgUser to unskip this test run")
-		}
-
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_organization_role_user" "test" {
 				role_id  = %d
 				login = "%s"
 			}
-		`, roleId, login)
+		`, roleId, testAccConf.testOrgUser)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasOrgs(t) },
@@ -32,7 +26,7 @@ func TestAccGithubOrganizationRoleUser(t *testing.T) {
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_role_user.test", "role_id", strconv.Itoa(roleId)),
-						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", login),
+						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", testAccConf.testOrgUser),
 					),
 				},
 			},
