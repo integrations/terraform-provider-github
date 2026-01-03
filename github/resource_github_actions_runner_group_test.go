@@ -187,6 +187,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		// Note: this test is skipped because when setting visibility 'private', it always fails with:
 		// Step 0 error: After applying this step, the plan was not empty:
 		// visibility:                 "all" => "private"
+		// Based on GitHub UI there is no way to create a private runner group
 		t.Skip("This is not supported")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
