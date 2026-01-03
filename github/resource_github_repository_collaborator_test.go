@@ -60,10 +60,10 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 			resource "github_repository_collaborator" "test_repo_collaborator_2" {
 				repository = "%s/${github_repository.test.name}"
-				username   = "<username>"
+				username   = "%s"
 				permission = "triage"
 			}
-		`, repoName, testAccConf.owner)
+		`, repoName, testAccConf.owner, testAccConf.testExternalUser)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
