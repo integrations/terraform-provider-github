@@ -550,16 +550,17 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
+			  name      = "%s"
 			  auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -577,7 +578,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	]
 			}
 
-	`, randomID, randomID, testAccConf.owner)
+	`, repoName, teamName, testAccConf.owner)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(

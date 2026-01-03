@@ -12,15 +12,16 @@ import (
 func TestAccGithubTeamDataSource(t *testing.T) {
 	t.Run("queries an existing team without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			data "github_team" "test" {
 				slug = github_team.test.slug
 			}
-		`, randomID)
+		`, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
@@ -41,20 +42,21 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			data "github_team" "test" {
 				slug            = github_team.test.slug
 				membership_type = "immediate"
 			}
-		`, randomID)
+		`, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttr("data.github_team.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr("data.github_team.test", "name", teamName),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -90,16 +92,17 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			data "github_team" "test" {
 				slug = github_team.test.slug
 				summary_only = true
 			}
-		`, randomID)
+		`, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
@@ -122,16 +125,17 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			data "github_team" "test" {
 				slug = github_team.test.slug
 				results_per_page = 20
 			}
-		`, randomID)
+		`, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
@@ -152,14 +156,16 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	t.Run("get team with repositories without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name      = "tf-acc-test-%s"
+			name      = "%s"
 			auto_init = true
 		}
 
 		resource "github_team" "test" {
-			name = "tf-acc-test-%[1]s"
+			name = "%s"
 		}
 
 		resource "github_team_repository" "test" {
@@ -173,7 +179,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 			depends_on = [github_repository.test, github_team.test, github_team_repository.test]
 		}
-		`, randomID)
+		`, repoName, teamName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -204,19 +210,21 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
-				name = "tf-acc-test-%s"
+        name = "%s"
 			}
 			resource "github_repository" "test" {
-				name = "tf-acc-test"
+				name = "%s"
 			}
 			resource "github_team_repository" "test" {
 				team_id    = github_team.test.id
 				repository = github_repository.test.name
 				permission = "admin"
 			}
-		`, randomID)
+		`, teamName, repoName)
 
 		config2 := config + `
 			data "github_team" "test" {
@@ -226,7 +234,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttr("github_repository.test", "name", "tf-acc-test"),
+			resource.TestCheckResourceAttr("github_repository.test", "name", repoName),
 			resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_name", "github_repository.test", "name"),

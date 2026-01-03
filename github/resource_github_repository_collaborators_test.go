@@ -25,7 +25,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	t.Run("adds user collaborator", func(t *testing.T) {
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -94,8 +94,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -191,7 +191,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -284,9 +284,9 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName1 := fmt.Sprintf("tf-acc-test-team-1-%s", randomID)
-		teamName2 := fmt.Sprintf("tf-acc-test-team-2-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName1 := fmt.Sprintf("%steam-collabs-1-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%steam-collabs-2-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -422,7 +422,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -485,8 +485,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

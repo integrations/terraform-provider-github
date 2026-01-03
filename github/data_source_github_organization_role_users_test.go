@@ -51,7 +51,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 
 	t.Run("get indirect organization role users without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-team-%s", randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {

@@ -54,10 +54,11 @@ func TestAccGithubProjectCard(t *testing.T) {
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-project-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				has_projects = true
 				has_issues   = true
 			}
@@ -86,7 +87,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 				content_type = "Issue"
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			func(state *terraform.State) error {

@@ -13,6 +13,8 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 	const ORG_SECRET_NAME = "ORG_SECRET_NAME"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	secret_name, exists := os.LookupEnv(ORG_SECRET_NAME)
+	repoName1 := fmt.Sprintf("%srepo-act-org-secret-%s-1", testResourcePrefix, randomID)
+	repoName2 := fmt.Sprintf("%srepo-act-org-secret-%s-2", testResourcePrefix, randomID)
 
 	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
 		if !exists {
@@ -21,13 +23,13 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test_repo_1" {
-				name = "tf-acc-test-%s-1"
+				name = "%s"
 				visibility = "internal"
 				vulnerability_alerts = "true"
 			}
 
 			resource "github_repository" "test_repo_2" {
-				name = "tf-acc-test-%s-2"
+				name = "%s"
 				visibility = "internal"
 				vulnerability_alerts = "true"
 			}
@@ -39,7 +41,7 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 					github_repository.test_repo_2.repo_id
 				]
 			}
-		`, randomID, randomID, secret_name)
+		`, repoName1, repoName2, secret_name)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(

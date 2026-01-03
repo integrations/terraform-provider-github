@@ -16,9 +16,10 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 	t.Run("creates invitations without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -27,7 +28,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "%s"
 				permission = "triage"
 			}
-		`, randomID, testAccConf.testExternalUser)
+		`, repoName, testAccConf.testExternalUser)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -50,9 +51,10 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		configWithOwner := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -61,7 +63,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "<username>"
 				permission = "triage"
 			}
-		`, randomID, testAccConf.owner)
+		`, repoName, testAccConf.owner)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -119,8 +121,6 @@ func TestParseRepoName(t *testing.T) {
 }
 
 func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
 		// Note: This test requires GH_TEST_COLLABORATOR to be set to a valid GitHub username
 		testCollaborator := os.Getenv("GH_TEST_COLLABORATOR")
@@ -128,9 +128,12 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 			t.Skip("GH_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
 		}
 
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-arch-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-collab-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -139,11 +142,11 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 				username   = "%s"
 				permission = "pull"
 			}
-		`, randomID, testCollaborator)
+		`, repoName, testCollaborator)
 
 		archivedConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-collab-archive-%s"
+				name = "%s"
 				auto_init = true
 				archived = true
 			}
@@ -153,7 +156,7 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 				username   = "%s"
 				permission = "pull"
 			}
-		`, randomID, testCollaborator)
+		`, repoName, testCollaborator)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -186,11 +189,11 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-collab-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, repoName),
 				},
 			},
 		})

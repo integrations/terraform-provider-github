@@ -11,6 +11,7 @@ import (
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
 	t.Run("creates a repository environment", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			data "github_user" "current" {
@@ -18,7 +19,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 			}
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				visibility = "public"
 			}
 
@@ -37,7 +38,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 				}
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment / test"),

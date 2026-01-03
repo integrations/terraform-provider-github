@@ -15,10 +15,11 @@ import (
 func TestGithubRepositoryRulesets(t *testing.T) {
 	t.Run("creates and updates repository rulesets without errors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 				default_branch = "main"
 				vulnerability_alerts = true
@@ -95,7 +96,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					non_fast_forward = true
 				}
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -139,10 +140,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = false
 				vulnerability_alerts = true
 			}
@@ -174,7 +176,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -201,19 +203,19 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("updates a ruleset name without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
+		repoName := fmt.Sprintf("%srepo-ruleset-ren-%s", testResourcePrefix, randomID)
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "%[1]s"
-			  description  = "Terraform acceptance tests %[2]s"
+			  name         = "%s"
+			  description  = "Terraform acceptance tests %s"
 			  vulnerability_alerts = true
 			}
 
 			resource "github_repository_ruleset" "test" {
-				name        = "%[3]s"
+				name        = "%s"
 				repository  = github_repository.test.id
 				target      = "branch"
 				enforcement = "active"
@@ -261,11 +263,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("imports rulesets without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-imp-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-import-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
+			  name         = "%s"
+			  description  = "Terraform acceptance tests %s"
 			  auto_init    = true
 			  default_branch = "main"
                           vulnerability_alerts = true
@@ -334,7 +337,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					non_fast_forward = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_repository_ruleset.test", "name"),
@@ -361,10 +364,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("creates a push repository ruleset without errors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-push-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			 resource "github_repository" "test" {
-				 name                 = "tf-acc-test-%s"
+				 name                 = "%s"
 				 auto_init            = false
 				 visibility           = "internal"
 				 vulnerability_alerts = true
@@ -389,7 +393,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				 }
 			 }
 
-		`, randomID)
+		`, repoName)
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_ruleset.test_push", "name",
@@ -426,10 +430,11 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("creates repository ruleset with merge queue squash method", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-mq-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-merge-queue-%s"
+				name = "%s"
 				auto_init = true
 				default_branch = "main"
 			}
@@ -459,7 +464,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -486,16 +491,18 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("removes bypass actors when removed from configuration", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team"
 				privacy     = "closed"
 			}
@@ -535,17 +542,17 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, repoName, randomID, teamName)
 
 		configWithoutBypass := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team"
 				privacy     = "closed"
 			}
@@ -579,7 +586,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 			}
-		`, randomID)
+		`, repoName, randomID, teamName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasOrgs(t) },
@@ -604,11 +611,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("updates ruleset without bypass actors defined", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-nobp-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-no-bypass-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
@@ -629,7 +637,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					deletion = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID)
 
 		configUpdated := strings.Replace(
 			config,
@@ -679,16 +687,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("creates repository ruleset with all bypass_modes", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
+		teamAlwaysName := fmt.Sprintf("%steam-always-%s", testResourcePrefix, randomID)
+		teamPRName := fmt.Sprintf("%steam-pr-%s", testResourcePrefix, randomID)
+		teamExemptName := fmt.Sprintf("%steam-exempt-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-modes-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
 			resource "github_team" "test_always" {
-				name        = "tf-acc-test-team-always-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team for always bypass"
 				privacy     = "closed"
 			}
@@ -700,7 +712,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			}
 
 			resource "github_team" "test_pull_request" {
-				name        = "tf-acc-test-team-pr-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team for pull_request bypass"
 				privacy     = "closed"
 				depends_on  = [github_team.test_always]
@@ -713,7 +725,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			}
 
 			resource "github_team" "test_exempt" {
-				name        = "tf-acc-test-team-exempt-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team for exempt bypass"
 				privacy     = "closed"
 				depends_on  = [github_team.test_pull_request]
@@ -760,7 +772,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID, teamAlwaysName, teamPRName, teamExemptName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -816,16 +828,18 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("updates bypass_mode without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bpupd-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-update-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-update-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-update-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team"
 				privacy     = "closed"
 			}
@@ -859,7 +873,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID, teamName)
 
 		configUpdated := strings.Replace(
 			config,
@@ -901,16 +915,18 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 	t.Run("Creates repository ruleset with different actor types and bypass modes", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-actor-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-actor-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-test-actor-types-%s"
-				description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %s"
 				auto_init    = true
 			}
 
 			resource "github_team" "test" {
-				name        = "tf-acc-test-team-actor-%[1]s"
+				name        = "%s"
 				description = "Terraform acc test team"
 				privacy     = "closed"
 			}
@@ -956,7 +972,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID, teamName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -1014,12 +1030,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 }
 
 func TestGithubRepositoryRulesetArchived(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-%s"
+				name      = "%s"
 				auto_init = true
 				archived  = false
 			}
@@ -1031,7 +1047,7 @@ func TestGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessMode(t, individual) },
@@ -1045,9 +1061,11 @@ func TestGithubRepositoryRulesetArchived(t *testing.T) {
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-create-%s"
+				name      = "%s"
 				auto_init = true
 				archived  = true
 			}
@@ -1058,7 +1076,7 @@ func TestGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessMode(t, individual) },
