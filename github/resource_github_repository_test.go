@@ -571,7 +571,7 @@ func TestAccGithubRepository(t *testing.T) {
 
 	t.Run("create_private_with_forking", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%svisibility-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
@@ -709,6 +709,7 @@ func TestAccGithubRepository(t *testing.T) {
 	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
+		testRepoNameAfter := fmt.Sprintf("%s-modified", testRepoName)
 		squashMergeCommitTitle := "PR_TITLE"
 		squashMergeCommitMessage := "PR_BODY"
 		updatedSquashMergeCommitTitle := "COMMIT_OR_PR_TITLE"
@@ -725,12 +726,12 @@ func TestAccGithubRepository(t *testing.T) {
 								`, testRepoName, squashMergeCommitTitle, squashMergeCommitMessage),
 			"after": fmt.Sprintf(`
 										resource "github_repository" "test" {
-												name                        = "tf-acc-test-modify-sq-str-%[1]s"
+												name                        = "%s"
 												allow_squash_merge          = true
 												squash_merge_commit_title   = "%s"
 												squash_merge_commit_message = "%s"
 										}
-								`, randomID, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage),
+								`, testRepoNameAfter, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -774,9 +775,10 @@ func TestAccGithubRepository(t *testing.T) {
 
 	// t.Run("create a repository with go as primary_language", func(t *testing.T) {
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	// 	config := fmt.Sprintf(`
 	// 		resource "github_repository" "test" {
-	// 			name = "tf-acc-%s"
+	// 			name = "%s"
 	// 			auto_init = true
 	// 		}
 	// 		resource "github_repository_file" "test" {
@@ -784,7 +786,7 @@ func TestAccGithubRepository(t *testing.T) {
 	// 			file           = "test.go"
 	// 			content        = "package main"
 	// 		}
-	// 	`, randomID)
+	// 	`, testResourceName)
 
 	// 	check := resource.ComposeTestCheckFunc(
 	// 		resource.TestCheckResourceAttr("github_repository.test", "primary_language", "Go"),
@@ -1083,28 +1085,29 @@ func TestAccGithubRepository(t *testing.T) {
 
 	t.Run("update_public_to_private_allow_forking", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svisibility-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name       = "tf-acc-test-%s"
+				name       = "%s"
 				visibility = "public"
 			}
-		`, randomID)
+		`, testRepoName)
 
 		configPrivate := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name          = "tf-acc-test-%s"
+				name          = "%s"
 				visibility    = "private"
 				allow_forking = false
 			}
-		`, randomID)
+		`, testRepoName)
 
 		configPrivateForking := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name          = "tf-acc-test-%s"
+				name          = "%s"
 				visibility    = "private"
 				allow_forking = true
 			}
-		`, randomID)
+		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -1637,16 +1640,16 @@ func TestAccGithubRepository_fork(t *testing.T) {
 // }
 
 func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("can enable vulnerability alerts", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svulnerability-alerts-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			  resource "github_repository" "test" {
-					name         = "tf-acc-test-vuln-%s"
-					description  = "Terraform acceptance test - repository %[1]s"
+					name         = "%s"
+					description  = "Terraform acceptance test - repository %s"
 					vulnerability_alerts = true
 			  }
-		 `, randomID)
+		 `, testRepoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -1666,12 +1669,14 @@ func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
 	})
 
 	t.Run("sets vulnerability alerts to false when not set in config", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svulnerability-alerts-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			  resource "github_repository" "test" {
-					name         = "tf-acc-test-vuln-%s"
-					description  = "Terraform acceptance test - repository %[1]s"
+					name         = "%s"
+					description  = "Terraform acceptance test - repository %s"
 			  }
-		 `, randomID)
+		 `, testRepoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -1690,13 +1695,15 @@ func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
 	})
 
 	t.Run("can disable vulnerability alerts", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svulnerability-alerts-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			  resource "github_repository" "test" {
-					name         = "tf-acc-test-vuln-%s"
-					description  = "Terraform acceptance test - repository %[1]s"
+					name         = "%s"
+					description  = "Terraform acceptance test - repository %s"
 					vulnerability_alerts = false
 			  }
-		 `, randomID)
+		 `, testRepoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -1716,13 +1723,15 @@ func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
 	})
 
 	t.Run("can modify vulnerability alerts", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svulnerability-alerts-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			  resource "github_repository" "test" {
-					name         = "tf-acc-test-vuln-%s"
-					description  = "Terraform acceptance test - repository %[1]s"
+					name         = "%s"
+					description  = "Terraform acceptance test - repository %s"
 					vulnerability_alerts = false
 			  }
-		 `, randomID)
+		 `, testRepoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },

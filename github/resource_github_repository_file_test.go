@@ -12,10 +12,12 @@ import (
 
 func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("creates and manages files", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name                 = "tf-acc-test-%s"
+				name                 = "%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
@@ -29,7 +31,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
 			}
-		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		`, repoName)
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
@@ -73,9 +75,11 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name                 = "tf-acc-test-%s"
+			  name                 = "%s"
 			  auto_init            = true
 	              vulnerability_alerts = true
 			}
@@ -91,7 +95,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email        = "terraform@example.com"
 			}
 
-		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -138,10 +142,12 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name                 = "tf-acc-test-%s"
+				name                 = "%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
@@ -154,7 +160,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
 			}
-		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -199,9 +205,11 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name                 = "tf-acc-test-%s"
+				name                 = "%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
@@ -216,7 +224,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email      = "terraform@example.com"
 				autocreate_branch = false
 			}
-		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -267,9 +275,11 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-file-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -282,7 +292,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author = "Terraform User"
 				commit_email = "terraform@example.com"
 			}
-		`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		`, repoName)
 
 		archivedConfig := strings.Replace(config,
 			`auto_init = true`,
@@ -316,11 +326,11 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-file-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)),
+						`, repoName),
 				},
 			},
 		})

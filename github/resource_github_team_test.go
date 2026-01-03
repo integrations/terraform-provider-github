@@ -11,11 +11,12 @@ import (
 func TestAccGithubTeam(t *testing.T) {
 	t.Run("creates a team configured with defaults", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 resource "github_team" "test" {
-	name         = "tf-acc-%s"
+	name = "%s"
 }
-`, randomID)
+`, teamName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -35,13 +36,14 @@ resource "github_team" "test" {
 
 	t.Run("creates a team configured with alternatives", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 resource "github_team" "test" {
-	name                 = "tf-acc-%s"
+	name                 = "%s"
 	privacy              = "closed"
 	notification_setting = "notifications_disabled"
 }
-`, randomID)
+`, testResourceName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -61,47 +63,50 @@ resource "github_team" "test" {
 
 	t.Run("creates a hierarchy of teams", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		team01Name := fmt.Sprintf("%steam-hier01-%s", testResourcePrefix, randomID)
+		team02Name := fmt.Sprintf("%steam-hier02-%s", testResourcePrefix, randomID)
+		team03Name := fmt.Sprintf("%steam-hier03-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "team01" {
-				name        = "tf-acc-team01-%s"
+				name        = "%s"
 				description = "Terraform acc test team01a"
 				privacy     = "closed"
 			}
 
 			resource "github_team" "team02" {
-				name           = "tf-acc-team02-%[1]s"
+				name           = "%s"
 				description    = "Terraform acc test team02a"
 				privacy        = "closed"
 				parent_team_id = "${github_team.team01.id}"
 			}
 
 			resource "github_team" "team03" {
-				name           = "tf-acc-team03-%[1]s"
+				name           = "%s"
 				description    = "Terraform acc test team03a"
 				privacy        = "closed"
 				parent_team_id = "${github_team.team02.slug}"
 			}
-		`, randomID)
+		`, team01Name, team02Name, team03Name)
 
 		config2 := fmt.Sprintf(`
 			resource "github_team" "team01" {
-				name        = "tf-acc-team01-%s"
+				name        = "%s"
 				description = "Terraform acc test team01b"
 				privacy     = "closed"
 			}
 
 			resource "github_team" "team02" {
-				name           = "tf-acc-team02-%[1]s"
+				name           = "%s"
 				description    = "Terraform acc test team02b"
 				privacy        = "closed"
 			}
 
 			resource "github_team" "team03" {
-				name           = "tf-acc-team03-%[1]s"
+				name           = "%s"
 				description    = "Terraform acc test team03b"
 				privacy        = "closed"
 			}
-		`, randomID)
+		`, team01Name, team02Name, team03Name)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_team.team02", "parent_team_id"),
@@ -135,12 +140,13 @@ resource "github_team" "test" {
 
 	t.Run("creates a team and removes the default maintainer", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-no-maint-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-resource "github_team" "test" {
-	name                      = "tf-acc-%s"
-	create_default_maintainer = false
-}
-`, randomID)
+			resource "github_team" "test" {
+				name         = "%s"
+				create_default_maintainer = false
+			}
+		`, teamName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -158,9 +164,8 @@ resource "github_team" "test" {
 
 	t.Run("updates_slug", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		slug := fmt.Sprintf("tf-acc-%s", randomID)
-		slugUpdated := fmt.Sprintf("tf-acc-updated-%s", randomID)
-
+		teamName := fmt.Sprintf("%steam-slug-%s", testResourcePrefix, randomID)
+		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
 		config := `
 resource "github_team" "test" {
 	name         = "%s"
@@ -172,15 +177,15 @@ resource "github_team" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, slug),
+					Config: fmt.Sprintf(config, teamName),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.test", "slug", slug),
+						resource.TestCheckResourceAttr("github_team.test", "slug", teamName),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, slugUpdated),
+					Config: fmt.Sprintf(config, teamNameUpdated),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.test", "slug", slugUpdated),
+						resource.TestCheckResourceAttr("github_team.other", "description", teamNameUpdated),
 					),
 				},
 			},

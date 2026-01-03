@@ -13,12 +13,13 @@ import (
 func TestAccGithubActionsVariable(t *testing.T) {
 	t.Run("creates and updates repository variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		updatedValue := "my_updated_variable_value"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_variable" "variable" {
@@ -26,7 +27,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 			  variable_name    = "test_variable"
 			  value  = "%s"
 			}
-			`, randomID, value)
+			`, repoName, value)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -75,9 +76,10 @@ func TestAccGithubActionsVariable(t *testing.T) {
 
 	t.Run("deletes repository variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
+					name = "%s"
 				}
 
 				resource "github_actions_variable" "variable" {
@@ -85,7 +87,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 					variable_name	= "test_variable"
 					value			= "my_variable_value"
 				}
-			`, randomID)
+			`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -101,12 +103,13 @@ func TestAccGithubActionsVariable(t *testing.T) {
 
 	t.Run("imports repository variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		varName := "test_variable"
 		value := "variable_value"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_variable" "variable" {
@@ -114,7 +117,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 			  variable_name    = "%s"
 			  value  = "%s"
 			}
-			`, randomID, varName, value)
+			`, repoName, varName, value)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -125,7 +128,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 				},
 				{
 					ResourceName:      "github_actions_variable.variable",
-					ImportStateId:     fmt.Sprintf(`tf-acc-test-%s:%s`, randomID, varName),
+					ImportStateId:     fmt.Sprintf(`%s:%s`, repoName, varName),
 					ImportState:       true,
 					ImportStateVerify: true,
 				},

@@ -86,10 +86,11 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-pages-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
+				name         = "%s"
 				auto_init    = true
 				pages {
 					source {
@@ -101,7 +102,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 			data "github_repository" "test" {
 				name = github_repository.test.name
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -124,7 +125,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	t.Run("checks defaults on a new repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-ds-defaults-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 
@@ -217,10 +218,11 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	t.Run("queries a repository that was generated from a template", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-template-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-%s"
+				name = "%s"
 				template {
 					owner      = "%s"
 					repository = "%s"
@@ -230,7 +232,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 			data "github_repository" "test" {
 				name = github_repository.test.name
 			}
-		`, randomID, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
+		`, repoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -257,16 +259,17 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-nolang-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-%s"
+				name = "%s"
 			}
 
 			data "github_repository" "test" {
 				name = github_repository.test.name
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -289,10 +292,11 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	// t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	//  testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 
 	// 	config := fmt.Sprintf(`
 	// 		resource "github_repository" "test" {
-	// 			name = "tf-acc-%s"
+	// 			name = "%s"
 	// 			auto_init = true
 	// 		}
 	// 		resource "github_repository_file" "test" {
@@ -305,7 +309,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	// 			name = github_repository_file.test.repository
 	// 			depends_on = [github_repository_file.test]
 	// 		}
-	// 	`, randomID)
+	// 	`, testResourceName)
 
 	// 	check := resource.ComposeTestCheckFunc(
 	// 		resource.TestCheckResourceAttr("data.github_repository.test", "primary_language", "Go"),
@@ -330,10 +334,11 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 
 	t.Run("queries a repository that has a license", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-license-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-%s"
+				name = "%s"
 				auto_init = true
 			}
 			resource "github_repository_file" "test" {
@@ -354,7 +359,7 @@ EOT
 			data "github_repository" "test" {
 				name = github_repository_file.test.repository
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

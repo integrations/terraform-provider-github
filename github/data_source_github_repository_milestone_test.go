@@ -12,10 +12,11 @@ import (
 func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
 	t.Run("queries a repository milestone", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-milestone-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 			}
 
 			resource "github_repository_milestone" "test" {
@@ -33,7 +34,7 @@ func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
 		   	number = github_repository_milestone.test.number
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

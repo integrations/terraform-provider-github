@@ -13,29 +13,29 @@ import (
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		orgName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		desc := "Initial org description"
 		updatedDesc := "Updated org description"
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
+			}
 			`, testAccConf.enterpriseSlug, orgName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
@@ -87,25 +87,25 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 	t.Run("deletes an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		orgName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
-			slug = "%s"
-		  }
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
 
-		  data "github_user" "current" {
-			username = ""
-		  }
+			data "github_user" "current" {
+				username = ""
+			}
 
-		  resource "github_enterprise_organization" "org" {
-			enterprise_id = data.github_enterprise.enterprise.id
-			name          = "%s"
-			billing_email = data.github_user.current.email
-			admin_logins  = [
-			  data.github_user.current.login
-			]
-		  }
+			resource "github_enterprise_organization" "org" {
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
+					data.github_user.current.login
+				]
+			}
 			`, testAccConf.enterpriseSlug, orgName)
 
 		resource.Test(t, resource.TestCase{
@@ -131,24 +131,24 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		updatedDesc := "Updated org description"
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			display_name  = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
+			}
 			`, testAccConf.enterpriseSlug, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
@@ -220,45 +220,45 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		updatedDesc := "Updated org description"
 
 		configWithoutDisplayName := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
+			}
 			`, testAccConf.enterpriseSlug, orgName, desc)
 
 		configWithDisplayName := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  display_name  = "%s"
-			  description   = "%s"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				display_name  = "%s"
+				description   = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testAccConf.enterpriseSlug, orgName, displayName, desc)
+				`, testAccConf.enterpriseSlug, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"create": resource.ComposeTestCheckFunc(
@@ -360,22 +360,22 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testAccConf.enterpriseSlug, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -403,23 +403,23 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  description   = "org description"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				description   = "org description"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testAccConf.enterpriseSlug, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -447,23 +447,23 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  description   = "org description"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				description   = "org description"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testAccConf.enterpriseSlug, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 

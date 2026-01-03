@@ -11,6 +11,7 @@ import (
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-org-secret-%s", testResourcePrefix, randomID)
 		secretName := testAccConf.testOrgSecretName
 		if len(secretName) == 0 {
 			t.Skip("test organization secret name is not set")
@@ -18,7 +19,7 @@ func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test_repo_1" {
-				name = "tf-acc-test-%s-1"
+				name = "%s"
 				visibility = "internal"
 				vulnerability_alerts = "true"
 			}
@@ -27,7 +28,7 @@ func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 				secret_name = "%s"
 				repository_id = github_repository.test_repo_1.repo_id
 			}
-		`, randomID, secretName)
+		`, repoName, secretName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
