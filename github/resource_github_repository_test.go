@@ -1237,6 +1237,67 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("manages private vulnerability reporting for a public repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+		  name        = "tf-acc-%s"
+		  description = "A repository created by Terraform to test private vulnerability reporting"
+		  visibility  = "public"
+		  security_and_analysis {
+		    secret_scanning {
+		      status = "enabled"
+		    }
+		    secret_scanning_push_protection {
+		      status = "disabled"
+		    }
+		    private_vulnerability_reporting {
+		      status = "enabled"
+		    }
+		  }
+		}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
+				"enabled",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
+				"disabled",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "security_and_analysis.0.private_vulnerability_reporting.0.status",
+				"enabled",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
 
 func TestAccGithubRepositoryVisibility(t *testing.T) {
