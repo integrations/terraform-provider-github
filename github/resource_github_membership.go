@@ -7,15 +7,16 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubMembership() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubMembershipCreateOrUpdate,
-		Read:   resourceGithubMembershipRead,
-		Update: resourceGithubMembershipCreateOrUpdate,
-		Delete: resourceGithubMembershipDelete,
+		CreateContext: resourceGithubMembershipCreateOrUpdate,
+		ReadContext:   resourceGithubMembershipRead,
+		UpdateContext: resourceGithubMembershipCreateOrUpdate,
+		DeleteContext: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -49,10 +50,10 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -60,7 +61,6 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 	orgName := meta.(*Owner).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
-	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
@@ -73,18 +73,18 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 		},
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(orgName, username))
 
-	return resourceGithubMembershipRead(d, meta)
+	return resourceGithubMembershipRead(ctx, d, meta)
 }
 
-func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -92,9 +92,9 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	orgName := meta.(*Owner).name
 	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -114,31 +114,31 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("username", username); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("role", membership.GetRole()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	username := d.Get("username").(string)
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
@@ -160,7 +160,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 				}
 			}
 
-			return err
+			return diag.FromErr(err)
 		}
 
 		if *membership.Role == downgradeTo {
@@ -176,5 +176,5 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
 	}
 
-	return err
+	return diag.FromErr(err)
 }
