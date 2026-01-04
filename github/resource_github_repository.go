@@ -1254,8 +1254,10 @@ func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ct
 
 	resp, err := updateVulnerabilityAlertsSDK(ctx, owner, repoName)
 	if err != nil {
+		// Check if the error is because an Organization or Enterprise policy is preventing the change
+		// This is a temporary workaround while we extract Vulnerability Alerts into a separate resource.
 		if resp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "An enforced security configuration prevented modifying") && !ok {
-			return nil // An Organization or Enterprise policy is preventing the change
+			return nil
 		}
 	}
 	return err
