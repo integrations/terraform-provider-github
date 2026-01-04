@@ -174,6 +174,17 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 	} else {
 		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)
 		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) {
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					log.Printf("[INFO] Not removing '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
+					return nil
+				}
+			}
+
+			return diag.FromErr(err)
+		}
 	}
 
 	return diag.FromErr(err)
