@@ -3,10 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -108,8 +109,9 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing membership %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, fmt.Sprintf("Removing membership %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
+					"membership_id": d.Id(),
+				})
 				d.SetId("")
 				return nil
 			}
@@ -145,7 +147,11 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 	downgradeTo := "member"
 
 	if downgradeOnDestroy {
-		log.Printf("[INFO] Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo)
+		tflog.Info(ctx, fmt.Sprintf("Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo), map[string]any{
+			"org_name": orgName,
+			"username": username,
+			"role":     downgradeTo,
+		})
 
 		// Check to make sure this member still has access to the organization before downgrading.
 		// If we don't do this, the member would just be re-added to the organization.
@@ -155,7 +161,10 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 			var ghErr *github.ErrorResponse
 			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
+					tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
+						"org_name": orgName,
+						"username": username,
+					})
 					return nil
 				}
 			}
@@ -164,7 +173,11 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 		}
 
 		if *membership.Role == downgradeTo {
-			log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo)
+			tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo), map[string]any{
+				"org_name": orgName,
+				"username": username,
+				"role":     downgradeTo,
+			})
 			return nil
 		}
 
@@ -172,13 +185,19 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 			Role: github.Ptr(downgradeTo),
 		})
 	} else {
-		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)
+		tflog.Info(ctx, fmt.Sprintf("Revoking '%s' membership for '%s'", orgName, username), map[string]any{
+			"org_name": orgName,
+			"username": username,
+		})
 		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
 		if err != nil {
 			var ghErr *github.ErrorResponse
 			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					log.Printf("[INFO] Not removing '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
+					tflog.Info(ctx, fmt.Sprintf("Not removing '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
+						"org_name": orgName,
+						"username": username,
+					})
 					return nil
 				}
 			}
