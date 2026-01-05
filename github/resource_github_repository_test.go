@@ -2026,6 +2026,172 @@ func TestAccGithubRepository_fork(t *testing.T) {
 	})
 }
 
+func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("can enable vulnerability alerts", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			  resource "github_repository" "test" {
+					name         = "tf-acc-test-vuln-%s"
+					description  = "Terraform acceptance test - repository %[1]s"
+					vulnerability_alerts = true
+			  }
+		 `, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "vulnerability_alerts",
+								"true",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+	})
+	t.Run("sets vulnerability alerts to false when not set in config", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			  resource "github_repository" "test" {
+					name         = "tf-acc-test-vuln-%s"
+					description  = "Terraform acceptance test - repository %[1]s"
+			  }
+		 `, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "vulnerability_alerts", "false",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+	})
+	t.Run("can disable vulnerability alerts", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			  resource "github_repository" "test" {
+					name         = "tf-acc-test-vuln-%s"
+					description  = "Terraform acceptance test - repository %[1]s"
+					vulnerability_alerts = false
+			  }
+		 `, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "vulnerability_alerts",
+								"false",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+	})
+	t.Run("can modify vulnerability alerts", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			  resource "github_repository" "test" {
+					name         = "tf-acc-test-vuln-%s"
+					description  = "Terraform acceptance test - repository %[1]s"
+					vulnerability_alerts = false
+			  }
+		 `, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "vulnerability_alerts", "false",
+							),
+						),
+					},
+					{
+						Config: strings.Replace(config, "vulnerability_alerts = false", "vulnerability_alerts = true", 1),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_repository.test", "vulnerability_alerts", "true",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+	})
+}
+
 func createForkedRepository(repositoryName string) error {
 	baseURL, isGHES, err := getBaseURL(os.Getenv("GITHUB_BASE_URL"))
 	if err != nil {
