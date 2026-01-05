@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,28 +18,11 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Delete: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				id, err := strconv.Atoi(d.Id())
-				if err != nil {
-					return nil, err
+				isTwoPartID := strings.Contains(d.Id(), ":")
+				if isTwoPartID {
+					return importWithTwoPartID(d, meta)
 				}
-				if err := d.Set("group_id", id); err != nil {
-					return nil, err
-				}
-				ctx := context.WithValue(context.Background(), ctxId, d.Id())
-				client := meta.(*Owner).v3client
-				orgName := meta.(*Owner).name
-				group, _, err := client.Teams.GetExternalGroup(ctx, orgName, int64(id))
-				if err != nil {
-					return nil, err
-				}
-				if len(group.Teams) != 1 {
-					return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
-				}
-				if err := d.Set("team_slug", group.Teams[0].TeamName); err != nil {
-					return nil, err
-				}
-				d.SetId(fmt.Sprintf("teams/%s/external-groups", *group.Teams[0].TeamName))
-				return []*schema.ResourceData{d}, nil
+				return importWithIntegerID(d, meta)
 			},
 		},
 		Schema: map[string]*schema.Schema{
@@ -184,4 +168,48 @@ func getInt64FromInterface(val any) (int64, error) {
 		return 0, fmt.Errorf("unexpected type converting to int64 from interface")
 	}
 	return id64, nil
+}
+
+func importWithTwoPartID(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	groupIDString, teamSlug, err := parseTwoPartID(d.Id(), "group_id", "team_slug")
+	if err != nil {
+		return nil, err
+	}
+	groupID, err := strconv.Atoi(groupIDString)
+	if err != nil {
+		return nil, err
+	}
+	if err := d.Set("group_id", groupID); err != nil {
+		return nil, err
+	}
+	if err := d.Set("team_slug", teamSlug); err != nil {
+		return nil, err
+	}
+	d.SetId(fmt.Sprintf("teams/%s/external-groups", teamSlug))
+	return []*schema.ResourceData{d}, nil
+}
+
+func importWithIntegerID(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	groupID, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return nil, err
+	}
+	if err := d.Set("group_id", groupID); err != nil {
+		return nil, err
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	group, _, err := client.Teams.GetExternalGroup(ctx, orgName, int64(groupID))
+	if err != nil {
+		return nil, err
+	}
+	if len(group.Teams) != 1 {
+		return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
+	}
+	if err := d.Set("team_slug", group.Teams[0].TeamName); err != nil {
+		return nil, err
+	}
+	d.SetId(fmt.Sprintf("teams/%s/external-groups", *group.Teams[0].TeamName))
+	return []*schema.ResourceData{d}, nil
 }

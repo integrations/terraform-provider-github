@@ -167,7 +167,7 @@ func testAccGithubEMUGroupMappingImportStateIdFunc(resourceName string) resource
 		if !ok {
 			return "", fmt.Errorf("not found: %s", resourceName)
 		}
-		return rs.Primary.Attributes["group_id"], nil
+		return buildTwoPartID(rs.Primary.Attributes["group_id"], rs.Primary.Attributes["team_slug"]), nil
 	}
 }
 
