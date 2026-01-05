@@ -59,6 +59,47 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 			},
 		})
 	})
+	t.Run("imports EMU group mapping with multiple teams", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam1-emu-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%steam2-emu-%s", testResourcePrefix, randomID)
+		rn := "github_emu_group_mapping.test1"
+		config := fmt.Sprintf(`
+	resource "github_team" "test1" {
+		name        = "%s"
+		description = "EMU group mapping test team 1"
+	}
+	resource "github_team" "test2" {
+		name        = "%s"
+		description = "EMU group mapping test team 2"
+	}
+	resource "github_emu_group_mapping" "test1" {
+		team_slug = github_team.test1.slug
+		group_id  = %d
+	}
+	resource "github_emu_group_mapping" "test2" {
+		team_slug = github_team.test2.slug
+		group_id  = %[3]d
+	}
+`, teamName, teamName2, groupID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubEMUGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
 
 	t.Run("handles team slug update by recreating", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
