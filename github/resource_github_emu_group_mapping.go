@@ -37,7 +37,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				if err := d.Set("team_slug", group.Teams[0].TeamName); err != nil {
 					return nil, err
 				}
-				d.SetId(fmt.Sprintf("teams/%s/external-groups", d.Id()))
+				d.SetId(fmt.Sprintf("teams/%s/external-groups", *group.Teams[0].TeamName))
 				return []*schema.ResourceData{d}, nil
 			},
 		},
