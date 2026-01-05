@@ -7,22 +7,23 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubEMUGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEMUGroupMappingCreate,
-		Read:   resourceGithubEMUGroupMappingRead,
-		Update: resourceGithubEMUGroupMappingUpdate,
-		Delete: resourceGithubEMUGroupMappingDelete,
+		CreateContext: resourceGithubEMUGroupMappingCreate,
+		ReadContext:   resourceGithubEMUGroupMappingRead,
+		UpdateContext: resourceGithubEMUGroupMappingUpdate,
+		DeleteContext: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				isTwoPartID := strings.Contains(d.Id(), ":")
 				if isTwoPartID {
-					return importWithTwoPartID(d, meta)
+					return importWithTwoPartID(ctx, d, meta)
 				}
-				return importWithIntegerID(d, meta)
+				return importWithIntegerID(ctx, d, meta)
 			},
 		},
 		Schema: map[string]*schema.Schema{
@@ -44,28 +45,28 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta any) error {
-	return resourceGithubEMUGroupMappingUpdate(d, meta)
+func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	return resourceGithubEMUGroupMappingUpdate(ctx, d, meta)
 }
 
-func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta any) error {
+func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
 	id, ok := d.GetOk("group_id")
 	if !ok {
-		return fmt.Errorf("could not get group id from provided value")
+		return diag.Errorf("could not get group id from provided value")
 	}
 	id64, err := getInt64FromInterface(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
 	if err != nil {
@@ -74,7 +75,7 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta any) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(group.Teams) < 1 {
@@ -85,35 +86,35 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta any) error {
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("group_id", int(*group.GroupID)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	teamSlug, ok := d.GetOk("team_slug")
 	if !ok {
-		return fmt.Errorf("could not get team slug from provided value")
+		return diag.Errorf("could not get team slug from provided value")
 	}
 
 	id, ok := d.GetOk("group_id")
 	if !ok {
-		return fmt.Errorf("could not get group id from provided value")
+		return diag.Errorf("could not get group id from provided value")
 	}
 	id64, err := getInt64FromInterface(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	eg := &github.ExternalGroup{
@@ -122,31 +123,31 @@ func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta any) error
 
 	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug.(string), eg)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("teams/%s/external-groups", teamSlug))
-	return resourceGithubEMUGroupMappingRead(d, meta)
+	return resourceGithubEMUGroupMappingRead(ctx, d, meta)
 }
 
-func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
 	teamSlug, ok := d.GetOk("team_slug")
 	if !ok {
-		return fmt.Errorf("could not parse team slug from provided value")
+		return diag.Errorf("could not parse team slug from provided value")
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug.(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
@@ -170,7 +171,7 @@ func getInt64FromInterface(val any) (int64, error) {
 	return id64, nil
 }
 
-func importWithTwoPartID(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+func importWithTwoPartID(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	groupIDString, teamSlug, err := parseTwoPartID(d.Id(), "group_id", "team_slug")
 	if err != nil {
 		return nil, err
@@ -189,7 +190,7 @@ func importWithTwoPartID(d *schema.ResourceData, _ any) ([]*schema.ResourceData,
 	return []*schema.ResourceData{d}, nil
 }
 
-func importWithIntegerID(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func importWithIntegerID(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	groupID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return nil, err
@@ -197,7 +198,7 @@ func importWithIntegerID(d *schema.ResourceData, meta any) ([]*schema.ResourceDa
 	if err := d.Set("group_id", groupID); err != nil {
 		return nil, err
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	group, _, err := client.Teams.GetExternalGroup(ctx, orgName, int64(groupID))
