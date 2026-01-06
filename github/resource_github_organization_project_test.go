@@ -13,42 +13,50 @@ import (
 )
 
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
-	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
+	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("creates organization project", func(t *testing.T) {
+		var project github.Project
+		config := `
+resource "github_organization_project" "test" {
+  name = "test-project"
+  body = "this is a test project"
+}
+`
 
-	var project github.Project
+		rn := "github_organization_project.test"
 
-	rn := "github_organization_project.test"
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccGithubOrganizationProjectDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubOrganizationProjectConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubOrganizationProjectExists(rn, &project),
-					testAccCheckGithubOrganizationProjectAttributes(&project, &testAccGithubOrganizationProjectExpectedAttributes{
-						Name: "test-project",
-						Body: "this is a test project",
-					}),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccGithubOrganizationProjectDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubOrganizationProjectExists(rn, &project),
+						testAccCheckGithubOrganizationProjectAttributes(&project, &testAccGithubOrganizationProjectExpectedAttributes{
+							Name: "test-project",
+							Body: "this is a test project",
+						}),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_project" {
@@ -60,7 +68,7 @@ func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
 			return err
 		}
 
-		project, res, err := conn.Projects.GetProject(context.TODO(), projectID)
+		project, res, err := conn.Projects.GetProject(context.Background(), projectID)
 		if err == nil {
 			if project != nil &&
 				project.GetID() == projectID {
@@ -87,8 +95,13 @@ func testAccCheckGithubOrganizationProjectExists(n string, project *github.Proje
 			return err
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		gotProject, _, err := conn.Projects.GetProject(context.TODO(), projectID)
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+
+		gotProject, _, err := conn.Projects.GetProject(context.Background(), projectID)
 		if err != nil {
 			return err
 		}
@@ -117,10 +130,3 @@ func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, wa
 		return nil
 	}
 }
-
-const testAccGithubOrganizationProjectConfig = `
-resource "github_organization_project" "test" {
-  name = "test-project"
-  body = "this is a test project"
-}
-`

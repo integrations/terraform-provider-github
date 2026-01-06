@@ -340,6 +340,7 @@ func dataSourceGithubRepository() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -359,7 +360,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -409,7 +410,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
 
 	if repo.GetHasPages() {
-		pages, _, err := client.Repositories.GetPagesInfo(context.TODO(), owner, repoName)
+		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
@@ -424,7 +425,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	if repo.License != nil {
-		repository_license, _, err := client.Repositories.License(context.TODO(), owner, repoName)
+		repository_license, _, err := client.Repositories.License(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}

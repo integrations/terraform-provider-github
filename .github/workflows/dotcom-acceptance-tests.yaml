@@ -6,21 +6,26 @@ on:
   #   branches:
   #     - main
   #     - release-v*
-  # pull_request_target:
-  #   types:
-  #     - opened
-  #     - synchronize
-  #     - reopened
-  #     - labeled
-  #   branches:
-  #     - main
-  #     - release-v*
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+    branches:
+      - main
+      - release-v*
+
+concurrency:
+  group: acctest-dotcom-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: read-all
 
 jobs:
   test:
     name: Test ${{ matrix.mode }}
+    if: (github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || contains(github.event.pull_request.labels.*.name, 'acctest')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,7 +34,8 @@ jobs:
     strategy:
       matrix:
         mode: [anonymous, individual, organization] # team, enterprise
-      fail-fast: false
+      fail-fast: true
+      max-parallel: 1
     defaults:
       run:
         shell: bash
@@ -38,8 +44,9 @@ jobs:
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Check secrets
+        if: github.event_name == 'pull_request_target'
         env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'DOTCOM_TEST_USER_TOKEN' }}
+          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GH_TEST_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
         run: |
           set -eou pipefail
@@ -54,16 +61,16 @@ jobs:
         id: credentials
         if: matrix.mode != 'anonymous'
         env:
-          TEST_USER_TOKEN: ${{ secrets.DOTCOM_TEST_USER_TOKEN }}
+          GH_TEST_TOKEN: ${{ secrets.GH_TEST_TOKEN }}
         run: |
           set -eou pipefail
 
-          if [[ -z "${TEST_USER_TOKEN}" ]]; then
+          if [[ -z "${GH_TEST_TOKEN}" ]]; then
             echo "::error::Missing credentials"
             exit 1
           fi
 
-          echo "token=${TEST_USER_TOKEN}" >> "${GITHUB_OUTPUT}"
+          echo "token=${GH_TEST_TOKEN}" >> "${GITHUB_OUTPUT}"
 
       - name: Set-up Go
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
@@ -71,19 +78,53 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: latest
+          terraform_wrapper: false
+
+      - name: Terraform lookup
+        id: tf
+        run: |
+          set -euo pipefail
+
+          {
+            echo "version=$(terraform version -json | jq --raw-output '.terraform_version')"
+            echo "path=$(command -v terraform || true)"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Run tests
         env:
+          TF_ACC_PROVIDER_NAMESPACE: ""
+          TF_ACC_TERRAFORM_VERSION: ${{ steps.tf.outputs.version }}
+          TF_ACC_TERRAFORM_PATH: ${{ steps.tf.outputs.path }}
           TF_ACC: "1"
-          TF_LOG: INFO
+          TF_LOG: WARN
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_TEST_TYPE: ${{ matrix.mode }}
-          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && 'github-terraform-test-user') || (matrix.mode == 'organization' && 'terraformtesting') || '' }}
-          GITHUB_ORGANIZATION: ${{ (matrix.mode == 'organization' && 'terraformtesting') || '' }}
-          GITHUB_TEST_ORGANIZATION: ${{ (matrix.mode == 'individual' && 'terraformtesting') || '' }}
-          GITHUB_TEST_OWNER: ${{ (matrix.mode == 'organization' && 'github-terraform-test-user') || '' }}
-          GITHUB_TEST_USER_TOKEN: ${{ steps.credentials.outputs.token }}
-        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
+          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && vars.GH_TEST_LOGIN) || (matrix.mode == 'organization' && vars.GH_TEST_ORG_NAME) || '' }}
+          GITHUB_USERNAME: ${{ vars.GH_TEST_LOGIN }}
+          GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_TEST_ENTERPRISE_SLUG }}
+          GH_TEST_AUTH_MODE: ${{ matrix.mode }}
+          GH_TEST_USER_REPOSITORY: ${{ vars.GH_TEST_USER_REPOSITORY }}
+          GH_TEST_ORG_USER: ${{ vars.GH_TEST_ORG_USER }}
+          GH_TEST_ORG_SECRET_NAME: ${{ vars.GH_TEST_ORG_SECRET_NAME }}
+          GH_TEST_ORG_REPOSITORY: ${{ vars.GH_TEST_ORG_REPOSITORY }}
+          GH_TEST_ORG_TEMPLATE_REPOSITORY: ${{ vars.GH_TEST_ORG_TEMPLATE_REPOSITORY }}
+          GH_TEST_ORG_APP_INSTALLATION_ID: ${{ vars.GH_TEST_ORG_APP_INSTALLATION_ID }}
+          GH_TEST_EXTERNAL_USER: ${{ vars.GH_TEST_EXTERNAL_USER }}
+          GH_TEST_EXTERNAL_USER_TOKEN: ${{ secrets.GH_TEST_EXTERNAL_USER_TOKEN }}
+          GH_TEST_EXTERNAL_USER2: ${{ vars.GH_TEST_EXTERNAL_USER2 }}
+          GH_TEST_ADVANCED_SECURITY: ${{ vars.GH_TEST_ADVANCED_SECURITY || 'false' }}
+        run: |
+          set -eou pipefail
+
+          if [[ "${GH_TEST_AUTH_MODE}" != "anonymous" ]]; then
+            go test ./github -v -sweep=all
+          fi
+
+          go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
 
   check:
     name: Check DotCom Acceptance Tests

@@ -62,7 +62,7 @@ func dataSourceGithubOrganizationRoleRead(ctx context.Context, d *schema.Resourc
 	}
 
 	r := map[string]any{
-		"role_id":     role.GetID(),
+		"role_id":     int(role.GetID()),
 		"name":        role.GetName(),
 		"description": role.GetDescription(),
 		"source":      role.GetSource(),
