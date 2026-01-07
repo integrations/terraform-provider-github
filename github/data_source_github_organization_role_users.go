@@ -82,7 +82,7 @@ func dataSourceGithubOrganizationRoleUsersRead(ctx context.Context, d *schema.Re
 
 		for _, user := range users {
 			u := map[string]any{
-				"user_id": user.GetID(),
+				"user_id": int(user.GetID()),
 				"login":   user.GetLogin(),
 			}
 			allUsers = append(allUsers, u)

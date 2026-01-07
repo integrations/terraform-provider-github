@@ -1,88 +1,88 @@
 name: CodeQL
 
 on:
-    workflow_dispatch:
-    push:
-        branches: ["main"]
-    pull_request:
-        # The branches below must be a subset of the branches above
-        branches: ["main"]
-    schedule:
-        - cron: "16 7 * * 5"
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["main"]
+  schedule:
+    - cron: "16 7 * * 5"
 
 concurrency:
-    group: codeql-${{ github.ref }}
-    cancel-in-progress: true
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: read-all
 
 jobs:
-    analyze:
-        name: Analyze (${{ matrix.language }})
-        runs-on: ubuntu-latest
-        permissions:
-            actions: read
-            contents: read
-            security-events: write
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - language: actions
-                      build-mode: none
-                      queries: security-extended # can be 'default' (use empty for 'default'), 'security-and-quality', 'security-extended'
-                    - language: go
-                      build-mode: manual
-                      queries: "" # will be used 'default' queries
-        defaults:
-            run:
-                shell: bash
-        steps:
-            - name: Checkout
-              uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+            queries: security-extended # can be 'default' (use empty for 'default'), 'security-and-quality', 'security-extended'
+          - language: go
+            build-mode: manual
+            queries: "" # will be used 'default' queries
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
-            - name: Set-up Go
-              uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
-              if: matrix.language == 'go'
-              with:
-                  go-version-file: go.mod
-                  cache: true
+      - name: Set-up Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        if: matrix.language == 'go'
+        with:
+          go-version-file: go.mod
+          cache: true
 
-            - name: Initialize CodeQL
-              uses: github/codeql-action/init@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4.31.5
-              with:
-                  languages: ${{ matrix.language }}
-                  build-mode: ${{ matrix.build-mode }}
-                  queries: ${{ matrix.queries }}
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4.31.5
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: ${{ matrix.queries }}
 
-            - name: Build Go
-              if: ${{ matrix.language == 'go' }}
-              run: go build ./...
+      - name: Build Go
+        if: ${{ matrix.language == 'go' }}
+        run: go build ./...
 
-            - name: Perform CodeQL Analysis
-              uses: github/codeql-action/analyze@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4.31.5
-              with:
-                  category: "/language:${{matrix.language}}"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4.31.5
+        with:
+          category: "/language:${{matrix.language}}"
 
-    check:
-        name: Check CodeQL Analysis
-        if: always() && github.event_name == 'pull_request'
-        needs:
-            - analyze
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                shell: bash
-        steps:
-            - name: Check
-              env:
-                  INPUT_RESULTS: ${{ join(needs.*.result, ' ') }}
-              run: |
-                  set -euo pipefail
-                  read -a results <<< "${INPUT_RESULTS}"
-                  for result in "${results[@]}"; do
-                    if [[ "${result}" == "failure" ]] || [[ "${result}" == "cancelled" ]]; then
-                      echo "::error::Workflow failed!"
-                      exit 1
-                    fi
-                  done
+  check:
+    name: Check CodeQL Analysis
+    if: always() && github.event_name == 'pull_request'
+    needs:
+      - analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check
+        env:
+          INPUT_RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          read -a results <<< "${INPUT_RESULTS}"
+          for result in "${results[@]}"; do
+            if [[ "${result}" == "failure" ]] || [[ "${result}" == "cancelled" ]]; then
+              echo "::error::Workflow failed!"
+              exit 1
+            fi
+          done

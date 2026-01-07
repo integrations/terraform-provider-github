@@ -47,38 +47,24 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicies(t *testing.T) {
 			}
 	`, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.#", "2"),
-							resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.0.type", "branch"),
-							resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.0.pattern", "foo"),
-							resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.1.type", "tag"),
-							resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.1.pattern", "bar"),
-						),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.#", "2"),
+						resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.0.type", "branch"),
+						resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.0.pattern", "foo"),
+						resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.1.type", "tag"),
+						resource.TestCheckResourceAttr("data.github_repository_environment_deployment_policies.test", "policies.1.pattern", "bar"),
+					),
+				},
+			},
 		})
 	})
 }

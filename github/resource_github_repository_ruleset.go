@@ -710,7 +710,7 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
 	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
 	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
-	if d.HasChange("bypass_actors") {
+	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
 		ruleset, _, err = client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
 	} else {
 		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
