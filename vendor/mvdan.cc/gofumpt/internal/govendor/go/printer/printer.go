@@ -45,9 +45,9 @@ const (
 )
 
 type commentInfo struct {
-	cindex         int               // current comment index
-	comment        *ast.CommentGroup // = printer.comments[cindex]; or nil
-	commentOffset  int               // = printer.posFor(printer.comments[cindex].List[0].Pos()).Offset; or infinity
+	cindex         int               // index of the next comment
+	comment        *ast.CommentGroup // = printer.comments[cindex-1]; or nil
+	commentOffset  int               // = printer.posFor(printer.comments[cindex-1].List[0].Pos()).Offset; or infinity
 	commentNewline bool              // true if the comment group contains newlines
 }
 
@@ -715,7 +715,7 @@ func (p *printer) writeCommentSuffix(needsLinebreak bool) (wroteNewline, dropped
 		wroteNewline = true
 	}
 
-	return
+	return wroteNewline, droppedFF
 }
 
 // containsLinebreak reports whether the whitespace buffer contains any line breaks.
@@ -809,7 +809,7 @@ func (p *printer) intersperseComments(next token.Position, tok token.Token) (wro
 	// no comment was written - we should never reach here since
 	// intersperseComments should not be called in that case
 	p.internalError("intersperseComments called without pending comments")
-	return
+	return wroteNewline, droppedFF
 }
 
 // writeWhitespace writes the first n whitespace entries.
@@ -860,10 +860,7 @@ func (p *printer) writeWhitespace(n int) {
 
 // nlimit limits n to maxNewlines.
 func nlimit(n int) int {
-	if n > maxNewlines {
-		n = maxNewlines
-	}
-	return n
+	return min(n, maxNewlines)
 }
 
 func mayCombine(prev token.Token, next byte) (b bool) {
@@ -881,7 +878,7 @@ func mayCombine(prev token.Token, next byte) (b bool) {
 	case token.AND:
 		b = next == '&' || next == '^' // && or &^
 	}
-	return
+	return b
 }
 
 func (p *printer) setPos(pos token.Pos) {
@@ -1044,7 +1041,7 @@ func (p *printer) flush(next token.Position, tok token.Token) (wroteNewline, dro
 		// otherwise, write any leftover whitespace
 		p.writeWhitespace(len(p.wsbuf))
 	}
-	return
+	return wroteNewline, droppedFF
 }
 
 // getDoc returns the ast.CommentGroup associated with n, if any.
@@ -1272,7 +1269,7 @@ func (p *trimmer) Write(data []byte) (n int, err error) {
 			panic("unreachable")
 		}
 		if err != nil {
-			return
+			return n, err
 		}
 	}
 	n = len(data)
@@ -1283,7 +1280,7 @@ func (p *trimmer) Write(data []byte) (n int, err error) {
 		p.resetSpace()
 	}
 
-	return
+	return n, err
 }
 
 // ----------------------------------------------------------------------------
@@ -1364,7 +1361,7 @@ func (cfg *Config) fprint(output io.Writer, fset *token.FileSet, node any, nodeS
 	p := newPrinter(cfg, fset, nodeSizes)
 	defer p.free()
 	if err = p.printNode(node); err != nil {
-		return
+		return err
 	}
 	// print outstanding comments
 	p.impliedSemi = false // EOF acts like a newline
@@ -1400,7 +1397,7 @@ func (cfg *Config) fprint(output io.Writer, fset *token.FileSet, node any, nodeS
 
 	// write printer result via tabwriter/trimmer to output
 	if _, err = output.Write(p.output); err != nil {
-		return
+		return err
 	}
 
 	// flush tabwriter, if any
@@ -1408,11 +1405,11 @@ func (cfg *Config) fprint(output io.Writer, fset *token.FileSet, node any, nodeS
 		err = tw.Flush()
 	}
 
-	return
+	return err
 }
 
 // A CommentedNode bundles an AST node and corresponding comments.
-// It may be provided as argument to any of the Fprint functions.
+// It may be provided as argument to any of the [Fprint] functions.
 type CommentedNode struct {
 	Node     any // *ast.File, or ast.Expr, ast.Decl, ast.Spec, or ast.Stmt
 	Comments []*ast.CommentGroup
@@ -1420,14 +1417,14 @@ type CommentedNode struct {
 
 // Fprint "pretty-prints" an AST node to output for a given configuration cfg.
 // Position information is interpreted relative to the file set fset.
-// The node type must be *ast.File, *CommentedNode, []ast.Decl, []ast.Stmt,
-// or assignment-compatible to ast.Expr, ast.Decl, ast.Spec, or ast.Stmt.
+// The node type must be *[ast.File], *[CommentedNode], [][ast.Decl], [][ast.Stmt],
+// or assignment-compatible to [ast.Expr], [ast.Decl], [ast.Spec], or [ast.Stmt].
 func (cfg *Config) Fprint(output io.Writer, fset *token.FileSet, node any) error {
 	return cfg.fprint(output, fset, node, make(map[ast.Node]int))
 }
 
 // Fprint "pretty-prints" an AST node to output.
-// It calls Config.Fprint with default settings.
+// It calls [Config.Fprint] with default settings.
 // Note that gofmt uses tabs for indentation but spaces for alignment;
 // use format.Node (package mvdan.cc/gofumpt/internal/govendor/go/format) for output that matches gofmt.
 func Fprint(output io.Writer, fset *token.FileSet, node any) error {

@@ -9,6 +9,8 @@ import (
 
 func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This data source is deprecated in favour of using the github_organization_role_teams data source.",
+
 		Read: dataSourceGithubOrganizationSecurityManagersRead,
 
 		Schema: map[string]*schema.Schema{
@@ -44,12 +46,12 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
-	allTeams := make([]interface{}, 0)
+	allTeams := make([]any, 0)
 
 	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
 	if err != nil {
@@ -58,7 +60,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	for _, team := range teams {
 		t := map[string]any{
-			"id":         team.GetID(),
+			"id":         int(team.GetID()),
 			"slug":       team.GetSlug(),
 			"name":       team.GetName(),
 			"permission": team.GetPermission(),
@@ -68,7 +70,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	d.SetId(fmt.Sprintf("%s/github-org-security-managers", orgName))
 	if err := d.Set("teams", allTeams); err != nil {
-		return fmt.Errorf("error setting teams: %s", err)
+		return fmt.Errorf("error setting teams: %w", err)
 	}
 
 	return nil

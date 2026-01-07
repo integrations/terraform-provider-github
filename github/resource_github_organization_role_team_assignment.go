@@ -11,6 +11,8 @@ import (
 
 func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated in favor of the github_organization_role_team resource.",
+
 		Create: resourceGithubOrganizationRoleTeamAssignmentCreate,
 		Read:   resourceGithubOrganizationRoleTeamAssignmentRead,
 		Delete: resourceGithubOrganizationRoleTeamAssignmentDelete,
@@ -35,7 +37,7 @@ func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -62,7 +64,7 @@ func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, 
 	return resourceGithubOrganizationRoleTeamAssignmentRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -99,7 +101,6 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 				foundTeam = team
 				break
 			}
-
 		}
 
 		if resp.NextPage == 0 {
@@ -124,7 +125,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

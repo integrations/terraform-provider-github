@@ -14,20 +14,23 @@ import (
 
 func dataSourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubReleaseRead,
-
+		Read:        dataSourceGithubReleaseRead,
+		Description: "Use this data source to retrieve information about a GitHub release in a specific repository.",
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository to retrieve the release from.",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Owner of the repository.",
 			},
 			"retrieve_by": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Describes how to fetch the release. Valid values are `id`, `tag`, `latest`.",
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"latest",
 					"id",
@@ -35,12 +38,14 @@ func dataSourceGithubRelease() *schema.Resource {
 				}, false), "retrieve_by"),
 			},
 			"release_tag": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "ID of the release to retrieve. Must be specified when `retrieve_by` = `tag`.",
 			},
 			"release_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "ID of the release to retrieve. Must be specified when `retrieve_by` = `id`.",
 			},
 			"target_commitish": {
 				Type:     schema.TypeString,
@@ -151,7 +156,7 @@ func dataSourceGithubRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubReleaseRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := d.Get("owner").(string)
 
@@ -248,13 +253,13 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	assets := make([]interface{}, 0, len(release.Assets))
+	assets := make([]any, 0, len(release.Assets))
 	for _, releaseAsset := range release.Assets {
 		if releaseAsset == nil {
 			continue
 		}
 
-		assets = append(assets, map[string]interface{}{
+		assets = append(assets, map[string]any{
 			"id":                   releaseAsset.GetID(),
 			"url":                  releaseAsset.GetURL(),
 			"node_id":              releaseAsset.GetNodeID(),

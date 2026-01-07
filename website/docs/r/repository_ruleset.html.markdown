@@ -49,7 +49,13 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 
@@ -66,7 +72,7 @@ resource "github_repository_ruleset" "example_push" {
     }
     
     max_file_size {
-      max_file_size = 104857600  # 100 MB in bytes
+      max_file_size = 100  # 100 MB
     }
     
     max_file_path_length {
@@ -94,7 +100,7 @@ resource "github_repository_ruleset" "example_push" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
 
-* `repository` - (Optional) (String) Name of the repository to apply rulset to.
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
@@ -114,7 +120,7 @@ The `rules` block supports the following:
 
 * `non_fast_forward` - (Optional) (Boolean) Prevent users with push access from force pushing to branches.
 
-* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue.
+* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#rules.merge_queue))
 
 * `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rulespull_request))
 
@@ -189,7 +195,7 @@ The `rules` block supports the following:
 
 * `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests that will be merged together in a group. Defaults to `5`.
 
 * `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
 
@@ -255,7 +261,7 @@ The `rules` block supports the following:
 
 #### rules.max_file_size ####
 
-* `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
 
 #### rules.max_file_path_length ####
 

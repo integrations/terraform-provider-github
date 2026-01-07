@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -12,17 +13,15 @@ import (
 )
 
 func TestGithubRepositoryRulesets(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("Creates and updates repository rulesets without errors", func(t *testing.T) {
+	t.Run("creates and updates repository rulesets without errors", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				auto_init = true
 				default_branch = "main"
-                vulnerability_alerts = true
+				vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
@@ -126,41 +125,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
-		if isEnterprise != "true" {
-			t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-		}
-
-		if testEnterprise == "" {
-			t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-		}
+	t.Run("creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -209,27 +187,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			},
 		})
-
 	})
 
-	t.Run("Updates a ruleset name without error", func(t *testing.T) {
-
+	t.Run("updates a ruleset name without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
@@ -268,42 +239,28 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						// Rename the ruleset to something else
-						Config: strings.Replace(
-							config,
-							oldRSName,
-							newRSName, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					// Rename the ruleset to something else
+					Config: strings.Replace(
+						config,
+						oldRSName,
+						newRSName, 1),
+					Check: checks["after"],
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Imports rulesets without error", func(t *testing.T) {
+	t.Run("imports rulesets without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -383,43 +340,28 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource.TestCheckResourceAttrSet("github_repository_ruleset.test", "name"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_repository_ruleset.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: importRepositoryRulesetByResourcePaths(
-							"github_repository.test", "github_repository_ruleset.test"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths(
+						"github_repository.test", "github_repository_ruleset.test"),
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-	t.Run("Creates a push repository ruleset without errors", func(t *testing.T) {
-		if isPaidPlan != "true" {
-			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
-		}
+
+	t.Run("creates a push repository ruleset without errors", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
 		config := fmt.Sprintf(`
 			 resource "github_repository" "test" {
 				 name                 = "tf-acc-test-%s"
@@ -470,30 +412,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				"*.zip",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("with a paid plan in an organization", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("Creates repository ruleset with merge queue SQUASH method", func(t *testing.T) {
+	t.Run("creates repository ruleset with merge queue squash method", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -540,34 +472,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Removes bypass actors when removed from configuration", func(t *testing.T) {
+	t.Run("removes bypass actors when removed from configuration", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -579,6 +497,13 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-%[1]s"
 				description = "Terraform acc test team"
+				privacy     = "closed"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -588,7 +513,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				enforcement = "active"
 
 				bypass_actors {
-					actor_id    = github_team.test.id
+					actor_id    = github_team_repository.test.team_id
 					actor_type  = "Team"
 					bypass_mode = "pull_request"
 				}
@@ -612,70 +537,73 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			}
 		`, randomID)
 
-		configWithoutBypass := strings.Replace(
-			config,
-			`bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "pull_request"
+		configWithoutBypass := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-bypass-%s"
+				description  = "Terraform acceptance tests %[1]s"
+				auto_init    = true
+			}
+
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-%[1]s"
+				description = "Terraform acc test team"
+				privacy     = "closed"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "push"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-bypass"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
 				}
 
-				`,
-			"",
-			1,
-		)
+				rules {
+					pull_request {
+						dismiss_stale_reviews_on_push     = false
+						require_code_owner_review         = true
+						require_last_push_approval        = false
+						required_approving_review_count   = 1
+						required_review_thread_resolution = false
+					}
+				}
+			}
+		`, randomID)
 
-		checks := map[string]resource.TestCheckFunc{
-			"with_bypass": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"1",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.0.actor_type",
-					"Team",
-				),
-			),
-			"without_bypass": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"0",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["with_bypass"],
-					},
-					{
-						Config: configWithoutBypass,
-						Check:  checks["without_bypass"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "Team"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: configWithoutBypass,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "0"),
+					),
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Updates ruleset without bypass actors defined", func(t *testing.T) {
+	t.Run("updates ruleset without bypass actors defined", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -733,38 +661,24 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: configUpdated,
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: configUpdated,
+					Check:  checks["after"],
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Creates repository ruleset with all bypass_modes", func(t *testing.T) {
+	t.Run("creates repository ruleset with all bypass_modes", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -776,16 +690,39 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_team" "test_always" {
 				name        = "tf-acc-test-team-always-%[1]s"
 				description = "Terraform acc test team for always bypass"
+				privacy     = "closed"
+			}
+
+			resource "github_team_repository" "test_always" {
+				team_id    = github_team.test_always.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_team" "test_pull_request" {
 				name        = "tf-acc-test-team-pr-%[1]s"
 				description = "Terraform acc test team for pull_request bypass"
+				privacy     = "closed"
+				depends_on  = [github_team.test_always]
+			}
+
+			resource "github_team_repository" "test_pull_request" {
+				team_id    = github_team.test_pull_request.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_team" "test_exempt" {
 				name        = "tf-acc-test-team-exempt-%[1]s"
 				description = "Terraform acc test team for exempt bypass"
+				privacy     = "closed"
+				depends_on  = [github_team.test_pull_request]
+			}
+
+			resource "github_team_repository" "test_exempt" {
+				team_id    = github_team.test_exempt.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -795,19 +732,19 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				enforcement = "active"
 
 				bypass_actors {
-					actor_id    = github_team.test_always.id
+					actor_id    = github_team_repository.test_always.team_id
 					actor_type  = "Team"
 					bypass_mode = "always"
 				}
 
 				bypass_actors {
-					actor_id    = github_team.test_pull_request.id
+					actor_id    = github_team_repository.test_pull_request.team_id
 					actor_type  = "Team"
 					bypass_mode = "pull_request"
 				}
 
 				bypass_actors {
-					actor_id    = github_team.test_exempt.id
+					actor_id    = github_team_repository.test_exempt.team_id
 					actor_type  = "Team"
 					bypass_mode = "exempt"
 				}
@@ -865,34 +802,20 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-	t.Run("Updates bypass_mode without error", func(t *testing.T) {
+	t.Run("updates bypass_mode without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -904,6 +827,13 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-update-%[1]s"
 				description = "Terraform acc test team"
+				privacy     = "closed"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -913,7 +843,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				enforcement = "active"
 
 				bypass_actors {
-					actor_id    = github_team.test.id
+					actor_id    = github_team_repository.test.team_id
 					actor_type  = "Team"
 					bypass_mode = "always"
 				}
@@ -953,38 +883,24 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: configUpdated,
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: configUpdated,
+					Check:  checks["after"],
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("Creates repository ruleset with different actor types and bypass modes", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -996,6 +912,13 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-actor-%[1]s"
 				description = "Terraform acc test team"
+				privacy     = "closed"
+			}
+
+			resource "github_team_repository" "test" {
+				team_id    = github_team.test.id
+				repository = github_repository.test.name
+				permission = "push"
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -1005,9 +928,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				enforcement = "active"
 
 				bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "always"
+					actor_id    = 0
+					actor_type  = "OrganizationAdmin"
+					bypass_mode = "exempt"
 				}
 
 				bypass_actors {
@@ -1017,9 +940,9 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				}
 
 				bypass_actors {
-					actor_id    = 1
-					actor_type  = "OrganizationAdmin"
-					bypass_mode = "exempt"
+					actor_id    = github_team_repository.test.team_id
+					actor_type  = "Team"
+					bypass_mode = "always"
 				}
 
 				conditions {
@@ -1041,14 +964,14 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				"3",
 			),
 			resource.TestCheckResourceAttrSet(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_id",
+				"github_repository_ruleset.test", "bypass_actors.2.actor_id",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_type",
+				"github_repository_ruleset.test", "bypass_actors.2.actor_type",
 				"Team",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
+				"github_repository_ruleset.test", "bypass_actors.2.bypass_mode",
 				"always",
 			),
 			resource.TestCheckResourceAttr(
@@ -1064,46 +987,87 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				"pull_request",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_id",
-				"1",
+				"github_repository_ruleset.test", "bypass_actors.0.actor_id",
+				"0",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_type",
+				"github_repository_ruleset.test", "bypass_actors.0.actor_type",
 				"OrganizationAdmin",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.bypass_mode",
+				"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
 				"exempt",
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
+	})
+}
 
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
+func TestGithubRepositoryRulesetArchived(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-archive-%s"
+				auto_init = true
+				archived  = false
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.name
+				target      = "branch"
+				enforcement = "active"
+				rules { creation = true }
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{Config: config},
+				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
+				{Config: strings.Replace(strings.Replace(config, "archived  = false", "archived  = true", 1), `enforcement = "active"`, `enforcement = "disabled"`, 1)},
+			},
 		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
+	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "tf-acc-test-archive-create-%s"
+				auto_init = true
+				archived  = true
+			}
+			resource "github_repository_ruleset" "test" {
+				name       = "test"
+				repository = github_repository.test.name
+				target     = "branch"
+				enforcement = "active"
+				rules { creation = true }
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessMode(t, individual) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
+			},
+		})
+	})
 }
 
 func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName string) resource.ImportStateIdFunc {

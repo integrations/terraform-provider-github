@@ -41,7 +41,7 @@ func resourceGithubWorkflowRepositoryPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -72,7 +72,7 @@ func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.Resourc
 	return resourceGithubWorkflowRepositoryPermissionsRead(d, meta)
 }
 
-func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -97,7 +97,7 @@ func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, met
 	return nil
 }
 
-func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()

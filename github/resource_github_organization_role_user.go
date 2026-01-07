@@ -2,10 +2,12 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,9 +15,9 @@ func resourceGithubOrganizationRoleUser() *schema.Resource {
 	return &schema.Resource{
 		Description: "Manage an association between an organization role and a user.",
 
-		Create: resourceGithubOrganizationRoleUserCreate,
-		Read:   resourceGithubOrganizationRoleUserRead,
-		Delete: resourceGithubOrganizationRoleUserDelete,
+		CreateContext: resourceGithubOrganizationRoleUserCreate,
+		ReadContext:   resourceGithubOrganizationRoleUserRead,
+		DeleteContext: resourceGithubOrganizationRoleUserDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -37,14 +39,13 @@ func resourceGithubOrganizationRoleUser() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleUserCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleUserCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
@@ -52,31 +53,30 @@ func resourceGithubOrganizationRoleUserCreate(d *schema.ResourceData, meta inter
 
 	_, err = client.Organizations.AssignOrgRoleToUser(ctx, orgName, login, roleId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(strconv.FormatInt(roleId, 10), login))
 
-	return resourceGithubOrganizationRoleUserRead(d, meta)
+	return nil
 }
 
-func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleIdString, login, err := parseTwoPartID(d.Id(), "role_id", "login")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	roleId, err := strconv.ParseInt(roleIdString, 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	opts := &github.ListOptions{
@@ -87,7 +87,7 @@ func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta interfa
 	for {
 		users, resp, err := client.Organizations.ListUsersAssignedToOrgRole(ctx, orgName, roleId, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, u := range users {
@@ -110,29 +110,32 @@ func resourceGithubOrganizationRoleUserRead(d *schema.ResourceData, meta interfa
 	}
 
 	if err = d.Set("role_id", roleId); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("login", login); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRoleUserDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubOrganizationRoleUserDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
 	login := d.Get("login").(string)
 
 	_, err = client.Organizations.RemoveOrgRoleFromUser(ctx, orgName, login, roleId)
-	return err
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("Error deleting organization role user %d %s: %w", roleId, login, err))
+	}
+
+	return nil
 }

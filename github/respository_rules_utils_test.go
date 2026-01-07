@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v67/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// TODO: Fix tests after reworking repo rules
 func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
 	// Create some test rules including an unknown type
-	unknownParams := map[string]interface{}{
+	unknownParams := map[string]any{
 		"some_parameter": "some_value",
 	}
 	unknownParamsJSON, _ := json.Marshal(unknownParams)
@@ -36,7 +36,7 @@ func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
+	rulesMap := result[0].(map[string]any)
 
 	// Should contain the known rules
 	if !rulesMap["creation"].(bool) {
@@ -56,7 +56,7 @@ func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
 func TestFlattenRulesHandlesMaxFileSize(t *testing.T) {
 	// Test that max_file_size rule is properly handled
 	maxFileSize := int64(1024000)
-	params := map[string]interface{}{
+	params := map[string]any{
 		"max_file_size": maxFileSize,
 	}
 	paramsJSON, _ := json.Marshal(params)
@@ -75,8 +75,8 @@ func TestFlattenRulesHandlesMaxFileSize(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	maxFileSizeRules := rulesMap["max_file_size"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	maxFileSizeRules := rulesMap["max_file_size"].([]map[string]any)
 
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
@@ -90,7 +90,7 @@ func TestFlattenRulesHandlesMaxFileSize(t *testing.T) {
 func TestFlattenRulesHandlesFileExtensionRestriction(t *testing.T) {
 	// Test that file_extension_restriction rule is properly handled
 	restrictedExtensions := []string{".exe", ".bat", ".com"}
-	params := map[string]interface{}{
+	params := map[string]any{
 		"restricted_file_extensions": restrictedExtensions,
 	}
 	paramsJSON, _ := json.Marshal(params)
@@ -109,8 +109,8 @@ func TestFlattenRulesHandlesFileExtensionRestriction(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	fileExtensionRules := rulesMap["file_extension_restriction"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	fileExtensionRules := rulesMap["file_extension_restriction"].([]map[string]any)
 
 	if len(fileExtensionRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtensionRules))
@@ -131,7 +131,7 @@ func TestFlattenRulesHandlesFileExtensionRestriction(t *testing.T) {
 func TestFlattenRulesHandlesMaxFilePathLength(t *testing.T) {
 	// Test that max_file_path_length rule is properly handled
 	maxPathLength := 256
-	params := map[string]interface{}{
+	params := map[string]any{
 		"max_file_path_length": maxPathLength,
 	}
 	paramsJSON, _ := json.Marshal(params)
@@ -150,8 +150,8 @@ func TestFlattenRulesHandlesMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
-	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]interface{})
+	rulesMap := result[0].(map[string]any)
+	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]any)
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
@@ -166,15 +166,15 @@ func TestExpandRulesHandlesMaxFilePathLength(t *testing.T) {
 	// Test that max_file_path_length rule is properly expanded
 	maxPathLength := 512
 
-	rulesMap := map[string]interface{}{
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+	rulesMap := map[string]any{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": maxPathLength,
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 	result := expandRules(input, false)
 
 	if len(result) != 1 {
@@ -206,15 +206,15 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 	maxPathLength := 1024
 
 	// Start with terraform configuration
-	rulesMap := map[string]interface{}{
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+	rulesMap := map[string]any{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": maxPathLength,
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 
 	// Expand to GitHub API format
 	expandedRules := expandRules(input, false)
@@ -230,8 +230,8 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule after round trip, got %d", len(maxFilePathLengthRules))
@@ -246,22 +246,22 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 	// Test that max_file_path_length works correctly alongside other rules
 	maxPathLength := 200
 
-	rulesMap := map[string]interface{}{
+	rulesMap := map[string]any{
 		"creation": true,
 		"deletion": true,
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": maxPathLength,
 			},
 		},
-		"max_file_size": []interface{}{
-			map[string]interface{}{
-				"max_file_size": float64(1048576), // 1MB
+		"max_file_size": []any{
+			map[string]any{
+				"max_file_size": 1, // 1MB
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 
 	// Expand to GitHub API format
 	expandedRules := expandRules(input, false)
@@ -285,7 +285,7 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 
 	// Flatten back and verify
 	flattenedResult := flattenRules(expandedRules, false)
-	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
 
 	// Check that all rules are preserved
 	if !flattenedRulesMap["creation"].(bool) {
@@ -296,14 +296,14 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 		t.Error("Expected deletion rule to be true")
 	}
 
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
 	if len(maxFilePathLengthRules) != 1 || maxFilePathLengthRules[0]["max_file_path_length"] != maxPathLength {
 		t.Errorf("Expected max_file_path_length rule with value %d", maxPathLength)
 	}
 
-	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]interface{})
-	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1048576) {
-		t.Error("Expected max_file_size rule with value 1048576")
+	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
+	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1) {
+		t.Error("Expected max_file_size rule with value 1")
 	}
 }
 
@@ -326,7 +326,7 @@ func TestMaxFilePathLengthErrorHandling(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
+	rulesMap := result[0].(map[string]any)
 	maxFilePathLengthRules, exists := rulesMap["max_file_path_length"]
 
 	if !exists {
@@ -334,7 +334,7 @@ func TestMaxFilePathLengthErrorHandling(t *testing.T) {
 	}
 
 	// The rule should be present but may have default/zero values due to unmarshaling error
-	rules_slice := maxFilePathLengthRules.([]map[string]interface{})
+	rules_slice := maxFilePathLengthRules.([]map[string]any)
 	if len(rules_slice) != 1 {
 		t.Errorf("Expected 1 max_file_path_length rule, got %d", len(rules_slice))
 	}
@@ -342,30 +342,30 @@ func TestMaxFilePathLengthErrorHandling(t *testing.T) {
 
 func TestCompletePushRulesetSupport(t *testing.T) {
 	// Test that all push-specific rules are supported together
-	rulesMap := map[string]interface{}{
-		"file_path_restriction": []interface{}{
-			map[string]interface{}{
-				"restricted_file_paths": []interface{}{"secrets/", "*.key", "private/"},
+	rulesMap := map[string]any{
+		"file_path_restriction": []any{
+			map[string]any{
+				"restricted_file_paths": []any{"secrets/", "*.key", "private/"},
 			},
 		},
-		"max_file_size": []interface{}{
-			map[string]interface{}{
-				"max_file_size": float64(5242880), // 5MB
+		"max_file_size": []any{
+			map[string]any{
+				"max_file_size": 5, // 5MB
 			},
 		},
-		"max_file_path_length": []interface{}{
-			map[string]interface{}{
+		"max_file_path_length": []any{
+			map[string]any{
 				"max_file_path_length": 300,
 			},
 		},
-		"file_extension_restriction": []interface{}{
-			map[string]interface{}{
-				"restricted_file_extensions": []interface{}{".exe", ".bat", ".sh"},
+		"file_extension_restriction": []any{
+			map[string]any{
+				"restricted_file_extensions": schema.NewSet(schema.HashString, []any{".exe", ".bat", ".sh"}),
 			},
 		},
 	}
 
-	input := []interface{}{rulesMap}
+	input := []any{rulesMap}
 
 	// Expand to GitHub API format
 	expandedRules := expandRules(input, false)
@@ -394,10 +394,10 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]interface{})
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
 
 	// Verify file_path_restriction
-	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]interface{})
+	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]any)
 	if len(filePathRules) != 1 {
 		t.Fatalf("Expected 1 file_path_restriction rule, got %d", len(filePathRules))
 	}
@@ -407,16 +407,16 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_size
-	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]interface{})
+	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
-	if maxFileSizeRules[0]["max_file_size"] != int64(5242880) {
-		t.Errorf("Expected max_file_size to be 5242880, got %v", maxFileSizeRules[0]["max_file_size"])
+	if maxFileSizeRules[0]["max_file_size"] != int64(5) {
+		t.Errorf("Expected max_file_size to be 5, got %v", maxFileSizeRules[0]["max_file_size"])
 	}
 
 	// Verify max_file_path_length
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]interface{})
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
 	}
@@ -425,7 +425,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify file_extension_restriction
-	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]interface{})
+	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
 	if len(fileExtRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtRules))
 	}
@@ -437,13 +437,13 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 
 func TestAllPushRulesWithUnknownRules(t *testing.T) {
 	// Test that push rules work correctly even when unknown rules are present
-	unknownParams := map[string]interface{}{
+	unknownParams := map[string]any{
 		"some_copilot_parameter": "some_value",
 	}
 	unknownParamsJSON, _ := json.Marshal(unknownParams)
 	unknownParamsRaw := json.RawMessage(unknownParamsJSON)
 
-	maxPathLengthParams := map[string]interface{}{
+	maxPathLengthParams := map[string]any{
 		"max_file_path_length": 100,
 	}
 	maxPathLengthParamsJSON, _ := json.Marshal(maxPathLengthParams)
@@ -470,14 +470,14 @@ func TestAllPushRulesWithUnknownRules(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]interface{})
+	rulesMap := result[0].(map[string]any)
 
 	// Should contain the known rules
 	if !rulesMap["creation"].(bool) {
 		t.Error("Expected creation rule to be true")
 	}
 
-	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]interface{})
+	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]any)
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
 	}

@@ -54,6 +54,14 @@ resource "github_organization_ruleset" "example" {
         ref           = "main"
       }
     }
+
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 
@@ -80,7 +88,7 @@ resource "github_organization_ruleset" "example_push" {
     }
     
     max_file_size {
-      max_file_size = 104857600  # 100 MB in bytes
+      max_file_size = 100  # 100 MB
     }
     
     max_file_path_length {
@@ -260,7 +268,7 @@ The `rules` block supports the following:
 
 #### rules.max_file_size ####
 
-* `max_file_size` - (Required) (Integer) The maximum allowed size, in bytes, of a file.
+* `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
 
 #### rules.max_file_path_length ####
 

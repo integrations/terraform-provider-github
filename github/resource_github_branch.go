@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubBranchCreate,
 		Read:   resourceGithubBranchRead,
+		Update: resourceGithubBranchUpdate,
 		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
@@ -30,7 +32,6 @@ func resourceGithubBranch() *schema.Resource {
 			"branch": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository branch to create.",
 			},
 			"source_branch": {
@@ -52,7 +53,7 @@ func resourceGithubBranch() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
@@ -71,7 +72,7 @@ func resourceGithubBranch() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -88,7 +89,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
 		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
 		if err != nil {
-			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 				orgName, repoName, sourceBranchRefName, err)
 		}
 		if err = d.Set("source_sha", *ref.Object.SHA); err != nil {
@@ -104,7 +105,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	// If the branch already exists, rather than erroring out just continue on to importing the branch
 	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
 	if err != nil && !strings.HasSuffix(err.Error(), "422 Reference already exists []") {
-		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %w",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -113,7 +114,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta interface{}) error 
 	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -129,7 +130,8 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -140,7 +142,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 				return nil
 			}
 		}
-		return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 			orgName, repoName, branchRefName, err)
 	}
 
@@ -164,7 +166,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	client := meta.(*Owner).v3client
@@ -177,14 +179,37 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta interface{}) error 
 
 	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		return fmt.Errorf("error deleting GitHub branch reference %s/%s (%s): %s",
+		return fmt.Errorf("error deleting GitHub branch reference %s/%s (%s): %w",
 			orgName, repoName, branchRefName, err)
 	}
 
 	return nil
 }
 
-func resourceGithubBranchImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
+	if !d.HasChange("branch") {
+		return resourceGithubBranchRead(d, meta)
+	}
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	repoName, oldBranchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+	newBranchName := d.Get("branch").(string)
+
+	if _, _, err := client.Repositories.RenameBranch(ctx, orgName, repoName, oldBranchName, newBranchName); err != nil {
+		return fmt.Errorf("error renaming GitHub branch %s/%s (%s -> %s): %w", orgName, repoName, oldBranchName, newBranchName, err)
+	}
+
+	d.SetId(buildTwoPartID(repoName, newBranchName))
+
+	return resourceGithubBranchRead(d, meta)
+}
+
+func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
 	if err != nil {
 		return nil, err

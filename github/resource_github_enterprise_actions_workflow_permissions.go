@@ -44,7 +44,7 @@ func resourceGithubEnterpriseActionsWorkflowPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -70,7 +70,7 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.
 	return resourceGithubEnterpriseActionsWorkflowPermissionsRead(d, meta)
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -95,7 +95,7 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceDa
 	return nil
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

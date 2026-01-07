@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -18,7 +18,8 @@ import (
 type Config struct {
 	Token            string
 	Owner            string
-	BaseURL          string
+	BaseURL          *url.URL
+	IsGHES           bool
 	Insecure         bool
 	WriteDelay       time.Duration
 	ReadDelay        time.Duration
@@ -37,12 +38,25 @@ type Owner struct {
 	IsOrganization bool
 }
 
-// GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
-// https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
-var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
+const (
+	// DotComAPIURL is the base API URL for github.com.
+	DotComAPIURL = "https://api.github.com/"
+	// DotComHost is the hostname for github.com.
+	DotComHost = "github.com"
+	// DotComAPIHost is the API hostname for github.com.
+	DotComAPIHost = "api.github.com"
+	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
+	GHESRESTAPIPath = "api/v3/"
+)
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
+var (
+	// GHECHostMatch is a regex to match GitHub Enterprise Cloud hosts.
+	GHECHostMatch = regexp.MustCompile(`\.ghe\.com$`)
+	// GHECAPIHostMatch is a regex to match GitHub Enterprise Cloud API hosts.
+	GHECAPIHostMatch = regexp.MustCompile(`^api\.[a-zA-Z0-9-]+\.ghe\.com$`)
+)
 
+func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
 	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
@@ -59,7 +73,6 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 }
 
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
-
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
@@ -79,38 +92,24 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-
-	uv4, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if uv4.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv4.String()) {
-		uv4.Path = path.Join(uv4.Path, "api/graphql/")
+	var path string
+	if c.IsGHES {
+		path = "api/graphql"
 	} else {
-		uv4.Path = path.Join(uv4.Path, "graphql")
+		path = "graphql"
 	}
 
-	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
+	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(path).String(), client), nil
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-
-	uv3, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
+	path := ""
+	if c.IsGHES {
+		path = GHESRESTAPIPath
 	}
 
-	if uv3.String() != "https://api.github.com/" && !GHECDataResidencyMatch.MatchString(uv3.String()) {
-		uv3.Path = uv3.Path + "api/v3/"
-	}
-
-	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
-	if err != nil {
-		return nil, err
-	}
-
-	v3client.BaseURL = uv3
+	v3client := github.NewClient(client)
+	v3client.BaseURL = c.BaseURL.JoinPath(path)
 
 	return v3client, nil
 }
@@ -143,8 +142,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
-func (c *Config) Meta() (interface{}, error) {
-
+func (c *Config) Meta() (any, error) {
 	var client *http.Client
 	if c.Anonymous() {
 		client = c.AnonymousHTTPClient()
@@ -197,4 +195,46 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
+}
+
+// getBaseURL returns a correctly configured base URL and a bool as to if this is GitHub Enterprise Server.
+func getBaseURL(s string) (*url.URL, bool, error) {
+	if len(s) == 0 {
+		s = DotComAPIURL
+	}
+
+	u, err := url.Parse(s)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !u.IsAbs() {
+		return nil, false, fmt.Errorf("base url must be absolute")
+	}
+
+	u = u.JoinPath("/")
+
+	switch {
+	case u.Host == DotComAPIHost:
+	case u.Host == DotComHost:
+		u.Host = DotComAPIHost
+	case GHECAPIHostMatch.MatchString(u.Host):
+	case GHECHostMatch.MatchString(u.Host):
+		u.Host = fmt.Sprintf("api.%s", u.Host)
+	default:
+		u.Path = strings.TrimSuffix(u.Path, GHESRESTAPIPath)
+		return u, true, nil
+	}
+
+	if u.Scheme != "https" {
+		return nil, false, fmt.Errorf("base url for github.com or ghe.com must use the https scheme")
+	}
+
+	if len(u.Path) > 1 {
+		return nil, false, fmt.Errorf("base url for github.com or ghe.com must not contain a path, got %s", u.Path)
+	}
+
+	u.Path = "/"
+
+	return u, false, nil
 }

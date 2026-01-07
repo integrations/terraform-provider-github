@@ -2,6 +2,8 @@ package github
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -16,14 +18,14 @@ const (
 	ctxId   = ctxIdType("id")
 )
 
-// ctxIdType is used to avoid collisions between packages using context
+// ctxIdType is used to avoid collisions between packages using context.
 type ctxIdType string
 
-// ctxEtagType is used to avoid collisions between packages using context
+// ctxEtagType is used to avoid collisions between packages using context.
 type ctxEtagType string
 
 // etagTransport allows saving API quota by passing previously stored Etag
-// available via context to request headers
+// available via context to request headers.
 type etagTransport struct {
 	transport http.RoundTripper
 }
@@ -65,7 +67,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// for read and write requests. See isWriteMethod for the distinction between them.
 	if rlt.nextRequestDelay > 0 {
 		log.Printf("[DEBUG] Sleeping %s between operations", rlt.nextRequestDelay)
-		time.Sleep(rlt.nextRequestDelay)
+		sleep(req.Context(), rlt.nextRequestDelay)
 	}
 
 	rlt.nextRequestDelay = rlt.calculateNextDelay(req.Method)
@@ -81,6 +83,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// See https://github.com/google/go-github/pull/986
 	r1, r2, err := drainBody(resp.Body)
 	if err != nil {
+		rlt.smartLock(false)
 		return nil, err
 	}
 	resp.Body = r1
@@ -88,22 +91,24 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	resp.Body = r2
 
 	// When you have been limited, use the Retry-After response header to slow down.
-	if arlErr, ok := ghErr.(*github.AbuseRateLimitError); ok {
+	arlErr := &github.AbuseRateLimitError{}
+	if errors.As(ghErr, &arlErr) {
 		rlt.nextRequestDelay = 0
 		retryAfter := arlErr.GetRetryAfter()
 		log.Printf("[WARN] Abuse detection mechanism triggered, sleeping for %s before retrying",
 			retryAfter)
-		time.Sleep(retryAfter)
+		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
 
-	if rlErr, ok := ghErr.(*github.RateLimitError); ok {
+	rlErr := &github.RateLimitError{}
+	if errors.As(ghErr, &rlErr) {
 		rlt.nextRequestDelay = 0
 		retryAfter := time.Until(rlErr.Rate.Reset.Time)
 		log.Printf("[WARN] Rate limit %d reached, sleeping for %s (until %s) before retrying",
 			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
-		time.Sleep(retryAfter)
+		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
@@ -111,6 +116,17 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	rlt.smartLock(false)
 
 	return resp, nil
+}
+
+// sleep is used an alternative to time.Sleep that supports cancellation via the passed context.Context.
+func sleep(ctx context.Context, dur time.Duration) {
+	t := time.NewTimer(dur)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+	case <-ctx.Done():
+	}
 }
 
 // smartLock wraps the mutex locking system and performs its operation via a boolean input for locking and unlocking.
@@ -127,7 +143,7 @@ func (rlt *RateLimitTransport) smartLock(lock bool) {
 }
 
 // calculateNextDelay returns a time.Duration specifying the backoff before the next request
-// the actual value depends on the current method being a write or a read request
+// the actual value depends on the current method being a write or a read request.
 func (rlt *RateLimitTransport) calculateNextDelay(method string) time.Duration {
 	if isWriteMethod(method) {
 		return rlt.writeDelay
@@ -152,21 +168,21 @@ func NewRateLimitTransport(rt http.RoundTripper, options ...RateLimitTransportOp
 	return rlt
 }
 
-// WithWriteDelay is used to set the write delay between requests
+// WithWriteDelay is used to set the write delay between requests.
 func WithWriteDelay(d time.Duration) RateLimitTransportOption {
 	return func(rlt *RateLimitTransport) {
 		rlt.writeDelay = d
 	}
 }
 
-// WithReadDelay is used to set the delay between read requests
+// WithReadDelay is used to set the delay between read requests.
 func WithReadDelay(d time.Duration) RateLimitTransportOption {
 	return func(rlt *RateLimitTransport) {
 		rlt.readDelay = d
 	}
 }
 
-// WithParallelRequests is used to enforce serial api requests for rate limits
+// WithParallelRequests is used to enforce serial api requests for rate limits.
 func WithParallelRequests(p bool) RateLimitTransportOption {
 	return func(rlt *RateLimitTransport) {
 		rlt.parallelRequests = p
@@ -273,21 +289,21 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-// WithMaxRetries is used to set the max number of retries when encountering an error
+// WithMaxRetries is used to set the max number of retries when encountering an error.
 func WithMaxRetries(d int) RetryTransportOption {
 	return func(rt *RetryTransport) {
 		rt.maxRetries = d
 	}
 }
 
-// WithRetryableErrors is used to set status codes to retry
+// WithRetryableErrors is used to set status codes to retry.
 func WithRetryableErrors(d map[int]bool) RetryTransportOption {
 	return func(rt *RetryTransport) {
 		rt.retryableErrors = d
 	}
 }
 
-// WithRetryDelay is used to set the delay between requests for retrying
+// WithRetryDelay is used to set the delay between requests for retrying.
 func WithRetryDelay(d time.Duration) RetryTransportOption {
 	return func(rt *RetryTransport) {
 		rt.retryDelay = d

@@ -1,22 +1,22 @@
 ## Release Flow
 
-The release process uses GitHub Actions and [`goreleaser`](https://github.com/goreleaser/goreleaser) to build, sign, and upload provider binaries to a GitHub release.
+The release process uses GitHub Actions and [`goreleaser`](https://github.com/goreleaser/goreleaser) to build, sign, and upload provider binaries to a GitHub release. Release are triggered by a tag with the pattern `v*` (e.g. `v1.2.3`); these tags may only be created from the default branch (`main`) or branches that match the pattern `release-v*`.
 
 The release flow is as follows:
-1. Navigate to the [repository's Releases page](https://github.com/integrations/terraform-provider-github/releases) and click "Draft a new release".
-1. Create a new tag that makes sense with the project's semantic versioning.
-	1. Before releasing a major version, check the following:
-		- Read [this doc](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning#versioning-specification) for Hashicorp's major release guidance.
-		- Ensure there hasn't been a major release in the past year.
-		- Check all [major-release-tagged](https://github.com/integrations/terraform-provider-github/pulls?q=label%3AvNext) PRs and add them to the release branch as appropriate.
-		- Ensure all applicable schema changes include [schema migration functions](https://github.com/integrations/terraform-provider-github/blob/a361b158a645282a238cdefa5c40ae950556a4a7/github/migrate_github_repository.go#L20) so consumers' state is not disrupted.
-1. Auto-generate the release notes.
+
+[!IMPORTANT]
+> In you're planning on releasing a major version, please ensure you've completed the following tasks:
+> 
+> - Read Hashicorp guidance on [incrementing the major version](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning#example-major-number-increments).
+> - Check if there are any outstanding [PRs with breaking changes](https://github.com/integrations/terraform-provider-github/issues?q=state%3Aopen%20label%3A%22Type%3A%20Breaking%20change%22) that could be included in the release.
+> - Check that all deprecations have been addressed and removed from the codebase.
+
+1. Navigate to the [repository's Releases page](https://github.com/integrations/terraform-provider-github/releases) and click _Draft a new release_.
+1. Create a new [SemVer](https://semver.org/) tag for the release.
+1. Select the target as either the default branch (`main`) or a release branch (a branch matching the pattern `release-v*`)
+1. Click _Generate release notes_.
+1. If this release is from a release branch (unless it really is the latest release) uncheck the _Set as the latest release_ checkbox.
 1. Click "Publish release".
-1. GitHub Actions will trigger the release workflow which can be
-[viewed here](https://github.com/integrations/terraform-provider-github/actions?query=workflow%3Arelease).
-After the workflow executes successfully, the GitHub release created in the prior step will
-have the relevant assets available for consumption.
-1. The new release will show up in https://registry.terraform.io/providers/integrations/github/latest for consumption
-by Terraform users.
-1. For terraform `0.12.X` users, the new release is available for consumption once it is present in
-https://releases.hashicorp.com/terraform-provider-github/.
+1. GitHub Actions will trigger the [release workflow](https://github.com/integrations/terraform-provider-github/actions/workflows/release.yaml).
+
+After the workflow executes successfully, the GitHub release created in the prior step will have the relevant assets available for consumption and the new version will show up in the [Terraform Registry](https://registry.terraform.io/providers/integrations/github/latest).

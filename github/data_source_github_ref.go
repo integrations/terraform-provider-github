@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 
@@ -40,7 +41,8 @@ func dataSourceGithubRef() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {
@@ -49,10 +51,11 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta interface{}) error {
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
 
-	refData, resp, err := client.Git.GetRef(context.TODO(), owner, repoName, ref)
+	refData, resp, err := client.Git.GetRef(ctx, owner, repoName, ref)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", owner, repoName, ref)
 				d.SetId("")
 				return nil

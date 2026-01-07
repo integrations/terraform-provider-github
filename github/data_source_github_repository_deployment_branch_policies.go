@@ -9,6 +9,8 @@ import (
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This data source is deprecated in favour of the github_repository_environment_deployment_policies data source.",
+
 		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
 
 		Schema: map[string]*schema.Schema{
@@ -44,7 +46,7 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -52,13 +54,14 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(d *schema.ResourceDa
 
 	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(context.Background(), owner, repoName, environmentName)
 	if err != nil {
-		return nil
+		// TODO: Remove nolint once we can return an error
+		return nil //nolint:nilerr
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 
 	for _, policy := range policies.BranchPolicies {
-		policyMap := make(map[string]interface{})
+		policyMap := make(map[string]any)
 		policyMap["id"] = strconv.FormatInt(*policy.ID, 10)
 		policyMap["name"] = policy.Name
 		results = append(results, policyMap)
