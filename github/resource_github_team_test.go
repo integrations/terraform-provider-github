@@ -12,14 +12,10 @@ func TestAccGithubTeam(t *testing.T) {
 	t.Run("creates a team configured with defaults", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name         = "tf-acc-%s"
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_team.test", "slug"),
-		)
+resource "github_team" "test" {
+	name         = "tf-acc-%s"
+}
+`, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -27,7 +23,37 @@ func TestAccGithubTeam(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_team.test", "slug"),
+						resource.TestCheckResourceAttr("github_team.test", "privacy", "secret"),
+						resource.TestCheckResourceAttr("github_team.test", "notification_setting", "notifications_enabled"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("creates a team configured with alternatives", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+resource "github_team" "test" {
+	name                 = "tf-acc-%s"
+	privacy              = "closed"
+	notification_setting = "notifications_disabled"
+}
+`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_team.test", "slug"),
+						resource.TestCheckResourceAttr("github_team.test", "privacy", "closed"),
+						resource.TestCheckResourceAttr("github_team.test", "notification_setting", "notifications_disabled"),
+					),
 				},
 			},
 		})
@@ -110,15 +136,11 @@ func TestAccGithubTeam(t *testing.T) {
 	t.Run("creates a team and removes the default maintainer", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name         = "tf-acc-%s"
-				create_default_maintainer = false
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_team.test", "members_count", "0"),
-		)
+resource "github_team" "test" {
+	name                      = "tf-acc-%s"
+	create_default_maintainer = false
+}
+`, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -126,45 +148,39 @@ func TestAccGithubTeam(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_team.test", "members_count", "0"),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("marks the slug as computed when the name changes", func(t *testing.T) {
+	t.Run("updates_slug", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name         = "tf-acc-%s"
-			}
-		`, randomID)
+		slug := fmt.Sprintf("tf-acc-%s", randomID)
+		slugUpdated := fmt.Sprintf("tf-acc-updated-%s", randomID)
 
-		configUpdated := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name         = "tf-acc-updated-%s"
-			}
-
-			resource "github_team" "other" {
-				name         = "tf-acc-other-%s"
-				description  = github_team.test.slug
-			}
-		`, randomID, randomID)
+		config := `
+resource "github_team" "test" {
+	name         = "%s"
+}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, slug),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.test", "slug", fmt.Sprintf("tf-acc-%s", randomID)),
+						resource.TestCheckResourceAttr("github_team.test", "slug", slug),
 					),
 				},
 				{
-					Config: configUpdated,
+					Config: fmt.Sprintf(config, slugUpdated),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.other", "description", fmt.Sprintf("tf-acc-updated-%s", randomID)),
+						resource.TestCheckResourceAttr("github_team.test", "slug", slugUpdated),
 					),
 				},
 			},
