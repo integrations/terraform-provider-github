@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 )
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.

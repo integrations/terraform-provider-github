@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v77/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -125,7 +125,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,
@@ -226,7 +226,7 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 		Enabled:        github.Bool(true),
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,
