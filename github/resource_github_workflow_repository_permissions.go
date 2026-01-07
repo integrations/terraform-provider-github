@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -59,7 +59,7 @@ func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.Resourc
 		CanApprovePullRequestReviews: &canApprovePullRequestReviews,
 	}
 
-	_, _, err := client.Repositories.EditDefaultWorkflowPermissions(ctx,
+	_, _, err := client.Repositories.UpdateDefaultWorkflowPermissions(ctx,
 		owner,
 		repoName,
 		repoWorkflowPermissions,
@@ -106,11 +106,11 @@ func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, m
 
 	// Reset the repo to "default" settings
 	repoWorkflowPermissions := github.DefaultWorkflowPermissionRepository{
-		DefaultWorkflowPermissions:   github.String("read"),
-		CanApprovePullRequestReviews: github.Bool(false),
+		DefaultWorkflowPermissions:   github.Ptr("read"),
+		CanApprovePullRequestReviews: github.Ptr(false),
 	}
 
-	_, _, err := client.Repositories.EditDefaultWorkflowPermissions(ctx,
+	_, _, err := client.Repositories.UpdateDefaultWorkflowPermissions(ctx,
 		owner,
 		repoName,
 		repoWorkflowPermissions,

@@ -1,15 +1,8 @@
 package github
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -60,149 +53,159 @@ func resourceGithubProjectCard() *schema.Resource {
 }
 
 func resourceGithubProjectCardCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	columnIDStr := d.Get("column_id").(string)
-	columnID, err := strconv.ParseInt(columnIDStr, 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(columnIDStr, err)
-	}
+	// err := checkOrganization(meta)
+	// if err != nil {
+	// 	return err
+	// }
 
-	log.Printf("[DEBUG] Creating project card note in column ID: %d", columnID)
-	client := meta.(*Owner).v3client
-	options := github.ProjectCardOptions{}
+	// columnIDStr := d.Get("column_id").(string)
+	// columnID, err := strconv.ParseInt(columnIDStr, 10, 64)
+	// if err != nil {
+	// 	return unconvertibleIdErr(columnIDStr, err)
+	// }
 
-	note := d.Get("note").(string)
-	if len(note) > 0 {
-		options.Note = note
-	} else {
-		contentID := d.Get("content_id").(int)
-		if contentID > 0 {
-			options.ContentID = int64(contentID)
-		}
+	// log.Printf("[DEBUG] Creating project card note in column ID: %d", columnID)
+	// client := meta.(*Owner).v3client
+	// options := github.ProjectCardOptions{}
 
-		options.ContentType = d.Get("content_type").(string)
-		if options.ContentType != "Issue" && options.ContentType != "PullRequest" {
-			return fmt.Errorf("content_type must be set to either Issue or PullRequest")
-		}
-	}
-	ctx := context.Background()
-	card, _, err := client.Projects.CreateProjectCard(ctx, columnID, &options)
-	if err != nil {
-		return err
-	}
+	// note := d.Get("note").(string)
+	// if len(note) > 0 {
+	// 	options.Note = note
+	// } else {
+	// 	contentID := d.Get("content_id").(int)
+	// 	if contentID > 0 {
+	// 		options.ContentID = int64(contentID)
+	// 	}
 
-	if err = d.Set("card_id", card.GetID()); err != nil {
-		return err
-	}
-	d.SetId(card.GetNodeID())
+	// 	options.ContentType = d.Get("content_type").(string)
+	// 	if options.ContentType != "Issue" && options.ContentType != "PullRequest" {
+	// 		return fmt.Errorf("content_type must be set to either Issue or PullRequest")
+	// 	}
+	// }
+	// ctx := context.Background()
+	// card, _, err := client.Projects.CreateProjectCard(ctx, columnID, &options)
+	// if err != nil {
+	// 	return err
+	// }
 
-	return resourceGithubProjectCardRead(d, meta)
+	// if err = d.Set("card_id", card.GetID()); err != nil {
+	// 	return err
+	// }
+	// d.SetId(card.GetNodeID())
+
+	// return resourceGithubProjectCardRead(d, meta)
 }
 
 func resourceGithubProjectCardRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	nodeID := d.Id()
-	cardID := d.Get("card_id").(int)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	log.Printf("[DEBUG] Reading project card: %s", nodeID)
-	card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing project card %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
+	// client := meta.(*Owner).v3client
+	// nodeID := d.Id()
+	// cardID := d.Get("card_id").(int)
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// if !d.IsNewResource() {
+	// 	ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	// }
 
-	// FIXME: Remove URL parsing if a better option becomes available
-	columnURL := card.GetColumnURL()
-	columnIDStr := strings.TrimPrefix(columnURL, client.BaseURL.String()+`projects/columns/`)
+	// log.Printf("[DEBUG] Reading project card: %s", nodeID)
+	// card, _, err := client.Projects.GetProjectCard(ctx, int64(cardID))
+	// if err != nil {
+	// 	var ghErr *github.ErrorResponse
+	// 	if errors.As(err, &ghErr) {
+	// 		if ghErr.Response.StatusCode == http.StatusNotFound {
+	// 			log.Printf("[INFO] Removing project card %s from state because it no longer exists in GitHub", d.Id())
+	// 			d.SetId("")
+	// 			return nil
+	// 		}
+	// 	}
+	// 	return err
+	// }
 
-	if err = d.Set("note", card.GetNote()); err != nil {
-		return err
-	}
-	if err = d.Set("column_id", columnIDStr); err != nil {
-		return err
-	}
-	if err = d.Set("card_id", card.GetID()); err != nil {
-		return err
-	}
+	// // FIXME: Remove URL parsing if a better option becomes available
+	// columnURL := card.GetColumnURL()
+	// columnIDStr := strings.TrimPrefix(columnURL, client.BaseURL.String()+`projects/columns/`)
 
-	return nil
+	// if err = d.Set("note", card.GetNote()); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("column_id", columnIDStr); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("card_id", card.GetID()); err != nil {
+	// 	return err
+	// }
+
+	// return nil
 }
 
 func resourceGithubProjectCardUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	cardID := d.Get("card_id").(int)
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	log.Printf("[DEBUG] Updating project Card: %s", d.Id())
-	options := github.ProjectCardOptions{}
+	// client := meta.(*Owner).v3client
+	// cardID := d.Get("card_id").(int)
 
-	note := d.Get("note").(string)
-	if len(note) > 0 {
-		options.Note = note
-	} else {
-		contentID := d.Get("content_id").(int)
-		if contentID > 0 {
-			options.ContentID = int64(contentID)
-		}
+	// log.Printf("[DEBUG] Updating project Card: %s", d.Id())
+	// options := github.ProjectCardOptions{}
 
-		options.ContentType = d.Get("content_type").(string)
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	_, _, err := client.Projects.UpdateProjectCard(ctx, int64(cardID), &options)
-	if err != nil {
-		return err
-	}
+	// note := d.Get("note").(string)
+	// if len(note) > 0 {
+	// 	options.Note = note
+	// } else {
+	// 	contentID := d.Get("content_id").(int)
+	// 	if contentID > 0 {
+	// 		options.ContentID = int64(contentID)
+	// 	}
 
-	return resourceGithubProjectCardRead(d, meta)
+	// 	options.ContentType = d.Get("content_type").(string)
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// _, _, err := client.Projects.UpdateProjectCard(ctx, int64(cardID), &options)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return resourceGithubProjectCardRead(d, meta)
 }
 
 func resourceGithubProjectCardDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	log.Printf("[DEBUG] Deleting project Card: %s", d.Id())
-	cardID := d.Get("card_id").(int)
-	_, err := client.Projects.DeleteProjectCard(ctx, int64(cardID))
-	if err != nil {
-		return err
-	}
+	// client := meta.(*Owner).v3client
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	return nil
+	// log.Printf("[DEBUG] Deleting project Card: %s", d.Id())
+	// cardID := d.Get("card_id").(int)
+	// _, err := client.Projects.DeleteProjectCard(ctx, int64(cardID))
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return nil
 }
 
 func resourceGithubProjectCardImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	cardIDStr := d.Id()
-	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
-	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(cardIDStr, err)
-	}
+	return []*schema.ResourceData{d}, fmt.Errorf("projects v1 are no longer supported by github")
 
-	log.Printf("[DEBUG] Importing project card with card ID: %d", cardID)
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
-	card, _, err := client.Projects.GetProjectCard(ctx, cardID)
-	if card == nil || err != nil {
-		return []*schema.ResourceData{d}, err
-	}
+	// cardIDStr := d.Id()
+	// cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
+	// if err != nil {
+	// 	return []*schema.ResourceData{d}, unconvertibleIdErr(cardIDStr, err)
+	// }
 
-	d.SetId(card.GetNodeID())
-	if err = d.Set("card_id", cardID); err != nil {
-		return []*schema.ResourceData{d}, err
-	}
+	// log.Printf("[DEBUG] Importing project card with card ID: %d", cardID)
+	// client := meta.(*Owner).v3client
+	// ctx := context.Background()
+	// card, _, err := client.Projects.GetProjectCard(ctx, cardID)
+	// if card == nil || err != nil {
+	// 	return []*schema.ResourceData{d}, err
+	// }
 
-	return []*schema.ResourceData{d}, nil
+	// d.SetId(card.GetNodeID())
+	// if err = d.Set("card_id", cardID); err != nil {
+	// 	return []*schema.ResourceData{d}, err
+	// }
+
+	// return []*schema.ResourceData{d}, nil
 }

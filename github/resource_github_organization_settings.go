@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -194,43 +194,43 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 
 	// Required field - always include if configured (API requires it even if unchanged)
 	if billingEmail, ok := d.GetOk("billing_email"); ok {
-		settings.BillingEmail = github.String(billingEmail.(string))
+		settings.BillingEmail = github.Ptr(billingEmail.(string))
 	}
 
 	// Optional string fields - only set if should be included
 	if shouldInclude("company") {
 		if company, ok := d.GetOk("company"); ok {
-			settings.Company = github.String(company.(string))
+			settings.Company = github.Ptr(company.(string))
 		}
 	}
 	if shouldInclude("email") {
 		if email, ok := d.GetOk("email"); ok {
-			settings.Email = github.String(email.(string))
+			settings.Email = github.Ptr(email.(string))
 		}
 	}
 	if shouldInclude("twitter_username") {
 		if twitterUsername, ok := d.GetOk("twitter_username"); ok {
-			settings.TwitterUsername = github.String(twitterUsername.(string))
+			settings.TwitterUsername = github.Ptr(twitterUsername.(string))
 		}
 	}
 	if shouldInclude("location") {
 		if location, ok := d.GetOk("location"); ok {
-			settings.Location = github.String(location.(string))
+			settings.Location = github.Ptr(location.(string))
 		}
 	}
 	if shouldInclude("name") {
 		if name, ok := d.GetOk("name"); ok {
-			settings.Name = github.String(name.(string))
+			settings.Name = github.Ptr(name.(string))
 		}
 	}
 	if shouldInclude("description") {
 		if description, ok := d.GetOk("description"); ok {
-			settings.Description = github.String(description.(string))
+			settings.Description = github.Ptr(description.(string))
 		}
 	}
 	if shouldInclude("blog") {
 		if blog, ok := d.GetOk("blog"); ok {
-			settings.Blog = github.String(blog.(string))
+			settings.Blog = github.Ptr(blog.(string))
 		}
 	}
 
@@ -238,63 +238,63 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	// Use d.Get() instead of d.GetOk() when shouldInclude() returns true,
 	// because we already know the field should be included, and d.Get() correctly handles false values
 	if shouldInclude("has_organization_projects") {
-		settings.HasOrganizationProjects = github.Bool(d.Get("has_organization_projects").(bool))
+		settings.HasOrganizationProjects = github.Ptr(d.Get("has_organization_projects").(bool))
 	}
 	if shouldInclude("has_repository_projects") {
-		settings.HasRepositoryProjects = github.Bool(d.Get("has_repository_projects").(bool))
+		settings.HasRepositoryProjects = github.Ptr(d.Get("has_repository_projects").(bool))
 	}
 	if shouldInclude("default_repository_permission") {
 		if defaultRepoPermission, ok := d.GetOk("default_repository_permission"); ok {
-			settings.DefaultRepoPermission = github.String(defaultRepoPermission.(string))
+			settings.DefaultRepoPermission = github.Ptr(defaultRepoPermission.(string))
 		}
 	}
 	if shouldInclude("members_can_create_repositories") {
-		settings.MembersCanCreateRepos = github.Bool(d.Get("members_can_create_repositories").(bool))
+		settings.MembersCanCreateRepos = github.Ptr(d.Get("members_can_create_repositories").(bool))
 	}
 	if shouldInclude("members_can_create_private_repositories") {
-		settings.MembersCanCreatePrivateRepos = github.Bool(d.Get("members_can_create_private_repositories").(bool))
+		settings.MembersCanCreatePrivateRepos = github.Ptr(d.Get("members_can_create_private_repositories").(bool))
 	}
 	if shouldInclude("members_can_create_public_repositories") {
-		settings.MembersCanCreatePublicRepos = github.Bool(d.Get("members_can_create_public_repositories").(bool))
+		settings.MembersCanCreatePublicRepos = github.Ptr(d.Get("members_can_create_public_repositories").(bool))
 	}
 	if shouldInclude("members_can_create_pages") {
-		settings.MembersCanCreatePages = github.Bool(d.Get("members_can_create_pages").(bool))
+		settings.MembersCanCreatePages = github.Ptr(d.Get("members_can_create_pages").(bool))
 	}
 	if shouldInclude("members_can_create_public_pages") {
-		settings.MembersCanCreatePublicPages = github.Bool(d.Get("members_can_create_public_pages").(bool))
+		settings.MembersCanCreatePublicPages = github.Ptr(d.Get("members_can_create_public_pages").(bool))
 	}
 	if shouldInclude("members_can_create_private_pages") {
-		settings.MembersCanCreatePrivatePages = github.Bool(d.Get("members_can_create_private_pages").(bool))
+		settings.MembersCanCreatePrivatePages = github.Ptr(d.Get("members_can_create_private_pages").(bool))
 	}
 	if shouldInclude("members_can_fork_private_repositories") {
-		settings.MembersCanForkPrivateRepos = github.Bool(d.Get("members_can_fork_private_repositories").(bool))
+		settings.MembersCanForkPrivateRepos = github.Ptr(d.Get("members_can_fork_private_repositories").(bool))
 	}
 	if shouldInclude("web_commit_signoff_required") {
-		settings.WebCommitSignoffRequired = github.Bool(d.Get("web_commit_signoff_required").(bool))
+		settings.WebCommitSignoffRequired = github.Ptr(d.Get("web_commit_signoff_required").(bool))
 	}
 	if shouldInclude("advanced_security_enabled_for_new_repositories") {
-		settings.AdvancedSecurityEnabledForNewRepos = github.Bool(d.Get("advanced_security_enabled_for_new_repositories").(bool))
+		settings.AdvancedSecurityEnabledForNewRepos = github.Ptr(d.Get("advanced_security_enabled_for_new_repositories").(bool))
 	}
 	if shouldInclude("dependabot_alerts_enabled_for_new_repositories") {
-		settings.DependabotAlertsEnabledForNewRepos = github.Bool(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool))
+		settings.DependabotAlertsEnabledForNewRepos = github.Ptr(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool))
 	}
 	if shouldInclude("dependabot_security_updates_enabled_for_new_repositories") {
-		settings.DependabotSecurityUpdatesEnabledForNewRepos = github.Bool(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool))
+		settings.DependabotSecurityUpdatesEnabledForNewRepos = github.Ptr(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool))
 	}
 	if shouldInclude("dependency_graph_enabled_for_new_repositories") {
-		settings.DependencyGraphEnabledForNewRepos = github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool))
+		settings.DependencyGraphEnabledForNewRepos = github.Ptr(d.Get("dependency_graph_enabled_for_new_repositories").(bool))
 	}
 	if shouldInclude("secret_scanning_enabled_for_new_repositories") {
-		settings.SecretScanningEnabledForNewRepos = github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool))
+		settings.SecretScanningEnabledForNewRepos = github.Ptr(d.Get("secret_scanning_enabled_for_new_repositories").(bool))
 	}
 	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
-		settings.SecretScanningPushProtectionEnabledForNewRepos = github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
+		settings.SecretScanningPushProtectionEnabledForNewRepos = github.Ptr(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
 
 	// Enterprise-specific field
 	if isEnterprise {
 		if shouldInclude("members_can_create_internal_repositories") {
-			settings.MembersCanCreateInternalRepos = github.Bool(d.Get("members_can_create_internal_repositories").(bool))
+			settings.MembersCanCreateInternalRepos = github.Ptr(d.Get("members_can_create_internal_repositories").(bool))
 		}
 	}
 
@@ -537,12 +537,12 @@ func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) 
 	// Build minimal settings with only required fields
 	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
 	defaultSettings := &github.Organization{
-		BillingEmail: github.String("email@example.com"),
+		BillingEmail: github.Ptr("email@example.com"),
 	}
 
 	// Only add enterprise-specific fields if it's an enterprise org
 	if isEnterprise {
-		defaultSettings.MembersCanCreateInternalRepos = github.Bool(true)
+		defaultSettings.MembersCanCreateInternalRepos = github.Ptr(true)
 	}
 
 	_, _, err = client.Organizations.Edit(ctx, org, defaultSettings)

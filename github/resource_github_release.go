@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -153,23 +153,23 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta any) error {
 	generateReleaseNotes := d.Get("generate_release_notes").(bool)
 
 	req := &github.RepositoryRelease{
-		TagName:              github.String(tagName),
-		TargetCommitish:      github.String(targetCommitish),
-		Draft:                github.Bool(draft),
-		Prerelease:           github.Bool(prerelease),
-		GenerateReleaseNotes: github.Bool(generateReleaseNotes),
+		TagName:              github.Ptr(tagName),
+		TargetCommitish:      github.Ptr(targetCommitish),
+		Draft:                github.Ptr(draft),
+		Prerelease:           github.Ptr(prerelease),
+		GenerateReleaseNotes: github.Ptr(generateReleaseNotes),
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = github.String(v.(string))
+		req.Body = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("name"); ok {
-		req.Name = github.String(v.(string))
+		req.Name = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("discussion_category_name"); ok {
-		req.DiscussionCategoryName = github.String(v.(string))
+		req.DiscussionCategoryName = github.Ptr(v.(string))
 	}
 
 	var release *github.RepositoryRelease
