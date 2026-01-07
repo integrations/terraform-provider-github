@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -274,7 +274,7 @@ func skipUnlessHasOrgs(t *testing.T) {
 
 func skipUnlessHasPaidOrgs(t *testing.T) {
 	if !slices.Contains(paidOrgTestModes, testAccConf.authMode) {
-		t.Skip("Skipping as test mode doesn't have orgs")
+		t.Skip("Skipping as test mode doesn't have paid orgs")
 	}
 }
 

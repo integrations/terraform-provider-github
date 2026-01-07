@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -74,14 +74,14 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 	}
 
 	createOrUpdateOrgRoleOptions := &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
+		Name:        github.Ptr(d.Get("name").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
 		Permissions: permissionsStr,
 	}
 
 	baseRole := d.Get("base_role").(string)
 	if baseRole != "none" {
-		createOrUpdateOrgRoleOptions.BaseRole = github.String(baseRole)
+		createOrUpdateOrgRoleOptions.BaseRole = github.Ptr(baseRole)
 	}
 
 	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, createOrUpdateOrgRoleOptions)
@@ -169,9 +169,9 @@ func resourceGithubOrganizationRoleUpdate(ctx context.Context, d *schema.Resourc
 	}
 
 	update := &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
+		Name:        github.Ptr(d.Get("name").(string)),
+		Description: github.Ptr(d.Get("description").(string)),
+		BaseRole:    github.Ptr(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	}
 

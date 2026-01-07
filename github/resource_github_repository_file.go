@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -149,11 +149,11 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(*github.String(d.Get("content").(string))),
+		Content: []byte(*github.Ptr(d.Get("content").(string))),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = github.String(branch.(string))
+		opts.Branch = github.Ptr(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
@@ -214,9 +214,9 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -411,9 +411,9 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -482,9 +482,9 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}

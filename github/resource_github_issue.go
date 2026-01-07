@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -84,11 +84,11 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	milestone := d.Get("milestone_number").(int)
 
 	req := &github.IssueRequest{
-		Title: github.String(title),
+		Title: github.Ptr(title),
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = github.String(v.(string))
+		req.Body = github.Ptr(v.(string))
 	}
 
 	labels := expandStringList(d.Get("labels").(*schema.Set).List())
@@ -219,7 +219,7 @@ func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
 
 	log.Printf("[DEBUG] Deleting issue by closing: %d (%s/%s)", number, orgName, repoName)
 
-	request := &github.IssueRequest{State: github.String("closed")}
+	request := &github.IssueRequest{State: github.Ptr("closed")}
 
 	_, _, err := client.Issues.Edit(ctx, orgName, repoName, number, request)
 

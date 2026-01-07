@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -78,8 +78,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 	color := d.Get("color").(string)
 
 	label := &github.Label{
-		Name:  github.String(name),
-		Color: github.String(color),
+		Name:  github.Ptr(name),
+		Color: github.Ptr(color),
 	}
 	ctx := context.Background()
 	if !d.IsNewResource() {
@@ -106,7 +106,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 	}
 
 	if existing != nil {
-		label.Description = github.String(d.Get("description").(string))
+		label.Description = github.Ptr(d.Get("description").(string))
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
@@ -128,7 +128,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		}
 	} else {
 		if v, ok := d.GetOk("description"); ok {
-			label.Description = github.String(v.(string))
+			label.Description = github.Ptr(v.(string))
 		}
 
 		_, _, err := client.Issues.CreateLabel(ctx,
