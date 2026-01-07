@@ -25,6 +25,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
+			resource.TestCheckResourceAttrSet("data.github_team.test", "privacy"),
+			resource.TestCheckResourceAttrSet("data.github_team.test", "notification_setting"),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -104,6 +106,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
+			resource.TestCheckResourceAttrSet("data.github_team.test", "privacy"),
+			resource.TestCheckResourceAttrSet("data.github_team.test", "notification_setting"),
 			resource.TestCheckResourceAttr("data.github_team.test", "members.#", "0"),
 			resource.TestCheckResourceAttr("data.github_team.test", "repositories.#", "0"),
 		)
