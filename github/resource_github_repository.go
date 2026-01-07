@@ -246,6 +246,12 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Set to 'true' to allow auto-merging pull requests on the repository.",
 			},
+			"allow_forking": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
+			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -589,6 +595,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:         github.Ptr(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:         github.Ptr(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:           github.Ptr(d.Get("allow_auto_merge").(bool)),
+		AllowForking:             github.Ptr(d.Get("allow_forking").(bool)),
 		DeleteBranchOnMerge:      github.Ptr(d.Get("delete_branch_on_merge").(bool)),
 		WebCommitSignoffRequired: github.Ptr(d.Get("web_commit_signoff_required").(bool)),
 		AutoInit:                 github.Ptr(d.Get("auto_init").(bool)),
@@ -841,6 +848,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+		_ = d.Set("allow_forking", repo.GetAllowForking())
 		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		_ = d.Set("has_downloads", repo.GetHasDownloads())

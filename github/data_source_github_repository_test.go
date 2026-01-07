@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubRepositoryDataSource(t *testing.T) {
+func TestAccDataSourceGithubRepository(t *testing.T) {
 	t.Run("queries a public repository without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			data "github_repository" "test" {
