@@ -116,4 +116,51 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("deletes organization workflow permissions without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+		resource "github_actions_organization_workflow_permissions" "test" {
+			organization_slug = "%s"
+
+			default_workflow_permissions = "write"
+			can_approve_pull_request_reviews = true
+		}
+		`, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:  config,
+					Destroy: true,
+				},
+			},
+		})
+	})
+
+	t.Run("creates with minimal config using defaults", func(t *testing.T) {
+		config := fmt.Sprintf(`
+		resource "github_actions_organization_workflow_permissions" "test" {
+			organization_slug = "%s"
+		}
+		`, testAccConf.owner)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
+			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
+			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
 }
