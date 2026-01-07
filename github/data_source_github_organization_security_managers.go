@@ -53,6 +53,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	allTeams := make([]any, 0)
 
+	//nolint:staticcheck // SA1019: ListSecurityManagerTeams is deprecated but still needed for legacy compatibility
 	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
 	if err != nil {
 		return err

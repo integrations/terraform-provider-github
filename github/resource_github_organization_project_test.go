@@ -1,132 +1,132 @@
 package github
 
-import (
-	"context"
-	"fmt"
-	"strconv"
-	"strings"
-	"testing"
+// import (
+// 	"context"
+// 	"fmt"
+// 	"strconv"
+// 	"strings"
+// 	"testing"
 
-	"github.com/google/go-github/v67/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-)
+// 	"github.com/google/go-github/v81/github"
+// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+// 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+// )
 
-func TestAccGithubOrganizationProject_basic(t *testing.T) {
-	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
+// func TestAccGithubOrganizationProject_basic(t *testing.T) {
+// 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
-	t.Run("creates organization project", func(t *testing.T) {
-		var project github.Project
-		config := `
-resource "github_organization_project" "test" {
-  name = "test-project"
-  body = "this is a test project"
-}
-`
+// 	t.Run("creates organization project", func(t *testing.T) {
+// 		var project github.Project
+// 		config := `
+// resource "github_organization_project" "test" {
+//   name = "test-project"
+//   body = "this is a test project"
+// }
+// `
 
-		rn := "github_organization_project.test"
+// 		rn := "github_organization_project.test"
 
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccGithubOrganizationProjectDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						testAccCheckGithubOrganizationProjectExists(rn, &project),
-						testAccCheckGithubOrganizationProjectAttributes(&project, &testAccGithubOrganizationProjectExpectedAttributes{
-							Name: "test-project",
-							Body: "this is a test project",
-						}),
-					),
-				},
-				{
-					ResourceName:      rn,
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-			},
-		})
-	})
-}
+// 		resource.Test(t, resource.TestCase{
+// 			PreCheck:          func() { skipUnlessHasOrgs(t) },
+// 			ProviderFactories: providerFactories,
+// 			CheckDestroy:      testAccGithubOrganizationProjectDestroy,
+// 			Steps: []resource.TestStep{
+// 				{
+// 					Config: config,
+// 					Check: resource.ComposeTestCheckFunc(
+// 						testAccCheckGithubOrganizationProjectExists(rn, &project),
+// 						testAccCheckGithubOrganizationProjectAttributes(&project, &testAccGithubOrganizationProjectExpectedAttributes{
+// 							Name: "test-project",
+// 							Body: "this is a test project",
+// 						}),
+// 					),
+// 				},
+// 				{
+// 					ResourceName:      rn,
+// 					ImportState:       true,
+// 					ImportStateVerify: true,
+// 				},
+// 			},
+// 		})
+// 	})
+// }
 
-func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
+// func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
+// 	meta, err := getTestMeta()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	conn := meta.v3client
 
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_organization_project" {
-			continue
-		}
+// 	for _, rs := range s.RootModule().Resources {
+// 		if rs.Type != "github_organization_project" {
+// 			continue
+// 		}
 
-		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return err
-		}
+// 		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		project, res, err := conn.Projects.GetProject(context.Background(), projectID)
-		if err == nil {
-			if project != nil &&
-				project.GetID() == projectID {
-				return fmt.Errorf("organization project still exists")
-			}
-		}
-		if res.StatusCode != 404 {
-			return err
-		}
-		return nil
-	}
-	return nil
-}
+// 		project, res, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		if err == nil {
+// 			if project != nil &&
+// 				project.GetID() == projectID {
+// 				return fmt.Errorf("organization project still exists")
+// 			}
+// 		}
+// 		if res.StatusCode != 404 {
+// 			return err
+// 		}
+// 		return nil
+// 	}
+// 	return nil
+// }
 
-func testAccCheckGithubOrganizationProjectExists(n string, project *github.Project) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("not Found: %s", n)
-		}
+// func testAccCheckGithubOrganizationProjectExists(n string, project *github.Project) resource.TestCheckFunc {
+// 	return func(s *terraform.State) error {
+// 		rs, ok := s.RootModule().Resources[n]
+// 		if !ok {
+// 			return fmt.Errorf("not Found: %s", n)
+// 		}
 
-		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return err
-		}
+// 		projectID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+// 		meta, err := getTestMeta()
+// 		if err != nil {
+// 			return err
+// 		}
+// 		conn := meta.v3client
 
-		gotProject, _, err := conn.Projects.GetProject(context.Background(), projectID)
-		if err != nil {
-			return err
-		}
-		*project = *gotProject
-		return nil
-	}
-}
+// 		gotProject, _, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		*project = *gotProject
+// 		return nil
+// 	}
+// }
 
-type testAccGithubOrganizationProjectExpectedAttributes struct {
-	Name string
-	Body string
-}
+// type testAccGithubOrganizationProjectExpectedAttributes struct {
+// 	Name string
+// 	Body string
+// }
 
-func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if name := project.GetName(); name != want.Name {
-			return fmt.Errorf("got project %q; want %q", name, want.Name)
-		}
-		if body := project.GetBody(); body != want.Body {
-			return fmt.Errorf("got project %q; want %q", body, want.Body)
-		}
-		if URL := project.GetURL(); !strings.HasPrefix(URL, "https://") {
-			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
-		}
+// func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
+// 	return func(s *terraform.State) error {
+// 		if name := project.GetName(); name != want.Name {
+// 			return fmt.Errorf("got project %q; want %q", name, want.Name)
+// 		}
+// 		if body := project.GetBody(); body != want.Body {
+// 			return fmt.Errorf("got project %q; want %q", body, want.Body)
+// 		}
+// 		if URL := project.GetURL(); !strings.HasPrefix(URL, "https://") {
+// 			return fmt.Errorf("got http URL %q; want to start with 'https://'", URL)
+// 		}
 
-		return nil
-	}
-}
+// 		return nil
+// 	}
+// }

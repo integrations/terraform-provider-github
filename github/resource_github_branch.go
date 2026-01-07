@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -98,9 +98,9 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
-	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
-		Ref:    &branchRefName,
-		Object: &github.GitObject{SHA: &sourceBranchSHA},
+	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, github.CreateRef{
+		Ref: branchRefName,
+		SHA: sourceBranchSHA,
 	})
 	// If the branch already exists, rather than erroring out just continue on to importing the branch
 	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform

@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -124,8 +124,8 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 			context.Background(),
 			data.Get("name").(string),
 			&github.Organization{
-				Description: github.String(description),
-				Name:        github.String(displayName),
+				Description: github.Ptr(description),
+				Name:        github.Ptr(displayName),
 			},
 		)
 		return err
@@ -301,7 +301,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Description: github.String(data.Get("description").(string)),
+				Description: github.Ptr(data.Get("description").(string)),
 			},
 		)
 		return err
@@ -318,7 +318,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Name: github.String(data.Get("display_name").(string)),
+				Name: github.Ptr(data.Get("display_name").(string)),
 			},
 		)
 		return err
@@ -372,7 +372,7 @@ func removeUser(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, use
 		return err
 	}
 
-	membership.Role = github.String("member")
+	membership.Role = github.Ptr("member")
 	_, _, err = v3.Organizations.EditOrgMembership(ctx, user, orgName, membership)
 	return err
 }

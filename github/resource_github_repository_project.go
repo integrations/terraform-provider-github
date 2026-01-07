@@ -1,15 +1,9 @@
 package github
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -71,110 +65,118 @@ func resourceGithubRepositoryProject() *schema.Resource {
 }
 
 func resourceGithubRepositoryProjectCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
+	// client := meta.(*Owner).v3client
 
-	options := github.ProjectOptions{
-		Name: &name,
-		Body: &body,
-	}
-	ctx := context.Background()
+	// owner := meta.(*Owner).name
+	// repoName := d.Get("repository").(string)
+	// name := d.Get("name").(string)
+	// body := d.Get("body").(string)
 
-	project, _, err := client.Repositories.CreateProject(ctx,
-		owner, repoName, &options)
-	if err != nil {
-		return err
-	}
-	d.SetId(strconv.FormatInt(project.GetID(), 10))
+	// options := github.ProjectOptions{
+	// 	Name: &name,
+	// 	Body: &body,
+	// }
+	// ctx := context.Background()
 
-	return resourceGithubRepositoryProjectRead(d, meta)
+	// project, _, err := client.Repositories.CreateProject(ctx,
+	// 	owner, repoName, &options)
+	// if err != nil {
+	// 	return err
+	// }
+	// d.SetId(strconv.FormatInt(project.GetID(), 10))
+
+	// return resourceGithubRepositoryProjectRead(d, meta)
 }
 
 func resourceGithubRepositoryProjectRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	// client := meta.(*Owner).v3client
+	// owner := meta.(*Owner).name
 
-	project, resp, err := client.Projects.GetProject(ctx, projectID)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository project %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return unconvertibleIdErr(d.Id(), err)
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// if !d.IsNewResource() {
+	// 	ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	// }
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("name", project.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("body", project.GetBody()); err != nil {
-		return err
-	}
-	if err := d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
-		owner, d.Get("repository"), project.GetNumber())); err != nil {
-		return err
-	}
+	// project, resp, err := client.Projects.GetProject(ctx, projectID)
+	// if err != nil {
+	// 	var ghErr *github.ErrorResponse
+	// 	if errors.As(err, &ghErr) {
+	// 		if ghErr.Response.StatusCode == http.StatusNotModified {
+	// 			return nil
+	// 		}
+	// 		if ghErr.Response.StatusCode == http.StatusNotFound {
+	// 			log.Printf("[INFO] Removing repository project %s from state because it no longer exists in GitHub",
+	// 				d.Id())
+	// 			d.SetId("")
+	// 			return nil
+	// 		}
+	// 	}
+	// 	return err
+	// }
 
-	return nil
+	// if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("name", project.GetName()); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("body", project.GetBody()); err != nil {
+	// 	return err
+	// }
+	// if err := d.Set("url", fmt.Sprintf("https://github.com/%s/%s/projects/%d",
+	// 	owner, d.Get("repository"), project.GetNumber())); err != nil {
+	// 	return err
+	// }
+
+	// return nil
 }
 
 func resourceGithubRepositoryProjectUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
+	// client := meta.(*Owner).v3client
 
-	options := github.ProjectOptions{
-		Name: &name,
-		Body: &body,
-	}
+	// name := d.Get("name").(string)
+	// body := d.Get("body").(string)
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// options := github.ProjectOptions{
+	// 	Name: &name,
+	// 	Body: &body,
+	// }
 
-	_, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
-	if err != nil {
-		return err
-	}
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return unconvertibleIdErr(d.Id(), err)
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	return resourceGithubRepositoryProjectRead(d, meta)
+	// _, _, err = client.Projects.UpdateProject(ctx, projectID, &options)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return resourceGithubRepositoryProjectRead(d, meta)
 }
 
 func resourceGithubRepositoryProjectDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// client := meta.(*Owner).v3client
 
-	_, err = client.Projects.DeleteProject(ctx, projectID)
-	return err
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return unconvertibleIdErr(d.Id(), err)
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	// _, err = client.Projects.DeleteProject(ctx, projectID)
+	// return err
 }

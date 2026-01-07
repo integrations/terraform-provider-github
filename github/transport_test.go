@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -48,7 +48,7 @@ func TestEtagTransport(t *testing.T) {
 }
 
 func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
-	position := github.Int(0)
+	position := github.Ptr(0)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Server", "GitHub.com")
@@ -106,7 +106,7 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		fmt.Fprintln(w, tc.ResponseBody)
 
 		// Treat response as disposable
-		position = github.Int(i + 1)
+		position = github.Ptr(i + 1)
 	}))
 }
 
@@ -232,8 +232,8 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -292,8 +292,8 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err == nil {
 		t.Fatal("Expected 422 error, got nil")
@@ -425,8 +425,8 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err == nil {
 		t.Fatal("Expected error not to be nil")
@@ -488,8 +488,8 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err != nil {
 		t.Fatalf("Expected error to be nil, got %v", err)
