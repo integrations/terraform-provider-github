@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -92,7 +92,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx cont
 	}
 
 	log.Printf("[DEBUG] Updating workflow permissions for Organization: %s", organizationSlug)
-	_, resp, err := client.Actions.EditDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
+	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
 	if err != nil {
 		return handleEditWorkflowPermissionsError(err, resp)
 	}
@@ -133,11 +133,11 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 
 	// Reset to safe defaults
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{
-		DefaultWorkflowPermissions:   github.String("read"),
-		CanApprovePullRequestReviews: github.Bool(false),
+		DefaultWorkflowPermissions:   github.Ptr("read"),
+		CanApprovePullRequestReviews: github.Ptr(false),
 	}
 
-	_, resp, err := client.Actions.EditDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
+	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
 	if err != nil {
 		return handleEditWorkflowPermissionsError(err, resp)
 	}
