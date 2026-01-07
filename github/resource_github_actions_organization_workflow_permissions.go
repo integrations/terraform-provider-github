@@ -84,11 +84,11 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx cont
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{}
 
 	if v, ok := d.GetOk("default_workflow_permissions"); ok {
-		workflowPerms.DefaultWorkflowPermissions = github.String(v.(string))
+		workflowPerms.DefaultWorkflowPermissions = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("can_approve_pull_request_reviews"); ok {
-		workflowPerms.CanApprovePullRequestReviews = github.Bool(v.(bool))
+		workflowPerms.CanApprovePullRequestReviews = github.Ptr(v.(bool))
 	}
 
 	log.Printf("[DEBUG] Updating workflow permissions for Organization: %s", organizationSlug)

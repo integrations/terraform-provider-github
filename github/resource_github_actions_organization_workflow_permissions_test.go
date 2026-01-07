@@ -16,29 +16,23 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			default_workflow_permissions = "read"
 			can_approve_pull_request_reviews = false
 		}
-		`, testOrganization)
+		`, testAccConf.owner)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testOrganization),
+			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
 			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
 			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -51,7 +45,7 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 				default_workflow_permissions = "read"
 				can_approve_pull_request_reviews = false
 			}
-			`, testOrganization),
+			`, testAccConf.owner),
 
 			"after": fmt.Sprintf(`
 			resource "github_actions_organization_workflow_permissions" "test" {
@@ -60,7 +54,7 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 				default_workflow_permissions = "write" // This change might be restricted by the Enterprise's settings
 				can_approve_pull_request_reviews = true
 			}
-			`, testOrganization),
+			`, testAccConf.owner),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -74,29 +68,23 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 
-	t.Run("imports enterprise workflow permissions without error", func(t *testing.T) {
+	t.Run("imports organization workflow permissions without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 		resource "github_actions_organization_workflow_permissions" "test" {
 			organization_slug = "%s"
@@ -104,34 +92,28 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			default_workflow_permissions = "read"
 			can_approve_pull_request_reviews = false
 		}
-		`, testOrganization)
+		`, testAccConf.owner)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testOrganization),
+			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
 			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
 			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_organization_workflow_permissions.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_organization_workflow_permissions.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }
