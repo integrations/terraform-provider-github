@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -91,7 +91,11 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx cont
 		workflowPerms.CanApprovePullRequestReviews = github.Ptr(v.(bool))
 	}
 
-	log.Printf("[DEBUG] Updating workflow permissions for Organization: %s", organizationSlug)
+	tflog.Debug(ctx, "Updating workflow permissions for Organization", map[string]any{
+		"organization_slug":                organizationSlug,
+		"default_workflow_permissions":     workflowPerms.DefaultWorkflowPermissions,
+		"can_approve_pull_request_reviews": workflowPerms.CanApprovePullRequestReviews,
+	})
 	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
 	if err != nil {
 		return handleEditWorkflowPermissionsError(err, resp)
@@ -105,7 +109,9 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 	client := meta.(*Owner).v3client
 
 	organizationSlug := d.Id()
-	log.Printf("[DEBUG] Reading workflow permissions for Organization: %s", organizationSlug)
+	tflog.Debug(ctx, "Reading workflow permissions for Organization", map[string]any{
+		"organization_slug": organizationSlug,
+	})
 
 	workflowPerms, _, err := client.Actions.GetDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug)
 	if err != nil {
@@ -129,7 +135,9 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 	client := meta.(*Owner).v3client
 
 	organizationSlug := d.Id()
-	log.Printf("[DEBUG] Resetting workflow permissions to defaults for Organization: %s", organizationSlug)
+	tflog.Debug(ctx, "Resetting workflow permissions to defaults for Organization", map[string]any{
+		"organization_slug": organizationSlug,
+	})
 
 	// Reset to safe defaults
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{
