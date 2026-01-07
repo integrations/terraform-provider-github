@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccGithubRepositories(t *testing.T) {
+func TestAccGithubRepository(t *testing.T) {
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
@@ -552,6 +552,34 @@ func TestAccGithubRepositories(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
 						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_private_with_forking", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "private"
+
+			allow_forking = true
+		}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
 					),
 				},
 			},
