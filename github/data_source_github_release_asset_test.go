@@ -10,27 +10,31 @@ import (
 
 func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 
-	testReleaseRepository := "go-github-issue-demo-1"
-	if os.Getenv("GITHUB_TEMPLATE_REPOSITORY") != "" {
-		testReleaseRepository = os.Getenv("GITHUB_TEMPLATE_REPOSITORY")
+	testReleaseRepository := testAccConf.testPublicRepository
+
+	// NOTE: the default repository, owner, asset ID, asset name, and asset content
+	// values can be overridden with GH_TEST* environment variables to exercise
+	// tests against different release assets in development.
+	if os.Getenv("GH_TEST_REPOSITORY") != "" {
+		testReleaseRepository = os.Getenv("GH_TEST_REPOSITORY")
 	}
 
-	testReleaseAssetID := "151970555"
-	if os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_ID") != "" {
-		testReleaseAssetID = os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_ID")
+	// The terraform-provider-github_6.4.0_manifest.json asset ID from
+	// https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
+	testReleaseAssetID := "207956097"
+	if os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_ID") != "" {
+		testReleaseAssetID = os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_ID")
 	}
 
-	testReleaseAssetName := "foo.txt"
-	if os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_NAME") != "" {
-		testReleaseAssetName = os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_NAME")
+	testReleaseAssetName := "terraform-provider-github_6.4.0_manifest.json"
+	if os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_NAME") != "" {
+		testReleaseAssetName = os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_NAME")
 	}
 
-	testReleaseAssetContent := "Hello, world!\n"
-	if os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_CONTENT") != "" {
-		testReleaseAssetContent = os.Getenv("GITHUB_TEMPLATE_REPOSITORY_RELEASE_ASSET_CONTENT")
+	testReleaseAssetContent := "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}\n"
+	if os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_CONTENT") != "" {
+		testReleaseAssetContent = os.Getenv("GH_TEST_REPOSITORY_RELEASE_ASSET_CONTENT")
 	}
-
-	testReleaseOwner := testOrganizationFunc()
 
 	t.Run("queries specified asset ID", func(t *testing.T) {
 
@@ -40,7 +44,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 				owner = "%s"
 				asset_id = "%s"
 			}
-		`, testReleaseRepository, testReleaseOwner, testReleaseAssetID)
+		`, testReleaseRepository, testAccConf.testPublicRepositoryOwner, testReleaseAssetID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -54,31 +58,15 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Providers:         testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			testCase(t, anonymous)
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-
 }
