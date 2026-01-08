@@ -1061,6 +1061,60 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
+	t.Run("update_public_to_private_allow_forking", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "tf-acc-test-%s"
+				visibility = "public"
+			}
+		`, randomID)
+
+		configPrivate := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name          = "tf-acc-test-%s"
+				visibility    = "private"
+				allow_forking = false
+			}
+		`, randomID)
+
+		configPrivateForking := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name          = "tf-acc-test-%s"
+				visibility    = "private"
+				allow_forking = true
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
+					),
+				},
+				{
+					Config: configPrivate,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "false"),
+					),
+				},
+				{
+					Config: configPrivateForking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("updates repos to public visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`

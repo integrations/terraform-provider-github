@@ -249,7 +249,7 @@ func resourceGithubRepository() *schema.Resource {
 			"allow_forking": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Computed:    true,
 				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
 			"squash_merge_commit_title": {
@@ -580,11 +580,13 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
+	visibility := calculateVisibility(d)
+
 	repository := &github.Repository{
 		Name:                     github.Ptr(d.Get("name").(string)),
 		Description:              github.Ptr(d.Get("description").(string)),
 		Homepage:                 github.Ptr(d.Get("homepage_url").(string)),
-		Visibility:               github.Ptr(calculateVisibility(d)),
+		Visibility:               github.Ptr(visibility),
 		HasDownloads:             github.Ptr(d.Get("has_downloads").(bool)),
 		HasIssues:                github.Ptr(d.Get("has_issues").(bool)),
 		HasDiscussions:           github.Ptr(d.Get("has_discussions").(bool)),
@@ -595,7 +597,6 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:         github.Ptr(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:         github.Ptr(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:           github.Ptr(d.Get("allow_auto_merge").(bool)),
-		AllowForking:             github.Ptr(d.Get("allow_forking").(bool)),
 		DeleteBranchOnMerge:      github.Ptr(d.Get("delete_branch_on_merge").(bool)),
 		WebCommitSignoffRequired: github.Ptr(d.Get("web_commit_signoff_required").(bool)),
 		AutoInit:                 github.Ptr(d.Get("auto_init").(bool)),
@@ -625,6 +626,12 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		}
 	}
 
+	// only configure allow forking if repository is not public
+	allowForking, ok := d.Get("allow_forking").(bool)
+	if ok && visibility != "public" {
+		repository.AllowForking = github.Ptr(allowForking)
+	}
+
 	return repository
 }
 
@@ -637,27 +644,10 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
-
 	repoName := repoReq.GetName()
 
-	// determine if repository should be private. assume public to start
-	isPrivate := false
-
-	// prefer visibility to private flag since private flag is deprecated
-	privateKeyword, ok := d.Get("private").(bool)
-	if ok {
-		isPrivate = privateKeyword
-	}
-
-	visibility, ok := d.Get("visibility").(string)
-	if ok {
-		if visibility == "private" || visibility == "internal" {
-			isPrivate = true
-		}
-	}
-
+	isPrivate := repoReq.GetVisibility() == "private"
 	repoReq.Private = github.Ptr(isPrivate)
-
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
 
@@ -928,7 +918,14 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	repoReq := resourceGithubRepositoryObject(d)
 
 	// handle visibility updates separately from other fields
+	visibility := repoReq.GetVisibility()
 	repoReq.Visibility = nil
+
+	// This change needs to be made with the correct visibility
+	allowForking := repoReq.AllowForking
+	if d.HasChanges("visibility", "private") {
+		repoReq.AllowForking = nil
+	}
 
 	if !d.HasChange("security_and_analysis") {
 		repoReq.SecurityAndAnalysis = nil
@@ -1015,32 +1012,17 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	if d.HasChange("visibility") {
-		o, n := d.GetChange("visibility")
-		repoReq.Visibility = github.Ptr(n.(string))
-		log.Printf("[DEBUG] Updating repository visibility from %s to %s", o, n)
+	if d.HasChanges("visibility", "private") {
+		repoReq.Visibility = github.Ptr(visibility)
+		repoReq.AllowForking = allowForking
+
+		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
 		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", n.(string))) {
+			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
 		}
-	} else {
-		log.Printf("[DEBUG] No visibility update required. visibility: %s", d.Get("visibility"))
-	}
-
-	if d.HasChange("private") {
-		o, n := d.GetChange("private")
-		repoReq.Private = github.Ptr(n.(bool))
-		log.Printf("[DEBUG] Updating repository privacy from %v to %v", o, n)
-		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
-		if err != nil {
-			if !strings.Contains(err.Error(), "422 Privacy is already set") {
-				return diag.FromErr(err)
-			}
-		}
-	} else {
-		log.Printf("[DEBUG] No privacy update required. private: %v", d.Get("private"))
 	}
 
 	return resourceGithubRepositoryRead(ctx, d, meta)
