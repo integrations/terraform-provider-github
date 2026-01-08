@@ -139,7 +139,6 @@ resource "github_organization_ruleset" "test" {
 
 		non_fast_forward = true
 	}
-	depends_on = [github_repository_file.workflow_file]
 }
 `, repoName, rulesetName, workflowFilePath)
 
