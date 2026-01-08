@@ -67,7 +67,7 @@ The following arguments are supported:
 
 * `merge_commit_message` - The default value for a merge commit message.
 
-* `has_downloads` - Whether the repository has Downloads feature enabled.
+* `has_downloads` - (**DEPRECATED**) Whether the repository has Downloads feature enabled. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
 * `default_branch` - The name of the default branch of the repository.
 

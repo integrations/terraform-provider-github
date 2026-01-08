@@ -61,8 +61,9 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"has_downloads": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:       schema.TypeBool,
+				Computed:   true,
+				Deprecated: "This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See https://github.com/orgs/community/discussions/102145#discussioncomment-8351756",
 			},
 			"has_wiki": {
 				Type:     schema.TypeBool,
