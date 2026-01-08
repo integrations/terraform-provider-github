@@ -29,7 +29,17 @@ resource "github_repository_file" "workflow_file" {
 	repository          = github_repository.test.name
 	branch              = "main"
 	file                = "%[3]s"
-	content             = "name: Echo Workflow\n\non: [pull_request]\n\njobs:\n    echo:\n      runs-on: linux\n      steps:\n        - run: echo \"Hello, world!\"\n"
+	content             = <<EOT
+name: Echo Workflow
+
+on: [pull_request]
+
+jobs:
+  echo:
+    runs-on: linux
+    steps:
+      - run: echo \"Hello, world!\"
+EOT
 	commit_message      = "Managed by Terraform"
 	commit_author       = "Terraform User"
 	commit_email        = "terraform@example.com"
