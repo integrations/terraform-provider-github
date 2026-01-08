@@ -18,20 +18,28 @@ type MemberChange struct {
 
 func resourceGithubTeamMembers() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamMembersCreate,
-		Read:   resourceGithubTeamMembersRead,
-		Update: resourceGithubTeamMembersUpdate,
-		Delete: resourceGithubTeamMembersDelete,
+		CreateContext: resourceGithubTeamMembersCreate,
+		ReadContext:   resourceGithubTeamMembersRead,
+		UpdateContext: resourceGithubTeamMembersUpdate,
+		DeleteContext: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubTeamMembersImport,
+			StateContext: resourceGithubTeamMembersImport,
 		},
 
 		Schema: map[string]*schema.Schema{
+			"team_slug": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"team_slug", "team_id"},
+				Description:  "The team slug.",
+			},
 			"team_id": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    true,
-				Description: "The GitHub team id or slug",
+				Description: "The team id or slug",
+				Deprecated:  "Use team_slug.",
 			},
 			"members": {
 				Type:        schema.TypeSet,

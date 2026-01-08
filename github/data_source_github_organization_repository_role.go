@@ -2,10 +2,8 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -53,26 +51,9 @@ func dataSourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *sche
 
 	roleId := int64(d.Get("role_id").(int))
 
-	// TODO: Use this code when go-github is at v68+
-	// role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
-
-	roles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
+	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	var role *github.CustomRepoRoles
-	for _, r := range roles.CustomRepoRoles {
-		if r.GetID() == roleId {
-			role = r
-			break
-		}
-	}
-	if role == nil {
-		return diag.FromErr(fmt.Errorf("custom organization repo role with ID %d not found", roleId))
 	}
 
 	r := map[string]any{

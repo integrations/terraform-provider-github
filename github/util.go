@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"regexp"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v81/github"
@@ -169,57 +167,6 @@ func (e *unconvertibleIdError) Error() string {
 func splitRepoFilePath(path string) (string, string) {
 	parts := strings.Split(path, "/")
 	return parts[0], strings.Join(parts[1:], "/")
-}
-
-func getTeamID(teamIDString string, meta any) (int64, error) {
-	// Given a string that is either a team id or team slug, return the
-	// id of the team it is referring to.
-	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr == nil {
-		return teamId, nil
-	}
-
-	// The given id not an integer, assume it is a team slug
-	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-	if slugErr != nil {
-		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
-	}
-	return team.GetID(), nil
-}
-
-func getTeamSlug(teamIDString string, meta any) (string, error) {
-	// Given a string that is either a team id or team slug, return the
-	// team slug it is referring to.
-	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
-
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return "", errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetSlug(), nil
-	}
-
-	// The given id is an integer, assume it is a team id
-	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if teamIdErr != nil {
-		// There isn't a team with the given ID, assume it is a teamslug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return "", errors.New(teamIdErr.Error() + slugErr.Error())
-		}
-		return team.GetSlug(), nil
-	}
-	return team.GetSlug(), nil
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
