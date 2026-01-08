@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGithubRepositoryRulesets(t *testing.T) {
+func TestAccGithubRepositoryRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
