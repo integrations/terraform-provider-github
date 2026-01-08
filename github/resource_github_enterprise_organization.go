@@ -324,7 +324,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-Description: github.Ptr(newDesc),
+				Description: github.Ptr(newDesc),
 			},
 		)
 		if err != nil {
@@ -349,7 +349,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-Name: github.Ptr(newDisplayName),
+				Name: github.Ptr(newDisplayName),
 			},
 		)
 		if err != nil {
