@@ -53,7 +53,7 @@ test:
 		-timeout=30s \
 		-parallel=4 \
 		-v \
-		-run '^Test[^A]|^TestA[^c]|^TestAc[^c]' \
+		-skip '^TestAcc' \
 		$(RUNARGS) $(TESTARGS) \
 		-count 1;
 
