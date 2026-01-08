@@ -31,6 +31,7 @@ resource "github_organization_role_team" "security_managers" {
   role_id   = local.security_manager_id
   team_slug = "example-team"
 }
+```
 
 ## Schema
 
