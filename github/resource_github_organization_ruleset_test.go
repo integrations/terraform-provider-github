@@ -116,7 +116,7 @@ resource "github_organization_ruleset" "test" {
 		required_workflows {
 			do_not_enforce_on_create = true
 			required_workflow {
-				path          = "%[3]s"
+				path          = github_repository_file.workflow_file.path
 				repository_id = github_repository.test.repo_id
 				ref           = "main" # Default ref is master
 			}
