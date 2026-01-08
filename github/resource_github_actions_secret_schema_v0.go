@@ -1,9 +1,6 @@
 package github
 
 import (
-	"context"
-	"log"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -51,16 +48,4 @@ func resourceGithubActionsSecretResourceV0() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceGithubActionsSecretInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Actions Secret State before migration: %#v", rawState)
-	// Add the destroy_on_drift field with default value true if it doesn't exist
-	if _, ok := rawState["destroy_on_drift"]; !ok {
-		rawState["destroy_on_drift"] = true
-	}
-
-	log.Printf("[DEBUG] GitHub Actions Secret State after migration: %#v", rawState)
-
-	return rawState, nil
 }
