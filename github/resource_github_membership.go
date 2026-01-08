@@ -66,7 +66,7 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	_, _, err = client.Organizations.EditOrgMembership(ctx,
+	_, resp, err := client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
@@ -79,7 +79,11 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 
 	d.SetId(buildTwoPartID(orgName, username))
 
-	return resourceGithubMembershipRead(ctx, d, meta)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
