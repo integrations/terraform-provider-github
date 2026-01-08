@@ -4,7 +4,6 @@ WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
-export CGO_ENABLED=0
 
 # VARIABLE REFERENCE:
 #
@@ -33,7 +32,7 @@ tools:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 
 build: lintcheck
-	go build -ldflags="-s -w" ./...
+	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
 
 fmt:
 	@echo "==> Fixing source code formatting..."
@@ -49,8 +48,8 @@ lintcheck:
 
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
-	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	go test $(TEST) \
+	printf "==> Running unit tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	CGO_ENABLED=0 go test $(TEST) \
 		-timeout=30s \
 		-parallel=4 \
 		-v \
@@ -61,7 +60,7 @@ test:
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	TF_ACC=1 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
+	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
 
 test-compile:
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -69,7 +68,7 @@ test-compile:
 		echo "  make test-compile TEST=./$(PKG_NAME)"; \
 		exit 1; \
 	fi
-	go test -c $(TEST) $(TESTARGS)
+	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
 sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
