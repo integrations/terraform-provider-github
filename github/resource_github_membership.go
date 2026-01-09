@@ -3,19 +3,21 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubMembership() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubMembershipCreateOrUpdate,
-		Read:   resourceGithubMembershipRead,
-		Update: resourceGithubMembershipCreateOrUpdate,
-		Delete: resourceGithubMembershipDelete,
+		CreateContext: resourceGithubMembershipCreateOrUpdate,
+		ReadContext:   resourceGithubMembershipRead,
+		UpdateContext: resourceGithubMembershipCreateOrUpdate,
+		DeleteContext: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -49,10 +51,10 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -60,12 +62,11 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 	orgName := meta.(*Owner).name
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
-	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	_, _, err = client.Organizations.EditOrgMembership(ctx,
+	_, resp, err := client.Organizations.EditOrgMembership(ctx,
 		username,
 		orgName,
 		&github.Membership{
@@ -73,18 +74,22 @@ func resourceGithubMembershipCreateOrUpdate(d *schema.ResourceData, meta any) er
 		},
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(orgName, username))
 
-	return resourceGithubMembershipRead(d, meta)
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -92,9 +97,9 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 	orgName := meta.(*Owner).name
 	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -108,44 +113,49 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing membership %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, fmt.Sprintf("Removing membership %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
+					"membership_id": d.Id(),
+				})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("username", username); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("role", membership.GetRole()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	username := d.Get("username").(string)
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
 	downgradeTo := "member"
 
 	if downgradeOnDestroy {
-		log.Printf("[INFO] Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo)
+		tflog.Info(ctx, fmt.Sprintf("Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo), map[string]any{
+			"org_name": orgName,
+			"username": username,
+			"role":     downgradeTo,
+		})
 
 		// Check to make sure this member still has access to the organization before downgrading.
 		// If we don't do this, the member would just be re-added to the organization.
@@ -155,16 +165,23 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 			var ghErr *github.ErrorResponse
 			if errors.As(err, &ghErr) {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username)
+					tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
+						"org_name": orgName,
+						"username": username,
+					})
 					return nil
 				}
 			}
 
-			return err
+			return diag.FromErr(err)
 		}
 
 		if *membership.Role == downgradeTo {
-			log.Printf("[INFO] Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo)
+			tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo), map[string]any{
+				"org_name": orgName,
+				"username": username,
+				"role":     downgradeTo,
+			})
 			return nil
 		}
 
@@ -172,9 +189,26 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta any) error {
 			Role: github.Ptr(downgradeTo),
 		})
 	} else {
-		log.Printf("[INFO] Revoking '%s' membership for '%s'", orgName, username)
+		tflog.Info(ctx, fmt.Sprintf("Revoking '%s' membership for '%s'", orgName, username), map[string]any{
+			"org_name": orgName,
+			"username": username,
+		})
 		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) {
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					tflog.Info(ctx, fmt.Sprintf("Not removing '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
+						"org_name": orgName,
+						"username": username,
+					})
+					return nil
+				}
+			}
+
+			return diag.FromErr(err)
+		}
 	}
 
-	return err
+	return diag.FromErr(err)
 }
