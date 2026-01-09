@@ -134,15 +134,10 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx cont
 		return handleEditWorkflowPermissionsError(ctx, err, resp)
 	}
 
-	tflog.Trace(ctx, "GitHub API call completed successfully", map[string]any{
-		"organization_slug": organizationSlug,
-	})
-
-	// Calling read is necessary as the Update API returns 204 with Empty Body on success
 	tflog.Trace(ctx, "Exiting Create/Update workflow permissions successfully", map[string]any{
 		"organization_slug": organizationSlug,
 	})
-	return resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -163,12 +158,6 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 	}
 
 	tflog.Debug(ctx, "Retrieved workflow permissions from API", map[string]any{
-		"organization_slug":                organizationSlug,
-		"default_workflow_permissions":     workflowPerms.DefaultWorkflowPermissions,
-		"can_approve_pull_request_reviews": workflowPerms.CanApprovePullRequestReviews,
-	})
-
-	tflog.Trace(ctx, "Setting state values", map[string]any{
 		"organization_slug":                organizationSlug,
 		"default_workflow_permissions":     workflowPerms.DefaultWorkflowPermissions,
 		"can_approve_pull_request_reviews": workflowPerms.CanApprovePullRequestReviews,
@@ -215,17 +204,14 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 	})
 
 	tflog.Debug(ctx, "Calling GitHub API to reset workflow permissions", map[string]any{
-		"organization_slug": organizationSlug,
+		"organization_slug":    organizationSlug,
+		"workflow_permissions": workflowPerms,
 	})
 
 	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
 	if err != nil {
 		return handleEditWorkflowPermissionsError(ctx, err, resp)
 	}
-
-	tflog.Trace(ctx, "GitHub API call completed successfully", map[string]any{
-		"organization_slug": organizationSlug,
-	})
 
 	tflog.Trace(ctx, "Exiting Delete workflow permissions successfully", map[string]any{
 		"organization_slug": organizationSlug,
