@@ -31,16 +31,10 @@ func importEMUGroupMappingWithTwoPartID(ctx context.Context, d *schema.ResourceD
 		"team_slug": teamSlug,
 	})
 
-	tflog.Trace(ctx, "Setting state attribute: group_id", map[string]any{
-		"group_id": groupID,
-	})
 	if err := d.Set("group_id", groupID); err != nil {
 		return nil, err
 	}
 
-	tflog.Trace(ctx, "Setting state attribute: team_slug", map[string]any{
-		"team_slug": teamSlug,
-	})
 	if err := d.Set("team_slug", teamSlug); err != nil {
 		return nil, err
 	}
@@ -70,9 +64,6 @@ func importEMUGroupMappingWithIntegerID(ctx context.Context, d *schema.ResourceD
 		"group_id":  groupID,
 	})
 
-	tflog.Trace(ctx, "Setting state attribute: group_id", map[string]any{
-		"group_id": groupID,
-	})
 	if err := d.Set("group_id", groupID); err != nil {
 		return nil, err
 	}
