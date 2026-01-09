@@ -11,9 +11,10 @@ import (
 func TestAccGithubRefDataSource(t *testing.T) {
 	t.Run("queries an existing branch ref without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ref-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
@@ -22,7 +23,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 				repository = github_repository.test.name
 				ref = "heads/main"
 			}
-		`, randomID, testAccConf.owner)
+		`, repoName, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -42,9 +43,10 @@ func TestAccGithubRefDataSource(t *testing.T) {
 	// Can't test due to SDK and test framework limitations
 	// t.Run("queries an invalid ref without error", func(t *testing.T) {
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	//   repoName := fmt.Sprintf("%srepo-invalid-ref-%s", testResourcePrefix, randomID)
 	// 	config := fmt.Sprintf(`
 	// 		resource "github_repository" "test" {
-	// 		  name = "tf-acc-test-%[1]s"
+	// 		  name = "%s"
 	// 			auto_init = true
 	// 		}
 
@@ -52,7 +54,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 	// 			repository = github_repository.test.id
 	// 			ref = "heads/xxxxxx"
 	// 		}
-	// 	`, randomID)
+	// 	`, repoName)
 
 	// 	check := resource.ComposeTestCheckFunc(
 	// 		resource.TestCheckNoResourceAttr(

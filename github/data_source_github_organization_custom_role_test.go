@@ -11,10 +11,11 @@ import (
 func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 	t.Run("queries a custom repo role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%sorg-custom-role-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
-				name        = "tf-acc-test-%s"
+				name        = "%s"
 				description = "Test role description"
 				base_role   = "read"
 				permissions = [
@@ -22,7 +23,7 @@ func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 					"reopen_pull_request",
 				]
 			}
-		`, randomID)
+		`, testResourceName)
 
 		config2 := config + `
 			data "github_organization_custom_role" "test" {
@@ -36,7 +37,7 @@ func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"data.github_organization_custom_role.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				testResourceName,
 			),
 			resource.TestCheckResourceAttr(
 				"data.github_organization_custom_role.test", "description",

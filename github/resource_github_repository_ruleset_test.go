@@ -15,10 +15,11 @@ import (
 func TestAccGithubRepositoryRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name = "tf-acc-test-%s"
+	name = "%s"
 	auto_init = true
 	default_branch = "main"
 	vulnerability_alerts = true
@@ -106,7 +107,7 @@ resource "github_repository_ruleset" "test" {
 		}
 	}
 }
-`, randomID)
+`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -135,10 +136,11 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 	resource "github_repository" "test" {
-		name = "tf-acc-test-%s"
+		name = "%s"
 		auto_init = false
 		vulnerability_alerts = true
 	}
@@ -170,7 +172,7 @@ resource "github_repository_ruleset" "test" {
 			}
 		}
 	}
-`, randomID)
+`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
@@ -189,10 +191,11 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name                 = "tf-acc-test-%s"
+	name                 = "%s"
 	auto_init            = false
 	visibility           = "internal"
 	vulnerability_alerts = true
@@ -230,7 +233,7 @@ resource "github_repository_ruleset" "test" {
 	}
 }
 
-`, randomID)
+`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
@@ -259,7 +262,7 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
+		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
 		name := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		nameUpdated := fmt.Sprintf(`%[1]s-renamed`, randomID)
 
@@ -304,10 +307,11 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name         = "tf-acc-test-bypass-%s"
+	name         = "%s"
 	description  = "Terraform acceptance tests %[1]s"
 	auto_init    = true
 }
@@ -340,11 +344,11 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, randomID)
+`, repoName)
 
 		configUpdated := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name         = "tf-acc-test-bypass-%s"
+	name         = "%s"
 	description  = "Terraform acceptance tests %[1]s"
 	auto_init    = true
 }
@@ -366,7 +370,7 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, randomID)
+`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -390,14 +394,15 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bypass-update-%s", testResourcePrefix, randomID)
 
 		bypassMode := "always"
 		bypassModeUpdated := "exempt"
 
-		config := `
+		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name         = "tf-acc-test-bypass-update-%s"
-	description  = "Terraform acceptance tests %[1]s"
+	name         = "%s"
+	description  = "Terraform acceptance tests %s"
 	auto_init    = true
 }
 
@@ -424,7 +429,7 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`
+`, repoName, randomID, bypassMode)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -448,11 +453,12 @@ resource "github_repository_ruleset" "test" {
 
 	t.Run("import", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-import-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
+        name         = "%s"
+			  description  = "Terraform acceptance tests %s"
 			  auto_init    = true
 			  default_branch = "main"
 	                        vulnerability_alerts = true
@@ -480,7 +486,7 @@ resource "github_repository_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, randomID)
+		`, repoName, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -502,12 +508,12 @@ resource "github_repository_ruleset" "test" {
 }
 
 func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-%s"
+				name      = "%s"
 				auto_init = true
 				archived  = false
 			}
@@ -519,7 +525,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessMode(t, individual) },
@@ -533,9 +539,11 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-create-%s"
+				name      = "%s"
 				auto_init = true
 				archived  = true
 			}
@@ -546,7 +554,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessMode(t, individual) },

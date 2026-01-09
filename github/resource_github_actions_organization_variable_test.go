@@ -74,10 +74,11 @@ func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 	t.Run("creates an organization variable scoped to a repo without error", func(t *testing.T) {
 		value := "my_variable_value"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-org-var-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			resource "github_actions_organization_variable" "variable" {
@@ -86,7 +87,7 @@ func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 			  visibility       = "selected"
 			  selected_repository_ids = [github_repository.test.repo_id]
 			}
-			`, randomID, value)
+			`, repoName, value)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(

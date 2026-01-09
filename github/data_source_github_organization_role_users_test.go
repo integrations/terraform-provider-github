@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,11 +9,6 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
-	login := os.Getenv("GITHUB_IN_ORG_USER")
-	if len(login) == 0 {
-		t.Skip("set inOrgUser to unskip this test run")
-	}
-
 	t.Run("get the organization role users without error", func(t *testing.T) {
 		roleId := 8134
 		config := fmt.Sprintf(`
@@ -30,7 +24,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 					github_organization_role_user.test
 				]
 			}
-		`, roleId, login)
+		`, roleId, testAccConf.testOrgUser)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasOrgs(t) },
@@ -42,7 +36,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.#"),
 						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.#", "1"),
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.0.user_id"),
-						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", login),
+						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser),
 					),
 				},
 			},
@@ -51,7 +45,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 
 	t.Run("get indirect organization role users without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-team-%s", randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -76,7 +70,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 					github_organization_role_team.test
 				]
 			}
-		`, teamName, login, roleId)
+		`, teamName, testAccConf.testOrgUser, roleId)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnlessHasOrgs(t) },
@@ -88,7 +82,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.#"),
 						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.#", "1"),
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.0.user_id"),
-						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", login),
+						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser),
 					),
 				},
 			},

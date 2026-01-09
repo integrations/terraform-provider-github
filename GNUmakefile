@@ -1,4 +1,5 @@
 TEST?=$$(go list ./... |grep -v 'vendor')
+SWEEP?=repositories,teams
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
@@ -40,6 +41,10 @@ test-compile:
 	fi
 	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
 
+sweep:
+	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
+	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
+
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
@@ -58,4 +63,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools test-compile website website-lint website-test
+.PHONY: build test testacc fmt lint lintcheck tools test-compile website website-lint website-test sweep

@@ -12,10 +12,11 @@ import (
 func TestAccGithubBranchDataSource(t *testing.T) {
 	t.Run("queries an existing branch without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
@@ -23,7 +24,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 				repository = github_repository.test.name
 				branch = "main"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
@@ -46,10 +47,11 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 	// Can't test due to SDK and test framework limitations
 	// t.Run("queries an invalid branch without error", func(t *testing.T) {
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	repoName := fmt.Sprintf("%sinvalid-branch-%s", testResourcePrefix, randomID)
 
 	// 	config := fmt.Sprintf(`
 	// 		resource "github_repository" "test" {
-	// 		  name = "tf-acc-test-%[1]s"
+	// 		  name = "%s"
 	// 			auto_init = true
 	// 		}
 
@@ -57,7 +59,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 	// 			repository = github_repository.test.name
 	// 			branch = "xxxxxx"
 	// 		}
-	// 	`, randomID)
+	// 	`, repoName)
 
 	// 	check := resource.ComposeTestCheckFunc(
 	// 		resource.TestCheckResourceAttr(

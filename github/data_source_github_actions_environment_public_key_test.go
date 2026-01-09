@@ -11,22 +11,23 @@ import (
 func TestAccGithubActionsEnvironmentPublicKeyDataSource(t *testing.T) {
 	t.Run("queries a repository environment public key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-pubkey-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%[1]s"
 				auto_init = true
 			}
 
 			resource "github_repository_environment" "test" {
 				repository = github_repository.test.name
-				environment = "tf-acc-test-%[1]s"
+				environment = "tf-acc-test-%[2]s"
 			}
 
 			data "github_actions_environment_public_key" "test" {
 				repository = github_repository.test.name
 				environment = github_repository_environment.test.environment
-			}`, randomID)
+			}`, repoName, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(

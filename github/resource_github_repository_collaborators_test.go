@@ -25,7 +25,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	t.Run("adds user collaborator", func(t *testing.T) {
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -94,8 +94,9 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
+		collaboratorUser := testAccConf.testOrgUser
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -121,7 +122,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "pull"
 				}
 			}
-		`, repoName, teamName, testAccConf.testExternalUser)
+		`, repoName, teamName, collaboratorUser)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -140,8 +141,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 							teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
 							collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
 							for name, val := range collaborators.Attributes {
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != testAccConf.testExternalUser {
-									return fmt.Errorf("expected user.*.username to be set to %s, was %s", testAccConf.testExternalUser, val)
+								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != collaboratorUser {
+									return fmt.Errorf("expected user.*.username to be set to %s, was %s", collaboratorUser, val)
 								}
 								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "admin" {
 									return fmt.Errorf("expected user.*.permission to be set to admin, was %s", val)
@@ -158,11 +159,11 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 								return err
 							}
 							if len(users) != 1 {
-								return fmt.Errorf("expected %s to be a collaborator for repo %s/%s", testAccConf.testExternalUser, owner, repoName)
+								return fmt.Errorf("expected 1 collaborator (%s) for repo %s/%s , found %d", collaboratorUser, owner, repoName, len(users))
 							}
 							perm := getPermission(users[0].GetRoleName())
 							if perm != "admin" {
-								return fmt.Errorf("expected %s to have admin perms for repo %s/%s, found %s", testAccConf.testExternalUser, owner, repoName, perm)
+								return fmt.Errorf("expected %s to have admin perms for repo %s/%s, found %s", collaboratorUser, owner, repoName, perm)
 							}
 							teams, _, err := conn.Repositories.ListTeams(ctx, owner, repoName, nil)
 							if err != nil {
@@ -191,7 +192,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -284,9 +285,9 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName1 := fmt.Sprintf("tf-acc-test-team-1-%s", randomID)
-		teamName2 := fmt.Sprintf("tf-acc-test-team-2-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName1 := fmt.Sprintf("%steam-collabs-1-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%steam-collabs-2-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -422,7 +423,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -485,8 +486,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		ctx := t.Context()
 		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
