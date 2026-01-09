@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var DEFAULT_PULL_REQUEST_MERGE_METHODS = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
+// This is a workaround for the SDK not setting the default value for the allowed_merge_methods field.
+var defaultPullRequestMergeMethods = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
 
 // Helper function to safely convert interface{} to int, handling both int and float64.
 func toInt(v any) int {
@@ -43,7 +44,7 @@ func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
 	value, ok := input.([]any)
 	if !ok || value == nil || len(value) == 0 {
 		log.Printf("[DEBUG] No allowed merge methods provided, using default: %#v", input)
-		return DEFAULT_PULL_REQUEST_MERGE_METHODS
+		return defaultPullRequestMergeMethods
 	}
 	mergeMethods := make([]github.PullRequestMergeMethod, 0, len(value))
 	for _, item := range value {
