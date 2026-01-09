@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -46,7 +46,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
-				Type:             schema.TypeList,
+				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
 				Optional:         true,
 				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
 				Description:      "The actors that can bypass the rules in this ruleset.",
@@ -198,6 +198,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"allowed_merge_methods": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
+										Elem: &schema.Schema{
+											Type:             schema.TypeString,
+											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -588,13 +598,23 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
+	name := d.Get("name").(string)
+
+	tflog.Debug(ctx, fmt.Sprintf("Creating organization ruleset: %s/%s", owner, name), map[string]any{
+		"owner": owner,
+		"name":  name,
+	})
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
 	ruleset, resp, err := client.Organizations.CreateRepositoryRuleset(ctx, owner, rulesetReq)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Failed to create organization ruleset: %s/%s", owner, name), map[string]any{
+			"owner": owner,
+			"name":  name,
+			"error": err.Error(),
+		})
 		return diag.FromErr(err)
 	}
 
@@ -603,16 +623,31 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
+	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
+		"owner":      owner,
+		"name":       name,
+		"ruleset_id": *ruleset.ID,
+	})
+
 	return nil
 }
 
 func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
+
+	tflog.Trace(ctx, fmt.Sprintf("Reading organization ruleset: %s", d.Id()), map[string]any{
+		"owner":      owner,
+		"ruleset_id": d.Id(),
+	})
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+			"owner":      owner,
+			"ruleset_id": d.Id(),
+			"error":      err.Error(),
+		})
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
@@ -625,15 +660,26 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
+				tflog.Debug(ctx, "API responded with StatusNotModified, not refreshing state", map[string]any{
+					"owner":      owner,
+					"ruleset_id": rulesetID,
+				})
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s: %d from state because it no longer exists in GitHub",
-					owner, rulesetID)
+				tflog.Info(ctx, fmt.Sprintf("Removing ruleset %s/%d from state because it no longer exists in GitHub", owner, rulesetID), map[string]any{
+					"owner":      owner,
+					"ruleset_id": rulesetID,
+				})
 				d.SetId("")
 				return nil
 			}
 		}
+		tflog.Error(ctx, fmt.Sprintf("Failed to read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+			"owner":      owner,
+			"ruleset_id": rulesetID,
+			"error":      err.Error(),
+		})
 		return diag.FromErr(err)
 	}
 
@@ -647,23 +693,45 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
+	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+		"name":       ruleset.Name,
+	})
+
 	return nil
 }
 
 func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
-
-	rulesetReq := resourceGithubRulesetObject(d, owner)
+	name := d.Get("name").(string)
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+			"owner":      owner,
+			"ruleset_id": d.Id(),
+			"error":      err.Error(),
+		})
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("Updating organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+		"name":       name,
+	})
+
+	rulesetReq := resourceGithubRulesetObject(d, owner)
+
 	ruleset, resp, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, rulesetReq)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Failed to update organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+			"owner":      owner,
+			"ruleset_id": rulesetID,
+			"error":      err.Error(),
+		})
 		return diag.FromErr(err)
 	}
 
@@ -671,6 +739,12 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
+
+	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+		"name":       name,
+	})
 
 	return nil
 }
@@ -681,36 +755,79 @@ func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.Reso
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+			"owner":      owner,
+			"ruleset_id": d.Id(),
+			"error":      err.Error(),
+		})
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Deleting organization ruleset: %s: %d", owner, rulesetID)
+	tflog.Debug(ctx, fmt.Sprintf("Deleting organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+	})
+
 	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, owner, rulesetID)
 	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Failed to delete organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+			"owner":      owner,
+			"ruleset_id": rulesetID,
+			"error":      err.Error(),
+		})
 		return diag.FromErr(err)
 	}
+
+	tflog.Info(ctx, fmt.Sprintf("Deleted organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+	})
 
 	return nil
 }
 
 func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
-	}
-	if rulesetID == 0 {
-		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
-	}
-	log.Printf("[DEBUG] Importing organization ruleset with ID: %d", rulesetID)
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
+	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+			"owner":      owner,
+			"ruleset_id": d.Id(),
+			"error":      err.Error(),
+		})
+		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
+	}
+	if rulesetID == 0 {
+		tflog.Error(ctx, "ruleset_id must be present and non-zero", map[string]any{
+			"owner":      owner,
+			"ruleset_id": rulesetID,
+		})
+		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Importing organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+	})
+
 	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if ruleset == nil || err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Failed to import organization ruleset: %s/%d", owner, rulesetID), map[string]any{
+			"owner":      owner,
+			"ruleset_id": rulesetID,
+			"error":      err.Error(),
+		})
 		return []*schema.ResourceData{d}, err
 	}
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+
+	tflog.Info(ctx, fmt.Sprintf("Imported organization ruleset: %s/%d (name: %s)", owner, rulesetID, ruleset.Name), map[string]any{
+		"owner":      owner,
+		"ruleset_id": rulesetID,
+		"name":       ruleset.Name,
+	})
 
 	return []*schema.ResourceData{d}, nil
 }

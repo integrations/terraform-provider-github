@@ -12,10 +12,46 @@ import (
 func TestAccGithubOrganizationRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
+
+		workflowFilePath := ".github/workflows/echo.yaml"
 
 		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+	auto_init = true
+	ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_repository_file" "workflow_file" {
+	repository          = github_repository.test.name
+	branch              = "main"
+	file                = "%[3]s"
+	content             = <<EOT
+name: Echo Workflow
+
+on: [pull_request]
+
+jobs:
+  echo:
+    runs-on: linux
+    steps:
+      - run: echo \"Hello, world!\"
+EOT
+	commit_message      = "Managed by Terraform"
+	commit_author       = "Terraform User"
+	commit_email        = "terraform@example.com"
+}
+
+resource "github_actions_repository_access_level" "test" {
+	repository = github_repository.test.name
+	access_level = "organization"
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "test-%s"
+	name        = "%[2]s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -59,6 +95,7 @@ resource "github_organization_ruleset" "test" {
 		required_signatures = false
 
 		pull_request {
+			allowed_merge_methods = ["merge", "rebase", "squash"]
 			required_approving_review_count   = 2
 			required_review_thread_resolution = true
 			require_code_owner_review         = true
@@ -79,8 +116,9 @@ resource "github_organization_ruleset" "test" {
 		required_workflows {
 			do_not_enforce_on_create = true
 			required_workflow {
-				path          = "path/to/workflow.yaml"
-				repository_id = 1234
+				path          = github_repository_file.workflow_file.file
+				repository_id = github_repository.test.repo_id
+				ref           = "main" # Default ref is master
 			}
 		}
 
@@ -102,7 +140,7 @@ resource "github_organization_ruleset" "test" {
 		non_fast_forward = true
 	}
 }
-`, randomID)
+`, repoName, rulesetName, workflowFilePath)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -111,7 +149,7 @@ resource "github_organization_ruleset" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", "test"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "3"),
@@ -123,8 +161,8 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_id", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.o_not_enforce_on_create", "true"), resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.path", "path/to/workflow.yaml"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.repository_id", "1234"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.do_not_enforce_on_create", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.path", workflowFilePath),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
@@ -136,10 +174,11 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("create_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-push-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_ruleset" "test" {
-	name        = "test-%s"
+	name        = "%s"
 	target      = "push"
 	enforcement = "active"
 
@@ -165,6 +204,11 @@ resource "github_organization_ruleset" "test" {
 			include = ["~ALL"]
 			exclude = []
 		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
 	}
 
 	rules {
@@ -173,7 +217,7 @@ resource "github_organization_ruleset" "test" {
 		}
 
 		max_file_size {
-			max_file_size = 1048576
+			max_file_size = 99
 		}
 
 		file_extension_restriction {
@@ -181,7 +225,7 @@ resource "github_organization_ruleset" "test" {
 		}
 	}
 }
-`, randomID)
+`, rulesetName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -190,7 +234,7 @@ resource "github_organization_ruleset" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", "test"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "push"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "3"),
@@ -203,7 +247,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.max_file_size.0.max_file_size", "1048576"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.max_file_size.0.max_file_size", "99"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.file_extension_restriction.0.restricted_file_extensions.0", "*.zip"),
 					),
 				},
@@ -262,10 +306,11 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-bypass-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_ruleset" "test" {
-	name        = "test-%s"
+	name        = "%s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -302,11 +347,11 @@ resource "github_organization_ruleset" "test" {
 		creation = true
 	}
 }
-`, randomID)
+`, rulesetName)
 
-		configUpdated := `
+		configUpdated := fmt.Sprintf(`
 resource "github_organization_ruleset" "test" {
-	name        = "test-bypass"
+	name        = "%s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -326,11 +371,11 @@ resource "github_organization_ruleset" "test" {
 		creation = true
 	}
 }
-`
+`, rulesetName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -367,6 +412,12 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	conditions {
+
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
 		ref_name {
 			include = ["~ALL"]
 			exclude = []
@@ -380,8 +431,8 @@ resource "github_organization_ruleset" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, randomID, bypassMode),

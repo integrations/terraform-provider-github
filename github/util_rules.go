@@ -1,12 +1,16 @@
 package github
 
 import (
+	"log"
 	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// This is a workaround for the SDK not setting the default value for the allowed_merge_methods field.
+var defaultPullRequestMergeMethods = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
 
 // Helper function to safely convert interface{} to int, handling both int and float64.
 func toInt(v any) int {
@@ -34,6 +38,21 @@ func toInt64(v any) int64 {
 	default:
 		return 0
 	}
+}
+
+func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
+	value, ok := input.([]any)
+	if !ok || value == nil || len(value) == 0 {
+		log.Printf("[DEBUG] No allowed merge methods provided, using default: %#v", input)
+		return defaultPullRequestMergeMethods
+	}
+	mergeMethods := make([]github.PullRequestMergeMethod, 0, len(value))
+	for _, item := range value {
+		if method, ok := item.(string); ok {
+			mergeMethods = append(mergeMethods, github.PullRequestMergeMethod(method))
+		}
+	}
+	return mergeMethods
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
@@ -115,9 +134,10 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 	actorsSlice := make([]any, 0)
 	for _, v := range bypassActors {
 		actorMap := make(map[string]any)
-
-		actorMap["actor_id"] = v.GetActorID()
-		actorMap["actor_type"] = v.GetActorType()
+		actorID := v.GetActorID()
+		actorType := v.GetActorType()
+		actorMap["actor_id"] = actorID
+		actorMap["actor_type"] = actorType
 		actorMap["bypass_mode"] = v.GetBypassMode()
 
 		actorsSlice = append(actorsSlice, actorMap)
@@ -295,13 +315,15 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]any); ok && len(v) != 0 {
 		pullRequestMap := v[0].(map[string]any)
+		allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
+
 		params := &github.PullRequestRuleParameters{
-			AllowedMergeMethods:            []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodSquash, github.PullRequestMergeMethodRebase},
 			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
 			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
 			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
 			RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
+			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
 		}
 		rulesetRules.PullRequest = params
 	}
@@ -516,10 +538,14 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 	// Update rule with parameters
 	if rules.Update != nil {
 		rulesMap["update"] = true
-		rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+		}
 	} else {
 		rulesMap["update"] = false
-		rulesMap["update_allows_fetch_and_merge"] = false
+		if !org {
+			rulesMap["update_allows_fetch_and_merge"] = false
+		}
 	} // Required deployments rule
 	if rules.RequiredDeployments != nil {
 		requiredDeploymentsSlice := make([]map[string]any, 0)
@@ -538,7 +564,9 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
 			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
+			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
+		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 

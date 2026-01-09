@@ -189,6 +189,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"allowed_merge_methods": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
+										Elem: &schema.Schema{
+											Type:             schema.TypeString,
+											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
