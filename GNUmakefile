@@ -1,3 +1,4 @@
+TEST?=$$(go list ./... |grep -v 'vendor')
 SWEEP?=repositories,teams
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
