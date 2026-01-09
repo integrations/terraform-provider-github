@@ -136,11 +136,6 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 		actorMap := make(map[string]any)
 		actorID := v.GetActorID()
 		actorType := v.GetActorType()
-		if *actorType == github.BypassActorTypeOrganizationAdmin && actorID == 0 {
-			// This is a workaround for the GitHub API bug where OrganizationAdmin actor_id is returned as `null` instead of `1`
-			log.Printf("[DEBUG] Setting OrganizationAdmin Actor ID to 1")
-			actorID = 1
-		}
 		actorMap["actor_id"] = actorID
 		actorMap["actor_type"] = actorType
 		actorMap["bypass_mode"] = v.GetBypassMode()
