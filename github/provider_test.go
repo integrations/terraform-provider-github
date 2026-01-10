@@ -54,12 +54,12 @@ func TestAccProviderConfigure(t *testing.T) {
 	t.Run("can be configured to run anonymously", func(t *testing.T) {
 		config := `
 		provider "github" {
-			token = ""
 		}
 		data "github_ip_ranges" "test" {}
 		`
 
 		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", ""); t.Setenv("GH_PATH", "none-existent-path") },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
