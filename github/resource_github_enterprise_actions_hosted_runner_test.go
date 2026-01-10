@@ -11,6 +11,9 @@ import (
 func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
+	// Image ID "2306" is the GitHub-owned Ubuntu Latest 24.04 image
+	// This is a stable image ID used for acceptance testing
+	// To list available images: GET /enterprises/{enterprise}/actions/hosted-runners/images/github-owned
 	t.Run("creates enterprise hosted runners without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -26,9 +29,9 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			resource "github_enterprise_actions_hosted_runner" "test" {
 				enterprise_slug = data.github_enterprise.enterprise.slug
 				name            = "tf-acc-test-%s"
-				
+
 				image {
-					id     = "2306"
+					id     = "2306"  # GitHub-owned Ubuntu Latest 24.04
 					source = "github"
 				}
 
@@ -84,33 +87,15 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode testMode) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessEnterprise(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for enterprise hosted runners")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			t.Skip("organization account not supported for enterprise operations")
-		})
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			},
 		})
 	})
 
@@ -207,37 +192,19 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode testMode) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						Config: configUpdated,
-						Check:  checkUpdated,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessEnterprise(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for enterprise hosted runners")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			t.Skip("organization account not supported for enterprise operations")
-		})
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+				{
+					Config: configUpdated,
+					Check:  checkUpdated,
+				},
+			},
 		})
 	})
 
@@ -282,38 +249,20 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode testMode) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_enterprise_actions_hosted_runner.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnlessEnterprise(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for enterprise hosted runners")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			t.Skip("organization account not supported for enterprise operations")
-		})
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+				{
+					ResourceName:      "github_enterprise_actions_hosted_runner.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }
