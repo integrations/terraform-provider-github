@@ -155,17 +155,3 @@ func validateConditionsFieldForPushTarget(ctx context.Context, conditions map[st
 	tflog.Debug(ctx, "Conditions validation passed for push target")
 	return nil
 }
-
-func validateConditionsFieldForRepositoryTarget(ctx context.Context, conditions map[string]any) error {
-	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"target": "repository", "conditions": conditions})
-
-	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-		tflog.Debug(ctx, "Invalid ref_name for repository target", map[string]any{"ref_name": conditions["ref_name"]})
-		return fmt.Errorf("ref_name must not be set for repository target")
-	}
-	if conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0 || conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0 {
-		return fmt.Errorf("one of repository_name or repository_id must be set for repository target")
-	}
-	tflog.Debug(ctx, "Conditions validation passed for repository target")
-	return nil
-}
