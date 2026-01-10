@@ -192,7 +192,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxRetries)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -216,7 +215,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxPerPage)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -248,7 +246,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testAccConf.token)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -273,7 +270,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); t.Setenv("GITHUB_TOKEN", "1234567890") },
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
