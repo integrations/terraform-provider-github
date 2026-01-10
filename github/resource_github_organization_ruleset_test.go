@@ -211,11 +211,6 @@ resource "github_organization_ruleset" "test" {
 			include = ["~ALL"]
 			exclude = []
 		}
-
-		ref_name {
-			include = ["~ALL"]
-			exclude = []
-		}
 	}
 
 	rules {
