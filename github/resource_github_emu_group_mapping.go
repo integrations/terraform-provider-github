@@ -14,9 +14,9 @@ import (
 
 func resourceGithubEMUGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubEMUGroupMappingCreate,
+		CreateContext: resourceGithubEMUGroupMappingCreateOrUpdate,
 		ReadContext:   resourceGithubEMUGroupMappingRead,
-		UpdateContext: resourceGithubEMUGroupMappingUpdate,
+		UpdateContext: resourceGithubEMUGroupMappingCreateOrUpdate,
 		DeleteContext: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -44,10 +44,6 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	return resourceGithubEMUGroupMappingUpdate(ctx, d, meta)
 }
 
 func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -130,9 +126,9 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	resourceID := d.Id()
-	tflog.Trace(ctx, "Updating EMU group mapping", map[string]any{
+	tflog.Trace(ctx, "Creating or updating EMU group mapping", map[string]any{
 		"resource_id": resourceID,
 	})
 
@@ -170,7 +166,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		"group_id":  id64,
 	})
 
-	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlugStr, eg)
+	_, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlugStr, eg)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -187,10 +183,18 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	})
 	d.SetId(newResourceID)
 
-	tflog.Trace(ctx, "Transitioning to read operation", map[string]any{
+	etag := resp.Header.Get("ETag")
+	tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
+		"etag": etag,
+	})
+	if err = d.Set("etag", etag); err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Trace(ctx, "Resource created or updated successfully", map[string]any{
 		"resource_id": newResourceID,
 	})
-	return resourceGithubEMUGroupMappingRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
