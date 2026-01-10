@@ -248,7 +248,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
+					ExpectError: regexp.MustCompile(`"app_auth": conflicts with token`),
 				},
 			},
 		})
@@ -273,7 +273,7 @@ func TestAccProviderConfigure(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
+					ExpectError: regexp.MustCompile(`"token": conflicts with app_auth`),
 				},
 			},
 		})
