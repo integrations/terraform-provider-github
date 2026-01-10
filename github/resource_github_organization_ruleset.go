@@ -41,10 +41,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
-				Description:  "The target of the ruleset. Possible values are `branch`, `tag`, `push` and `repository`.",
+				Type:     schema.TypeString,
+				Required: true,
+				// The API accepts an `repository` target, but any rule created with that doesn't show up in the UI, nor does it have any rules.
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -94,7 +95,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` or `repository` targets. One of `repository_name` or `repository_id` is always required.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` targets. One of `repository_name` or `repository_id` is always required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -885,8 +886,6 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
 	case "push":
 		return validateConditionsFieldForPushTarget(ctx, conditions)
-	case "repository":
-		return validateConditionsFieldForRepositoryTarget(ctx, conditions)
 	}
 	return nil
 }

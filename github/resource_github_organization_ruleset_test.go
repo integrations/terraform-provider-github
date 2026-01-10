@@ -35,10 +35,10 @@ name: Echo Workflow
 on: [pull_request]
 
 jobs:
-  echo:
-    runs-on: linux
-    steps:
-      - run: echo \"Hello, world!\"
+	echo:
+		runs-on: linux
+		steps:
+			- run: echo \"Hello, world!\"
 EOT
 	commit_message      = "Managed by Terraform"
 	commit_author       = "Terraform User"
@@ -679,9 +679,9 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("creates_push_ruleset_with_only_repository_name", func(t *testing.T) {
+	t.Run("creates_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		resourceName := "test-push-repo-name-only"
+		resourceName := "test-push-ruleset"
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "%s" {
 				name        = "test-push-%s"
@@ -820,44 +820,6 @@ resource "github_organization_ruleset" "test" {
 					},
 				},
 			})
-		})
-	})
-
-	t.Run("validates_repository_target_rejects_ref_name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		resourceName := "test-repository-reject-ref-name"
-		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "%s" {
-				name        = "test-repo-with-ref-%s"
-				target      = "repository"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-					repository_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-				}
-			}
-		`, resourceName, randomID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:      config,
-					ExpectError: regexp.MustCompile("ref_name must not be set for repository target"),
-				},
-			},
 		})
 	})
 }
