@@ -8,7 +8,23 @@ description: |-
 # github_enterprise_actions_hosted_runner
 
 This resource allows you to create and manage GitHub-hosted runners within your GitHub enterprise.
-You must have admin access to an enterprise to use this resource.
+
+## Authentication Requirements
+
+This resource requires:
+* **Enterprise admin permissions** - You must have admin access to the enterprise
+* **Personal Access Token (PAT)** with the following scopes:
+  * `admin:enterprise` - Manage enterprise runners and runner groups
+  * `manage_runners:enterprise` - Create, update, and delete enterprise-level runners
+
+Configure your provider with the appropriate token:
+
+```hcl
+provider "github" {
+  token = var.github_token  # Token must have admin:enterprise scope
+  owner = "my-enterprise"   # Enterprise slug
+}
+```
 
 GitHub-hosted runners are fully managed virtual machines that run your GitHub Actions workflows. Unlike self-hosted runners, GitHub handles the infrastructure, maintenance, and scaling.
 
