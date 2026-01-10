@@ -161,10 +161,15 @@ func TestAccProviderConfigure(t *testing.T) {
 			provider "github" {
 				token = "%s"
 				base_url = "%s"
-			}`, testAccConf.token, testAccConf.owner)
+			}`, testAccConf.token, testAccConf.baseURL)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, individual) },
+			PreCheck: func() {
+				skipUnlessMode(t, enterprise)
+				if testAccConf.baseURL.Host != "api.github.com" {
+					t.Skip("Skipping as test mode is not GHES")
+				}
+			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
