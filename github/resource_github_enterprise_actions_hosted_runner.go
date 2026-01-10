@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -17,18 +18,13 @@ import (
 
 func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseActionsHostedRunnerCreate,
-		Read:   resourceGithubEnterpriseActionsHostedRunnerRead,
-		Update: resourceGithubEnterpriseActionsHostedRunnerUpdate,
-		Delete: resourceGithubEnterpriseActionsHostedRunnerDelete,
+		CreateContext: resourceGithubEnterpriseActionsHostedRunnerCreate,
+		ReadContext:   resourceGithubEnterpriseActionsHostedRunnerRead,
+		UpdateContext: resourceGithubEnterpriseActionsHostedRunnerUpdate,
+		DeleteContext: resourceGithubEnterpriseActionsHostedRunnerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Delete: schema.DefaultTimeout(10 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
@@ -199,94 +195,8 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	}
 }
 
-func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
-	if len(imageList) == 0 {
-		return nil
-	}
-
-	imageMap := imageList[0].(map[string]any)
-	image := &github.HostedRunnerImage{}
-
-	if id, ok := imageMap["id"].(string); ok {
-		image.ID = id
-	}
-	if source, ok := imageMap["source"].(string); ok {
-		image.Source = source
-	}
-	if version, ok := imageMap["version"].(string); ok && version != "" {
-		image.Version = version
-	} else {
-		// Default to 'latest' for GitHub-owned images as required by the API
-		image.Version = "latest"
-	}
-
-	return image
-}
-
-func flattenHostedRunnerImage(image *github.HostedRunnerImageDetail) []any {
-	if image == nil {
-		return []any{}
-	}
-
-	result := make(map[string]any)
-
-	if image.ID != nil {
-		result["id"] = *image.ID
-	}
-	if image.Source != nil {
-		result["source"] = *image.Source
-	}
-	if image.Version != nil {
-		result["version"] = *image.Version
-	}
-	if image.SizeGB != nil {
-		result["size_gb"] = int(*image.SizeGB)
-	}
-	if image.DisplayName != nil {
-		result["display_name"] = *image.DisplayName
-	}
-
-	return []any{result}
-}
-
-func flattenHostedRunnerMachineSpec(spec *github.HostedRunnerMachineSpec) []any {
-	if spec == nil {
-		return []any{}
-	}
-
-	result := make(map[string]any)
-	result["id"] = spec.ID
-	result["cpu_cores"] = spec.CPUCores
-	result["memory_gb"] = spec.MemoryGB
-	result["storage_gb"] = spec.StorageGB
-
-	return []any{result}
-}
-
-func flattenHostedRunnerPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
-	if ips == nil {
-		return []any{}
-	}
-
-	result := make([]any, 0, len(ips))
-	for _, ip := range ips {
-		if ip == nil {
-			continue
-		}
-
-		ipResult := make(map[string]any)
-		ipResult["enabled"] = ip.Enabled
-		ipResult["prefix"] = ip.Prefix
-		ipResult["length"] = ip.Length
-		result = append(result, ipResult)
-	}
-
-	return result
-}
-
-func resourceGithubEnterpriseActionsHostedRunnerCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
 	// Build request using SDK struct
@@ -310,31 +220,99 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(d *schema.ResourceData, m
 
 	runner, _, err := client.Enterprise.CreateHostedRunner(ctx, enterpriseSlug, request)
 	if err != nil {
-		return fmt.Errorf("error creating enterprise hosted runner: %w", err)
+		return diag.Errorf("error creating enterprise hosted runner: %s", err.Error())
 	}
 
 	if runner == nil || runner.ID == nil {
-		return fmt.Errorf("no runner data returned from API")
+		return diag.Errorf("no runner data returned from API")
 	}
 
 	// Set the ID in the format enterprise_slug/runner_id
 	d.SetId(fmt.Sprintf("%s/%d", enterpriseSlug, *runner.ID))
 
-	return resourceGithubEnterpriseActionsHostedRunnerRead(d, meta)
+	// Populate computed fields directly from API response
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// runner.ID is guaranteed non-nil due to check above
+	if err := d.Set("runner_id", int(*runner.ID)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if runner.Name != nil {
+		if err := d.Set("name", *runner.Name); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if runner.Status != nil {
+		if err := d.Set("status", *runner.Status); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if runner.Platform != nil {
+		if err := d.Set("platform", *runner.Platform); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if runner.LastActiveOn != nil {
+		if err := d.Set("last_active_on", runner.LastActiveOn.Format(time.RFC3339)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if runner.PublicIPEnabled != nil {
+		if err := d.Set("public_ip_enabled", *runner.PublicIPEnabled); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if runner.ImageDetails != nil {
+		if err := d.Set("image", flattenHostedRunnerImage(runner.ImageDetails)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if runner.MachineSizeDetails != nil {
+		if err := d.Set("size", runner.MachineSizeDetails.ID); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("machine_size_details", flattenHostedRunnerMachineSpec(runner.MachineSizeDetails)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if runner.RunnerGroupID != nil {
+		if err := d.Set("runner_group_id", int(*runner.RunnerGroupID)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if runner.MaximumRunners != nil {
+		if err := d.Set("maximum_runners", int(*runner.MaximumRunners)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if runner.PublicIPs != nil {
+		if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
 }
 
-func resourceGithubEnterpriseActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
-	enterpriseSlug, runnerIDStr, err := parseEnterpriseRunnerID(d.Id())
+	enterpriseSlug, runnerIDStr, err := parseTwoPartID(d.Id(), "enterprise_slug", "runner_id")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid runner ID %q: %w", runnerIDStr, err)
+		return diag.FromErr(fmt.Errorf("invalid runner ID %q: %w", runnerIDStr, err))
 	}
 
 	runner, resp, err := client.Enterprise.GetHostedRunner(ctx, enterpriseSlug, runnerID)
@@ -344,97 +322,96 @@ func resourceGithubEnterpriseActionsHostedRunnerRead(d *schema.ResourceData, met
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("error reading enterprise hosted runner: %w", err)
+		return diag.FromErr(fmt.Errorf("error reading enterprise hosted runner: %w", err))
 	}
 
 	if runner == nil {
-		return fmt.Errorf("no runner data returned from API")
+		return diag.Errorf("no runner data returned from API")
 	}
 
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if runner.ID != nil {
 		if err := d.Set("runner_id", int(*runner.ID)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.Name != nil {
 		if err := d.Set("name", *runner.Name); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if runner.Status != nil {
 		if err := d.Set("status", *runner.Status); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if runner.Platform != nil {
 		if err := d.Set("platform", *runner.Platform); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if runner.LastActiveOn != nil {
 		if err := d.Set("last_active_on", runner.LastActiveOn.Format(time.RFC3339)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if runner.PublicIPEnabled != nil {
 		if err := d.Set("public_ip_enabled", *runner.PublicIPEnabled); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.ImageDetails != nil {
 		if err := d.Set("image", flattenHostedRunnerImage(runner.ImageDetails)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.MachineSizeDetails != nil {
 		if err := d.Set("size", runner.MachineSizeDetails.ID); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("machine_size_details", flattenHostedRunnerMachineSpec(runner.MachineSizeDetails)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.RunnerGroupID != nil {
 		if err := d.Set("runner_group_id", int(*runner.RunnerGroupID)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.MaximumRunners != nil {
 		if err := d.Set("maximum_runners", int(*runner.MaximumRunners)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner.PublicIPs != nil {
 		if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
-	enterpriseSlug, runnerIDStr, err := parseEnterpriseRunnerID(d.Id())
+	enterpriseSlug, runnerIDStr, err := parseTwoPartID(d.Id(), "enterprise_slug", "runner_id")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid runner ID %q: %w", runnerIDStr, err)
+		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
 	}
 
 	request := &github.HostedRunnerRequest{}
@@ -461,49 +438,57 @@ func resourceGithubEnterpriseActionsHostedRunnerUpdate(d *schema.ResourceData, m
 		hasChanges = true
 	}
 
+	// This should rarely happen as Terraform only calls Update when there are changes in the plan.
+	// However, computed fields or external changes could trigger Update without actual user-configurable changes.
 	if !hasChanges {
-		return resourceGithubEnterpriseActionsHostedRunnerRead(d, meta)
+		return nil
 	}
 
 	_, _, err = client.Enterprise.UpdateHostedRunner(ctx, enterpriseSlug, runnerID, *request)
 	if err != nil {
-		return fmt.Errorf("error updating enterprise hosted runner: %w", err)
+		return diag.Errorf("error updating enterprise hosted runner: %s", err.Error())
 	}
 
-	return resourceGithubEnterpriseActionsHostedRunnerRead(d, meta)
+	return nil
 }
 
-func resourceGithubEnterpriseActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
-	enterpriseSlug, runnerIDStr, err := parseEnterpriseRunnerID(d.Id())
+	enterpriseSlug, runnerIDStr, err := parseTwoPartID(d.Id(), "enterprise_slug", "runner_id")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid runner ID %q: %w", runnerIDStr, err)
+		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
 	}
 
 	_, resp, err := client.Enterprise.DeleteHostedRunner(ctx, enterpriseSlug, runnerID)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil
-		}
-		// Check if it's an async deletion (202 Accepted)
-		if resp != nil && resp.StatusCode == http.StatusAccepted {
-			return waitForEnterpriseRunnerDeletion(ctx, client, enterpriseSlug, runnerID, d.Timeout(schema.TimeoutDelete))
-		}
-		return fmt.Errorf("error deleting enterprise hosted runner: %w", err)
+
+	// Check status code before error to handle expected HTTP responses.
+	// Runner doesn't exist - treat as successful deletion since desired state is achieved.
+	// This can happen if the runner was already deleted outside of Terraform.
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return nil
 	}
 
-	// If we got a 202, wait for deletion to complete
+	// Async deletion initiated (202 Accepted) - GitHub is processing the deletion.
+	// Poll until the runner is actually removed from the API.
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return waitForEnterpriseRunnerDeletion(ctx, client, enterpriseSlug, runnerID, d.Timeout(schema.TimeoutDelete))
+		if err := waitForEnterpriseRunnerDeletion(ctx, client, enterpriseSlug, runnerID, d.Timeout(schema.TimeoutDelete)); err != nil {
+			return diag.Errorf("error waiting for enterprise hosted runner deletion: %s", err.Error())
+		}
+		return nil
 	}
 
+	// Any other error (API errors, network issues, etc.)
+	if err != nil {
+		return diag.Errorf("error deleting enterprise hosted runner: %s", err.Error())
+	}
+
+	// Successful synchronous deletion (200 OK)
 	return nil
 }
 
@@ -530,22 +515,4 @@ func waitForEnterpriseRunnerDeletion(ctx context.Context, client *github.Client,
 
 	_, err := conf.WaitForStateContext(ctx)
 	return err
-}
-
-func parseEnterpriseRunnerID(id string) (string, string, error) {
-	parts := make([]string, 0, 2)
-	for i, part := range regexp.MustCompile(`/`).Split(id, -1) {
-		if i == 0 {
-			parts = append(parts, part)
-		} else {
-			parts = append(parts, part)
-			break
-		}
-	}
-
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid ID format: %s (expected: enterprise_slug/runner_id)", id)
-	}
-
-	return parts[0], parts[1], nil
 }
