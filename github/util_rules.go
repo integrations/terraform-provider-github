@@ -8,7 +8,53 @@ import (
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+func requiredReviewersSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Require specific reviewers to approve pull requests targeting matching branches. Note: This feature is in beta and subject to change.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"reviewer": {
+					Type:        schema.TypeList,
+					Required:    true,
+					MaxItems:    1,
+					Description: "The reviewer that must review matching files.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:        schema.TypeInt,
+								Required:    true,
+								Description: "The ID of the reviewer that must review.",
+							},
+							"type": {
+								Type:             schema.TypeString,
+								Required:         true,
+								ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+								Description:      "The type of reviewer. Currently only `Team` is supported.",
+							},
+						},
+					},
+				},
+				"file_patterns": {
+					Type:        schema.TypeList,
+					Required:    true,
+					MinItems:    1,
+					Description: "File patterns (fnmatch syntax) that this reviewer must approve.",
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"minimum_approvals": {
+					Type:        schema.TypeInt,
+					Required:    true,
+					Description: "Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.",
+				},
+			},
+		},
+	}
+}
 
 // Helper function to safely convert interface{} to int, handling both int and float64.
 func toInt(v any) int {
@@ -51,6 +97,72 @@ func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
 		}
 	}
 	return mergeMethods
+}
+
+// expandRequiredReviewers converts Terraform schema data to go-github RequiredReviewers.
+func expandRequiredReviewers(input []any) []*github.RulesetRequiredReviewer {
+	if len(input) == 0 {
+		return nil
+	}
+
+	reviewers := make([]*github.RulesetRequiredReviewer, 0, len(input))
+	for _, item := range input {
+		reviewerMap := item.(map[string]any)
+
+		var reviewer *github.RulesetReviewer
+		if rv, ok := reviewerMap["reviewer"].([]any); ok && len(rv) != 0 {
+			reviewerData := rv[0].(map[string]any)
+			reviewerType := github.RulesetReviewerType(reviewerData["type"].(string))
+			reviewer = &github.RulesetReviewer{
+				ID:   github.Ptr(int64(reviewerData["id"].(int))),
+				Type: &reviewerType,
+			}
+		}
+
+		filePatterns := make([]string, 0)
+		if fp, ok := reviewerMap["file_patterns"].([]any); ok {
+			for _, p := range fp {
+				filePatterns = append(filePatterns, p.(string))
+			}
+		}
+
+		reviewers = append(reviewers, &github.RulesetRequiredReviewer{
+			MinimumApprovals: github.Ptr(reviewerMap["minimum_approvals"].(int)),
+			FilePatterns:     filePatterns,
+			Reviewer:         reviewer,
+		})
+	}
+	return reviewers
+}
+
+// flattenRequiredReviewers converts go-github RequiredReviewers to Terraform schema data.
+func flattenRequiredReviewers(reviewers []*github.RulesetRequiredReviewer) []map[string]any {
+	if len(reviewers) == 0 {
+		return nil
+	}
+
+	reviewersList := make([]map[string]any, 0, len(reviewers))
+	for _, rr := range reviewers {
+		reviewerMap := map[string]any{
+			"file_patterns":     rr.FilePatterns,
+			"minimum_approvals": 0,
+		}
+		if rr.MinimumApprovals != nil {
+			reviewerMap["minimum_approvals"] = *rr.MinimumApprovals
+		}
+		if rr.Reviewer != nil {
+			reviewerData := map[string]any{}
+			if rr.Reviewer.ID != nil {
+				reviewerData["id"] = int(*rr.Reviewer.ID)
+			}
+			if rr.Reviewer.Type != nil {
+				reviewerData["type"] = string(*rr.Reviewer.Type)
+			}
+			reviewerMap["reviewer"] = []map[string]any{reviewerData}
+		}
+		reviewersList = append(reviewersList, reviewerMap)
+	}
+	return reviewersList
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
@@ -326,6 +438,12 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
 			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
 		}
+
+		// Add required reviewers if provided
+		if reqReviewers, ok := pullRequestMap["required_reviewers"].([]any); ok && len(reqReviewers) != 0 {
+			params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
+		}
+
 		rulesetRules.PullRequest = params
 	}
 
@@ -576,6 +694,7 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
+			"required_reviewers":                flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
 		})
 		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
