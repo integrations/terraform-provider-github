@@ -47,6 +47,18 @@ lintcheck:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
 
+tf-provider-lint:
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Running TF provider lint on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿";
+	tfproviderlintx \
+		-AT001=false \
+		-AT003=false \
+		-AT006=false \
+		-XAT001=false \
+		-XR003=false \
+		-XS002=false \
+		$(TEST)
+
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running unit tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
@@ -85,4 +97,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep
+.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep tf-provider-lint
