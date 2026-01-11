@@ -222,6 +222,22 @@ The `rules` block supports the following:
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
+* `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rules.pull_request.required_reviewers))
+
+#### rules.pull_request.required_reviewers ####
+
+* `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rules.pull_request.required_reviewers.reviewer))
+
+* `file_patterns` - (Required) (List of String) File patterns (fnmatch syntax) that this reviewer must approve.
+
+* `minimum_approvals` - (Required) (Number) Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.
+
+#### rules.pull_request.required_reviewers.reviewer ####
+
+* `id` - (Required) (Number) The ID of the reviewer (Team ID).
+
+* `type` - (Required) (String) The type of reviewer. Currently only `Team` is supported.
+
 #### rules.required_deployments ####
 
 - `required_deployment_environments` - (Required) (List of String) The environments that must be successfully deployed to before branches can be merged.
