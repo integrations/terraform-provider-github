@@ -30,6 +30,7 @@ default: build
 tools:
 	go install github.com/client9/misspell/cmd/misspell@v0.3.4
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/bflad/tfproviderlint/cmd/tfproviderlintx@latest
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
