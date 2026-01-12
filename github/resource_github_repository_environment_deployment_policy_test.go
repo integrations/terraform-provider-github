@@ -72,6 +72,11 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
 					Config: config,
 					Check:  check,
 				},
+				{
+					ResourceName:      "github_repository_environment_deployment_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
 		})
 	})
