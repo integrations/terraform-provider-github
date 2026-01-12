@@ -21,7 +21,22 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
 		DeleteContext: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				log.Printf("[DEBUG] Importing repository environment deployment policy: %s", d.Id())
+
+				repoName, envName, _, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+				if err != nil {
+					return nil, err
+				}
+
+				_ = d.Set("repository", repoName)
+				envNameUnescaped, err := url.PathUnescape(envName)
+				if err != nil {
+					return nil, err
+				}
+				_ = d.Set("environment", envNameUnescaped)
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -102,6 +117,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	log.Printf("[DEBUG] Reading repository environment deployment policy: %s", d.Id())
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -120,6 +136,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
+				log.Printf("[DEBUG] API responded with StatusNotModified, not refreshing state")
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
