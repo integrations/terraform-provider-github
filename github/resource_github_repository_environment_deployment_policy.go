@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -22,19 +22,37 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		DeleteContext: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				log.Printf("[DEBUG] Importing repository environment deployment policy: %s", d.Id())
+				tflog.Debug(ctx, "Importing repository environment deployment policy", map[string]any{
+					"id": d.Id(),
+				})
 
-				repoName, envName, _, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+				repoName, envName, policyId, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
 				if err != nil {
+					tflog.Error(ctx, "Failed to parse import ID", map[string]any{
+						"id":    d.Id(),
+						"error": err.Error(),
+					})
 					return nil, err
 				}
 
 				_ = d.Set("repository", repoName)
 				envNameUnescaped, err := url.PathUnescape(envName)
 				if err != nil {
+					tflog.Error(ctx, "Failed to unescape environment name", map[string]any{
+						"id":          d.Id(),
+						"environment": envName,
+						"error":       err.Error(),
+					})
 					return nil, err
 				}
 				_ = d.Set("environment", envNameUnescaped)
+
+				tflog.Info(ctx, "Imported repository environment deployment policy", map[string]any{
+					"repository":  repoName,
+					"environment": envNameUnescaped,
+					"policy_id":   policyId,
+				})
+
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -93,31 +111,56 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 	escapedEnvName := url.PathEscape(envName)
 
 	var createData github.DeploymentBranchPolicyRequest
+	var patternType string
 	if v, ok := d.GetOk("branch_pattern"); ok {
+		patternType = "branch"
 		createData = github.DeploymentBranchPolicyRequest{
 			Name: github.Ptr(v.(string)),
 			Type: github.Ptr("branch"),
 		}
 	} else if v, ok := d.GetOk("tag_pattern"); ok {
+		patternType = "tag"
 		createData = github.DeploymentBranchPolicyRequest{
 			Name: github.Ptr(v.(string)),
 			Type: github.Ptr("tag"),
 		}
-	} else {
-		return diag.Errorf("only one of 'branch_pattern' or 'tag_pattern' must be specified")
 	}
+
+	tflog.Debug(ctx, "Creating repository environment deployment policy", map[string]any{
+		"owner":        owner,
+		"repository":   repoName,
+		"environment":  envName,
+		"pattern_type": patternType,
+	})
 
 	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
 	if err != nil {
+		tflog.Error(ctx, "Failed to create repository environment deployment policy", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"environment": envName,
+			"error":       err.Error(),
+		})
 		return diag.FromErr(err)
 	}
 
-	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
+	policyID := resultKey.GetID()
+	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(policyID, 10)))
+
+	tflog.Info(ctx, "Created repository environment deployment policy", map[string]any{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+		"policy_id":   policyID,
+	})
+
 	return nil
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading repository environment deployment policy: %s", d.Id())
+	tflog.Debug(ctx, "Reading repository environment deployment policy", map[string]any{
+		"id": d.Id(),
+	})
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -136,24 +179,44 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
-				log.Printf("[DEBUG] API responded with StatusNotModified, not refreshing state")
+				tflog.Debug(ctx, "API responded with StatusNotModified, not refreshing state")
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing branch deployment policy for %s/%s/%s from state because it no longer exists in GitHub",
-					owner, repoName, envName)
+				tflog.Info(ctx, "Removing branch deployment policy from state because it no longer exists in GitHub", map[string]any{
+					"owner":       owner,
+					"repository":  repoName,
+					"environment": envName,
+				})
 				d.SetId("")
 				return nil
 			}
 		}
+		tflog.Error(ctx, "Failed to read repository environment deployment policy", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"environment": envName,
+			"policy_id":   branchPolicyId,
+			"error":       err.Error(),
+		})
 		return diag.FromErr(err)
 	}
 
-	if branchPolicy.GetType() == "branch" {
+	patternType := branchPolicy.GetType()
+	if patternType == "branch" {
 		_ = d.Set("branch_pattern", branchPolicy.GetName())
 	} else {
 		_ = d.Set("tag_pattern", branchPolicy.GetName())
 	}
+
+	tflog.Debug(ctx, "Successfully read repository environment deployment policy", map[string]any{
+		"owner":        owner,
+		"repository":   repoName,
+		"environment":  envName,
+		"policy_id":    branchPolicyId,
+		"pattern_type": patternType,
+	})
+
 	return nil
 }
 
@@ -176,6 +239,13 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
+	tflog.Debug(ctx, "Updating repository environment deployment policy", map[string]any{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+		"policy_id":   branchPolicyId,
+	})
+
 	pattern := branchPattern
 	if branchPattern == "" {
 		pattern = tagPattern
@@ -187,9 +257,26 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 
 	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
 	if err != nil {
+		tflog.Error(ctx, "Failed to update repository environment deployment policy", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"environment": envName,
+			"policy_id":   branchPolicyId,
+			"error":       err.Error(),
+		})
 		return diag.FromErr(err)
 	}
-	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
+
+	policyID := resultKey.GetID()
+	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(policyID, 10)))
+
+	tflog.Info(ctx, "Updated repository environment deployment policy", map[string]any{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+		"policy_id":   policyID,
+	})
+
 	return nil
 }
 
@@ -207,10 +294,31 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
+	tflog.Debug(ctx, "Deleting repository environment deployment policy", map[string]any{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+		"policy_id":   branchPolicyId,
+	})
+
 	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
 	if err != nil {
+		tflog.Error(ctx, "Failed to delete repository environment deployment policy", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"environment": envName,
+			"policy_id":   branchPolicyId,
+			"error":       err.Error(),
+		})
 		return diag.FromErr(err)
 	}
+
+	tflog.Info(ctx, "Deleted repository environment deployment policy", map[string]any{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+		"policy_id":   branchPolicyId,
+	})
 
 	return nil
 }
