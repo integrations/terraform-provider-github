@@ -110,50 +110,40 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 	defer respBody.Close()
 
 	buf := new(strings.Builder)
-	_, err = io.Copy(buf, respBody)
-	if err != nil {
+	if _, err := io.Copy(buf, respBody); err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(asset.GetID(), 10))
-	err = d.Set("body", buf.String())
-	if err != nil {
+
+	if err := d.Set("body", buf.String()); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("url", asset.URL)
-	if err != nil {
+	if err := d.Set("url", asset.URL); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("node_id", asset.NodeID)
-	if err != nil {
+	if err := d.Set("node_id", asset.NodeID); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("name", asset.Name)
-	if err != nil {
+	if err := d.Set("name", asset.Name); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("label", asset.Label)
-	if err != nil {
+	if err := d.Set("label", asset.Label); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("content_type", asset.ContentType)
-	if err != nil {
+	if err := d.Set("content_type", asset.ContentType); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("size", asset.Size)
-	if err != nil {
+	if err := d.Set("size", asset.Size); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("created_at", asset.CreatedAt.String())
-	if err != nil {
+	if err := d.Set("created_at", asset.CreatedAt.String()); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("created_at", asset.UpdatedAt.String())
-	if err != nil {
+	if err := d.Set("created_at", asset.UpdatedAt.String()); err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("browser_download_url", asset.BrowserDownloadURL)
-	if err != nil {
+	if err := d.Set("browser_download_url", asset.BrowserDownloadURL); err != nil {
 		return diag.FromErr(err)
 	}
 
