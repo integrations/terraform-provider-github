@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -92,18 +91,14 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 
 	client := meta.(*Owner).v3client
 
-	var err error
-	var asset *github.ReleaseAsset
-
 	assetID := int64(d.Get("asset_id").(int))
-	asset, _, err = client.Repositories.GetReleaseAsset(ctx, owner, repository, assetID)
+	asset, _, err := client.Repositories.GetReleaseAsset(ctx, owner, repository, assetID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var respBody io.ReadCloser
 	clientCopy := client.Client()
-	respBody, _, err = client.Repositories.DownloadReleaseAsset(ctx, owner, repository, assetID, clientCopy)
+	respBody, _, err := client.Repositories.DownloadReleaseAsset(ctx, owner, repository, assetID, clientCopy)
 	if err != nil {
 		return diag.FromErr(err)
 	}
