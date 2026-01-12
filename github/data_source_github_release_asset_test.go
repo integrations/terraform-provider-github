@@ -46,25 +46,23 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 			}
 		`, testReleaseRepository, testAccConf.testPublicRepositoryOwner, testReleaseAssetID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_release_asset.test", "asset_id", testReleaseAssetID,
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_release_asset.test", "name", testReleaseAssetName,
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_release_asset.test", "body", testReleaseAssetContent,
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Providers:         testAccProviders,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "asset_id", testReleaseAssetID,
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "name", testReleaseAssetName,
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "body", testReleaseAssetContent,
+						),
+					),
 				},
 			},
 		})
