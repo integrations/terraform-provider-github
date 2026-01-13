@@ -681,10 +681,12 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%stest-push-%s", testResourcePrefix, randomID)
 		resourceName := "test-push-ruleset"
+		resourceFullName := fmt.Sprintf("github_organization_ruleset.%s", resourceName)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "%s" {
-				name        = "test-push-%s"
+				name        = "%s"
 				target      = "push"
 				enforcement = "active"
 
@@ -703,30 +705,7 @@ resource "github_organization_ruleset" "test" {
 					}
 				}
 			}
-		`, resourceName, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
-				"name",
-				fmt.Sprintf("test-push-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
-				"target",
-				"push",
-			),
-			resource.TestCheckResourceAttr(
-				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
-				"enforcement",
-				"active",
-			),
-			resource.TestCheckResourceAttr(
-				fmt.Sprintf("github_organization_ruleset.%s", resourceName),
-				"rules.0.max_file_size.0.max_file_size",
-				"100",
-			),
-		)
+		`, resourceName, rulesetName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -734,7 +713,12 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceFullName, "name", rulesetName),
+						resource.TestCheckResourceAttr(resourceFullName, "target", "push"),
+						resource.TestCheckResourceAttr(resourceFullName, "enforcement", "active"),
+						resource.TestCheckResourceAttr(resourceFullName, "rules.0.max_file_size.0.max_file_size", "100"),
+					),
 				},
 			},
 		})
