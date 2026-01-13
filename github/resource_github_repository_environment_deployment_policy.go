@@ -21,40 +21,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
 		DeleteContext: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				tflog.Debug(ctx, "Importing repository environment deployment policy", map[string]any{
-					"id": d.Id(),
-				})
-
-				repoName, envName, policyId, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
-				if err != nil {
-					tflog.Error(ctx, "Failed to parse import ID", map[string]any{
-						"id":    d.Id(),
-						"error": err.Error(),
-					})
-					return nil, err
-				}
-
-				_ = d.Set("repository", repoName)
-				envNameUnescaped, err := url.PathUnescape(envName)
-				if err != nil {
-					tflog.Error(ctx, "Failed to unescape environment name", map[string]any{
-						"id":          d.Id(),
-						"environment": envName,
-						"error":       err.Error(),
-					})
-					return nil, err
-				}
-				_ = d.Set("environment", envNameUnescaped)
-
-				tflog.Info(ctx, "Imported repository environment deployment policy", map[string]any{
-					"repository":  repoName,
-					"environment": envNameUnescaped,
-					"policy_id":   policyId,
-				})
-
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -334,4 +301,45 @@ func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.Resource
 	}
 
 	return nil
+}
+
+func resourceGithubRepositoryEnvironmentDeploymentPolicyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	tflog.Debug(ctx, "Importing repository environment deployment policy", map[string]any{
+		"id": d.Id(),
+	})
+
+	repoName, envName, policyId, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+	if err != nil {
+		tflog.Error(ctx, "Failed to parse import ID", map[string]any{
+			"id":    d.Id(),
+			"error": err.Error(),
+		})
+		return nil, err
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+
+	envNameUnescaped, err := url.PathUnescape(envName)
+	if err != nil {
+		tflog.Error(ctx, "Failed to unescape environment name", map[string]any{
+			"id":          d.Id(),
+			"environment": envName,
+			"error":       err.Error(),
+		})
+		return nil, err
+	}
+
+	if err := d.Set("environment", envNameUnescaped); err != nil {
+		return nil, err
+	}
+
+	tflog.Info(ctx, "Imported repository environment deployment policy", map[string]any{
+		"repository":  repoName,
+		"environment": envNameUnescaped,
+		"policy_id":   policyId,
+	})
+
+	return []*schema.ResourceData{d}, nil
 }
