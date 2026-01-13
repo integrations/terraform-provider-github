@@ -18,7 +18,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheck(t)
+			skipUnauthenticated(t)
 			testAccPreCheckEnterprise(t)
 		},
 		Providers: testAccProviders,
@@ -56,7 +56,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheck(t)
+			skipUnauthenticated(t)
 			testAccPreCheckEnterprise(t)
 		},
 		Providers: testAccProviders,

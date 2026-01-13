@@ -45,7 +45,7 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -91,7 +91,7 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta
 	return resourceGithubEnterpriseIpAllowListEntryRead(d, meta)
 }
 
-func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -113,7 +113,7 @@ func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta i
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"id": githubv4.ID(d.Id()),
 	}
 
@@ -129,17 +129,17 @@ func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta i
 
 	entry := query.Node.IpAllowListEntry
 
-	d.Set("ip", entry.AllowListValue)
-	d.Set("name", entry.Name)
-	d.Set("is_active", entry.IsActive)
-	d.Set("created_at", entry.CreatedAt)
-	d.Set("updated_at", entry.UpdatedAt)
-	d.Set("enterprise_slug", entry.Owner.Enterprise.Slug)
+	_ = d.Set("ip", entry.AllowListValue)
+	_ = d.Set("name", entry.Name)
+	_ = d.Set("is_active", entry.IsActive)
+	_ = d.Set("created_at", entry.CreatedAt)
+	_ = d.Set("updated_at", entry.UpdatedAt)
+	_ = d.Set("enterprise_slug", entry.Owner.Enterprise.Slug)
 
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -174,7 +174,7 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(d *schema.ResourceData, meta
 	return resourceGithubEnterpriseIpAllowListEntryRead(d, meta)
 }
 
-func resourceGithubEnterpriseIpAllowListEntryDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v4client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -197,7 +197,7 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(d *schema.ResourceData, meta
 	return nil
 }
 
-// Helper function to get Enterprise ID from slug
+// Helper function to get Enterprise ID from slug.
 func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlug string) (string, error) {
 	var query struct {
 		Enterprise struct {
@@ -205,7 +205,7 @@ func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlu
 		} `graphql:"enterprise(slug: $slug)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug": githubv4.String(enterpriseSlug),
 	}
 
