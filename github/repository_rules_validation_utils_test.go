@@ -2,6 +2,8 @@ package github
 
 import (
 	"testing"
+
+	"github.com/google/go-github/v82/github"
 )
 
 func Test_validateConditionsFieldForPushTarget(t *testing.T) {
@@ -59,14 +61,14 @@ func Test_validateConditionsFieldForPushTarget(t *testing.T) {
 func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *testing.T) {
 	tests := []struct {
 		name        string
-		target      string
+		target      github.RulesetTarget
 		conditions  map[string]any
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:   "valid branch target with ref_name",
-			target: "branch",
+			target: github.RulesetTargetBranch,
 			conditions: map[string]any{
 				"ref_name": []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
 			},
@@ -74,7 +76,7 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 		},
 		{
 			name:   "valid tag target with ref_name",
-			target: "tag",
+			target: github.RulesetTargetTag,
 			conditions: map[string]any{
 				"ref_name": []any{map[string]any{"include": []any{"v*"}, "exclude": []any{}}},
 			},
@@ -82,28 +84,28 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 		},
 		{
 			name:        "invalid branch target without ref_name",
-			target:      "branch",
+			target:      github.RulesetTargetBranch,
 			conditions:  map[string]any{},
 			expectError: true,
 			errorMsg:    "ref_name must be set for branch target",
 		},
 		{
 			name:        "invalid tag target without ref_name",
-			target:      "tag",
+			target:      github.RulesetTargetTag,
 			conditions:  map[string]any{},
 			expectError: true,
 			errorMsg:    "ref_name must be set for tag target",
 		},
 		{
 			name:        "invalid branch target with nil ref_name",
-			target:      "branch",
+			target:      github.RulesetTargetBranch,
 			conditions:  map[string]any{"ref_name": nil},
 			expectError: true,
 			errorMsg:    "ref_name must be set for branch target",
 		},
 		{
 			name:        "invalid tag target with empty ref_name slice",
-			target:      "tag",
+			target:      github.RulesetTargetTag,
 			conditions:  map[string]any{"ref_name": []any{}},
 			expectError: true,
 			errorMsg:    "ref_name must be set for tag target",
@@ -131,14 +133,14 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 	tests := []struct {
 		name        string
-		target      string
+		target      github.RulesetTarget
 		conditions  map[string]any
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:   "valid branch target with ref_name and repository_name",
-			target: "branch",
+			target: github.RulesetTargetBranch,
 			conditions: map[string]any{
 				"ref_name":        []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
 				"repository_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
@@ -147,7 +149,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 		},
 		{
 			name:   "valid tag target with ref_name and repository_id",
-			target: "tag",
+			target: github.RulesetTargetTag,
 			conditions: map[string]any{
 				"ref_name":      []any{map[string]any{"include": []any{"v*"}, "exclude": []any{}}},
 				"repository_id": []any{123, 456},
@@ -156,7 +158,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 		},
 		{
 			name:   "invalid branch target without ref_name",
-			target: "branch",
+			target: github.RulesetTargetBranch,
 			conditions: map[string]any{
 				"repository_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
 			},
@@ -165,7 +167,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 		},
 		{
 			name:   "invalid branch target without repository_name or repository_id",
-			target: "branch",
+			target: github.RulesetTargetBranch,
 			conditions: map[string]any{
 				"ref_name": []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
 			},
@@ -174,7 +176,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 		},
 		{
 			name:   "invalid tag target with nil repository_name and repository_id",
-			target: "tag",
+			target: github.RulesetTargetTag,
 			conditions: map[string]any{
 				"ref_name":        []any{map[string]any{"include": []any{"v*"}, "exclude": []any{}}},
 				"repository_name": nil,
@@ -185,7 +187,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 		},
 		{
 			name:   "invalid branch target with empty repository_name and repository_id slices",
-			target: "branch",
+			target: github.RulesetTargetBranch,
 			conditions: map[string]any{
 				"ref_name":        []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
 				"repository_name": []any{},

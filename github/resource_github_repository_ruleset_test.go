@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -519,11 +518,15 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		archivedBefore := false
+		archivedAfter := true
+		enforcementBefore := "active"
+		enforcementAfter := "disabled"
+		config := `
 			resource "github_repository" "test" {
 				name      = "%s"
 				auto_init = true
-				archived  = false
+				archived  = %t
 				visibility = "%s"
 			}
 
@@ -531,18 +534,18 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				name        = "test"
 				repository  = github_repository.test.name
 				target      = "branch"
-				enforcement = "active"
+				enforcement = "%s"
 				rules { creation = true }
 			}
-		`, repoName, baseRepoVisibility)
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: config},
-				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
-				{Config: strings.Replace(strings.Replace(config, "archived  = false", "archived  = true", 1), `enforcement = "active"`, `enforcement = "disabled"`, 1)},
+				{Config: fmt.Sprintf(config, repoName, archivedBefore, baseRepoVisibility, enforcementBefore)},
+				{Config: fmt.Sprintf(config, repoName, archivedAfter, baseRepoVisibility, enforcementBefore)},
+				{Config: fmt.Sprintf(config, repoName, archivedAfter, baseRepoVisibility, enforcementAfter)},
 			},
 		})
 	})

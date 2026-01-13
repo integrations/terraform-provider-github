@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -42,7 +43,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				ValidateFunc: validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}, false),
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
@@ -800,7 +801,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 
 // validateRepositoryRulesetConditions validates conditions based on target type.
 func validateRepositoryRulesetConditions(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	target := d.Get("target").(string)
+	target := github.RulesetTarget(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating repository ruleset conditions", map[string]any{"target": target})
 
 	conditionsRaw := d.Get("conditions").([]any)
@@ -812,16 +813,16 @@ func validateRepositoryRulesetConditions(ctx context.Context, d *schema.Resource
 	conditions := conditionsRaw[0].(map[string]any)
 
 	switch target {
-	case "branch", "tag":
+	case github.RulesetTargetBranch, github.RulesetTargetTag:
 		return validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
-	case "push":
+	case github.RulesetTargetPush:
 		return validateConditionsFieldForPushTarget(ctx, conditions)
 	}
 	return nil
 }
 
 func validateRepositoryRulesetRules(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	target := d.Get("target").(string)
+	target := github.RulesetTarget(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating repository ruleset rules based on target", map[string]any{"target": target})
 
 	rulesRaw := d.Get("rules").([]any)
