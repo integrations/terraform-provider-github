@@ -336,7 +336,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 
-	t.Run("handles files larger than 1MB with raw encoding", func(t *testing.T) {
+	t.Run("handles files larger than 1MB", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		initialContent := strings.Repeat("A", 1200000)
