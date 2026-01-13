@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestValidateConditionsFieldForPushTarget(t *testing.T) {
+func Test_validateConditionsFieldForPushTarget(t *testing.T) {
 	tests := []struct {
 		name        string
 		conditions  map[string]any
@@ -56,7 +56,7 @@ func TestValidateConditionsFieldForPushTarget(t *testing.T) {
 	}
 }
 
-func TestValidateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *testing.T) {
+func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *testing.T) {
 	tests := []struct {
 		name        string
 		target      string
@@ -128,7 +128,7 @@ func TestValidateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *testi
 	}
 }
 
-func TestValidateConditionsFieldForBranchAndTagTargets(t *testing.T) {
+func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 	tests := []struct {
 		name        string
 		target      string
@@ -214,7 +214,7 @@ func TestValidateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 	}
 }
 
-func TestRuleListsDoNotOverlap(t *testing.T) {
+func Test_ruleListsDoNotOverlap(t *testing.T) {
 	for _, pushRule := range pushOnlyRules {
 		for _, branchTagRule := range branchTagOnlyRules {
 			if pushRule == branchTagRule {
