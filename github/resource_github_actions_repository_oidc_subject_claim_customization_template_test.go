@@ -9,12 +9,12 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates repository oidc subject claim customization template without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%s"
+			name = "%s"
 			visibility = "private"
 		}
 
@@ -22,7 +22,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 			repository = github_repository.test.name
 			use_default = false
 			include_claim_keys = ["repo", "context", "job_workflow_ref"]
-		}`, randomID)
+		}`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -45,33 +45,24 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 				"include_claim_keys.2", "job_workflow_ref",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("updates repository oidc subject claim customization template without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		configTemplate := `
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%s"
+			name = "%s"
 			visibility = "private"
 		}
 
@@ -86,7 +77,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 
 		resetToDefaultConfigTemplate := `
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%s"
+			name = "%s"
 			visibility = "private"
 		}
 
@@ -97,11 +88,11 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 `
 
 		configs := map[string]string{
-			"before": fmt.Sprintf(configTemplate, randomID, false, claims),
+			"before": fmt.Sprintf(configTemplate, repoName, false, claims),
 
-			"after": fmt.Sprintf(configTemplate, randomID, false, updatedClaims),
+			"after": fmt.Sprintf(configTemplate, repoName, false, updatedClaims),
 
-			"reset_to_default": fmt.Sprintf(resetToDefaultConfigTemplate, randomID),
+			"reset_to_default": fmt.Sprintf(resetToDefaultConfigTemplate, repoName),
 		}
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -160,51 +151,39 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 				),
 			),
 		}
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
-					{
-						Config: configs["reset_to_default"],
-						Check:  checks["reset_to_default"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+				{
+					Config: configs["reset_to_default"],
+					Check:  checks["reset_to_default"],
+				},
+			},
 		})
 	})
 
 	t.Run("imports repository oidc subject claim customization template without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%s"
+			name = "%s"
 			visibility = "private"
 		}
 		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
 			repository = github_repository.test.name
 			use_default = false
 			include_claim_keys = ["repository_owner_id", "run_id", "workflow"]
-		}`, randomID)
+		}`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -229,33 +208,20 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_repository_oidc_subject_claim_customization_template.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_repository_oidc_subject_claim_customization_template.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }

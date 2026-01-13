@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -11,7 +12,7 @@ func dataSourceGithubOrganizationRepositoryRoles() *schema.Resource {
 	return &schema.Resource{
 		Description: "Lookup all custom repository roles in an organization.",
 
-		Read: dataSourceGithubOrganizationRepositoryRolesRead,
+		ReadContext: dataSourceGithubOrganizationRepositoryRolesRead,
 
 		Schema: map[string]*schema.Schema{
 			"roles": {
@@ -53,14 +54,13 @@ func dataSourceGithubOrganizationRepositoryRoles() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRepositoryRolesRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRepositoryRolesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	ret, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	allRoles := make([]any, ret.GetTotalCount())
@@ -77,7 +77,7 @@ func dataSourceGithubOrganizationRepositoryRolesRead(d *schema.ResourceData, met
 
 	d.SetId(fmt.Sprintf("%s/github-org-repo-roles", orgName))
 	if err := d.Set("roles", allRoles); err != nil {
-		return fmt.Errorf("error setting roles: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting roles: %w", err))
 	}
 
 	return nil

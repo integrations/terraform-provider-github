@@ -100,6 +100,8 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
+* `allow_forking` - (Optional) Set to `true` to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.
+
 * `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title. Applicable only if `allow_squash_merge` is `true`.
 
 * `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message. Applicable only if `allow_squash_merge` is `true`.
@@ -112,7 +114,7 @@ The following arguments are supported:
 
 * `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
 
-* `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
+* `has_downloads` - (**DEPRECATED**) (Optional) Set to `true` to enable the (deprecated) downloads features on the repository. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
 * `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.
 
@@ -154,9 +156,9 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
-* `public` - (Optional) Whether the rendered GitHub Pages site is publicly available. Defaults to `true`.
+* `public` - (Optional) Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.
 
-#### GitHub Pages Source ####
+#### GitHub Pages Source
 
 The `source` block supports the following:
 
@@ -178,31 +180,31 @@ The `security_and_analysis` block supports the following:
 
 * `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
 
-* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details. 
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details.
 
-#### Advanced Security Configuration ####
+#### Advanced Security Configuration
 
 The `advanced_security` block supports the following:
 
 * `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
 
-#### Code Security Configuration ####
+#### Code Security Configuration
 
 * `status` - (Required) Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Configuration ####
+#### Secret Scanning Configuration
 
 * `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Push Protection Configuration ####
+#### Secret Scanning Push Protection Configuration
 
 * `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning AI Detection #### 
+#### Secret Scanning AI Detection
 
 * `status` - (Required) Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Non-Provider Patterns #### 
+#### Secret Scanning Non-Provider Patterns
 
 * `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
@@ -237,14 +239,14 @@ The following additional attributes are exported:
 * `primary_language` - The primary language used in the repository.
 
 * `pages` - The block consisting of the repository's GitHub Pages configuration with the following additional attributes:
- * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
- * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
- * `status` - The GitHub Pages site's build status e.g. `building` or `built`.
+* `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
+* `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
+* `status` - The GitHub Pages site's build status e.g. `building` or `built`.
 
 ## Import
 
 Repositories can be imported using the `name`, e.g.
 
-```
+```text
 $ terraform import github_repository.terraform terraform
 ```

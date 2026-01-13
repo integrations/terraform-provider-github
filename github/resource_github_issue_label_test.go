@@ -10,16 +10,16 @@ import (
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates and updates labels without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-%s", testResourcePrefix, randomID)
 		description := "label_description"
 		updatedDescription := "updated_label_description"
 
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init = true
 			}
 
@@ -29,7 +29,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			  color       = "000000"
 			  description = "%s"
 			}
-		`, randomID, description)
+		`, repoName, description)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -46,42 +46,31 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							description,
-							updatedDescription, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: strings.Replace(config,
+						description,
+						updatedDescription, 1),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-arch-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -91,57 +80,47 @@ func TestAccGithubIssueLabel(t *testing.T) {
 				color = "ff0000"
 				description = "Test label for archived repo"
 			}
-		`, randomID)
+		`, repoName)
 
 		archivedConfig := strings.Replace(config,
 			`auto_init = true`,
 			`auto_init = true
 				archived = true`, 1)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_issue_label.test", "name",
-								"archived-test-label",
-							),
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_issue_label.test", "name",
+							"archived-test-label",
 						),
-					},
-					{
-						Config: archivedConfig,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository.test", "archived",
-								"true",
-							),
+					),
+				},
+				{
+					Config: archivedConfig,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"true",
 						),
-					},
-					// This step should succeed - the label should be removed from state
-					// without trying to actually delete it from the archived repo
-					{
-						Config: fmt.Sprintf(`
+					),
+				},
+				// This step should succeed - the label should be removed from state
+				// without trying to actually delete it from the archived repo
+				{
+					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
-					},
+						`, repoName),
 				},
-			})
-		}
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

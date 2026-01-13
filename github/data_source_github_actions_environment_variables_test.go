@@ -12,10 +12,11 @@ import (
 func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 	t.Run("queries actions variables from an environment", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-vars-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -29,7 +30,7 @@ func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 			  variable_name    = "test_variable"
 			  value  		   = "foo"
 			}
-			`, randomID)
+			`, repoName)
 
 		config2 := config + `
 			data "github_actions_environment_variables" "test" {
@@ -46,25 +47,19 @@ func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_actions_environment_variables.test", "variables.0.updated_at"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  resource.ComposeTestCheckFunc(),
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
 	})
 }

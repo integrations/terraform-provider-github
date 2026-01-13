@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -248,7 +248,7 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 // resourceDescription represents a formatting string that represents the resource
 // args will be passed to resourceDescription in `log.Printf`.
 func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
-	ghErr := &github.ErrorResponse{}
+	var ghErr *github.ErrorResponse
 	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			return nil

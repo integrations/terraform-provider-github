@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -85,16 +85,19 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	for _, v := range allowedValues {
 		allowedValuesString = append(allowedValuesString, v.(string))
 	}
-	valuesEditableBy := d.Get("values_editable_by").(string)
 
 	customProperty := &github.CustomProperty{
-		PropertyName:     &propertyName,
-		ValueType:        valueType,
-		Required:         &required,
-		DefaultValue:     &defaultValue,
-		Description:      &description,
-		AllowedValues:    allowedValuesString,
-		ValuesEditableBy: &valuesEditableBy,
+		PropertyName:  &propertyName,
+		ValueType:     valueType,
+		Required:      &required,
+		DefaultValue:  &defaultValue,
+		Description:   &description,
+		AllowedValues: allowedValuesString,
+	}
+
+	if val, ok := d.GetOk("values_editable_by"); ok {
+		str := val.(string)
+		customProperty.ValuesEditableBy = &str
 	}
 
 	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)

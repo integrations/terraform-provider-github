@@ -85,7 +85,7 @@ The `team` block supports:
   Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
   Must be `push` for personal repositories. Defaults to `push`.
 
-The `team_ignore` block supports:
+The `ignore_team` block supports:
 
 * `team_id` - (Required) The GitHub team id or the GitHub team slug.
 

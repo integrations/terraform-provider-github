@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -42,6 +42,7 @@ func dataSourceGithubRef() *schema.Resource {
 }
 
 func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {
@@ -50,11 +51,11 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
 
-	refData, resp, err := client.Git.GetRef(context.TODO(), owner, repoName, ref)
+	refData, resp, err := client.Git.GetRef(ctx, owner, repoName, ref)
 	if err != nil {
-		err := &github.ErrorResponse{}
-		if errors.As(err, &err) {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub ref %s/%s (%s)", owner, repoName, ref)
 				d.SetId("")
 				return nil
