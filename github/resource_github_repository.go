@@ -371,7 +371,7 @@ func resourceGithubRepository() *schema.Resource {
 						},
 						"status": {
 							Type:        schema.TypeString,
-							Optional:    true,
+							Computed:    true,
 							Description: "The GitHub Pages site's build status e.g. building or built.",
 						},
 						"url": {
@@ -1099,12 +1099,7 @@ func expandPages(input []any) *github.Pages {
 		buildType = github.String(v)
 	}
 
-	var public *bool
-	// Only set the github.PagesUpdate public field if the value is a valid boolean.
-	if v, ok := pages["public"].(bool); ok {
-		public = github.Bool(v)
-	}
-	return &github.Pages{Source: source, BuildType: buildType, Public: public}
+	return &github.Pages{Source: source, BuildType: buildType}
 }
 
 func expandPagesUpdate(input []any) *github.PagesUpdate {
