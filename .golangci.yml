@@ -19,6 +19,7 @@ linters:
     - misspell
     - modernize
     - nilerr
+    - nilnesserr
     - predeclared
     - staticcheck
     - unconvert
