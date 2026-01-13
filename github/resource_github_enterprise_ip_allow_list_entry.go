@@ -47,7 +47,6 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 
 func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v4client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, get the enterprise ID as we need it for the mutation
 	enterpriseSlug := d.Get("enterprise_slug").(string)
