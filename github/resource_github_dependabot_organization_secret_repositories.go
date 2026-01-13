@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -38,7 +38,7 @@ func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(d *sch
 	return resourceGithubDependabotOrganizationSecretRepositoriesRead(d, meta)
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(d *schema.Resour
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubDependabotOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

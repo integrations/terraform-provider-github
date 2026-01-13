@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -54,7 +54,8 @@ func dataSourceGithubActionsVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -81,7 +82,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta interface
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListRepoVariables(context.TODO(), owner, repoName, &options)
+		variables, resp, err := client.Actions.ListRepoVariables(ctx, owner, repoName, &options)
 		if err != nil {
 			return err
 		}

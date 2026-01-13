@@ -3,10 +3,11 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -15,10 +16,9 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubCodespacesUserSecretCreateOrUpdate,
 		Read:   resourceGithubCodespacesUserSecretRead,
-		Update: resourceGithubCodespacesUserSecretCreateOrUpdate,
 		Delete: resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -58,6 +58,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 				},
 				Set:         schema.HashInt,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "An array of repository ids that can access the user secret.",
 			},
 			"created_at": {
@@ -74,7 +75,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -126,13 +127,14 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubCodespacesUserSecretRead(d, meta)
 }
 
-func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
 	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -205,7 +207,7 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -214,7 +216,7 @@ func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta inter
 	return err
 }
 
-func getCodespacesUserPublicKeyDetails(meta interface{}) (keyId, pkValue string, err error) {
+func getCodespacesUserPublicKeyDetails(meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 

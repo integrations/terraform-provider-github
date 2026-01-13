@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -55,7 +55,8 @@ func dataSourceGithubActionsEnvironmentSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -79,7 +80,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Actions.ListEnvSecrets(context.TODO(), int(repo.GetID()), escapedEnvName, &options)
+		secrets, resp, err := client.Actions.ListEnvSecrets(ctx, int(repo.GetID()), escapedEnvName, &options)
 		if err != nil {
 			return err
 		}
@@ -109,7 +110,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 	}
 
 	d.SetId(buildTwoPartID(repoName, envName))
-	d.Set("secrets", all_secrets)
+	_ = d.Set("secrets", all_secrets)
 
 	return nil
 }
