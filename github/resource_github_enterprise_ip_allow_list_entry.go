@@ -11,10 +11,10 @@ import (
 
 func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseIpAllowListEntryCreate,
-		Read:   resourceGithubEnterpriseIpAllowListEntryRead,
-		Update: resourceGithubEnterpriseIpAllowListEntryUpdate,
-		Delete: resourceGithubEnterpriseIpAllowListEntryDelete,
+		CreateContext: resourceGithubEnterpriseIpAllowListEntryCreate,
+		ReadContext:   resourceGithubEnterpriseIpAllowListEntryRead,
+		UpdateContext: resourceGithubEnterpriseIpAllowListEntryUpdate,
+		DeleteContext: resourceGithubEnterpriseIpAllowListEntryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
