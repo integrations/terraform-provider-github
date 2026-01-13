@@ -44,7 +44,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				// The API accepts an `repository` target, but any rule created with that doesn't show up in the UI, nor does it have any rules.
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
+				ValidateFunc: validation.StringInSlice([]string{string(TargetBranch), string(TargetTag), string(TargetPush)}, false),
 				Description:  "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
 			},
 			"enforcement": {
@@ -868,7 +868,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 }
 
 func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	target := d.Get("target").(string)
+	target := Target(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
 
@@ -880,16 +880,16 @@ func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.Resourc
 	conditions := conditionsRaw[0].(map[string]any)
 
 	switch target {
-	case "branch", "tag":
+	case TargetBranch, TargetTag:
 		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
-	case "push":
+	case TargetPush:
 		return validateConditionsFieldForPushTarget(ctx, conditions)
 	}
 	return nil
 }
 
 func validateOrganizationRulesetRules(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	target := d.Get("target").(string)
+	target := Target(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating organization ruleset rules based on target", map[string]any{"target": target})
 
 	rulesRaw := d.Get("rules").([]any)

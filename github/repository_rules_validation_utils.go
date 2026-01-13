@@ -62,13 +62,13 @@ var pushOnlyRules = []string{
 }
 
 func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
-	target := d.Get("target").(string)
+	target := Target(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating rules for target", map[string]any{"target": target})
 
 	switch target {
-	case "push":
+	case TargetPush:
 		return validateRulesForPushTarget(ctx, d)
-	case "branch", "tag":
+	case TargetBranch, TargetTag:
 		return validateRulesForBranchTagTarget(ctx, d)
 	}
 
@@ -85,7 +85,7 @@ func validateRulesForBranchTagTarget(ctx context.Context, d *schema.ResourceDiff
 }
 
 func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []string) error {
-	target := d.Get("target").(string)
+	target := Target(d.Get("target").(string))
 	rules := d.Get("rules").([]any)[0].(map[string]any)
 	for ruleName := range rules {
 		ruleValue, exists := d.GetOk(fmt.Sprintf("rules.0.%s", ruleName))
@@ -117,7 +117,7 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []s
 	return nil
 }
 
-func validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx context.Context, target string, conditions map[string]any) error {
+func validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx context.Context, target Target, conditions map[string]any) error {
 	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
@@ -129,7 +129,7 @@ func validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx context.
 	return nil
 }
 
-func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target string, conditions map[string]any) error {
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target Target, conditions map[string]any) error {
 	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {

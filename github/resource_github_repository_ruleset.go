@@ -42,7 +42,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				ValidateFunc: validation.StringInSlice([]string{string(TargetBranch), string(TargetPush), string(TargetTag)}, false),
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
@@ -809,10 +809,10 @@ func validateRepositoryRulesetConditions(ctx context.Context, d *schema.Resource
 
 	conditions := conditionsRaw[0].(map[string]any)
 
-	switch target {
-	case "branch", "tag":
-		return validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
-	case "push":
+	switch Target(target) {
+	case TargetBranch, TargetTag:
+		return validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx, Target(target), conditions)
+	case TargetPush:
 		return validateConditionsFieldForPushTarget(ctx, conditions)
 	}
 	return nil

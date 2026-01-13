@@ -11,6 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+type Target string
+
+const (
+	TargetPush   Target = "push"
+	TargetBranch Target = "branch"
+	TargetTag    Target = "tag"
+)
+
 // This is a workaround for the SDK not setting the default value for the allowed_merge_methods field.
 var defaultPullRequestMergeMethods = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
 
