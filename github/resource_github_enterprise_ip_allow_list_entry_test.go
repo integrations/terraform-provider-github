@@ -18,7 +18,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-            skipUnlessEnterprise(t)
+			skipUnlessEnterprise(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -55,7 +55,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-            skipUnlessEnterprise(t)
+			skipUnlessEnterprise(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -90,10 +90,4 @@ resource "github_enterprise_ip_allow_list_entry" "test" {
   is_active       = %t
 }
 `, enterpriseSlug, ip, name, isActive)
-}
-
-func testAccPreCheckEnterprise(t *testing.T) {
-	if v := testAccProvider.Meta().(*Owner).name; v == "" {
-		t.Fatal("The GITHUB_ENTERPRISE_SLUG environment variable must be set for enterprise tests")
-	}
 }

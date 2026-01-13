@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -55,14 +56,14 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v4client
 
 	// First, get the enterprise ID as we need it for the mutation
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	enterpriseID, err := getEnterpriseID(ctx, client, enterpriseSlug)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Then create the IP allow list entry
@@ -92,17 +93,16 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(d *schema.ResourceData, meta
 
 	err = client.Mutate(ctx, &mutation, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(string(mutation.CreateIpAllowListEntry.IpAllowListEntry.ID))
 
-	return resourceGithubEnterpriseIpAllowListEntryRead(d, meta)
+	return resourceGithubEnterpriseIpAllowListEntryRead(ctx, d, meta)
 }
 
-func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v4client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	var query struct {
 		Node struct {
@@ -133,7 +133,7 @@ func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta i
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	entry := query.Node.IpAllowListEntry
@@ -148,9 +148,8 @@ func resourceGithubEnterpriseIpAllowListEntryRead(d *schema.ResourceData, meta i
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v4client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	var mutation struct {
 		UpdateIpAllowListEntry struct {
@@ -177,15 +176,14 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(d *schema.ResourceData, meta
 
 	err := client.Mutate(ctx, &mutation, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubEnterpriseIpAllowListEntryRead(d, meta)
+	return resourceGithubEnterpriseIpAllowListEntryRead(ctx, d, meta)
 }
 
-func resourceGithubEnterpriseIpAllowListEntryDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v4client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	var mutation struct {
 		DeleteIpAllowListEntry struct {
@@ -199,7 +197,7 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(d *schema.ResourceData, meta
 
 	err := client.Mutate(ctx, &mutation, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")
