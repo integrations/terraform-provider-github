@@ -3,8 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -690,8 +688,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub",
-					owner, repoName, rulesetID)
+				tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 				d.SetId("")
 				return nil
 			}
@@ -700,8 +697,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	}
 
 	if ruleset == nil {
-		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
-			owner, repoName, rulesetID)
+		tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub (empty response)", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 		d.SetId("")
 		return nil
 	}
@@ -738,7 +734,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 	if repo.GetArchived() {
-		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
+		tflog.Info(ctx, "Repository is archived, skipping ruleset update", map[string]any{"owner": owner, "repo_name": repoName})
 		return nil
 	}
 
@@ -764,9 +760,9 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
+	tflog.Debug(ctx, "Deleting repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName))
+	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", strconv.FormatInt(rulesetID, 10), owner, repoName))
 }
 
 func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -782,10 +778,10 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if rulesetID == 0 {
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
 	}
-	log.Printf("[DEBUG] Importing repository ruleset with ID: %d, for repository: %s", rulesetID, repoName)
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
+
+	tflog.Debug(ctx, "Importing repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if repository == nil || err != nil {
@@ -833,9 +829,6 @@ func validateRepositoryRulesetRules(ctx context.Context, d *schema.ResourceDiff,
 		tflog.Debug(ctx, "No rules block, skipping validation")
 		return nil
 	}
-
-	value, exists := d.GetOk("rules.0.update_allows_fetch_and_merge")
-	tflog.Debug(ctx, "FOO", map[string]any{"foo": value, "exists": exists})
 
 	return validateRulesForTarget(ctx, d)
 }
