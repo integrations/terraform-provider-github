@@ -9,11 +9,9 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates a repository environment", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			data "github_user" "current" {
@@ -21,7 +19,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 			}
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				visibility = "public"
 			}
 
@@ -40,7 +38,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 				}
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment / test"),
@@ -49,30 +47,15 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 			resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 }

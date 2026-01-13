@@ -27,7 +27,7 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta any) error {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 

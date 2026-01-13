@@ -9,14 +9,12 @@ import (
 )
 
 func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("queries deployment branch policies", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-deploy-bp-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -34,7 +32,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
 				environment_name = github_repository_environment.env.environment
 				name             = "foo"
 			}
-	`, randomID)
+	`, repoName)
 
 		config2 := config + `
 			data "github_repository_deployment_branch_policies" "all" {
@@ -48,33 +46,18 @@ func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_repository_deployment_branch_policies.all", "deployment_branch_policies.0.id"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 }

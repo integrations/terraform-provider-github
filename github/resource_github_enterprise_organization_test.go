@@ -11,33 +11,32 @@ import (
 )
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
-
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		orgName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		desc := "Initial org description"
 		updatedDesc := "Updated org description"
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
-			`, testEnterprise, orgName, desc)
+			}
+			`, testAccConf.enterpriseSlug, orgName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -68,85 +67,60 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							desc,
-							updatedDesc, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					Config: strings.Replace(config,
+						desc,
+						updatedDesc, 1),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("deletes an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		orgName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
-			slug = "%s"
-		  }
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
 
-		  data "github_user" "current" {
-			username = ""
-		  }
+			data "github_user" "current" {
+				username = ""
+			}
 
-		  resource "github_enterprise_organization" "org" {
-			enterprise_id = data.github_enterprise.enterprise.id
-			name          = "%s"
-			billing_email = data.github_user.current.email
-			admin_logins  = [
-			  data.github_user.current.login
-			]
-		  }
-			`, testEnterprise, orgName)
+			resource "github_enterprise_organization" "org" {
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
+					data.github_user.current.login
+				]
+			}
+			`, testAccConf.enterpriseSlug, orgName)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:  config,
-						Destroy: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:  config,
+					Destroy: true,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 
 	t.Run("creates and updates org with display name", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
@@ -157,25 +131,25 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		updatedDesc := "Updated org description"
 
 		config := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			display_name  = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
-			`, testEnterprise, orgName, displayName, desc)
+			}
+			`, testAccConf.enterpriseSlug, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -214,42 +188,28 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(
-							strings.Replace(config,
-								displayName,
-								updatedDisplayName, 1),
-							desc,
-							updatedDesc, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					Config: strings.Replace(
+						strings.Replace(config,
+							displayName,
+							updatedDisplayName, 1),
+						desc,
+						updatedDesc, 1),
+					Check: checks["after"],
+				},
+			},
 		})
-
 	})
 
 	t.Run("creates org without display name, set and update display name", func(t *testing.T) {
-
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -260,45 +220,45 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		updatedDesc := "Updated org description"
 
 		configWithoutDisplayName := fmt.Sprintf(`
-		  data "github_enterprise" "enterprise" {
+			data "github_enterprise" "enterprise" {
 			slug = "%s"
-		  }
+			}
 
-		  data "github_user" "current" {
+			data "github_user" "current" {
 			username = ""
-		  }
+			}
 
-		  resource "github_enterprise_organization" "org" {
+			resource "github_enterprise_organization" "org" {
 			enterprise_id = data.github_enterprise.enterprise.id
 			name          = "%s"
 			description   = "%s"
 			billing_email = data.github_user.current.email
 			admin_logins  = [
-			  data.github_user.current.login
+				data.github_user.current.login
 			]
-		  }
-			`, testEnterprise, orgName, desc)
+			}
+			`, testAccConf.enterpriseSlug, orgName, desc)
 
 		configWithDisplayName := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  display_name  = "%s"
-			  description   = "%s"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				display_name  = "%s"
+				description   = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testEnterprise, orgName, displayName, desc)
+				`, testAccConf.enterpriseSlug, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"create": resource.ComposeTestCheckFunc(
@@ -359,52 +319,39 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configWithoutDisplayName,
-						Check:  checks["create"],
-					},
-					{
-						Config: configWithDisplayName,
-						Check:  checks["set"],
-					},
-					{
-						Config: strings.Replace(configWithDisplayName,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithoutDisplayName,
+					Check:  checks["create"],
+				},
+				{
+					Config: configWithDisplayName,
+					Check:  checks["set"],
+				},
+				{
+					Config: strings.Replace(configWithDisplayName,
+						displayName,
+						updatedDisplayName, 1),
+					Check: checks["updateDisplayName"],
+				},
+				{
+					Config: strings.Replace(
+						strings.Replace(configWithDisplayName,
 							displayName,
 							updatedDisplayName, 1),
-						Check: checks["updateDisplayName"],
-					},
-					{
-						Config: strings.Replace(
-							strings.Replace(configWithDisplayName,
-								displayName,
-								updatedDisplayName, 1),
-							desc,
-							updatedDesc, 1),
-						Check: checks["updateDesc"],
-					},
-					{
-						Config: configWithoutDisplayName,
-						Check:  checks["unset"],
-					},
+						desc,
+						updatedDesc, 1),
+					Check: checks["updateDesc"],
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					Config: configWithoutDisplayName,
+					Check:  checks["unset"],
+				},
+			},
 		})
-
 	})
 
 	t.Run("imports enterprise organization without error", func(t *testing.T) {
@@ -413,52 +360,40 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testEnterprise, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_enterprise_organization.org",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateId:     fmt.Sprintf(`%s/%s`, testEnterprise, orgName),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					ResourceName:      "github_enterprise_organization.org",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateId:     fmt.Sprintf(`%s/%s`, testAccConf.enterpriseSlug, orgName),
+				},
+			},
 		})
 	})
 
@@ -468,55 +403,42 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  description   = "org description"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				description   = "org description"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testEnterprise, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:  "github_enterprise_organization.org",
-						ImportState:   true,
-						ImportStateId: fmt.Sprintf(`%s/%s`, randomID, orgName),
-						ExpectError:   regexp.MustCompile("Could not resolve to a Business with the URL slug of .*"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					ResourceName:  "github_enterprise_organization.org",
+					ImportState:   true,
+					ImportStateId: fmt.Sprintf(`%s/%s`, randomID, orgName),
+					ExpectError:   regexp.MustCompile("Could not resolve to a Business with the URL slug of .*"),
+				},
+			},
 		})
-
 	})
 
 	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
@@ -525,54 +447,41 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
-			  slug = "%s"
+				slug = "%s"
 			}
 
 			data "github_user" "current" {
-			  username = ""
+				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-			  enterprise_id = data.github_enterprise.enterprise.id
-			  name          = "%s"
-			  description   = "org description"
-			  billing_email = data.github_user.current.email
-			  admin_logins  = [
+				enterprise_id = data.github_enterprise.enterprise.id
+				name          = "%s"
+				description   = "org description"
+				billing_email = data.github_user.current.email
+				admin_logins  = [
 				data.github_user.current.login
-			  ]
+				]
 			}
-			  `, testEnterprise, orgName)
+				`, testAccConf.enterpriseSlug, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:  "github_enterprise_organization.org",
-						ImportState:   true,
-						ImportStateId: fmt.Sprintf(`%s/%s`, testEnterprise, randomID),
-						ExpectError:   regexp.MustCompile("Could not resolve to an Organization with the login of .*"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					ResourceName:  "github_enterprise_organization.org",
+					ImportState:   true,
+					ImportStateId: fmt.Sprintf(`%s/%s`, testAccConf.enterpriseSlug, randomID),
+					ExpectError:   regexp.MustCompile("Could not resolve to an Organization with the login of .*"),
+				},
+			},
 		})
-
 	})
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -48,14 +48,14 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 	}
 }
 
-func flattenBranches(branches []*github.Branch) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenBranches(branches []*github.Branch) []map[string]any {
+	results := make([]map[string]any, 0)
 	if branches == nil {
 		return results
 	}
 
 	for _, branch := range branches {
-		branchMap := make(map[string]interface{})
+		branchMap := make(map[string]any)
 		branchMap["name"] = branch.GetName()
 		branchMap["protected"] = branch.GetProtected()
 		results = append(results, branchMap)
@@ -64,7 +64,8 @@ func flattenBranches(branches []*github.Branch) []map[string]interface{} {
 	return results
 }
 
-func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -84,9 +85,9 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta interfa
 		listBranchOptions = &github.BranchListOptions{}
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 	for {
-		branches, resp, err := client.Repositories.ListBranches(context.TODO(), orgName, repoName, listBranchOptions)
+		branches, resp, err := client.Repositories.ListBranches(ctx, orgName, repoName, listBranchOptions)
 		if err != nil {
 			return err
 		}

@@ -23,6 +23,8 @@ When applied, an invitation will be sent to the user to become a collaborators
 on a repository. When destroyed, either the invitation will be cancelled or the
 collaborators will be removed from the repository.
 
+~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
 This resource is authoritative. For adding a collaborator to a repo in a non-authoritative manner, use
 github_repository_collaborator instead.
 
@@ -83,7 +85,7 @@ The `team` block supports:
   Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
   Must be `push` for personal repositories. Defaults to `push`.
 
-The `team_ignore` block supports:
+The `ignore_team` block supports:
 
 * `team_id` - (Required) The GitHub team id or the GitHub team slug.
 
