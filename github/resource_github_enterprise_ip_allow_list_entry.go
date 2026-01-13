@@ -41,6 +41,16 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 				Default:     true,
 				Description: "Whether the entry is currently active.",
 			},
+			"created_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Timestamp of when the entry was created.",
+			},
+			"updated_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Timestamp of when the entry was last updated.",
+			},
 		},
 	}
 }
