@@ -114,7 +114,7 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions)
+			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, false)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got nil")
@@ -200,7 +200,7 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions)
+			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, true)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got nil")

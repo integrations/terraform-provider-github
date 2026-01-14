@@ -119,29 +119,54 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []s
 	return nil
 }
 
-func validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any) error {
-	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions})
+func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOrg bool) error {
+	target := github.RulesetTarget(d.Get("target").(string))
+	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
+	conditionsRaw := d.Get("conditions").([]any)
 
-	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
-		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
-		return fmt.Errorf("ref_name must be set for %s target", target)
+	if len(conditionsRaw) == 0 {
+		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
+		return nil
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
+	conditions := conditionsRaw[0].(map[string]any)
+
+	switch target {
+	case github.RulesetTargetBranch, github.RulesetTargetTag:
+		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions, isOrg)
+	case github.RulesetTargetPush:
+		return validateConditionsFieldForPushTarget(ctx, conditions)
+	}
 	return nil
 }
 
-func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any) error {
-	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions})
+func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
+	target := github.RulesetTarget(d.Get("target").(string))
+	tflog.Debug(ctx, "Validating ruleset rules based on target", map[string]any{"target": target})
+
+	rulesRaw := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		tflog.Debug(ctx, "No rules block, skipping validation")
+		return nil
+	}
+
+	return validateRulesForTarget(ctx, d)
+}
+
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any, isOrg bool) error {
+	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
 
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
 		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 
-	if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
-		tflog.Debug(ctx, fmt.Sprintf("Missing repository_name or repository_id for %s target", target), map[string]any{"target": target})
-		return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
+	// Repository rulesets don't have repository_name or repository_id, only org rulesets do.
+	if isOrg {
+		if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
+			tflog.Debug(ctx, fmt.Sprintf("Missing repository_name or repository_id for %s target", target), map[string]any{"target": target})
+			return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
+		}
 	}
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
 	return nil

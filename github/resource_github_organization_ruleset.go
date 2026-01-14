@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -28,10 +27,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
-		CustomizeDiff: customdiff.All(
-			validateConditionsFieldBasedOnTarget,
-			validateOrganizationRulesetRules,
-		),
+		CustomizeDiff: resourceGithubOrganizationRulesetValidate,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -869,36 +865,16 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func validateConditionsFieldBasedOnTarget(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	target := github.RulesetTarget(d.Get("target").(string))
-	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
-	conditionsRaw := d.Get("conditions").([]any)
-
-	if len(conditionsRaw) == 0 {
-		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
-		return nil
+func resourceGithubOrganizationRulesetValidate(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	err := validateRulesetConditions(ctx, d, true)
+	if err != nil {
+		return err
 	}
 
-	conditions := conditionsRaw[0].(map[string]any)
-
-	switch target {
-	case github.RulesetTargetBranch, github.RulesetTargetTag:
-		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
-	case github.RulesetTargetPush:
-		return validateConditionsFieldForPushTarget(ctx, conditions)
+	err = validateRulesetRules(ctx, d)
+	if err != nil {
+		return err
 	}
+
 	return nil
-}
-
-func validateOrganizationRulesetRules(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	target := github.RulesetTarget(d.Get("target").(string))
-	tflog.Debug(ctx, "Validating organization ruleset rules based on target", map[string]any{"target": target})
-
-	rulesRaw := d.Get("rules").([]any)
-	if len(rulesRaw) == 0 {
-		tflog.Debug(ctx, "No rules block, skipping validation")
-		return nil
-	}
-
-	return validateRulesForTarget(ctx, d)
 }
