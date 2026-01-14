@@ -241,6 +241,28 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 								},
 							},
 						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull request. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
+									},
+								},
+							},
+						},
 						"required_status_checks": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
