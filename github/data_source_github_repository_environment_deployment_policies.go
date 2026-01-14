@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -49,9 +49,9 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Con
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment").(string)
+	envName := d.Get("environment").(string)
 
-	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, environmentName)
+	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, url.PathEscape(envName))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -65,9 +65,13 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Con
 		results = append(results, policyMap)
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", repoName, environmentName))
-	err = d.Set("policies", results)
-	if err != nil {
+	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
+	if err = d.Set("policies", results); err != nil {
 		return diag.FromErr(err)
 	}
 
