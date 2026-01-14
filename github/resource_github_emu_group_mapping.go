@@ -108,7 +108,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	groupIDInt := int(*group.GroupID)
+	groupIDInt := int(group.GetGroupID())
 	tflog.Trace(ctx, "Setting state attribute: group_id", map[string]any{
 		"group_id": groupIDInt,
 	})
@@ -341,7 +341,7 @@ func importWithIntegerID(ctx context.Context, d *schema.ResourceData, meta any) 
 		return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
 	}
 
-	teamSlug := *group.Teams[0].TeamName
+	teamSlug := group.Teams[0].GetTeamName()
 	tflog.Trace(ctx, "Setting state attribute: team_slug", map[string]any{
 		"team_slug": teamSlug,
 	})
