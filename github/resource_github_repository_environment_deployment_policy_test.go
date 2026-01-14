@@ -72,11 +72,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch(t *testing.T) {
 					Config: config,
 					Check:  check,
 				},
-				{
-					ResourceName:      "github_repository_environment_deployment_policy.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
 			},
 		})
 	})
@@ -196,6 +191,75 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranchUpdate(t *testing.T
 				},
 			},
 		})
+	})
+}
+
+func TestAccGithubRepositoryEnvironmentDeploymentPolicyBranch_import(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%senv-deploy-%s", testResourcePrefix, randomID)
+
+	config := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "%s"
+				ignore_vulnerability_alerts_during_read = true
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "environment/test"
+				wait_timer	= 10000
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+				deployment_branch_policy {
+					protected_branches     = false
+					custom_branch_policies = true
+				}
+			}
+
+			resource "github_repository_environment_deployment_policy" "test" {
+				repository 	= github_repository.test.name
+				environment	= github_repository_environment.test.environment
+				branch_pattern = "main"
+			}
+
+		`, repoName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { skipUnauthenticated(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_repository_environment_deployment_policy.test", "repository",
+						repoName,
+					),
+					resource.TestCheckResourceAttr(
+						"github_repository_environment_deployment_policy.test", "environment",
+						"environment/test",
+					),
+					resource.TestCheckResourceAttr(
+						"github_repository_environment_deployment_policy.test", "branch_pattern",
+						"main",
+					),
+					resource.TestCheckNoResourceAttr(
+						"github_repository_environment_deployment_policy.test", "tag_pattern",
+					),
+				),
+			},
+			{
+				ResourceName:      "github_repository_environment_deployment_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
 	})
 }
 
