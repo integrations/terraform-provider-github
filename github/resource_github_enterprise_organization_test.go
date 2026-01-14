@@ -1,14 +1,74 @@
 package github
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+func TestIsSAMLEnforcementError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name: "GitHub ErrorResponse with SAML enforcement",
+			err: &github.ErrorResponse{
+				Response: &http.Response{StatusCode: 403},
+				Message:  "Resource protected by organization SAML enforcement. You must grant your Personal Access token access to this organization.",
+			},
+			expected: true,
+		},
+		{
+			name: "GitHub ErrorResponse 403 without SAML message",
+			err: &github.ErrorResponse{
+				Response: &http.Response{StatusCode: 403},
+				Message:  "Forbidden",
+			},
+			expected: false,
+		},
+		{
+			name: "GitHub ErrorResponse 404",
+			err: &github.ErrorResponse{
+				Response: &http.Response{StatusCode: 404},
+				Message:  "Not Found",
+			},
+			expected: false,
+		},
+		{
+			name:     "plain error with SAML enforcement message",
+			err:      errors.New("Resource protected by organization SAML enforcement"),
+			expected: true,
+		},
+		{
+			name:     "plain error without SAML message",
+			err:      errors.New("some other error"),
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isSAMLEnforcementError(tc.err)
+			if result != tc.expected {
+				t.Errorf("isSAMLEnforcementError(%v) = %v, want %v", tc.err, result, tc.expected)
+			}
+		})
+	}
+}
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
