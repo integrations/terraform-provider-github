@@ -19,6 +19,19 @@ func TestAccGithubOrganizationRuleset(t *testing.T) {
 		workflowFilePath := ".github/workflows/echo.yaml"
 
 		config := fmt.Sprintf(`
+locals {
+		workflow_content = <<EOT
+name: Echo Workflow
+
+on: [pull_request]
+
+jobs:
+	echo:
+		runs-on: ubuntu-latest
+		steps:
+			- run: echo "Hello, world!"
+EOT
+}
 resource "github_repository" "test" {
 	name = "%s"
 	visibility = "private"
@@ -29,17 +42,7 @@ resource "github_repository_file" "workflow_file" {
 	repository          = github_repository.test.name
 	branch              = "main"
 	file                = "%[3]s"
-	content             = <<EOT
-name: Echo Workflow
-
-on: [pull_request]
-
-jobs:
-	echo:
-		runs-on: linux
-		steps:
-			- run: echo \"Hello, world!\"
-EOT
+	content             = replace(local.workflow_content, "\t", " ") # NOTE: 'content' must be indented with spaces, not tabs
 	commit_message      = "Managed by Terraform"
 	commit_author       = "Terraform User"
 	commit_email        = "terraform@example.com"
