@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -21,6 +21,9 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
+				if err := d.Set("destroy_on_drift", true); err != nil {
 					return nil, err
 				}
 				return []*schema.ResourceData{d}, nil
@@ -161,7 +164,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta an
 
 	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",

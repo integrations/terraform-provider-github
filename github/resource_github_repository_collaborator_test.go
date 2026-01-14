@@ -10,23 +10,25 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
-	t.Skip("update <username> below to unskip this test run")
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	if len(testAccConf.testExternalUser) == 0 {
+		t.Skip("No external user provided")
+	}
 
 	t.Run("creates invitations without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 
 			resource "github_repository_collaborator" "test_repo_collaborator" {
 				repository = "${github_repository.test.name}"
-				username   = "<username>"
+				username   = "%s"
 				permission = "triage"
 			}
-		`, randomID)
+		`, repoName, testAccConf.testExternalUser)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -35,51 +37,33 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
-		orgName := os.Getenv("GITHUB_ORGANIZATION")
-
-		if orgName == "" {
-			t.Skip("Set GITHUB_ORGANIZATION to unskip this test run")
-		}
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		configWithOwner := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 
 			resource "github_repository_collaborator" "test_repo_collaborator_2" {
 				repository = "%s/${github_repository.test.name}"
-				username   = "<username>"
+				username   = "%s"
 				permission = "triage"
 			}
-		`, randomID, orgName)
+		`, repoName, testAccConf.owner, testAccConf.testExternalUser)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -88,29 +72,15 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configWithOwner,
-						Check:  checkWithOwner,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithOwner,
+					Check:  checkWithOwner,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }
@@ -151,18 +121,18 @@ func TestParseRepoName(t *testing.T) {
 }
 
 func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	// Note: This test requires GH_TEST_COLLABORATOR to be set to a valid GitHub username and it won't work with `testExternalUser`
+	testCollaborator := os.Getenv("GH_TEST_COLLABORATOR")
+	if testCollaborator == "" {
+		t.Skip("GH_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
+	}
 	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
-		// Note: This test requires GITHUB_TEST_COLLABORATOR to be set to a valid GitHub username
-		testCollaborator := os.Getenv("GITHUB_TEST_COLLABORATOR")
-		if testCollaborator == "" {
-			t.Skip("GITHUB_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
-		}
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-collab-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-collab-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -171,11 +141,11 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 				username   = "%s"
 				permission = "pull"
 			}
-		`, randomID, testCollaborator)
+		`, repoName, testCollaborator)
 
 		archivedConfig := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-collab-archive-%s"
+				name = "%s"
 				auto_init = true
 				archived = true
 			}
@@ -185,56 +155,46 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 				username   = "%s"
 				permission = "pull"
 			}
-		`, randomID, testCollaborator)
+		`, repoName, testCollaborator)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository_collaborator.test", "username",
-								testCollaborator,
-							),
-							resource.TestCheckResourceAttr(
-								"github_repository_collaborator.test", "permission",
-								"pull",
-							),
+		resource.Test(t, resource.TestCase{
+			PreCheck:  func() { skipUnauthenticated(t) },
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository_collaborator.test", "username",
+							testAccConf.testExternalUser,
 						),
-					},
-					{
-						Config: archivedConfig,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository.test", "archived",
-								"true",
-							),
+						resource.TestCheckResourceAttr(
+							"github_repository_collaborator.test", "permission",
+							"pull",
 						),
-					},
-					// This step should succeed - the collaborator should be removed from state
-					// without trying to actually delete it from the archived repo
-					{
-						Config: fmt.Sprintf(`
+					),
+				},
+				{
+					Config: archivedConfig,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"true",
+						),
+					),
+				},
+				// This step should succeed - the collaborator should be removed from state
+				// without trying to actually delete it from the archived repo
+				{
+					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-collab-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
-					},
+						`, repoName),
 				},
-			})
-		}
-
-		t.Run("with individual mode", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with organization mode", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

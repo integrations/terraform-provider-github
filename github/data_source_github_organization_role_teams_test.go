@@ -11,7 +11,7 @@ import (
 func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 	t.Run("get the organization role teams without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-team-%s", randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -33,7 +33,7 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 		`, teamName, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
@@ -52,8 +52,8 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 
 	t.Run("get indirect organization role teams without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName1 := fmt.Sprintf("tf-acc-team-1-%s", randomID)
-		teamName2 := fmt.Sprintf("tf-acc-team-2-%s", randomID)
+		teamName1 := fmt.Sprintf("%steam-1-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%steam-2-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_team" "test_1" {
@@ -82,7 +82,7 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 		`, teamName1, teamName2, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
+			PreCheck:  func() { skipUnlessHasOrgs(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{

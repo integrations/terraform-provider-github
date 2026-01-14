@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -121,9 +121,9 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
 
 				_, _, err := client.Issues.EditLabel(ctx, owner, repository, name, &github.Label{
-					Name:        github.String(name),
-					Description: github.String(description),
-					Color:       github.String(color),
+					Name:        github.Ptr(name),
+					Description: github.Ptr(description),
+					Color:       github.Ptr(color),
 				})
 				if err != nil {
 					return err
@@ -150,9 +150,9 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 			log.Printf("[DEBUG] Creating GitHub issue label %s/%s/%s", owner, repository, name)
 
 			_, _, err := client.Issues.CreateLabel(ctx, owner, repository, &github.Label{
-				Name:        github.String(name),
-				Description: github.String(labelData["description"].(string)),
-				Color:       github.String(labelData["color"].(string)),
+				Name:        github.Ptr(name),
+				Description: github.Ptr(labelData["description"].(string)),
+				Color:       github.Ptr(labelData["color"].(string)),
 			})
 			if err != nil {
 				return err

@@ -10,7 +10,7 @@ This project is used to manipulate GitHub resources (repositories, teams, files,
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.10.x
--	[Go](https://golang.org/doc/install) 1.19.x (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.24.x (to build the provider plugin)
 
 ## Usage
 

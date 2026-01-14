@@ -12,31 +12,19 @@ import (
 )
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates runner groups without error", func(t *testing.T) {
-		// t.Skip("requires an enterprise cloud account")
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			  vulnerability_alerts = false
 			  auto_init = true
 			}
 
-			resource "github_branch" "test" {
-			  repository = github_repository.test.name
-			  branch     = "test"
-			}
-
-			resource "github_branch_default" "default"{
-			  repository = github_repository.test.name
-			  branch     = github_branch.test.branch
-			}
-
 			resource "github_repository_file" "workflow_file" {
-			  depends_on  = [github_branch_default.default]
 			  repository          = github_repository.test.name
+				branch              = "main"
 			  file                = ".github/workflows/test.yml"
 			  content             = ""
 			  commit_message      = "Managed by Terraform"
@@ -47,14 +35,14 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 			resource "github_actions_runner_group" "test" {
 			  depends_on  = [github_repository_file.workflow_file]
-				
+
 			  name       = github_repository.test.name
 			  visibility = "all"
 			  restricted_to_workflows = true
-			  selected_workflows = ["${github_repository.test.full_name}/.github/workflows/test.yml@refs/heads/${github_branch.test.branch}"]
+			  selected_workflows = ["${github_repository.test.full_name}/.github/workflows/test.yml@refs/heads/main"]
 			  allows_public_repositories = true
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -62,7 +50,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				repoName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
@@ -83,7 +71,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				runnerGroup := state.RootModule().Resources["github_actions_runner_group.test"].Primary
 				workflowActual := runnerGroup.Attributes["selected_workflows.0"]
 
-				workflowExpected := fmt.Sprintf("%s/.github/workflows/test.yml@refs/heads/test", fullName)
+				workflowExpected := fmt.Sprintf("%s/.github/workflows/test.yml@refs/heads/main", fullName)
 
 				if workflowActual != workflowExpected {
 					return fmt.Errorf("actual selected workflows %s not the same as expected selected workflows %s",
@@ -97,38 +85,24 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("manages runner visibility", func(t *testing.T) {
-		// t.Skip("requires an enterprise cloud account")
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
@@ -136,7 +110,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			  visibility = "selected"
 			  selected_repository_ids = [github_repository.test.repo_id]
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -144,7 +118,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				repoName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
@@ -159,139 +133,105 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
 			  name       = github_repository.test.name
 			  visibility = "all"
 			}
-    `, randomID)
+    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_runner_group.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_runner_group.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
 	t.Run("imports a private runner group without error", func(t *testing.T) {
+		// Note: this test is skipped because when setting visibility 'private', it always fails with:
+		// Step 0 error: After applying this step, the plan was not empty:
+		// visibility:                 "all" => "private"
+		// Based on GitHub UI there is no way to create a private runner group
+		t.Skip("This is not supported")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
-					  name = "tf-acc-test-%s"
+					  name = "%s"
 					}
 
 					resource "github_actions_runner_group" "test" {
 					  name       = github_repository.test.name
 					  visibility = "private"
 					}
-		    `, randomID)
+		    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_runner_group.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			// Note: this test is skipped because when setting visibility 'private', it always fails with:
-			// Step 0 error: After applying this step, the plan was not empty:
-			// visibility:                 "all" => "private"
-			t.Skip("always shows a diff for visibility 'all' => 'private'")
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_runner_group.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
 	t.Run("imports a selected runner group without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
@@ -299,11 +239,11 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				visibility = "selected"
 				selected_repository_ids = [github_repository.test.repo_id]
 			}
-    `, randomID)
+    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
 			resource.TestCheckResourceAttr(
@@ -312,30 +252,20 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_runner_group.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_runner_group.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }
