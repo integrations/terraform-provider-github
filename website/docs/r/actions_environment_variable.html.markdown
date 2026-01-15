@@ -42,21 +42,20 @@ resource "github_actions_environment_variable" "example_variable" {
 
 The following arguments are supported:
 
-
-* `repository`              - (Required) Name of the repository.
-* `environment`             - (Required) Name of the environment.
-* `variable_name`           - (Required) Name of the variable.
-* `value`                   - (Required) Value of the variable
+* `repository` - (Required) Name of the repository.
+* `environment` - (Required) Name of the environment.
+* `variable_name` - (Required) Name of the variable.
+* `value` - (Required) Value of the variable
 
 ## Attributes Reference
 
-* `created_at`      - Date of actions_environment_secret creation.
-* `updated_at`      - Date of actions_environment_secret update.
+* `created_at` - Date of actions_environment_secret creation.
+* `updated_at` - Date of actions_environment_secret update.
 
 ## Import
 
-This resource can be imported using an ID made up of the repository name, environment name, and variable name:
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the name need to be escaped as `??`), and variable name all separated by a `:`.
 
-```
-$ terraform import github_actions_environment_variable.test_variable myrepo:myenv:myvariable
+```shell
+terraform import github_actions_environment_variable.example myrepo:myenv:myvariable
 ```

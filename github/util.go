@@ -8,22 +8,86 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
-	// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
-	maxPerPage = 100
+	idSeparator        = ":"
+	idSeperatorEscaped = `??`
 )
 
-func checkOrganization(meta interface{}) error {
+// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
+var maxPerPage = 100
+
+// escapeIDPart escapes any idSeparator characters in a string.
+func escapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeparator, idSeperatorEscaped)
+}
+
+// unescapeIDPart unescapes any escaped idSeparator characters in a string.
+func unescapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeperatorEscaped, idSeparator)
+}
+
+// buildID joins the parts with the idSeparator.
+func buildID(parts ...string) (string, error) {
+	l := len(parts)
+	if l == 0 {
+		return "", fmt.Errorf("no parts provided to build id")
+	}
+
+	id := strings.Join(parts, idSeparator)
+
+	if p := strings.Split(id, idSeparator); len(p) != l {
+		return "", fmt.Errorf("unescaped seperators in id parts %v", parts)
+	}
+
+	return id, nil
+}
+
+// parseID splits the id by the idSeparator checking the count.
+func parseID(id string, count int) ([]string, error) {
+	if len(id) == 0 {
+		return nil, fmt.Errorf("id is empty")
+	}
+
+	parts := strings.Split(id, idSeparator)
+	if len(parts) != count {
+		return nil, fmt.Errorf("unexpected ID format (%q); expected %d parts separated by %q", id, count, idSeparator)
+	}
+
+	return parts, nil
+}
+
+// parseID2 splits the id by the idSeparator into two parts.
+func parseID2(id string) (string, string, error) {
+	parts, err := parseID(id, 2)
+	if err != nil {
+		return "", "", err
+	}
+
+	return parts[0], parts[1], nil
+}
+
+// parseID3 splits the id by the idSeparator into three parts.
+func parseID3(id string) (string, string, string, error) {
+	parts, err := parseID(id, 3)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return parts[0], parts[1], parts[2], nil
+}
+
+func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
 		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
 	}
@@ -32,13 +96,13 @@ func checkOrganization(meta interface{}) error {
 }
 
 func caseInsensitive() schema.SchemaDiffSuppressFunc {
-	return func(k, old, new string, d *schema.ResourceData) bool {
-		return strings.EqualFold(old, new)
+	return func(k, o, n string, d *schema.ResourceData) bool {
+		return strings.EqualFold(o, n)
 	}
 }
 
 // wrapErrors is provided to easily turn errors into diag.Diagnostics
-// until we go through the provider and replace error usage
+// until we go through the provider and replace error usage.
 func wrapErrors(errs []error) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -56,9 +120,9 @@ func wrapErrors(errs []error) diag.Diagnostics {
 // toDiagFunc is a helper that operates on Hashicorp's helper/validation functions
 // and converts them to the diag.Diagnostic format
 // --> nolint: oldFunc needs to be schema.SchemaValidateFunc to keep compatibility with
-// the old code until all uses of schema.SchemaValidateFunc are gone
+// the old code until all uses of schema.SchemaValidateFunc are gone.
 func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.SchemaValidateDiagFunc { //nolint:staticcheck
-	return func(i interface{}, path cty.Path) diag.Diagnostics {
+	return func(i any, path cty.Path) diag.Diagnostics {
 		warnings, errors := oldFunc(i, keyName)
 		var diags diag.Diagnostics
 
@@ -81,16 +145,10 @@ func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.Schema
 }
 
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
-	return func(v interface{}, k cty.Path) diag.Diagnostics {
+	return func(v any, k cty.Path) diag.Diagnostics {
 		errs := make([]error, 0)
 		value := v.(string)
-		valid := false
-		for _, role := range values {
-			if value == role {
-				valid = true
-				break
-			}
-		}
+		valid := slices.Contains(values, value)
 
 		if !valid {
 			errs = append(errs, fmt.Errorf("%s is an invalid value for argument %s", value, k))
@@ -99,7 +157,7 @@ func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	}
 }
 
-// return the pieces of id `left:right` as left, right
+// return the pieces of id `left:right` as left, right.
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
@@ -109,12 +167,12 @@ func parseTwoPartID(id, left, right string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// format the strings into an id `a:b`
+// format the strings into an id `a:b`.
 func buildTwoPartID(a, b string) string {
 	return fmt.Sprintf("%s:%s", a, b)
 }
 
-// return the pieces of id `left:center:right` as left, center, right
+// return the pieces of id `left:center:right` as left, center, right.
 func parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) != 3 {
@@ -124,7 +182,7 @@ func parseThreePartID(id, left, center, right string) (string, string, string, e
 	return parts[0], parts[1], parts[2], nil
 }
 
-// format the strings into an id `a:b:c`
+// format the strings into an id `a:b:c`.
 func buildThreePartID(a, b, c string) string {
 	return fmt.Sprintf("%s:%s:%s", a, b, c)
 }
@@ -140,7 +198,7 @@ func buildChecksumID(v []string) string {
 	return fmt.Sprintf("%x", bs)
 }
 
-func expandStringList(configured []interface{}) []string {
+func expandStringList(configured []any) []string {
 	vs := make([]string, 0, len(configured))
 	for _, v := range configured {
 		val, ok := v.(string)
@@ -151,8 +209,8 @@ func expandStringList(configured []interface{}) []string {
 	return vs
 }
 
-func flattenStringList(v []string) []interface{} {
-	c := make([]interface{}, 0, len(v))
+func flattenStringList(v []string) []any {
+	c := make([]any, 0, len(v))
 	for _, s := range v {
 		c = append(c, s)
 	}
@@ -173,25 +231,12 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
-func validateTeamIDFunc(v interface{}, keyName string) (we []string, errors []error) {
-	teamIDString, ok := v.(string)
-	if !ok {
-		return nil, []error{fmt.Errorf("expected type of %s to be string", keyName)}
-	}
-	// Check that the team ID can be converted to an int
-	if _, err := strconv.ParseInt(teamIDString, 10, 64); err != nil {
-		return nil, []error{unconvertibleIdErr(teamIDString, err)}
-	}
-
-	return
-}
-
 func splitRepoFilePath(path string) (string, string) {
 	parts := strings.Split(path, "/")
 	return parts[0], strings.Join(parts[1:], "/")
 }
 
-func getTeamID(teamIDString string, meta interface{}) (int64, error) {
+func getTeamID(teamIDString string, meta any) (int64, error) {
 	// Given a string that is either a team id or team slug, return the
 	// id of the team it is referring to.
 	ctx := context.Background()
@@ -211,7 +256,7 @@ func getTeamID(teamIDString string, meta interface{}) (int64, error) {
 	return team.GetID(), nil
 }
 
-func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
+func getTeamSlug(teamIDString string, meta any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
 	ctx := context.Background()
@@ -245,7 +290,7 @@ func getTeamSlug(teamIDString string, meta interface{}) (string, error) {
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
-func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
+func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 	errs := make([]error, 0)
 	name, ok := v.(string)
 	if !ok {
@@ -266,9 +311,10 @@ func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
 // doesn't exist.
 // resourceDescription represents a formatting string that represents the resource
-// args will be passed to resourceDescription in `log.Printf`
-func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...interface{}) error {
-	if ghErr, ok := err.(*github.ErrorResponse); ok {
+// args will be passed to resourceDescription in `log.Printf`.
+func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			return nil
 		}

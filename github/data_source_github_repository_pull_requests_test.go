@@ -11,10 +11,11 @@ import (
 func TestAccGithubRepositoryPullRequestsDataSource(t *testing.T) {
 	t.Run("manages the pull request lifecycle", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-prs-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -47,12 +48,12 @@ func TestAccGithubRepositoryPullRequestsDataSource(t *testing.T) {
 				sort_direction  = "desc"
 				state           = "open"
 			}
-		`, randomID)
+		`, repoName)
 
 		const resourceName = "data.github_repository_pull_requests.test"
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "base_repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr(resourceName, "base_repository", repoName),
 			resource.TestCheckResourceAttr(resourceName, "state", "open"),
 			resource.TestCheckResourceAttr(resourceName, "base_ref", "main"),
 			resource.TestCheckResourceAttr(resourceName, "head_ref", "test"),
@@ -67,7 +68,7 @@ func TestAccGithubRepositoryPullRequestsDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr(resourceName, "results.0.draft", "false"),
 			resource.TestCheckResourceAttrSet(resourceName, "results.0.head_owner"),
 			resource.TestCheckResourceAttr(resourceName, "results.0.head_ref", "test"),
-			resource.TestCheckResourceAttr(resourceName, "results.0.head_repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+			resource.TestCheckResourceAttr(resourceName, "results.0.head_repository", repoName),
 			resource.TestCheckResourceAttrSet(resourceName, "results.0.head_sha"),
 			resource.TestCheckResourceAttr(resourceName, "results.0.labels.#", "0"),
 			resource.TestCheckResourceAttr(resourceName, "results.0.maintainer_can_modify", "false"),
@@ -78,29 +79,15 @@ func TestAccGithubRepositoryPullRequestsDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(resourceName, "results.0.updated_at"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

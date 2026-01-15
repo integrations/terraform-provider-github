@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -38,7 +38,7 @@ func resourceGithubCodespacesOrganizationSecretRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *sche
 	return resourceGithubCodespaceOrganizationSecretRepositoriesRead(d, meta)
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.Background()
@@ -97,12 +97,12 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.Resourc
 		opt.Page = resp.NextPage
 	}
 
-	d.Set("selected_repository_ids", selectedRepositoryIDs)
+	_ = d.Set("selected_repository_ids", selectedRepositoryIDs)
 
 	return nil
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubCodespaceOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

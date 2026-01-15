@@ -29,11 +29,11 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the team.
 * `description` - (Optional) A description of the team.
-* `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`.
-               Defaults to `secret`.
+* `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` _(default)_ or `closed`.
+* `notification_setting` - (Optional) The notification setting for the team. Must be one of `notifications_enabled` _(default)_ or `notifications_disabled`.
 * `parent_team_id` - (Optional) The ID or slug of the parent team, if this is a nested team.
 * `ldap_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.
-* `create_default_maintainer` - (Optional) Adds a default maintainer to the team. Defaults to `false` and adds the creating user to the team when `true`.
+* `create_default_maintainer` - (**DEPRECATED**) (Optional) Adds a default maintainer to the team. Defaults to `false` and adds the creating user to the team when `true`.
 
 ## Attributes Reference
 
@@ -49,7 +49,7 @@ The following attributes are exported:
 
 GitHub Teams can be imported using the GitHub team ID or name e.g.
 
-```
-$ terraform import github_team.core 1234567
-$ terraform import github_team.core Administrators
+```shell
+terraform import github_team.core 1234567
+terraform import github_team.core Administrators
 ```

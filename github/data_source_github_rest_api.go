@@ -38,7 +38,7 @@ func dataSourceGithubRestApi() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRestApiRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRestApiRead(d *schema.ResourceData, meta any) error {
 	u := d.Get("endpoint").(string)
 
 	client := meta.(*Owner).v3client

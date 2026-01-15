@@ -2,22 +2,24 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsEnvironmentVariableCreate,
-		Read:   resourceGithubActionsEnvironmentVariableRead,
-		Update: resourceGithubActionsEnvironmentVariableUpdate,
-		Delete: resourceGithubActionsEnvironmentVariableDelete,
+		CreateContext: resourceGithubActionsEnvironmentVariableCreateOrUpdate,
+		ReadContext:   resourceGithubActionsEnvironmentVariableRead,
+		UpdateContext: resourceGithubActionsEnvironmentVariableCreateOrUpdate,
+		DeleteContext: resourceGithubActionsEnvironmentVariableDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubActionsEnvironmentVariableImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -58,14 +60,12 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 	name := d.Get("variable_name").(string)
 
 	variable := &github.ActionsVariable{
@@ -73,53 +73,46 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 		Value: d.Get("value").(string),
 	}
 
-	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+	// Try to create the variable first
+	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
 	if err != nil {
-		return err
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusConflict {
+			// Variable already exists, try to update instead
+			// If it fails here, we want to return the error otherwise continue
+			_, err = client.Actions.UpdateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
-	d.SetId(buildThreePartID(repoName, envName, name))
-	return resourceGithubActionsEnvironmentVariableRead(d, meta)
+	if id, err := buildID(repoName, escapeIDPart(envName), name); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
+	return resourceGithubActionsEnvironmentVariableRead(ctx, d, meta)
 }
 
-func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	name := d.Get("variable_name").(string)
-
-	variable := &github.ActionsVariable{
-		Name:  name,
-		Value: d.Get("value").(string),
+	repoName, envNamePart, name, err := parseID3(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+	envName := unescapeIDPart(envNamePart)
+
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, url.PathEscape(envName), name)
 	if err != nil {
-		return err
-	}
-
-	d.SetId(buildThreePartID(repoName, envName, name))
-	return resourceGithubActionsEnvironmentVariableRead(d, meta)
-}
-
-func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	repoName, envName, name, err := parseThreePartID(d.Id(), "repository", "environment", "variable_name")
-	if err != nil {
-		return err
-	}
-	escapedEnvName := url.PathEscape(envName)
-
-	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, name)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -127,31 +120,53 @@ func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta i
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
-	d.Set("variable_name", name)
-	d.Set("value", variable.Value)
-	d.Set("created_at", variable.CreatedAt.String())
-	d.Set("updated_at", variable.UpdatedAt.String())
+	_ = d.Set("repository", repoName)
+	_ = d.Set("environment", envName)
+	_ = d.Set("variable_name", name)
+	_ = d.Set("value", variable.Value)
+	_ = d.Set("created_at", variable.CreatedAt.String())
+	_ = d.Set("updated_at", variable.UpdatedAt.String())
 
 	return nil
 }
 
-func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsEnvironmentVariableDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	repoName, envName, name, err := parseThreePartID(d.Id(), "repository", "environment", "variable_name")
+	repoName, envNamePart, name, err := parseID3(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	escapedEnvName := url.PathEscape(envName)
 
-	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
+	envName := unescapeIDPart(envNamePart)
 
-	return err
+	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsEnvironmentVariableImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	repoName, envNamePart, name, err := parseID3(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("environment", unescapeIDPart(envNamePart)); err != nil {
+		return nil, err
+	}
+	if err := d.Set("variable_name", name); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }

@@ -32,7 +32,7 @@ func dataSourceGithubApp() *schema.Resource {
 	}
 }
 
-func dataSourceGithubAppRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubAppRead(d *schema.ResourceData, meta any) error {
 	slug := d.Get("slug").(string)
 
 	client := meta.(*Owner).v3client

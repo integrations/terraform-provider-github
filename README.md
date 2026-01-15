@@ -10,7 +10,7 @@ This project is used to manipulate GitHub resources (repositories, teams, files,
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.10.x
--	[Go](https://golang.org/doc/install) 1.19.x (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.24.x (to build the provider plugin)
 
 ## Usage
 
@@ -26,4 +26,4 @@ This project uses [Milestones](https://github.com/integrations/terraform-provide
 
 ## Support
 
-This is a community-supported project. GitHub's SDK team triages issues and PRs each Monday and Friday. Please engage with the community via Issues for support, and PRs are always welcome!
+GitHub Support does not provide support for this integration. This is a community-supported project. GitHub's SDK team triages issues and PRs periodically.

@@ -20,6 +20,8 @@ The repository and the team must both belong to the same organization
 on GitHub. This resource does not actually *create* any repositories;
 to do that, see [`github_repository`](repository.html).
 
+~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing team permission modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
 This resource is non-authoritative, for managing ALL collaborators of a repo, use github_repository_collaborators
 instead.
 

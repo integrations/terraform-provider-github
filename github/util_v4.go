@@ -10,7 +10,7 @@ type PageInfo struct {
 	HasNextPage bool
 }
 
-func expandNestedSet(m map[string]interface{}, target string) []string {
+func expandNestedSet(m map[string]any, target string) []string {
 	res := make([]string, 0)
 	if v, ok := m[target]; ok {
 		vL := v.(*schema.Set).List()

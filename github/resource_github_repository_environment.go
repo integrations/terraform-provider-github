@@ -2,23 +2,25 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryEnvironment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryEnvironmentCreate,
-		Read:   resourceGithubRepositoryEnvironmentRead,
-		Update: resourceGithubRepositoryEnvironmentUpdate,
-		Delete: resourceGithubRepositoryEnvironmentDelete,
+		CreateContext: resourceGithubRepositoryEnvironmentCreate,
+		ReadContext:   resourceGithubRepositoryEnvironmentRead,
+		UpdateContext: resourceGithubRepositoryEnvironmentUpdate,
+		DeleteContext: resourceGithubRepositoryEnvironmentDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubRepositoryEnvironmentImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -97,43 +99,43 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
+
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	updateData := createUpdateEnvironmentData(d, meta)
+	updateData := createUpdateEnvironmentData(d)
 
-	ctx := context.Background()
-
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
-
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(buildTwoPartID(repoName, envName))
+	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
 
-	return resourceGithubRepositoryEnvironmentRead(d, meta)
+	return nil
 }
 
-func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
-	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.PathEscape(envName)
+
+	repoName, envNamePart, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	envName := unescapeIDPart(envNamePart)
 
-	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, escapedEnvName)
+	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, url.PathEscape(envName))
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing repository environment %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -141,19 +143,19 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.Set("repository", repoName)
-	d.Set("environment", envName)
-	d.Set("wait_timer", nil)
-	d.Set("can_admins_bypass", env.CanAdminsBypass)
+	_ = d.Set("repository", repoName)
+	_ = d.Set("environment", envName)
+	_ = d.Set("wait_timer", nil)
+	_ = d.Set("can_admins_bypass", env.CanAdminsBypass)
 
 	for _, pr := range env.ProtectionRules {
 		switch *pr.Type {
 		case "wait_timer":
 			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 		case "required_reviewers":
@@ -172,99 +174,119 @@ func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta interf
 					}
 				}
 			}
-			if err = d.Set("reviewers", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("reviewers", []any{
+				map[string]any{
 					"teams": teams,
 					"users": users,
 				},
 			}); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		if err = d.Set("deployment_branch_policy", []interface{}{
-			map[string]interface{}{
+		if err = d.Set("deployment_branch_policy", []any{
+			map[string]any{
 				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
 				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
 			},
 		}); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
-		d.Set("deployment_branch_policy", []interface{}{})
+		_ = d.Set("deployment_branch_policy", []any{})
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
+
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	updateData := createUpdateEnvironmentData(d, meta)
+	updateData := createUpdateEnvironmentData(d)
 
-	ctx := context.Background()
-
-	resultKey, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(buildTwoPartID(repoName, resultKey.GetName()))
+	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
 
-	return resourceGithubRepositoryEnvironmentRead(d, meta)
+	return nil
 }
 
-func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
-	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.PathEscape(envName)
+
+	repoName, envNamePart, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	envName := unescapeIDPart(envNamePart)
 
-	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, escapedEnvName)
-	return err
+	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, url.PathEscape(envName))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) github.CreateUpdateEnvironment {
+func resourceGithubRepositoryEnvironmentImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	repoName, envNamePart, err := parseID2(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("environment", unescapeIDPart(envNamePart)); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvironment {
 	data := github.CreateUpdateEnvironment{}
 
 	if v, ok := d.GetOk("wait_timer"); ok {
-		data.WaitTimer = github.Int(v.(int))
+		data.WaitTimer = github.Ptr(v.(int))
 	}
 
-	data.CanAdminsBypass = github.Bool(d.Get("can_admins_bypass").(bool))
+	data.CanAdminsBypass = github.Ptr(d.Get("can_admins_bypass").(bool))
 
-	data.PreventSelfReview = github.Bool(d.Get("prevent_self_review").(bool))
+	data.PreventSelfReview = github.Ptr(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
 
 		for _, team := range expandReviewers(v, "teams") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.String("Team"),
-				ID:   github.Int64(team),
+				Type: github.Ptr("Team"),
+				ID:   github.Ptr(team),
 			})
 		}
 
 		for _, user := range expandReviewers(v, "users") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.String("User"),
-				ID:   github.Int64(user),
+				Type: github.Ptr("User"),
+				ID:   github.Ptr(user),
 			})
 		}
 
@@ -272,21 +294,21 @@ func createUpdateEnvironmentData(d *schema.ResourceData, meta interface{}) githu
 	}
 
 	if v, ok := d.GetOk("deployment_branch_policy"); ok {
-		policy := v.([]interface{})[0].(map[string]interface{})
+		policy := v.([]any)[0].(map[string]any)
 		data.DeploymentBranchPolicy = &github.BranchPolicy{
-			ProtectedBranches:    github.Bool(policy["protected_branches"].(bool)),
-			CustomBranchPolicies: github.Bool(policy["custom_branch_policies"].(bool)),
+			ProtectedBranches:    github.Ptr(policy["protected_branches"].(bool)),
+			CustomBranchPolicies: github.Ptr(policy["custom_branch_policies"].(bool)),
 		}
 	}
 
 	return data
 }
 
-func expandReviewers(v interface{}, target string) []int64 {
+func expandReviewers(v any, target string) []int64 {
 	res := make([]int64, 0)
-	m := v.([]interface{})[0]
+	m := v.([]any)[0]
 	if m != nil {
-		if v, ok := m.(map[string]interface{})[target]; ok {
+		if v, ok := m.(map[string]any)[target]; ok {
 			vL := v.(*schema.Set).List()
 			for _, v := range vL {
 				res = append(res, int64(v.(int)))

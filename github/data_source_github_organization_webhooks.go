@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -44,7 +44,7 @@ func dataSourceGithubOrganizationWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
@@ -54,7 +54,7 @@ func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta inter
 		PerPage: 100,
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 	for {
 		hooks, resp, err := client.Organizations.ListHooks(ctx, owner, options)
 		if err != nil {

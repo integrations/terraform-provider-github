@@ -7,6 +7,8 @@ description: |-
 
 # github_repository_deployment_branch_policies
 
+~> **Note:** This data source is deprecated, please use the `github_repository_environment_deployment_policies` data source instead.
+
 Use this data source to retrieve deployment branch policies for a repository / environment.
 
 ## Example Usage
@@ -27,5 +29,5 @@ data "github_repository_deployment_branch_policies" "example" {
 ## Attributes Reference
 
 * `deployment_branch_policies` - The list of this repository / environment deployment policies. Each element of `deployment_branch_policies` has the following attributes:
-    * `id` - Id of the policy.
-    * `name` - The name pattern that branches must match in order to deploy to the environment.
+  * `id` - Id of the policy.
+  * `name` - The name pattern that branches must match in order to deploy to the environment.

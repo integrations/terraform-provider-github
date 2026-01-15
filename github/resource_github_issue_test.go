@@ -2,19 +2,18 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIssue(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates an issue without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		title := "issue_title"
 		body := "issue_body"
 		labels := "\"bug\", \"enhancement\""
@@ -24,7 +23,7 @@ func TestAccGithubIssue(t *testing.T) {
 
 		issueHCL := `
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init  = true
                 has_issues = true
 			}
@@ -47,7 +46,7 @@ func TestAccGithubIssue(t *testing.T) {
 			  milestone_number = github_repository_milestone.test.number
 			}
 		`
-		config := fmt.Sprintf(issueHCL, randomID, title, body, labels, testOwnerFunc())
+		config := fmt.Sprintf(issueHCL, repoName, title, body, labels, testAccConf.username)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -94,40 +93,28 @@ func TestAccGithubIssue(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: fmt.Sprintf(issueHCL, randomID, updatedTitle, updatedBody, updatedLabels, testOwnerFunc()),
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(issueHCL, repoName, updatedTitle, updatedBody, updatedLabels, testAccConf.owner),
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("imports a issue without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
-					  name       = "tf-acc-test-%s"
+					  name       = "%s"
 					  has_issues = true
 					}
 
@@ -135,42 +122,27 @@ func TestAccGithubIssue(t *testing.T) {
 					  repository       = github_repository.test.name
 					  title            = github_repository.test.name
 					}
-		    `, randomID)
+		    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_issue.test", "title"),
-			resource.TestCheckResourceAttr("github_issue.test", "title", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_issue.test", "title", repoName),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_issue.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_issue.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
-
 }

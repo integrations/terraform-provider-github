@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -50,7 +50,8 @@ func dataSourceGithubDependabotSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) error {
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -77,7 +78,7 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta interfac
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Dependabot.ListRepoSecrets(context.TODO(), owner, repoName, &options)
+		secrets, resp, err := client.Dependabot.ListRepoSecrets(ctx, owner, repoName, &options)
 		if err != nil {
 			return err
 		}

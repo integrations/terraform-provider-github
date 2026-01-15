@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,25 +9,24 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
-
-	const ORG_SECRET_NAME = "ORG_SECRET_NAME"
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	secret_name, exists := os.LookupEnv(ORG_SECRET_NAME)
+	repoName1 := fmt.Sprintf("%srepo-act-org-secret-%s-1", testResourcePrefix, randomID)
+	repoName2 := fmt.Sprintf("%srepo-act-org-secret-%s-2", testResourcePrefix, randomID)
 
 	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
-		if !exists {
-			t.Skipf("%s environment variable is missing", ORG_SECRET_NAME)
+		if len(testAccConf.testOrgSecretName) == 0 {
+			t.Skipf("'GH_TEST_ORG_SECRET_NAME' environment variable is missing")
 		}
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test_repo_1" {
-				name = "tf-acc-test-%s-1"
+				name = "%s"
 				visibility = "internal"
 				vulnerability_alerts = "true"
 			}
 
 			resource "github_repository" "test_repo_2" {
-				name = "tf-acc-test-%s-2"
+				name = "%s"
 				visibility = "internal"
 				vulnerability_alerts = "true"
 			}
@@ -40,7 +38,7 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 					github_repository.test_repo_2.repo_id
 				]
 			}
-		`, randomID, randomID, secret_name)
+		`, repoName1, repoName2, testAccConf.testOrgSecretName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -51,29 +49,15 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

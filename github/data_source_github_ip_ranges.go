@@ -9,8 +9,8 @@ import (
 
 func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIpRangesRead,
-
+		Description: "Get the GitHub IP ranges used by various GitHub services.",
+		Read:        dataSourceGithubIpRangesRead,
 		Schema: map[string]*schema.Schema{
 			"hooks": {
 				Type:     schema.TypeList,
@@ -53,9 +53,10 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"hooks_ipv4": {
 				Type:     schema.TypeList,
@@ -98,9 +99,10 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"hooks_ipv6": {
 				Type:     schema.TypeList,
@@ -143,15 +145,16 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dependabot_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
 }
 
-func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
 	owner := meta.(*Owner)
 
 	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
@@ -236,9 +239,9 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 	if len(api.Packages) > 0 {
-		d.Set("packages", api.Packages)
-		d.Set("packages_ipv4", cidrPackagesIpv4)
-		d.Set("packages_ipv6", cidrPackagesIpv6)
+		_ = d.Set("packages", api.Packages)
+		_ = d.Set("packages_ipv4", cidrPackagesIpv4)
+		_ = d.Set("packages_ipv6", cidrPackagesIpv6)
 	}
 	if len(api.Pages) > 0 {
 		err = d.Set("pages", api.Pages)
@@ -335,7 +338,7 @@ func splitIpv4Ipv6Cidrs(cidrs *[]string) (*[]string, *[]string, error) {
 	for _, cidr := range *cidrs {
 		cidrHost, _, err := net.ParseCIDR(cidr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed parsing cidr %s (%v)", cidr, err)
+			return nil, nil, fmt.Errorf("failed parsing cidr %s (%w)", cidr, err)
 		}
 		if cidrHost.To4() != nil {
 			cidrIpv4 = append(cidrIpv4, cidr)

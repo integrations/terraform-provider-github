@@ -1,0 +1,56 @@
+# Configuration for labeler - https://github.com/actions/labeler
+"Type: Breaking change":
+  - head-branch:
+    - '^breaking/'
+    - '^breaking-'
+
+"Type: Feature":
+  - head-branch:
+    - '^feat/'
+    - '^feat-'
+    - '^feature/'
+    - '^feature-'
+
+"Type: Bug":
+  - head-branch:
+    - '^fix/'
+    - '^fix-'
+    - '^bugfix/'
+    - '^bugfix-'
+    - '^bug/'
+    - '^bug-'
+
+"Deprecation":
+  - head-branch:
+    - '^deprecate/'
+    - '^deprecate-'
+    - '^deprecation/'
+    - '^deprecation-'
+
+"Type: Maintenance":
+  - head-branch:
+    - '^chore/'
+    - '^chore-'
+    - '^maintenance/'
+    - '^maintenance-'
+    - '^maint/'
+    - '^maint-'
+    - '^deps/'
+    - '^deps-'
+    - '^dependencies/'
+    - '^dependencies-'
+  # - changed-files:
+  #   - any-glob-to-any-file: 
+  #     - .github/workflows/**
+  #     - .github/labeler.yml
+  #     - .github/dependabot.yml
+  #     - .github/release.yml
+
+"Type: Documentation":
+  - head-branch:
+    - '^docs/'
+    - '^docs-'
+    - '^doc/'
+    - '^doc-'
+  # - changed-files:
+  #   - any-glob-to-any-file: 'website/**'

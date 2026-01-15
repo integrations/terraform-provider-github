@@ -74,7 +74,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 }
 ```
 
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -87,11 +86,10 @@ The following arguments are supported:
 
 * `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
 
-
 ## Import
 
-GitHub Repository Environment Deployment Policy can be imported using an ID made up of `name` of the repository combined with the `environment` name of the environment with the `Id` of the deployment policy, separated by a `:` character, e.g.
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the name need to be escaped as `??`), and deployment policy ID all separated by a `:`.
 
-```
-$ terraform import github_repository_environment.daily terraform:daily:123456
+```shell
+terraform import github_repository_environment.example myrepo:myenv:123456
 ```

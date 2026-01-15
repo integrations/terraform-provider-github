@@ -38,7 +38,7 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta any) error {
 	username := d.Get("username").(string)
 
 	client := meta.(*Owner).v4client
@@ -52,7 +52,7 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 		} `graphql:"organization(login: $orgName)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"orgName":  githubv4.String(orgName),
 		"username": githubv4.String(username),
 	}
@@ -61,7 +61,7 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		return err
 	}
-	if len(query.Organization.SamlIdentityProvider.ExternalIdentities.Edges) == 0 {
+	if len(query.Organization.SamlIdentityProvider.Edges) == 0 {
 		return fmt.Errorf("there was no external identity found for username %q in Organization %q", username, orgName)
 	}
 
@@ -83,9 +83,9 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta inter
 	login := string(externalIdentityNode.User.Login)
 
 	d.SetId(fmt.Sprintf("%s/%s", orgName, username))
-	d.Set("saml_identity", samlIdentity)
-	d.Set("scim_identity", scimIdentity)
-	d.Set("login", login)
-	d.Set("username", login)
+	_ = d.Set("saml_identity", samlIdentity)
+	_ = d.Set("scim_identity", scimIdentity)
+	_ = d.Set("login", login)
+	_ = d.Set("username", login)
 	return nil
 }

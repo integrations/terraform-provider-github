@@ -7,8 +7,9 @@ description: |-
 
 # github_repository_deployment_branch_policy
 
-This resource allows you to create and manage deployment branch policies.
+~> **Note:** This resource is deprecated, please use the `github_repository_environment_deployment_policy` resource instead.
 
+This resource allows you to create and manage deployment branch policies.
 
 ## Example Usage
 
@@ -31,7 +32,6 @@ resource "github_repository_deployment_branch_policy" "foo" {
 }
 ```
 
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -50,6 +50,6 @@ The following additional attributes are exported:
 
 ## Import
 
-```
+```text
 $ terraform import github_repository_deployment_branch_policy.foo repo:env:id
 ```

@@ -1,0 +1,33 @@
+name: Issue/PR Response
+
+on:
+  issues:
+    types:
+      - opened
+  pull_request_target:
+    types:
+      - opened
+
+permissions: read-all
+
+jobs:
+  respond:
+    name: Respond to Issue or PR
+    if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' && github.repository == 'integrations/terraform-provider-github'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Comment
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
+          body: >
+            👋 Hi! Thank you for this contribution! Just to let you know, our GitHub SDK team does a round of issue and PR reviews twice a week, every Monday and Friday!
+            We have a [process in place](https://github.com/octokit/.github/blob/main/community/prioritization_response.md#overview) for prioritizing and responding to your input.
+            Because you are a part of this community please feel free to comment, add to, or pick up any issues/PRs that are labeled with `Status: Up for grabs`.
+            You & others like you are the reason all of this works! So thank you & happy coding! 🚀

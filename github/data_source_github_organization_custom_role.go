@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v81/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationCustomRoleRead,
+		DeprecationMessage: "This data source is deprecated and will be removed in a future release. Use the github_organization_repository_role data source instead.",
 
+		Read: dataSourceGithubOrganizationCustomRoleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -36,7 +37,7 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
@@ -51,7 +52,7 @@ func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta int
 	// implemented in the go-github library.
 	roleList, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return fmt.Errorf("error querying GitHub custom repository roles %s: %s", orgName, err)
+		return fmt.Errorf("error querying GitHub custom repository roles %s: %w", orgName, err)
 	}
 
 	var role *github.CustomRepoRoles
