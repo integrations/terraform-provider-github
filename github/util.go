@@ -257,9 +257,13 @@ func getTeamID(teamIDString string, meta any) (int64, error) {
 }
 
 func getTeamSlug(teamIDString string, meta any) (string, error) {
+	ctx := context.Background()
+	return getTeamSlugContext(ctx, teamIDString, meta)
+}
+
+func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
-	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	orgId := meta.(*Owner).id
