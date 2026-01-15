@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/google/go-github/v77 v77.0.0
 	github.com/google/go-github/v81 v81.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cty v1.5.0
