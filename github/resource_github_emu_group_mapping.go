@@ -341,7 +341,12 @@ func importWithIntegerID(ctx context.Context, d *schema.ResourceData, meta any) 
 		return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
 	}
 
-	teamSlug := group.Teams[0].GetTeamName()
+	teamID := group.Teams[0].GetTeamID()
+	teamSlug, err := getTeamSlugContext(ctx, strconv.FormatInt(teamID, 10), meta)
+	if err != nil {
+		return nil, err
+	}
+
 	tflog.Trace(ctx, "Setting state attribute: team_slug", map[string]any{
 		"team_slug": teamSlug,
 	})
