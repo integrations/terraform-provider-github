@@ -15,19 +15,18 @@ func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
+				name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
-				repository       = github_repository.test.name
-				environment      = "environment / test"
+				repository  = github_repository.test.name
+				environment = "environment / test"
 			  }
 
 			resource "github_actions_environment_secret" "test" {
-				secret_name 		= "secret_1"
-				environment      	= github_repository_environment.test.environment
-				repository  		= github_repository.test.name
+				repository      = github_repository.test.name
+				environment     = github_repository_environment.test.environment
+				secret_name     = "secret_1"
 				plaintext_value = "foo"
 			}
 		`, repoName)

@@ -4,12 +4,13 @@ import (
 	"context"
 	"net/url"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsEnvironmentPublicKeyRead,
+		ReadContext: dataSourceGithubActionsEnvironmentPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -32,33 +33,29 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubActionsEnvironmentPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
 
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repository)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), escapedEnvName)
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), url.PathEscape(envName))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(publicKey.GetKeyID())
-	err = d.Set("key_id", publicKey.GetKeyID())
-	if err != nil {
-		return err
+	if err := d.Set("key_id", publicKey.GetKeyID()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("key", publicKey.GetKey())
-	if err != nil {
-		return err
+	if err := d.Set("key", publicKey.GetKey()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

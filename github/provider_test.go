@@ -54,12 +54,12 @@ func TestAccProviderConfigure(t *testing.T) {
 	t.Run("can be configured to run anonymously", func(t *testing.T) {
 		config := `
 		provider "github" {
-			token = ""
 		}
 		data "github_ip_ranges" "test" {}
 		`
 
 		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", ""); t.Setenv("GH_PATH", "none-existent-path") },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -161,10 +161,15 @@ func TestAccProviderConfigure(t *testing.T) {
 			provider "github" {
 				token = "%s"
 				base_url = "%s"
-			}`, testAccConf.token, testAccConf.owner)
+			}`, testAccConf.token, testAccConf.baseURL)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, individual) },
+			PreCheck: func() {
+				skipUnlessMode(t, enterprise)
+				if testAccConf.baseURL.Host != "api.github.com" {
+					t.Skip("Skipping as test mode is not GHES")
+				}
+			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -187,7 +192,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxRetries)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -211,7 +215,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxPerPage)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -243,12 +246,11 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testAccConf.token)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
+					ExpectError: regexp.MustCompile(`"app_auth": conflicts with token`),
 				},
 			},
 		})
@@ -268,12 +270,12 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); t.Setenv("GITHUB_TOKEN", "1234567890") },
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
+					ExpectError: regexp.MustCompile(`"token": conflicts with app_auth`),
 				},
 			},
 		})

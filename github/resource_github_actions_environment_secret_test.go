@@ -131,6 +131,9 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
+					Config: config,
+				},
+				{
 					Config:  config,
 					Destroy: true,
 				},
