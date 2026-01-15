@@ -73,6 +73,11 @@ resource "github_repository_ruleset" "test" {
 			min_entries_to_merge_wait_minutes = 60
 		}
 
+		copilot_code_review {
+			review_on_push             = true
+			review_draft_pull_requests = false
+		}
+
 		required_deployments {
 			required_deployment_environments = [github_repository_environment.example.environment]
 		}
@@ -128,6 +133,8 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
 					),
 				},
 			},
