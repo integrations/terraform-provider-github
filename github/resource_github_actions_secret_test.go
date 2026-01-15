@@ -556,4 +556,63 @@ func TestGithubActionsSecretIssue964Solution(t *testing.T) {
 
 		t.Logf("SUCCESS: Issue #964 solved - secret with destroy_on_drift=false does not get recreated on external changes")
 	})
+
+	t.Run("creates and updates secret from another organization without error", func(t *testing.T) {
+		repoName := fmt.Sprintf("tf-acc-test-%s-with-owner", randomID)
+		secretValue := base64.StdEncoding.EncodeToString([]byte("test"))
+
+		config := fmt.Sprintf(`
+			// TODO: We need to create a repository in another organization to test the secret creation
+			// To do that, we need to support that feature on github_repository
+			resource "github_repository" "repo" {
+				name = "%s/%s"
+			}
+
+			resource "github_actions_secret" "plaintext_secret" {
+			  repository       = github_repository.repo.full_name
+			  secret_name      = "TEST"
+			  plaintext_value  = "%s"
+			}
+			`, testOrganization, repoName, secretValue)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_actions_secret.plaintext_secret", "plaintext_value",
+					secretValue,
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.plaintext_secret", "created_at",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_actions_secret.plaintext_secret", "updated_at",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
