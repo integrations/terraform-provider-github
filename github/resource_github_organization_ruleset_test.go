@@ -103,6 +103,11 @@ resource "github_organization_ruleset" "test" {
 			require_last_push_approval        = true
 		}
 
+		copilot_code_review {
+			review_on_push             = true
+			review_draft_pull_requests = false
+		}
+
 		required_status_checks {
 
 			required_check {
@@ -166,6 +171,8 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
 					),
 				},
 			},

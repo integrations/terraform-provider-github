@@ -18,11 +18,11 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description:  descriptions["token"],
-				ExactlyOneOf: []string{"app_auth"},
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description:   descriptions["token"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -94,11 +94,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:         schema.TypeList,
-				Optional:     true,
-				MaxItems:     1,
-				Description:  descriptions["app_auth"],
-				ExactlyOneOf: []string{"token"},
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				Description:   descriptions["app_auth"],
+				ConflictsWith: []string{"token"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -212,6 +212,7 @@ func Provider() *schema.Provider {
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
+			"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
@@ -505,6 +506,7 @@ func tokenFromGHCLI(u *url.URL) string {
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
+		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
 		return ""

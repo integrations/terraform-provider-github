@@ -150,7 +150,6 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 				},
 				{
 					ResourceName:      "github_actions_environment_variable.variable",
-					ImportStateId:     fmt.Sprintf(`%s:%s:%s`, repoName, envName, varName),
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -208,13 +207,12 @@ func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
 						client := testAccProvider.Meta().(*Owner).v3client
 						owner := testAccProvider.Meta().(*Owner).name
 						ctx := context.Background()
-						escapedEnvName := url.PathEscape(envName)
 
 						variable := &github.ActionsVariable{
 							Name:  varName,
 							Value: value,
 						}
-						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
 						return err
 					},
 				),
