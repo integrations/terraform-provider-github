@@ -88,6 +88,16 @@ func parseID3(id string) (string, string, string, error) {
 	return parts[0], parts[1], parts[2], nil
 }
 
+// parseID4 splits the id by the idSeparator into four parts.
+func parseID4(id string) (string, string, string, string, error) {
+	parts, err := parseID(id, 4)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	return parts[0], parts[1], parts[2], parts[3], nil
+}
+
 func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
 		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)

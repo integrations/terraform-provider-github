@@ -328,6 +328,75 @@ func Test_parseID3(t *testing.T) {
 	}
 }
 
+func Test_parseID4(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		id       string
+		expect1  string
+		expect2  string
+		expect3  string
+		expect4  string
+		hasError bool
+	}{
+		{
+			testName: "valid_four_parts",
+			id:       "part1:part2:part3:part4",
+			expect1:  "part1",
+			expect2:  "part2",
+			expect3:  "part3",
+			expect4:  "part4",
+			hasError: false,
+		},
+		{
+			testName: "valid_four_parts_with_extra",
+			id:       "part1:part2:part3:part4:extra",
+			expect1:  "part1",
+			expect2:  "part2",
+			expect3:  "part3",
+			expect4:  "part4:extra",
+			hasError: false,
+		},
+		{
+			testName: "invalid_three_parts",
+			id:       "part1:part2:part3",
+			expect1:  "",
+			expect2:  "",
+			expect3:  "",
+			expect4:  "",
+			hasError: true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got1, got2, got3, got4, err := parseID4(d.id)
+
+			if d.hasError && err == nil {
+				t.Fatalf("expected error but got none")
+			}
+			if !d.hasError && err != nil {
+				t.Fatalf("did not expect error but got: %v", err)
+			}
+			if !d.hasError {
+				if got1 != d.expect1 {
+					t.Fatalf("expected part 1 to be %q but got %q", d.expect1, got1)
+				}
+				if got2 != d.expect2 {
+					t.Fatalf("expected part 2 to be %q but got %q", d.expect2, got2)
+				}
+				if got3 != d.expect3 {
+					t.Fatalf("expected part 3 to be %q but got %q", d.expect3, got3)
+				}
+				if got4 != d.expect4 {
+					t.Fatalf("expected part 4 to be %q but got %q", d.expect4, got4)
+				}
+			}
+		})
+	}
+}
+
 func TestGithubUtilRole_validation(t *testing.T) {
 	cases := []struct {
 		Value    string

@@ -107,11 +107,11 @@ func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *sch
 		options.Page = resp.NextPage
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	if err := d.Set("variables", all_variables); err != nil {
 		return diag.FromErr(err)

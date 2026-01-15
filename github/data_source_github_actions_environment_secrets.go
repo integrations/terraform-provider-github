@@ -107,11 +107,11 @@ func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schem
 		options.Page = resp.NextPage
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	if err := d.Set("secrets", all_secrets); err != nil {
 		return diag.FromErr(err)

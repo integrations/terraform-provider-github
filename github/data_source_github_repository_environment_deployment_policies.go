@@ -65,11 +65,11 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Con
 		results = append(results, policyMap)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	if err = d.Set("policies", results); err != nil {
 		return diag.FromErr(err)
