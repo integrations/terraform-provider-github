@@ -11,10 +11,11 @@ import (
 func TestAccGithubTreeDataSource(t *testing.T) {
 	t.Run("get tree", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-tree-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "this" {
 				auto_init = true
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 			}
 
 			data "github_branch" "this" {
@@ -27,7 +28,7 @@ func TestAccGithubTreeDataSource(t *testing.T) {
 				repository = github_repository.this.name
 				tree_sha   = data.github_branch.this.sha
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(

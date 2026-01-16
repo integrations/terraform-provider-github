@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepository() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryRead,
+		ReadContext: dataSourceGithubRepositoryRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -60,8 +61,9 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"has_downloads": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:       schema.TypeBool,
+				Computed:   true,
+				Deprecated: "This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See https://github.com/orgs/community/discussions/102145#discussioncomment-8351756",
 			},
 			"has_wiki": {
 				Type:     schema.TypeBool,
@@ -92,6 +94,10 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"allow_update_branch": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"allow_forking": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -339,8 +345,7 @@ func dataSourceGithubRepository() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -349,7 +354,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if name, ok := d.GetOk("name"); ok {
@@ -357,7 +362,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -370,7 +375,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(repoName)
@@ -389,6 +394,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 	_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 	_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+	_ = d.Set("allow_forking", repo.GetAllowForking())
 	_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	_ = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
 	_ = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
@@ -412,25 +418,25 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("pages", flattenPages(pages)); err != nil {
-			return fmt.Errorf("error setting pages: %w", err)
+			return diag.Errorf("error setting pages: %v", err)
 		}
 	} else {
 		err = d.Set("pages", flattenPages(nil))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if repo.License != nil {
 		repository_license, _, err := client.Repositories.License(ctx, owner, repoName)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("repository_license", flattenRepositoryLicense(repository_license)); err != nil {
-			return fmt.Errorf("error setting repository_license: %w", err)
+			return diag.Errorf("error setting repository_license: %v", err)
 		}
 	} else {
 		_ = d.Set("repository_license", flattenRepositoryLicense(nil))
@@ -444,18 +450,18 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta any) error {
 			},
 		})
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		err = d.Set("template", []any{})
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = d.Set("topics", flattenStringList(repo.Topics))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

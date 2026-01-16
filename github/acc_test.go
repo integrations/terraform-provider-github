@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -25,7 +25,7 @@ const (
 	enterprise   testMode = "enterprise"
 )
 
-const testResourcePrefix = "test-acc-"
+const testResourcePrefix = "tf-acc-test-"
 
 var (
 	orgTestModes     = []testMode{organization, team, enterprise}
@@ -67,6 +67,9 @@ type testAccConfig struct {
 	testExternalUser      string
 	testExternalUserToken string
 	testExternalUser2     string
+
+	// Enterprise test configuration
+	testEnterpriseEMUGroupId int
 
 	// Test options
 	testAdvancedSecurity bool
@@ -148,6 +151,11 @@ func TestMain(m *testing.M) {
 		if len(config.enterpriseSlug) == 0 {
 			fmt.Println("GITHUB_ENTERPRISE_SLUG environment variable not set")
 			os.Exit(1)
+		}
+
+		i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID"))
+		if err == nil {
+			config.testEnterpriseEMUGroupId = i
 		}
 	}
 
@@ -274,7 +282,7 @@ func skipUnlessHasOrgs(t *testing.T) {
 
 func skipUnlessHasPaidOrgs(t *testing.T) {
 	if !slices.Contains(paidOrgTestModes, testAccConf.authMode) {
-		t.Skip("Skipping as test mode doesn't have orgs")
+		t.Skip("Skipping as test mode doesn't have paid orgs")
 	}
 }
 

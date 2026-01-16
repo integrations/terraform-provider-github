@@ -14,9 +14,10 @@ import (
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Run("creates runner groups without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			  vulnerability_alerts = false
 			  auto_init = true
 			}
@@ -41,7 +42,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			  selected_workflows = ["${github_repository.test.full_name}/.github/workflows/test.yml@refs/heads/main"]
 			  allows_public_repositories = true
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -49,7 +50,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				repoName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
@@ -98,9 +99,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 	t.Run("manages runner visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
@@ -108,7 +110,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			  visibility = "selected"
 			  selected_repository_ids = [github_repository.test.repo_id]
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -116,7 +118,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "name",
-				fmt.Sprintf(`tf-acc-test-%s`, randomID),
+				repoName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "visibility",
@@ -145,22 +147,23 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
 			  name       = github_repository.test.name
 			  visibility = "all"
 			}
-    `, randomID)
+    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -184,23 +187,25 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		// Note: this test is skipped because when setting visibility 'private', it always fails with:
 		// Step 0 error: After applying this step, the plan was not empty:
 		// visibility:                 "all" => "private"
+		// Based on GitHub UI there is no way to create a private runner group
 		t.Skip("This is not supported")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
-					  name = "tf-acc-test-%s"
+					  name = "%s"
 					}
 
 					resource "github_actions_runner_group" "test" {
 					  name       = github_repository.test.name
 					  visibility = "private"
 					}
-		    `, randomID)
+		    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 		)
 
@@ -223,9 +228,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 	t.Run("imports a selected runner group without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 			}
 
 			resource "github_actions_runner_group" "test" {
@@ -233,11 +239,11 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				visibility = "selected"
 				selected_repository_ids = [github_repository.test.repo_id]
 			}
-    `, randomID)
+    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
 			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
 			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
 			resource.TestCheckResourceAttr(

@@ -15,10 +15,11 @@ func TestAccGithubProjectCard(t *testing.T) {
 
 	t.Run("creates a project card using a note", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%sproject-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_organization_project" "project" {
-				name = "tf-acc-%s"
+				name = "%s"
 				body = "This is an organization project."
 			}
 
@@ -32,7 +33,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 				note        = "## Unaccepted 👇"
 			}
 
-		`, randomID)
+		`, testResourceName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -54,10 +55,11 @@ func TestAccGithubProjectCard(t *testing.T) {
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-project-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				has_projects = true
 				has_issues   = true
 			}
@@ -86,7 +88,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 				content_type = "Issue"
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			func(state *terraform.State) error {

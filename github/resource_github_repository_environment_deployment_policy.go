@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,12 +16,13 @@ import (
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 	return &schema.Resource{
+		CustomizeDiff: resourceGithubRepositoryEnvironmentDeploymentPolicyDiff,
 		CreateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyCreate,
 		ReadContext:   resourceGithubRepositoryEnvironmentDeploymentPolicyRead,
 		UpdateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
 		DeleteContext: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubRepositoryEnvironmentDeploymentPolicyImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -65,8 +66,24 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 				},
 			},
 		},
-		CustomizeDiff: customDeploymentPolicyDiffFunction,
 	}
+}
+
+func resourceGithubRepositoryEnvironmentDeploymentPolicyDiff(_ context.Context, diff *schema.ResourceDiff, v any) error {
+	if diff.Id() == "" {
+		return nil
+	}
+
+	if diff.HasChange("branch_pattern") && diff.HasChange("tag_pattern") {
+		if err := diff.ForceNew("branch_pattern"); err != nil {
+			return err
+		}
+		if err := diff.ForceNew("tag_pattern"); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -75,47 +92,53 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 
 	var createData github.DeploymentBranchPolicyRequest
 	if v, ok := d.GetOk("branch_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("branch"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("branch"),
 		}
 	} else if v, ok := d.GetOk("tag_pattern"); ok {
 		createData = github.DeploymentBranchPolicyRequest{
-			Name: github.String(v.(string)),
-			Type: github.String("tag"),
+			Name: github.Ptr(v.(string)),
+			Type: github.Ptr("tag"),
 		}
 	} else {
 		return diag.Errorf("only one of 'branch_pattern' or 'tag_pattern' must be specified")
 	}
 
-	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, &createData)
+	resultKey, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), &createData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
+	if id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
 	return nil
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
-	repoName, envName, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+
+	repoName, envNamePart, branchPolicyIdString, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	envName := unescapeIDPart(envNamePart)
 
 	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	branchPolicy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
+	branchPolicy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), branchPolicyId)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -148,8 +171,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 	envName := d.Get("environment").(string)
 	branchPattern := d.Get("branch_pattern").(string)
 	tagPattern := d.Get("tag_pattern").(string)
-	escapedEnvName := url.PathEscape(envName)
-	_, _, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+	_, _, branchPolicyIdString, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -165,14 +187,20 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 	}
 
 	updateData := github.DeploymentBranchPolicyRequest{
-		Name: github.String(pattern),
+		Name: github.Ptr(pattern),
 	}
 
-	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, escapedEnvName, branchPolicyId, &updateData)
+	resultKey, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), branchPolicyId, &updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(buildThreePartID(repoName, escapedEnvName, strconv.FormatInt(resultKey.GetID(), 10)))
+
+	if id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
 	return nil
 }
 
@@ -180,17 +208,19 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, envName, branchPolicyIdString, err := parseThreePartID(d.Id(), "repository", "environment", "branchPolicyId")
+	repoName, envNamePart, branchPolicyIdString, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	envName := unescapeIDPart(envNamePart)
 
 	branchPolicyId, err := strconv.ParseInt(branchPolicyIdString, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, branchPolicyId)
+	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), branchPolicyId)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -198,15 +228,18 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 	return nil
 }
 
-func customDeploymentPolicyDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
-	if diff.HasChange("branch_pattern") && diff.HasChange("tag_pattern") {
-		if err := diff.ForceNew("branch_pattern"); err != nil {
-			return err
-		}
-		if err := diff.ForceNew("tag_pattern"); err != nil {
-			return err
-		}
+func resourceGithubRepositoryEnvironmentDeploymentPolicyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	repoName, envNamePart, _, err := parseID3(d.Id())
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("environment", unescapeIDPart(envNamePart)); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }

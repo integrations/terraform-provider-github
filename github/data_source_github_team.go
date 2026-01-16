@@ -4,17 +4,18 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 
 	"github.com/shurcooL/githubv4"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamRead,
+		ReadContext: dataSourceGithubTeamRead,
 
 		Schema: map[string]*schema.Schema{
 			"slug": {
@@ -33,9 +34,14 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"permission": {
+			"notification_setting": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"permission": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Closing down notice.",
 			},
 			"members": {
 				Type:     schema.TypeList,
@@ -88,30 +94,50 @@ func dataSourceGithubTeam() *schema.Resource {
 				Optional:         true,
 				Default:          100,
 				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+				Deprecated:       "This is deprecated and will be removed in a future release.",
 			},
 		},
 	}
 }
 
-func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
-	slug := d.Get("slug").(string)
-
+func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	ctx := context.Background()
-	summaryOnly := d.Get("summary_only").(bool)
-	resultsPerPage := d.Get("results_per_page").(int)
+	owner := meta.(*Owner).name
+
+	slug := d.Get("slug").(string)
 
 	team, _, err := client.Teams.GetTeamBySlug(ctx, meta.(*Owner).name, slug)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
+	}
+
+	d.SetId(strconv.FormatInt(team.GetID(), 10))
+	if err = d.Set("name", team.GetName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("description", team.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("notification_setting", team.GetNotificationSetting()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("permission", team.GetPermission()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("node_id", team.GetNodeID()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	var members []string
 	var repositories []string
 	var repositories_detailed []any
 
+	summaryOnly := d.Get("summary_only").(bool)
 	if !summaryOnly {
+		resultsPerPage := d.Get("results_per_page").(int)
 		options := github.TeamListTeamMembersOptions{
 			ListOptions: github.ListOptions{
 				PerPage: resultsPerPage,
@@ -120,9 +146,9 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 
 		if d.Get("membership_type").(string) == "all" {
 			for {
-				member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
+				member, resp, err := client.Teams.ListTeamMembersBySlug(ctx, owner, team.GetSlug(), &options)
 				if err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 
 				for _, v := range member {
@@ -160,7 +186,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 			for {
 				nameErr := client.Query(ctx, &query, variables)
 				if nameErr != nil {
-					return nameErr
+					return diag.FromErr(nameErr)
 				}
 				for _, v := range query.Organization.Team.Members.Nodes {
 					members = append(members, v.Login)
@@ -173,12 +199,11 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 			}
 		}
 
-		repositories_detailed = make([]any, 0, resultsPerPage) // removed this from the loop
-
+		repositories_detailed = make([]any, 0, resultsPerPage)
 		for {
-			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
+			repository, resp, err := client.Teams.ListTeamReposBySlug(ctx, owner, team.GetSlug(), &options.ListOptions)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			for _, v := range repository {
@@ -197,30 +222,14 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 		}
 	}
 
-	d.SetId(strconv.FormatInt(team.GetID(), 10))
-	if err = d.Set("name", team.GetName()); err != nil {
-		return err
-	}
 	if err = d.Set("members", members); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repositories", repositories); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repositories_detailed", repositories_detailed); err != nil {
-		return err
-	}
-	if err = d.Set("description", team.GetDescription()); err != nil {
-		return err
-	}
-	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
-		return err
-	}
-	if err = d.Set("permission", team.GetPermission()); err != nil {
-		return err
-	}
-	if err = d.Set("node_id", team.GetNodeID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

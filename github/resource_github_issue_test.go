@@ -13,6 +13,7 @@ import (
 func TestAccGithubIssue(t *testing.T) {
 	t.Run("creates an issue without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		title := "issue_title"
 		body := "issue_body"
 		labels := "\"bug\", \"enhancement\""
@@ -22,7 +23,7 @@ func TestAccGithubIssue(t *testing.T) {
 
 		issueHCL := `
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init  = true
                 has_issues = true
 			}
@@ -45,7 +46,7 @@ func TestAccGithubIssue(t *testing.T) {
 			  milestone_number = github_repository_milestone.test.number
 			}
 		`
-		config := fmt.Sprintf(issueHCL, randomID, title, body, labels, testAccConf.username)
+		config := fmt.Sprintf(issueHCL, repoName, title, body, labels, testAccConf.username)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -101,7 +102,7 @@ func TestAccGithubIssue(t *testing.T) {
 					Check:  checks["before"],
 				},
 				{
-					Config: fmt.Sprintf(issueHCL, randomID, updatedTitle, updatedBody, updatedLabels, testAccConf.owner),
+					Config: fmt.Sprintf(issueHCL, repoName, updatedTitle, updatedBody, updatedLabels, testAccConf.owner),
 					Check:  checks["after"],
 				},
 			},
@@ -110,9 +111,10 @@ func TestAccGithubIssue(t *testing.T) {
 
 	t.Run("imports a issue without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
-					  name       = "tf-acc-test-%s"
+					  name       = "%s"
 					  has_issues = true
 					}
 
@@ -120,11 +122,11 @@ func TestAccGithubIssue(t *testing.T) {
 					  repository       = github_repository.test.name
 					  title            = github_repository.test.name
 					}
-		    `, randomID)
+		    `, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_issue.test", "title"),
-			resource.TestCheckResourceAttr("github_issue.test", "title", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
+			resource.TestCheckResourceAttr("github_issue.test", "title", repoName),
 		)
 
 		resource.Test(t, resource.TestCase{

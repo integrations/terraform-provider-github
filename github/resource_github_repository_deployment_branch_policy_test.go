@@ -11,10 +11,11 @@ import (
 func TestAccGithubRepositoryDeploymentBranchPolicy(t *testing.T) {
 	t.Run("creates deployment branch policy", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-deploy-bp-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -26,7 +27,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicy(t *testing.T) {
 					custom_branch_policies = true
 				}
 			}
-		`, randomID)
+		`, repoName)
 
 		config1 := `
 			resource "github_repository_deployment_branch_policy" "br" {

@@ -11,15 +11,16 @@ import (
 func TestAccGithubRepositoryWebhook(t *testing.T) {
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "test-%[1]s"
+			  name         = "%[1]s"
 			  description  = "Terraform acceptance tests"
 			}
 
 			resource "github_repository_webhook" "test" {
 			  depends_on = [github_repository.test]
-			  repository = "test-%[1]s"
+			  repository = "%[1]s"
 
 			  configuration {
 			    url          = "https://google.de/webhook"
@@ -29,7 +30,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 			  events = ["pull_request"]
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -54,15 +55,16 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "test-%[1]s"
+				name         = "%[1]s"
 				description  = "Terraform acceptance tests"
 			}
 
 			resource "github_repository_webhook" "test" {
 				depends_on = [github_repository.test]
-				repository = "test-%[1]s"
+				repository = "%[1]s"
 				configuration {
 					url          = "https://google.de/webhook"
 					content_type = "json"
@@ -70,7 +72,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				}
 				events = ["pull_request"]
 			}
-			`, randomID)
+			`, repoName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -86,7 +88,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 					ResourceName:        "github_repository_webhook.test",
 					ImportState:         true,
 					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
+					ImportStateIdPrefix: fmt.Sprintf("%s/", repoName),
 				},
 			},
 		})
@@ -94,16 +96,17 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_repository" "test" {
-				  name         = "test-%[1]s"
+				  name         = "%[1]s"
 				  description  = "Terraform acceptance tests"
 				}
 
 				resource "github_repository_webhook" "test" {
 				  depends_on = [github_repository.test]
-				  repository = "test-%[1]s"
+				  repository = "%[1]s"
 
 				  configuration {
 				    url          = "https://google.de/webhook"
@@ -113,16 +116,16 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID),
+			`, repoName),
 			"after": fmt.Sprintf(`
 				resource "github_repository" "test" {
-				  name         = "test-%[1]s"
+				  name         = "%[1]s"
 				  description  = "Terraform acceptance tests"
 				}
 
 				resource "github_repository_webhook" "test" {
 				  depends_on = [github_repository.test]
-				  repository = "test-%[1]s"
+				  repository = "%[1]s"
 
 				  configuration {
 				    secret       = "secret"
@@ -133,7 +136,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID),
+			`, repoName),
 		}
 
 		checks := map[string]resource.TestCheckFunc{

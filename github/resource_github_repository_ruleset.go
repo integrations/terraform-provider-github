@@ -9,19 +9,20 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryRulesetCreate,
-		Read:   resourceGithubRepositoryRulesetRead,
-		Update: resourceGithubRepositoryRulesetUpdate,
-		Delete: resourceGithubRepositoryRulesetDelete,
+		CreateContext: resourceGithubRepositoryRulesetCreate,
+		ReadContext:   resourceGithubRepositoryRulesetRead,
+		UpdateContext: resourceGithubRepositoryRulesetUpdate,
+		DeleteContext: resourceGithubRepositoryRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubRepositoryRulesetImport,
+			StateContext: resourceGithubRepositoryRulesetImport,
 		},
 
 		SchemaVersion: 1,
@@ -188,6 +189,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"allowed_merge_methods": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
+										Elem: &schema.Schema{
+											Type:             schema.TypeString,
+											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,
@@ -583,6 +594,28 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								},
 							},
 						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull request. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -594,7 +627,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -602,29 +635,30 @@ func resourceGithubRepositoryRulesetCreate(d *schema.ResourceData, meta any) err
 	owner := meta.(*Owner).name
 
 	repoName := d.Get("repository").(string)
-	ctx := context.Background()
 
 	// Check if repository is archived - cannot create rulesets on archived repos (attempts PUT on read-only resource)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if repo.GetArchived() {
-		return fmt.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
+		return diag.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
 	}
 
-	var ruleset *github.Ruleset
-
-	ruleset, _, err = client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, resp, err := client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
 
-	return resourceGithubRepositoryRulesetRead(d, meta)
+	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	_ = d.Set("ruleset_id", ruleset.ID)
+	_ = d.Set("node_id", ruleset.GetNodeID())
+	_ = d.Set("etag", resp.Header.Get("ETag"))
+
+	return nil
 }
 
-func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -632,18 +666,14 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	var ruleset *github.Ruleset
-	var resp *github.Response
-
-	ruleset, resp, err = client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
+	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -657,7 +687,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ruleset == nil {
@@ -667,7 +697,7 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 		return nil
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("name", ruleset.Name)
 	_ = d.Set("target", ruleset.GetTarget())
 	_ = d.Set("enforcement", ruleset.Enforcement)
@@ -675,12 +705,12 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
 	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
 	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("ruleset_id", ruleset.ID)
+	_ = d.Set("etag", resp.Header.Get("ETag"))
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
@@ -690,56 +720,47 @@ func resourceGithubRepositoryRulesetUpdate(d *schema.ResourceData, meta any) err
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
 	// Check if repository is archived - skip update if it is
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if repo.GetArchived() {
 		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
 		return nil
 	}
 
-	var ruleset *github.Ruleset
-	// Use UpdateRulesetNoBypassActor here instead of UpdateRuleset *if* bypass_actors has changed.
-	// UpdateRuleset uses `omitempty` on BypassActors, causing empty arrays to be omitted from the JSON.
-	// UpdateRulesetNoBypassActor always includes the field so that bypass actors can actually be removed.
-	// See: https://github.com/google/go-github/blob/b6248e6f6aec019e75ba2c8e189bfe89f36b7d01/github/repos_rules.go#L196
-	if d.HasChange("bypass_actors") && len(rulesetReq.BypassActors) == 0 {
-		ruleset, _, err = client.Repositories.UpdateRulesetNoBypassActor(ctx, owner, repoName, rulesetID, rulesetReq)
-	} else {
-		ruleset, _, err = client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
-	}
+	ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	_ = d.Set("ruleset_id", ruleset.ID)
+	_ = d.Set("node_id", ruleset.GetNodeID())
+	_ = d.Set("etag", resp.Header.Get("ETag"))
 
-	return resourceGithubRepositoryRulesetRead(d, meta)
+	return nil
 }
 
-func resourceGithubRepositoryRulesetDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, rulesetID)
 
 	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName)
+	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName))
 }
 
-func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
 	if err != nil {
 		return []*schema.ResourceData{d}, err
@@ -756,7 +777,7 @@ func resourceGithubRepositoryRulesetImport(d *schema.ResourceData, meta any) ([]
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
+
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err

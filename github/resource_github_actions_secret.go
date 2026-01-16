@@ -9,24 +9,31 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/nacl/box"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsSecretCreateOrUpdate,
-		Read:   resourceGithubActionsSecretRead,
-		Delete: resourceGithubActionsSecretDelete,
+		CreateContext: resourceGithubActionsSecretCreateOrUpdate,
+		ReadContext:   resourceGithubActionsSecretRead,
+		DeleteContext: resourceGithubActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubActionsSecretImport,
+			StateContext: resourceGithubActionsSecretImport,
 		},
 
 		// Schema migration added to handle the addition of destroy_on_drift field
 		// Resources created before this field was added need it populated with default value
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubActionsSecretMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubActionsSecretResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubActionsSecretInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -79,10 +86,9 @@ func resourceGithubActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
@@ -91,7 +97,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any)
 
 	keyId, publicKey, err := getPublicKeyDetails(owner, repo, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
@@ -99,7 +105,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any)
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
@@ -113,21 +119,20 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta any)
 
 	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repo, eSecret)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repo, secretName))
-	return resourceGithubActionsSecretRead(d, meta)
+	return resourceGithubActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
@@ -141,11 +146,11 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// This is a drift detection mechanism based on timestamps.
@@ -173,48 +178,47 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta any) error {
 			// Alternative approach: set sensitive values to empty to trigger update plan
 			// This tells Terraform that the current state is unknown and needs reconciliation
 			if err = d.Set("encrypted_value", ""); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			if err = d.Set("plaintext_value", ""); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			log.Printf("[INFO] Detected drift but destroy_on_drift=false, clearing sensitive values to trigger update")
 		}
 	} else {
 		// No drift detected, preserve the configured values in state
 		if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} // Always update the timestamp to prevent repeated drift detection
 	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.Actions.DeleteRepoSecret(ctx, orgName, repoName, secretName)
 
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubActionsSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubActionsSecretImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 2 {

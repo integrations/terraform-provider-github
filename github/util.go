@@ -13,14 +13,79 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+const (
+	idSeparator        = ":"
+	idSeperatorEscaped = `??`
+)
+
 // https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 var maxPerPage = 100
+
+// escapeIDPart escapes any idSeparator characters in a string.
+func escapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeparator, idSeperatorEscaped)
+}
+
+// unescapeIDPart unescapes any escaped idSeparator characters in a string.
+func unescapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeperatorEscaped, idSeparator)
+}
+
+// buildID joins the parts with the idSeparator.
+func buildID(parts ...string) (string, error) {
+	l := len(parts)
+	if l == 0 {
+		return "", fmt.Errorf("no parts provided to build id")
+	}
+
+	id := strings.Join(parts, idSeparator)
+
+	if p := strings.Split(id, idSeparator); len(p) != l {
+		return "", fmt.Errorf("unescaped seperators in id parts %v", parts)
+	}
+
+	return id, nil
+}
+
+// parseID splits the id by the idSeparator checking the count.
+func parseID(id string, count int) ([]string, error) {
+	if len(id) == 0 {
+		return nil, fmt.Errorf("id is empty")
+	}
+
+	parts := strings.Split(id, idSeparator)
+	if len(parts) != count {
+		return nil, fmt.Errorf("unexpected ID format (%q); expected %d parts separated by %q", id, count, idSeparator)
+	}
+
+	return parts, nil
+}
+
+// parseID2 splits the id by the idSeparator into two parts.
+func parseID2(id string) (string, string, error) {
+	parts, err := parseID(id, 2)
+	if err != nil {
+		return "", "", err
+	}
+
+	return parts[0], parts[1], nil
+}
+
+// parseID3 splits the id by the idSeparator into three parts.
+func parseID3(id string) (string, string, string, error) {
+	parts, err := parseID(id, 3)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return parts[0], parts[1], parts[2], nil
+}
 
 func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
@@ -192,9 +257,13 @@ func getTeamID(teamIDString string, meta any) (int64, error) {
 }
 
 func getTeamSlug(teamIDString string, meta any) (string, error) {
+	ctx := context.Background()
+	return getTeamSlugContext(ctx, teamIDString, meta)
+}
+
+func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
-	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	orgId := meta.(*Owner).id

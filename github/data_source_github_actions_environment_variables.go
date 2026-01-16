@@ -2,17 +2,17 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsEnvironmentVariablesRead,
+		ReadContext: dataSourceGithubActionsEnvironmentVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -59,20 +59,18 @@ func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
 
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -81,18 +79,18 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListEnvVariables(ctx, owner, repoName, escapedEnvName, &options)
+		variables, resp, err := client.Actions.ListEnvVariables(ctx, owner, repoName, url.PathEscape(envName), &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, variable := range variables.Variables {
 			new_variable := map[string]string{
@@ -109,8 +107,15 @@ func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, met
 		options.Page = resp.NextPage
 	}
 
-	d.SetId(buildTwoPartID(repoName, envName))
-	_ = d.Set("variables", all_variables)
+	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
+	if err := d.Set("variables", all_variables); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

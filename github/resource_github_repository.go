@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -32,7 +32,13 @@ func resourceGithubRepository() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubRepositoryMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -211,6 +217,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Set to 'true' to enable the (deprecated) downloads features on the repository.",
+				Deprecated:  "This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See https://github.com/orgs/community/discussions/102145#discussioncomment-8351756",
 			},
 			"has_wiki": {
 				Type:        schema.TypeBool,
@@ -245,6 +252,12 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Set to 'true' to allow auto-merging pull requests on the repository.",
+			},
+			"allow_forking": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
@@ -556,17 +569,17 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 
 	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "advanced_security"); ok {
 		securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
-			Status: github.String(status),
+			Status: github.Ptr(status),
 		}
 	}
 	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "secret_scanning"); ok {
 		securityAndAnalysis.SecretScanning = &github.SecretScanning{
-			Status: github.String(status),
+			Status: github.Ptr(status),
 		}
 	}
 	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "secret_scanning_push_protection"); ok {
 		securityAndAnalysis.SecretScanningPushProtection = &github.SecretScanningPushProtection{
-			Status: github.String(status),
+			Status: github.Ptr(status),
 		}
 	}
 
@@ -574,29 +587,31 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 }
 
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
+	visibility := calculateVisibility(d)
+
 	repository := &github.Repository{
-		Name:                     github.String(d.Get("name").(string)),
-		Description:              github.String(d.Get("description").(string)),
-		Homepage:                 github.String(d.Get("homepage_url").(string)),
-		Visibility:               github.String(calculateVisibility(d)),
-		HasDownloads:             github.Bool(d.Get("has_downloads").(bool)),
-		HasIssues:                github.Bool(d.Get("has_issues").(bool)),
-		HasDiscussions:           github.Bool(d.Get("has_discussions").(bool)),
-		HasProjects:              github.Bool(d.Get("has_projects").(bool)),
-		HasWiki:                  github.Bool(d.Get("has_wiki").(bool)),
-		IsTemplate:               github.Bool(d.Get("is_template").(bool)),
-		AllowMergeCommit:         github.Bool(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
-		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
-		WebCommitSignoffRequired: github.Bool(d.Get("web_commit_signoff_required").(bool)),
-		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
-		LicenseTemplate:          github.String(d.Get("license_template").(string)),
-		GitignoreTemplate:        github.String(d.Get("gitignore_template").(string)),
-		Archived:                 github.Bool(d.Get("archived").(bool)),
+		Name:                     github.Ptr(d.Get("name").(string)),
+		Description:              github.Ptr(d.Get("description").(string)),
+		Homepage:                 github.Ptr(d.Get("homepage_url").(string)),
+		Visibility:               github.Ptr(visibility),
+		HasDownloads:             github.Ptr(d.Get("has_downloads").(bool)),
+		HasIssues:                github.Ptr(d.Get("has_issues").(bool)),
+		HasDiscussions:           github.Ptr(d.Get("has_discussions").(bool)),
+		HasProjects:              github.Ptr(d.Get("has_projects").(bool)),
+		HasWiki:                  github.Ptr(d.Get("has_wiki").(bool)),
+		IsTemplate:               github.Ptr(d.Get("is_template").(bool)),
+		AllowMergeCommit:         github.Ptr(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:         github.Ptr(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:         github.Ptr(d.Get("allow_rebase_merge").(bool)),
+		AllowAutoMerge:           github.Ptr(d.Get("allow_auto_merge").(bool)),
+		DeleteBranchOnMerge:      github.Ptr(d.Get("delete_branch_on_merge").(bool)),
+		WebCommitSignoffRequired: github.Ptr(d.Get("web_commit_signoff_required").(bool)),
+		AutoInit:                 github.Ptr(d.Get("auto_init").(bool)),
+		LicenseTemplate:          github.Ptr(d.Get("license_template").(string)),
+		GitignoreTemplate:        github.Ptr(d.Get("gitignore_template").(string)),
+		Archived:                 github.Ptr(d.Get("archived").(bool)),
 		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
-		AllowUpdateBranch:        github.Bool(d.Get("allow_update_branch").(bool)),
+		AllowUpdateBranch:        github.Ptr(d.Get("allow_update_branch").(bool)),
 		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
 	}
 
@@ -604,8 +619,8 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
 	if ok {
 		if allowMergeCommit {
-			repository.MergeCommitTitle = github.String(d.Get("merge_commit_title").(string))
-			repository.MergeCommitMessage = github.String(d.Get("merge_commit_message").(string))
+			repository.MergeCommitTitle = github.Ptr(d.Get("merge_commit_title").(string))
+			repository.MergeCommitMessage = github.Ptr(d.Get("merge_commit_message").(string))
 		}
 	}
 
@@ -613,9 +628,15 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
 	if ok {
 		if allowSquashMerge {
-			repository.SquashMergeCommitTitle = github.String(d.Get("squash_merge_commit_title").(string))
-			repository.SquashMergeCommitMessage = github.String(d.Get("squash_merge_commit_message").(string))
+			repository.SquashMergeCommitTitle = github.Ptr(d.Get("squash_merge_commit_title").(string))
+			repository.SquashMergeCommitMessage = github.Ptr(d.Get("squash_merge_commit_message").(string))
 		}
+	}
+
+	// only configure allow forking if repository is not public
+	allowForking, ok := d.Get("allow_forking").(bool)
+	if ok && visibility != "public" {
+		repository.AllowForking = github.Ptr(allowForking)
 	}
 
 	return repository
@@ -630,27 +651,10 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 	repoReq := resourceGithubRepositoryObject(d)
 	owner := meta.(*Owner).name
-
 	repoName := repoReq.GetName()
 
-	// determine if repository should be private. assume public to start
-	isPrivate := false
-
-	// prefer visibility to private flag since private flag is deprecated
-	privateKeyword, ok := d.Get("private").(bool)
-	if ok {
-		isPrivate = privateKeyword
-	}
-
-	visibility, ok := d.Get("visibility").(string)
-	if ok {
-		if visibility == "private" || visibility == "internal" {
-			isPrivate = true
-		}
-	}
-
-	repoReq.Private = github.Bool(isPrivate)
-
+	isPrivate := repoReq.GetVisibility() == "private"
+	repoReq.Private = github.Ptr(isPrivate)
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
 
@@ -667,9 +671,9 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:               &repoName,
 				Owner:              &owner,
-				Description:        github.String(d.Get("description").(string)),
-				Private:            github.Bool(isPrivate),
-				IncludeAllBranches: github.Bool(includeAllBranches),
+				Description:        github.Ptr(d.Get("description").(string)),
+				Private:            github.Ptr(isPrivate),
+				IncludeAllBranches: github.Ptr(includeAllBranches),
 			}
 
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
@@ -841,6 +845,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+		_ = d.Set("allow_forking", repo.GetAllowForking())
 		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		_ = d.Set("has_downloads", repo.GetHasDownloads())
@@ -920,7 +925,14 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	repoReq := resourceGithubRepositoryObject(d)
 
 	// handle visibility updates separately from other fields
+	visibility := repoReq.GetVisibility()
 	repoReq.Visibility = nil
+
+	// This change needs to be made with the correct visibility
+	allowForking := repoReq.AllowForking
+	if d.HasChanges("visibility", "private") {
+		repoReq.AllowForking = nil
+	}
 
 	if !d.HasChange("security_and_analysis") {
 		repoReq.SecurityAndAnalysis = nil
@@ -932,7 +944,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	// compatibility we need to allow terraform configurations that set
 	// `default_branch` to "main" when a repository is created.
 	if d.HasChange("default_branch") && !d.IsNewResource() {
-		repoReq.DefaultBranch = github.String(d.Get("default_branch").(string))
+		repoReq.DefaultBranch = github.Ptr(d.Get("default_branch").(string))
 	}
 
 	repoName := d.Id()
@@ -1007,32 +1019,17 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	if d.HasChange("visibility") {
-		o, n := d.GetChange("visibility")
-		repoReq.Visibility = github.String(n.(string))
-		log.Printf("[DEBUG] Updating repository visibility from %s to %s", o, n)
+	if d.HasChanges("visibility", "private") {
+		repoReq.Visibility = github.Ptr(visibility)
+		repoReq.AllowForking = allowForking
+
+		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
 		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", n.(string))) {
+			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
 		}
-	} else {
-		log.Printf("[DEBUG] No visibility update required. visibility: %s", d.Get("visibility"))
-	}
-
-	if d.HasChange("private") {
-		o, n := d.GetChange("private")
-		repoReq.Private = github.Bool(n.(bool))
-		log.Printf("[DEBUG] Updating repository privacy from %v to %v", o, n)
-		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
-		if err != nil {
-			if !strings.Contains(err.Error(), "422 Privacy is already set") {
-				return diag.FromErr(err)
-			}
-		}
-	} else {
-		log.Printf("[DEBUG] No privacy update required. private: %v", d.Get("private"))
 	}
 
 	return resourceGithubRepositoryRead(ctx, d, meta)
@@ -1073,17 +1070,17 @@ func expandPages(input []any) *github.Pages {
 	}
 	pages := input[0].(map[string]any)
 	source := &github.PagesSource{
-		Branch: github.String("main"),
+		Branch: github.Ptr("main"),
 	}
 	if len(pages["source"].([]any)) == 1 {
 		if pagesSource, ok := pages["source"].([]any)[0].(map[string]any); ok {
 			if v, ok := pagesSource["branch"].(string); ok {
-				source.Branch = github.String(v)
+				source.Branch = github.Ptr(v)
 			}
 			if v, ok := pagesSource["path"].(string); ok {
 				// To set to the root directory "/", leave source.Path unset
 				if v != "" && v != "/" {
-					source.Path = github.String(v)
+					source.Path = github.Ptr(v)
 				}
 			}
 		}
@@ -1091,7 +1088,7 @@ func expandPages(input []any) *github.Pages {
 
 	var buildType *string
 	if v, ok := pages["build_type"].(string); ok {
-		buildType = github.String(v)
+		buildType = github.Ptr(v)
 	}
 
 	return &github.Pages{Source: source, BuildType: buildType}
@@ -1108,12 +1105,12 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	// Only set the github.PagesUpdate CNAME field if the value is a non-empty string.
 	// Leaving the CNAME field unset will remove the custom domain.
 	if v, ok := pages["cname"].(string); ok && v != "" {
-		update.CNAME = github.String(v)
+		update.CNAME = github.Ptr(v)
 	}
 
 	// Only set the github.PagesUpdate BuildType field if the value is a non-empty string.
 	if v, ok := pages["build_type"].(string); ok && v != "" {
-		update.BuildType = github.String(v)
+		update.BuildType = github.Ptr(v)
 	}
 
 	// To update the GitHub Pages source, the github.PagesUpdate Source field

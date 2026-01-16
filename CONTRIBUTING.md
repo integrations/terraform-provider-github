@@ -78,11 +78,11 @@ If a full debugger is desired, VSCode may be used. In order to do so,
 
 ```json
 {
-	"name": "Attach to Process",
-	"type": "go",
-	"request": "attach",
-	"mode": "local",
-	"processId": 0,
+ "name": "Attach to Process",
+ "type": "go",
+ "request": "attach",
+ "mode": "local",
+ "processId": 0,
 }
 ```
 
@@ -165,7 +165,7 @@ export GITHUB_TOKEN=
 # Configure user level values
 export GH_TEST_USER_REPOSITORY=
 
-# Configure for the org under test
+# Configure values for the organization under test
 export GH_TEST_ORG_USER=
 export GH_TEST_ORG_SECRET_NAME=
 export GH_TEST_ORG_REPOSITORY=
@@ -176,6 +176,9 @@ export GH_TEST_ORG_APP_INSTALLATION_ID=
 export GH_TEST_EXTERNAL_USER=
 export GH_TEST_EXTERNAL_USER_TOKEN=
 export GH_TEST_EXTERNAL_USER2=
+
+# Configure values for the enterprise under test
+export GH_TEST_ENTERPRISE_EMU_GROUP_ID=
 
 # Configure test options
 export GH_TEST_ADVANCED_SECURITY=

@@ -10,17 +10,18 @@ import (
 
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews", func(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -31,27 +32,27 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 
 			resource "github_branch_protection_v3" "test" {
 
-			  repository  = github_repository.test.name
-			  branch      = "main"
+				repository  = github_repository.test.name
+				branch      = "main"
 
-			  required_pull_request_reviews {
-				  dismiss_stale_reviews      = true
-				  require_code_owner_reviews = true
-				  required_approving_review_count = 1
-				  require_last_push_approval = true
-				  dismissal_users = ["a"]
-				  dismissal_teams = ["b"]
-				  dismissal_apps = ["c"]
-				  bypass_pull_request_allowances {
-					  users = ["d"]
-					  teams = [github_team.test.slug]
-					  apps = ["e"]
-				  }
-			  }
+				required_pull_request_reviews {
+					dismiss_stale_reviews      = true
+					require_code_owner_reviews = true
+					required_approving_review_count = 1
+					require_last_push_approval = true
+					dismissal_users = ["a"]
+					dismissal_teams = ["b"]
+					dismissal_apps = ["c"]
+					bypass_pull_request_allowances {
+						users = ["d"]
+						teams = [github_team.test.slug]
+						apps = ["e"]
+					}
+				}
 
-			  depends_on = [github_team_repository.test]
+				depends_on = [github_team_repository.test]
 			}
-	`, randomID)
+	`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -107,17 +108,18 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 
 func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -127,19 +129,19 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 			}
 
 			resource "github_branch_protection_v3" "test" {
-			  repository  = github_repository.test.name
-			  branch      = "main"
+				repository  = github_repository.test.name
+				branch      = "main"
 
-			  required_pull_request_reviews {
+				required_pull_request_reviews {
 					bypass_pull_request_allowances {
 						teams = [github_team.test.slug]
 					}
-			  }
+				}
 
 				depends_on = [github_team_repository.test]
 			}
 
-	`, randomID)
+	`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -165,16 +167,17 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 
 func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures branch push restrictions", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -185,15 +188,15 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 
 			resource "github_branch_protection_v3" "test" {
 
-			  repository   = github_repository.test.name
-			  branch       = "main"
+				repository   = github_repository.test.name
+				branch       = "main"
 
-			  restrictions {
+				restrictions {
 					teams = ["${github_team.test.slug}"]
-			  }
+				}
 
 			}
-			`, randomID)
+			`, repoName, teamName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -215,12 +218,13 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 }
 
 func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("handles computed status checks without churn", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -236,7 +240,7 @@ func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.
 					]
 				}
 			}
-		`, randomID)
+		`, testRepoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -276,12 +280,12 @@ func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.
 }
 
 func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("handles computed status contexts without churn", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -297,7 +301,7 @@ func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testin
 					]
 				}
 			}
-		`, randomID)
+		`, testRepoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -339,19 +343,20 @@ func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testin
 func TestAccGithubBranchProtectionV3(t *testing.T) {
 	t.Run("configures default settings when empty", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-		  name      = "tf-acc-test-%s"
-		  auto_init = true
+			name      = "%s"
+			auto_init = true
 		}
 
 		resource "github_branch_protection_v3" "test" {
 
-		  repository  = github_repository.test.name
-		  branch      = "main"
+			repository  = github_repository.test.name
+			branch      = "main"
 
 		}
-		`, randomID)
+		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -374,20 +379,21 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures conversation resolution", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-		  name      = "tf-acc-test-%s"
-		  auto_init = true
+			name      = "%s"
+			auto_init = true
 		}
 
 		resource "github_branch_protection_v3" "test" {
 
-		  repository  = github_repository.test.name
-		  branch      = "main"
+			repository  = github_repository.test.name
+			branch      = "main"
 
-		  require_conversation_resolution = true
+			require_conversation_resolution = true
 		}
-		`, randomID)
+		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -410,9 +416,10 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures required status checks", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name      = "tf-acc-test-%s"
+			name      = "%s"
 			auto_init = true
 		}
 
@@ -430,7 +437,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 			}
 
 		}
-	`, randomID)
+	`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -452,9 +459,10 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures required status checks context", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name      = "tf-acc-test-%s"
+			name      = "%s"
 			auto_init = true
 		}
 
@@ -467,7 +475,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 				contexts = ["github/foo"]
 			}
 		}
-		`, randomID)
+		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -489,15 +497,16 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%[1]s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -508,27 +517,27 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 			resource "github_branch_protection_v3" "test" {
 
-			  repository  = github_repository.test.name
-			  branch      = "main"
+				repository  = github_repository.test.name
+				branch      = "main"
 
-			  required_pull_request_reviews {
-				  dismiss_stale_reviews      = true
-				  require_code_owner_reviews = true
-				  required_approving_review_count = 1
-				  require_last_push_approval = true
-				  dismissal_users = ["a"]
-				  dismissal_teams = ["b"]
-				  dismissal_apps = ["c"]
-				  bypass_pull_request_allowances {
-					  users = ["d"]
-					  teams = [github_team.test.slug]
-					  apps = ["e"]
-				  }
-			  }
+				required_pull_request_reviews {
+					dismiss_stale_reviews      = true
+					require_code_owner_reviews = true
+					required_approving_review_count = 1
+					require_last_push_approval = true
+					dismissal_users = ["a"]
+					dismissal_teams = ["b"]
+					dismissal_apps = ["c"]
+					bypass_pull_request_allowances {
+						users = ["d"]
+						teams = [github_team.test.slug]
+						apps = ["e"]
+					}
+				}
 
-			  depends_on = [github_team_repository.test]
+				depends_on = [github_team_repository.test]
 			}
-	`, randomID)
+	`, testRepoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -583,15 +592,16 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%[1]s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -601,19 +611,19 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 			}
 
 			resource "github_branch_protection_v3" "test" {
-			  repository  = github_repository.test.name
-			  branch      = "main"
+				repository  = github_repository.test.name
+				branch      = "main"
 
-			  required_pull_request_reviews {
+				required_pull_request_reviews {
 					bypass_pull_request_allowances {
 						teams = [github_team.test.slug]
 					}
-			  }
+				}
 
 				depends_on = [github_team_repository.test]
 			}
 
-	`, randomID)
+	`, testResourceName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -638,14 +648,15 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
+				name      = "%s"
+				auto_init = true
 			}
 
 			resource "github_team" "test" {
-				name = "tf-acc-test-%[1]s"
+				name = "%[1]s"
 			}
 
 			resource "github_team_repository" "test" {
@@ -656,15 +667,15 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 			resource "github_branch_protection_v3" "test" {
 
-			  repository   = github_repository.test.name
-			  branch       = "main"
+				repository   = github_repository.test.name
+				branch       = "main"
 
-			  restrictions {
+				restrictions {
 					teams = ["${github_team.test.slug}"]
-			  }
+				}
 
 			}
-			`, randomID)
+			`, testResourceName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(

@@ -11,6 +11,9 @@ import (
 func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 	t.Run("set repository allowlist for an organization secret", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName1 := fmt.Sprintf("%srepo-depbot-org-secret-1-%s", testResourcePrefix, randomID)
+		repoName2 := fmt.Sprintf("%srepo-depbot-org-secret-2-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 		resource "github_actions_organization_secret" "test" {
 			secret_name     = "TEST"
@@ -19,13 +22,13 @@ func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 		}
 
 		resource "github_repository" "test_repo_1" {
-			name = "tf-acc-test-%s-1"
+			name = "%s"
 			visibility = "private"
 			vulnerability_alerts = "true"
 		}
 
 		resource "github_repository" "test_repo_2" {
-			name = "tf-acc-test-%s-2"
+			name = "%s"
 			visibility = "private"
 			vulnerability_alerts = "true"
 		}
@@ -37,7 +40,7 @@ func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 				github_repository.test_repo_2.repo_id
 			]
 		}
-		`, randomID, randomID)
+		`, repoName1, repoName2)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },

@@ -19,7 +19,7 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamSlug := fmt.Sprintf("tf-acc-test-team-repo-%s", randomID)
+		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -59,7 +59,7 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 	// More tests can go here following the same format...
 	t.Run("create and re-creates role assignment without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamSlug := fmt.Sprintf("tf-acc-test-team-repo-%s", randomID)
+		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 
 		configs := map[string]string{
 			"before": fmt.Sprintf(`

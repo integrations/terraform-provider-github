@@ -6,8 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGithubActionsOrganizationSecret(t *testing.T) {
@@ -17,16 +20,16 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_secret" "plaintext_secret" {
-			  secret_name      = "test_plaintext_secret"
-			  plaintext_value  = "%s"
-			  visibility       = "private"
+				secret_name      = "test_plaintext_secret"
+				plaintext_value  = "%s"
+				visibility       = "private"
 			}
 
 			resource "github_actions_organization_secret" "encrypted_secret" {
-			  secret_name      = "test_encrypted_secret"
-			  encrypted_value  = "%s"
-			  visibility       = "private"
-			  destroy_on_drift = false
+				secret_name      = "test_encrypted_secret"
+				encrypted_value  = "%s"
+				visibility       = "private"
+				destroy_on_drift = false
 			}
 		`, secretValue, secretValue)
 
@@ -143,8 +146,79 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 			},
 		})
 	})
+}
 
-	// Unit tests for drift detection behavior
+func TestAccGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
+	t.Run("destroyOnDrift false", func(t *testing.T) {
+		destroyOnDrift := false
+		t.Run("should ignore drift when ignore_changes lifecycle is configured", func(t *testing.T) {
+			// Verify https://github.com/integrations/terraform-provider-github/issues/2614
+			randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+			config := fmt.Sprintf(`
+				resource "github_actions_organization_secret" "test_secret" {
+					secret_name = "test_secret_%s"
+					plaintext_value = "test_value"
+					visibility = "private"
+
+					destroy_on_drift = %t
+					lifecycle {
+						ignore_changes = [plaintext_value]
+					}
+				}
+			`, randomID, destroyOnDrift)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessHasOrgs(t) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+					},
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							func(s *terraform.State) error {
+								rs, ok := s.RootModule().Resources["github_actions_organization_secret.test_secret"]
+								if !ok {
+									t.Errorf("not found: github_actions_organization_secret.test_secret")
+								}
+								// Now that the secret is created, update it to trigger a drift.
+								client := testAccProvider.Meta().(*Owner).v3client
+								owner := testAccProvider.Meta().(*Owner).name
+								ctx := t.Context()
+
+								keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, testAccProvider.Meta().(*Owner))
+								if err != nil {
+									t.Errorf("Failed to get organization public key details: %v", err)
+								}
+
+								encryptedSecret, err := createEncryptedSecret(rs.Primary, "foo", keyId, publicKey)
+								if err != nil {
+									t.Errorf("Failed to create encrypted secret: %v", err)
+								}
+								_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, encryptedSecret)
+								if err != nil {
+									t.Errorf("Failed to create or update organization secret: %v", err)
+								}
+								return err
+							},
+						),
+					},
+					{
+						Config:             config,
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: false,
+					},
+				},
+			})
+		})
+	})
+	// t.Run("destroyOnDrift true", func(t *testing.T) {
+	// 	destroyOnDrift := true
+	// })
+}
+
+func TestGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 	t.Run("destroyOnDrift false clears sensitive values instead of recreating", func(t *testing.T) {
 		originalTimestamp := "2023-01-01T00:00:00Z"
 		newTimestamp := "2023-01-02T00:00:00Z"
@@ -247,4 +321,22 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 			t.Error("Expected destroy_on_drift to default to true")
 		}
 	})
+}
+
+func createEncryptedSecret(is *terraform.InstanceState, plaintextValue, keyId, publicKey string) (*github.EncryptedSecret, error) {
+	secretName := is.Attributes["secret_name"]
+	visibility := is.Attributes["visibility"]
+
+	encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
+	if err != nil {
+		return nil, err
+	}
+	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
+
+	return &github.EncryptedSecret{
+		Name:           secretName,
+		KeyID:          keyId,
+		Visibility:     visibility,
+		EncryptedValue: encryptedValue,
+	}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -16,12 +16,13 @@ import (
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 	t.Run("creates and updates environment variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		updatedValue := "my_updated_variable_value"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -35,7 +36,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 			  variable_name    = "test_variable"
 			  value  = "%s"
 			}
-			`, randomID, value)
+			`, repoName, value)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -84,9 +85,10 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 	t.Run("deletes environment variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
+					name = "%s"
 				}
 
 				resource "github_repository_environment" "test" {
@@ -100,7 +102,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 					variable_name	= "test_variable"
 					value 			= "my_variable_value"
 				}
-			`, randomID)
+			`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -116,13 +118,14 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 	t.Run("imports environment variables without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		envName := "environment / test"
 		varName := "test_variable"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -136,7 +139,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 			  variable_name    = "%s"
 			  value  = "%s"
 			}
-			`, randomID, envName, varName, value)
+			`, repoName, envName, varName, value)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -147,7 +150,6 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 				},
 				{
 					ResourceName:      "github_actions_environment_variable.variable",
-					ImportStateId:     fmt.Sprintf(`tf-acc-test-%s:%s:%s`, randomID, envName, varName),
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -158,7 +160,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 
 func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+	repoName := fmt.Sprintf("%srepo-act-env-var-exist-%s", testResourcePrefix, randomID)
 	envName := "environment / test"
 	varName := "test_variable"
 	value := "my_variable_value"
@@ -205,13 +207,12 @@ func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
 						client := testAccProvider.Meta().(*Owner).v3client
 						owner := testAccProvider.Meta().(*Owner).name
 						ctx := context.Background()
-						escapedEnvName := url.PathEscape(envName)
 
 						variable := &github.ActionsVariable{
 							Name:  varName,
 							Value: value,
 						}
-						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
 						return err
 					},
 				),

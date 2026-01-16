@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -69,23 +69,23 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	settings := &github.EnterpriseSecurityAnalysisSettings{}
 
 	if v, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
-		settings.AdvancedSecurityEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.AdvancedSecurityEnabledForNewRepositories = github.Ptr(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
-		settings.SecretScanningEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.SecretScanningEnabledForNewRepositories = github.Ptr(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
-		settings.SecretScanningPushProtectionEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.SecretScanningPushProtectionEnabledForNewRepositories = github.Ptr(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_custom_link"); ok {
-		settings.SecretScanningPushProtectionCustomLink = github.String(v.(string))
+		settings.SecretScanningPushProtectionCustomLink = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_validity_checks_enabled"); ok {
-		settings.SecretScanningValidityChecksEnabled = github.Bool(v.(bool))
+		settings.SecretScanningValidityChecksEnabled = github.Ptr(v.(bool))
 	}
 
 	log.Printf("[DEBUG] Updating security analysis settings for enterprise: %s", enterpriseSlug)
@@ -140,11 +140,11 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceDa
 
 	// Reset to safe defaults (all disabled)
 	settings := &github.EnterpriseSecurityAnalysisSettings{
-		AdvancedSecurityEnabledForNewRepositories:             github.Bool(false),
-		SecretScanningEnabledForNewRepositories:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepositories: github.Bool(false),
-		SecretScanningPushProtectionCustomLink:                github.String(""),
-		SecretScanningValidityChecksEnabled:                   github.Bool(false),
+		AdvancedSecurityEnabledForNewRepositories:             github.Ptr(false),
+		SecretScanningEnabledForNewRepositories:               github.Ptr(false),
+		SecretScanningPushProtectionEnabledForNewRepositories: github.Ptr(false),
+		SecretScanningPushProtectionCustomLink:                github.Ptr(""),
+		SecretScanningValidityChecksEnabled:                   github.Ptr(false),
 	}
 
 	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)

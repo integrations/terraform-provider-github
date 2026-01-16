@@ -12,10 +12,11 @@ import (
 func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 	t.Run("queries actions variables from an environment", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-env-vars-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			}
 
 			resource "github_repository_environment" "test" {
@@ -29,7 +30,7 @@ func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 			  variable_name    = "test_variable"
 			  value  		   = "foo"
 			}
-			`, randomID)
+			`, repoName)
 
 		config2 := config + `
 			data "github_actions_environment_variables" "test" {

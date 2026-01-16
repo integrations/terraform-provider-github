@@ -11,10 +11,11 @@ import (
 func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("creates and manages branch defaults", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -22,7 +23,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				repository     = github_repository.test.name
 				branch         = "main"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -31,7 +32,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_default.test", "repository",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
+				repoName,
 			),
 		)
 
@@ -49,9 +50,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 
 	t.Run("replaces the default_branch of a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -65,7 +67,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				branch     = github_branch.test.branch
 			}
 
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -96,9 +98,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 
 	t.Run("creates and manages branch defaults even if rename is set", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -107,7 +110,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				branch         = "main"
 				rename         = true
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -116,7 +119,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_default.test", "repository",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
+				repoName,
 			),
 		)
 
@@ -134,9 +137,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 
 	t.Run("replaces the default_branch of a repository without creating a branch resource prior to", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -145,7 +149,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				branch     = "development"
 				rename     = true
 			}
-		`, randomID)
+		`, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -204,14 +204,16 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 }
 
 func testAccGithubTeamMembershipConfig(randString, username, role string) string {
+	teamName := fmt.Sprintf("%steam-membership-%s", testResourcePrefix, randString)
+	teamSlugName := fmt.Sprintf("%s-slug", teamName)
 	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-  name        = "tf-acc-test-team-membership-%s"
+  name        = "%s"
   description = "Terraform acc test group"
 }
 
 resource "github_team" "test_team_slug" {
-  name        = "tf-acc-test-team-membership-%s-slug"
+  name        = "%s"
   description = "Terraform acc test group"
 }
 
@@ -226,7 +228,7 @@ resource "github_team_membership" "test_team_membership_slug" {
   username = "%s"
   role     = "%s"
 }
-`, randString, randString, username, role, username, role)
+`, teamName, teamSlugName, username, role, username, role)
 }
 
 func testAccGithubTeamMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
