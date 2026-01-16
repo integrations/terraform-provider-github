@@ -73,7 +73,7 @@ gh attestation verify --owner integrations --signer-workflow \
   "$artifact"
 ```
 
-## Verifying checksums file signature with Cosign and checking artifact integrity
+## Verifying with Cosign
 
 > [!NOTE]
 > Not all artifacts may have attestations generated for them. Please check the [repository attestations](https://github.com/integrations/terraform-provider-github/attestations) to see which artifacts have attestations available.
