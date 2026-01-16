@@ -259,6 +259,12 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
+			"org_allow_forking": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Set to 'true' if the org allows forking.",
+			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -634,9 +640,13 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure allow forking if repository is not public
-	allowForking, ok := d.Get("allow_forking").(bool)
-	if ok && visibility != "public" {
-		repository.AllowForking = github.Ptr(allowForking)
+	// skip this when the org doesn't allow forking
+	orgAllowForking, ok := d.Get("org_allow_forking").(bool)
+	if ok && orgAllowForking {
+		allowForking, forkingOk := d.Get("allow_forking").(bool)
+		if forkingOk && visibility != "public" {
+			repository.AllowForking = github.Ptr(allowForking)
+		}
 	}
 
 	return repository
@@ -845,7 +855,11 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
-		_ = d.Set("allow_forking", repo.GetAllowForking())
+		if orgAllowForking, ok := d.Get("org_allow_forking").(bool); ok && orgAllowForking {
+			_ = d.Set("allow_forking", repo.GetAllowForking())
+		} else {
+			_ = d.Set("allow_forking", false)
+		}
 		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		_ = d.Set("has_downloads", repo.GetHasDownloads())

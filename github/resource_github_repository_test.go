@@ -597,6 +597,55 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
+	t.Run("create_private_with_org_allow_forking", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%sorg-forking-%s", testResourcePrefix, randomID)
+
+		// Test with org_allow_forking = true, allow_forking should be applied
+		configOrgAllowsForking := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name             = "%s"
+			visibility       = "private"
+			org_allow_forking = true
+			allow_forking    = true
+		}
+		`, repoName)
+
+		// Test with org_allow_forking = false, allow_forking should not cause errors
+		configOrgDisallowsForking := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name             = "%s"
+			visibility       = "private"
+			org_allow_forking = false
+			allow_forking    = true
+		}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configOrgAllowsForking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "org_allow_forking", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
+					),
+				},
+				{
+					Config: configOrgDisallowsForking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "org_allow_forking", "false"),
+						// allow_forking should be false in state when org doesn't allow forking
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "false"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("configures vulnerability alerts for a private repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%sprv-vuln-%s", testResourcePrefix, randomID)
