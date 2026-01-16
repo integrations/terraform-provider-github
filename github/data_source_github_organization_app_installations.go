@@ -11,6 +11,7 @@ import (
 func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationAppInstallationsRead,
+		Description: "Use this data source to retrieve all GitHub App installations of the organization.",
 
 		Schema: map[string]*schema.Schema{
 			"installations": {
@@ -89,7 +90,7 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	client := meta.(*Owner).v3client
 
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	results := make([]map[string]interface{}, 0)
@@ -134,110 +135,117 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		result["client_id"] = appInstallation.GetClientID()
 		result["target_id"] = appInstallation.GetTargetID()
 		result["target_type"] = appInstallation.GetTargetType()
-		result["suspended"] = appInstallation.GetSuspendedAt() != nil
+		result["suspended"] = !appInstallation.GetSuspendedAt().IsZero()
 		if appInstallation.Events != nil {
 			result["events"] = appInstallation.Events
 		} else {
 			result["events"] = []string{}
 		}
 
-		permissions := make(map[string]string)
-		if appInstallation.Permissions != nil {
-			if v := appInstallation.Permissions.Actions; v != nil {
-				permissions["actions"] = *v
-			}
-			if v := appInstallation.Permissions.Administration; v != nil {
-				permissions["administration"] = *v
-			}
-			if v := appInstallation.Permissions.Checks; v != nil {
-				permissions["checks"] = *v
-			}
-			if v := appInstallation.Permissions.Contents; v != nil {
-				permissions["contents"] = *v
-			}
-			if v := appInstallation.Permissions.Deployments; v != nil {
-				permissions["deployments"] = *v
-			}
-			if v := appInstallation.Permissions.Environments; v != nil {
-				permissions["environments"] = *v
-			}
-			if v := appInstallation.Permissions.Issues; v != nil {
-				permissions["issues"] = *v
-			}
-			if v := appInstallation.Permissions.Metadata; v != nil {
-				permissions["metadata"] = *v
-			}
-			if v := appInstallation.Permissions.Members; v != nil {
-				permissions["members"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationAdministration; v != nil {
-				permissions["organization_administration"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationHooks; v != nil {
-				permissions["organization_hooks"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationPlan; v != nil {
-				permissions["organization_plan"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationProjects; v != nil {
-				permissions["organization_projects"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationSecrets; v != nil {
-				permissions["organization_secrets"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationSelfHostedRunners; v != nil {
-				permissions["organization_self_hosted_runners"] = *v
-			}
-			if v := appInstallation.Permissions.OrganizationUserBlocking; v != nil {
-				permissions["organization_user_blocking"] = *v
-			}
-			if v := appInstallation.Permissions.Packages; v != nil {
-				permissions["packages"] = *v
-			}
-			if v := appInstallation.Permissions.Pages; v != nil {
-				permissions["pages"] = *v
-			}
-			if v := appInstallation.Permissions.PullRequests; v != nil {
-				permissions["pull_requests"] = *v
-			}
-			if v := appInstallation.Permissions.RepositoryHooks; v != nil {
-				permissions["repository_hooks"] = *v
-			}
-			if v := appInstallation.Permissions.RepositoryProjects; v != nil {
-				permissions["repository_projects"] = *v
-			}
-			if v := appInstallation.Permissions.RepositoryPreReceiveHooks; v != nil {
-				permissions["repository_pre_receive_hooks"] = *v
-			}
-			if v := appInstallation.Permissions.Secrets; v != nil {
-				permissions["secrets"] = *v
-			}
-			if v := appInstallation.Permissions.SecretScanningAlerts; v != nil {
-				permissions["secret_scanning_alerts"] = *v
-			}
-			if v := appInstallation.Permissions.SecurityEvents; v != nil {
-				permissions["security_events"] = *v
-			}
-			if v := appInstallation.Permissions.SingleFile; v != nil {
-				permissions["single_file"] = *v
-			}
-			if v := appInstallation.Permissions.Statuses; v != nil {
-				permissions["statuses"] = *v
-			}
-			if v := appInstallation.Permissions.TeamDiscussions; v != nil {
-				permissions["team_discussions"] = *v
-			}
-			if v := appInstallation.Permissions.VulnerabilityAlerts; v != nil {
-				permissions["vulnerability_alerts"] = *v
-			}
-			if v := appInstallation.Permissions.Workflows; v != nil {
-				permissions["workflows"] = *v
-			}
-		}
-		result["permissions"] = permissions
+		result["permissions"] = flattenInstallationPermissions(appInstallation.Permissions)
 
 		results = append(results, result)
 	}
 
 	return results
+}
+
+func flattenInstallationPermissions(perms *github.InstallationPermissions) map[string]string {
+	permissions := make(map[string]string)
+	if perms == nil {
+		return permissions
+	}
+
+	if v := perms.GetActions(); v != "" {
+		permissions["actions"] = v
+	}
+	if v := perms.GetAdministration(); v != "" {
+		permissions["administration"] = v
+	}
+	if v := perms.GetChecks(); v != "" {
+		permissions["checks"] = v
+	}
+	if v := perms.GetContents(); v != "" {
+		permissions["contents"] = v
+	}
+	if v := perms.GetDeployments(); v != "" {
+		permissions["deployments"] = v
+	}
+	if v := perms.GetEnvironments(); v != "" {
+		permissions["environments"] = v
+	}
+	if v := perms.GetIssues(); v != "" {
+		permissions["issues"] = v
+	}
+	if v := perms.GetMetadata(); v != "" {
+		permissions["metadata"] = v
+	}
+	if v := perms.GetMembers(); v != "" {
+		permissions["members"] = v
+	}
+	if v := perms.GetOrganizationAdministration(); v != "" {
+		permissions["organization_administration"] = v
+	}
+	if v := perms.GetOrganizationHooks(); v != "" {
+		permissions["organization_hooks"] = v
+	}
+	if v := perms.GetOrganizationPlan(); v != "" {
+		permissions["organization_plan"] = v
+	}
+	if v := perms.GetOrganizationProjects(); v != "" {
+		permissions["organization_projects"] = v
+	}
+	if v := perms.GetOrganizationSecrets(); v != "" {
+		permissions["organization_secrets"] = v
+	}
+	if v := perms.GetOrganizationSelfHostedRunners(); v != "" {
+		permissions["organization_self_hosted_runners"] = v
+	}
+	if v := perms.GetOrganizationUserBlocking(); v != "" {
+		permissions["organization_user_blocking"] = v
+	}
+	if v := perms.GetPackages(); v != "" {
+		permissions["packages"] = v
+	}
+	if v := perms.GetPages(); v != "" {
+		permissions["pages"] = v
+	}
+	if v := perms.GetPullRequests(); v != "" {
+		permissions["pull_requests"] = v
+	}
+	if v := perms.GetRepositoryHooks(); v != "" {
+		permissions["repository_hooks"] = v
+	}
+	if v := perms.GetRepositoryProjects(); v != "" {
+		permissions["repository_projects"] = v
+	}
+	if v := perms.GetRepositoryPreReceiveHooks(); v != "" {
+		permissions["repository_pre_receive_hooks"] = v
+	}
+	if v := perms.GetSecrets(); v != "" {
+		permissions["secrets"] = v
+	}
+	if v := perms.GetSecretScanningAlerts(); v != "" {
+		permissions["secret_scanning_alerts"] = v
+	}
+	if v := perms.GetSecurityEvents(); v != "" {
+		permissions["security_events"] = v
+	}
+	if v := perms.GetSingleFile(); v != "" {
+		permissions["single_file"] = v
+	}
+	if v := perms.GetStatuses(); v != "" {
+		permissions["statuses"] = v
+	}
+	if v := perms.GetTeamDiscussions(); v != "" {
+		permissions["team_discussions"] = v
+	}
+	if v := perms.GetVulnerabilityAlerts(); v != "" {
+		permissions["vulnerability_alerts"] = v
+	}
+	if v := perms.GetWorkflows(); v != "" {
+		permissions["workflows"] = v
+	}
+
+	return permissions
 }
