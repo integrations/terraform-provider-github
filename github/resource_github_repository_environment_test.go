@@ -9,9 +9,10 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates a repository environment", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "environment / test"
 		config := fmt.Sprintf(`
 
 			data "github_user" "current" {
@@ -19,57 +20,129 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 			}
 
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				visibility = "public"
 			}
 
 			resource "github_repository_environment" "test" {
-				repository 	= github_repository.test.name
-				environment	= "environment / test"
-				can_admins_bypass = false
-				wait_timer = 10000
-                                prevent_self_review = true
+				repository  = github_repository.test.name
+				environment = "%s"
+
+				can_admins_bypass   = false
+				wait_timer          = 10000
+				prevent_self_review = true
+
 				reviewers {
 					users = [data.github_user.current.id]
 				}
+
 				deployment_branch_policy {
 					protected_branches     = true
 					custom_branch_policies = false
 				}
 			}
 
-		`, randomID)
+		`, repoName, envName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_environment.test", "environment", "environment / test"),
-			resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
-			resource.TestCheckResourceAttr("github_repository_environment.test", "prevent_self_review", "true"),
-			resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_environment.test", "environment", envName),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "prevent_self_review", "true"),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+	t.Run("creates a repository environment with id separator", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "environment:test"
+		config := fmt.Sprintf(`
+
+			data "github_user" "current" {
+				username = ""
+			}
+
+			resource "github_repository" "test" {
+				name      = "%s"
+				visibility = "public"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository  = github_repository.test.name
+				environment = "%s"
+
+				can_admins_bypass   = false
+				wait_timer          = 10000
+				prevent_self_review = true
+
+				reviewers {
+					users = [data.github_user.current.id]
+				}
+
+				deployment_branch_policy {
+					protected_branches     = true
+					custom_branch_policies = false
+				}
+			}
+
+		`, repoName, envName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_environment.test", "environment", envName),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "can_admins_bypass", "false"),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "prevent_self_review", "true"),
+						resource.TestCheckResourceAttr("github_repository_environment.test", "wait_timer", "10000"),
+					),
+				},
+			},
 		})
+	})
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+	t.Run("import", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "environment / test"
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				visibility = "public"
+			}
+
+			resource "github_repository_environment" "test" {
+				repository 	= github_repository.test.name
+				environment	= "%s"
+			}
+		`, repoName, envName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					ResourceName:            "github_repository_environment.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"can_admins_bypass", "prevent_self_review", "reviewers", "wait_timer", "deployment_branch_policy"},
+				},
+			},
 		})
 	})
 }

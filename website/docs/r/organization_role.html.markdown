@@ -30,12 +30,12 @@ resource "github_organization_role" "example" {
 ### Required
 
 - `name` (String) The name of the organization role.
-- `permissions` (Set of String, Min: 1) The permissions included in this role.
+- `permissions` (Set of String) The permissions included in this role. Only organization permissions can be set if the `base_role` isn't set or is set to `none`.
 
 ### Optional
 
 - `description` (String) The description of the organization role.
-- `base_role` (String) The system role from which this role inherits permissions.
+- `base_role` (String) The system role from which this role inherits permissions; one of `none`, `read`, `triage`, `write`, `maintain`, or `admin`. Defaults to `none`.
 
 ### Read-Only
 

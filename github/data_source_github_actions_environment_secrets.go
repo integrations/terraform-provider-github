@@ -2,17 +2,17 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsEnvironmentSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsEnvironmentSecretsRead,
+		ReadContext: dataSourceGithubActionsEnvironmentSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -55,19 +55,18 @@ func dataSourceGithubActionsEnvironmentSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
 
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -76,23 +75,23 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Actions.ListEnvSecrets(context.TODO(), int(repo.GetID()), escapedEnvName, &options)
+		secrets, resp, err := client.Actions.ListEnvSecrets(ctx, int(repo.GetID()), url.PathEscape(envName), &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -108,8 +107,15 @@ func dataSourceGithubActionsEnvironmentSecretsRead(d *schema.ResourceData, meta 
 		options.Page = resp.NextPage
 	}
 
-	d.SetId(buildTwoPartID(repoName, envName))
-	_ = d.Set("secrets", all_secrets)
+	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+		return diag.FromErr(err)
+	} else {
+		d.SetId(id)
+	}
+
+	if err := d.Set("secrets", all_secrets); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

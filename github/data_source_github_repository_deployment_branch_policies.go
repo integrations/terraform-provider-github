@@ -9,6 +9,8 @@ import (
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This data source is deprecated in favour of the github_repository_environment_deployment_policies data source.",
+
 		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
 
 		Schema: map[string]*schema.Schema{

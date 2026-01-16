@@ -42,6 +42,9 @@ linters:
         linters:
           - unparam
         text: always receives
+      - linters:
+          - staticcheck
+        text: "SA1019.*ByID.*deprecated"
 
 issues:
   max-issues-per-linter: 0

@@ -40,6 +40,11 @@ func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"values_editable_by": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -66,6 +71,7 @@ func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, me
 	_ = d.Set("property_name", propertyAttributes.PropertyName)
 	_ = d.Set("required", propertyAttributes.Required)
 	_ = d.Set("value_type", propertyAttributes.ValueType)
+	_ = d.Set("values_editable_by", propertyAttributes.ValuesEditableBy)
 
 	return nil
 }

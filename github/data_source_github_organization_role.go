@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -11,7 +12,7 @@ func dataSourceGithubOrganizationRole() *schema.Resource {
 	return &schema.Resource{
 		Description: "Lookup a custom organization role.",
 
-		Read: dataSourceGithubOrganizationRoleRead,
+		ReadContext: dataSourceGithubOrganizationRoleRead,
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
@@ -49,20 +50,19 @@ func dataSourceGithubOrganizationRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
 
 	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	r := map[string]any{
-		"role_id":     role.GetID(),
+		"role_id":     int(role.GetID()),
 		"name":        role.GetName(),
 		"description": role.GetDescription(),
 		"source":      role.GetSource(),
@@ -74,7 +74,7 @@ func dataSourceGithubOrganizationRoleRead(d *schema.ResourceData, meta any) erro
 
 	for k, v := range r {
 		if err := d.Set(k, v); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

@@ -7,6 +7,7 @@ the GitHub provider.
 Thanks for understanding :heart:
 
 ## Self-Signed Certificate (cert.pem, domain.csr, key.pem)
+
 A self-signed cert & key used in acceptance tests of the GitHub provider.
 
 Generated via:
@@ -32,11 +33,8 @@ openssl x509 \
 ```
 
 ## GPG Key (gpg-pubkey.asc)
+
 Terraform's acceptance tests GPG public key.
-
-## SSH Public Key (id_rsa.pub)
-
-Terraform's acceptance tests SSH public key.
 
 ## GitHub App Keys (github-app-key.pem, github-app-key.pub)
 
@@ -44,7 +42,7 @@ Terraform's acceptance tests GitHub App public and private key.
 
 You can re-generate them by using the following commands:
 
-```
+```text
 # Private Key
 openssl rsa -in github-app-key.pem -pubout -outform PEM
 

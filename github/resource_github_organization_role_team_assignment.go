@@ -5,12 +5,14 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated in favor of the github_organization_role_team resource.",
+
 		Create: resourceGithubOrganizationRoleTeamAssignmentCreate,
 		Read:   resourceGithubOrganizationRoleTeamAssignmentRead,
 		Delete: resourceGithubOrganizationRoleTeamAssignmentDelete,

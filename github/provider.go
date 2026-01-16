@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -19,10 +18,11 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description: descriptions["token"],
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description:   descriptions["token"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -94,10 +94,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: descriptions["app_auth"],
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				Description:   descriptions["app_auth"],
+				ConflictsWith: []string{"token"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -145,6 +146,7 @@ func Provider() *schema.Provider {
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
 			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+			"github_actions_hosted_runner":                                          resourceGithubActionsHostedRunner(),
 			"github_actions_secret":                                                 resourceGithubActionsSecret(),
 			"github_actions_variable":                                               resourceGithubActionsVariable(),
 			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
@@ -210,6 +212,7 @@ func Provider() *schema.Provider {
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
+			"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
@@ -286,6 +289,7 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
+			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 		},
 	}
 
@@ -339,7 +343,6 @@ func init() {
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
-		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
 
@@ -353,11 +356,16 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		// an explicitly set value in a provider block), but is necessary
 		// for backwards compatibility. We could remove this backwards compatibility
 		// code in a future major release.
-		env, _ := OwnerOrOrgEnvDefaultFunc()
+		env := ownerOrOrgEnvDefaultFunc()
 		if env.(string) != "" {
 			owner = env.(string)
 		}
 		// END backwards compatibility
+
+		baseURL, isGHES, err := getBaseURL(d.Get("base_url").(string))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 
 		org := d.Get("organization").(string)
 		if org != "" {
@@ -395,7 +403,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
-			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
+			apiPath := ""
+			if isGHES {
+				apiPath = GHESRESTAPIPath
+			}
+
+			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})
 			}
@@ -403,17 +416,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			token = appToken
 		}
 
-		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-
 		if token == "" {
-			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
-			if err != nil {
-				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
-			}
-			token = ghAuthToken
+			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
+			token = tokenFromGHCLI(baseURL)
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
@@ -475,6 +480,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			RetryableErrors:  retryableErrors,
 			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
+			IsGHES:           isGHES,
 		}
 
 		meta, err := config.Meta()
@@ -487,40 +493,35 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 }
 
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+func tokenFromGHCLI(u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
 	}
-	hostname := ""
-	if isGithubDotCom {
-		hostname = "github.com"
-	} else {
-		parsedURL, err := url.Parse(baseURL)
-		if err != nil {
-			return "", fmt.Errorf("parse %s: %w", baseURL, err)
-		}
-		hostname = parsedURL.Host
+
+	host := u.Host
+	if host == DotComAPIHost {
+		host = DotComHost
 	}
-	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when
-	// we're using the standard base path of this provider, it doesn't align
-	// with the way `gh` CLI stores the credentials. The following doesn't work:
-	//
-	// $ gh auth token --hostname api.github.com
-	// > no oauth token
-	//
-	// ... but the following does work correctly
-	//
-	// $ gh auth token --hostname github.com
-	// > gh..<valid token>
-	hostname = strings.TrimPrefix(hostname, "api.")
-	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
+		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
-		return "", nil //nolint:nilerr
+		return ""
 	}
 
 	log.Printf("[INFO] Using the token from GitHub CLI")
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(string(out))
+}
+
+func ownerOrOrgEnvDefaultFunc() any {
+	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
+		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		return organization
+	}
+	owner := os.Getenv("GITHUB_OWNER")
+	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	return owner
 }

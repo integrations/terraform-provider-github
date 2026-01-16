@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -59,6 +59,13 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"values_editable_by": {
+				Description:      "Who can edit the values of the custom property. Can be one of 'org_actors' or 'org_and_repo_actors'. If not specified, the default is 'org_actors' (only organization owners can edit values)",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateValueFunc([]string{"org_actors", "org_and_repo_actors"}),
+			},
 		},
 	}
 }
@@ -79,14 +86,21 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 		allowedValuesString = append(allowedValuesString, v.(string))
 	}
 
-	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), &github.CustomProperty{
+	customProperty := &github.CustomProperty{
 		PropertyName:  &propertyName,
 		ValueType:     valueType,
 		Required:      &required,
 		DefaultValue:  &defaultValue,
 		Description:   &description,
 		AllowedValues: allowedValuesString,
-	})
+	}
+
+	if val, ok := d.GetOk("values_editable_by"); ok {
+		str := val.(string)
+		customProperty.ValuesEditableBy = &str
+	}
+
+	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
 	if err != nil {
 		return err
 	}
@@ -112,6 +126,7 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 	_ = d.Set("property_name", customProperty.PropertyName)
 	_ = d.Set("required", customProperty.Required)
 	_ = d.Set("value_type", customProperty.ValueType)
+	_ = d.Set("values_editable_by", customProperty.ValuesEditableBy)
 
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -149,11 +149,11 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(*github.String(d.Get("content").(string))),
+		Content: []byte(*github.Ptr(d.Get("content").(string))),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = github.String(branch.(string))
+		opts.Branch = github.Ptr(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
@@ -214,9 +214,9 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -353,12 +353,12 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
 	} else {
 		log.Printf("[DEBUG] Commit SHA unknown for file: %s/%s/%s, looking for commit...", owner, repo, file)
-		commit, err = getFileCommit(client, owner, repo, file, ref)
-		log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+		commit, err = getFileCommit(ctx, client, owner, repo, file, ref)
 	}
 	if err != nil {
 		return err
 	}
+	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return err
@@ -411,9 +411,9 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -455,16 +455,14 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 
 	var branch string
 
-	message := fmt.Sprintf("Delete %s", file)
-
-	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		message = commitMessage.(string)
+	opts, err := resourceGithubRepositoryFileOptions(d)
+	if err != nil {
+		return err
 	}
 
-	sha := d.Get("sha").(string)
-	opts := &github.RepositoryContentFileOptions{
-		Message: &message,
-		SHA:     &sha,
+	if *opts.Message == fmt.Sprintf("Add %s", file) {
+		m := fmt.Sprintf("Delete %s", file)
+		opts.Message = &m
 	}
 
 	if b, ok := d.GetOk("branch"); ok {
@@ -484,9 +482,9 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -498,7 +496,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 		opts.Branch = &branch
 	}
 
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return handleArchivedRepoDelete(err, "repository file", file, owner, repo)
 }
 

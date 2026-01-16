@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -11,11 +12,13 @@ import (
 
 func TestAccGithubUserGpgKey(t *testing.T) {
 	t.Run("creates a GPG key without error", func(t *testing.T) {
+		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", "gpg-pubkey.asc"), "\\", "/")
+
 		config := fmt.Sprintf(`
-				resource "github_user_gpg_key" "test" {
-					armored_public_key = "${file("%s")}"
-				}
-			`, filepath.Join("test-fixtures", "gpg-pubkey.asc"))
+		resource "github_user_gpg_key" "test" {
+			armored_public_key = "${file("%s")}"
+		}
+		`, keyPath)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
@@ -30,29 +33,15 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

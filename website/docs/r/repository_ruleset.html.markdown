@@ -49,7 +49,13 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
   }
 }
 
@@ -94,7 +100,7 @@ resource "github_repository_ruleset" "example_push" {
 
 * `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
 
-* `repository` - (Optional) (String) Name of the repository to apply rulset to.
+* `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
@@ -114,9 +120,11 @@ The `rules` block supports the following:
 
 * `non_fast_forward` - (Optional) (Boolean) Prevent users with push access from force pushing to branches.
 
-* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue.
+* `merge_queue` - (Optional) (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#rules.merge_queue))
 
 * `pull_request` - (Optional) (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#rulespull_request))
+
+* `copilot_code_review` - (Optional) (Block List, Max: 1) Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit. (see [below for nested schema](#rulescopilot_code_review))
 
 * `required_deployments` - (Optional) (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#rulesrequired_deployments))
 
@@ -189,7 +197,7 @@ The `rules` block supports the following:
 
 * `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests that will be merged together in a group. Defaults to `5`.
 
 * `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
 
@@ -208,6 +216,12 @@ The `rules` block supports the following:
 * `required_approving_review_count` - (Optional) (Number) The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.
 
 * `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
+
+#### rules.copilot_code_review ####
+
+* `review_on_push` - (Optional) (Boolean) Copilot automatically reviews each new push to the pull request. Defaults to `false`.
+
+* `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
 #### rules.required_deployments ####
 

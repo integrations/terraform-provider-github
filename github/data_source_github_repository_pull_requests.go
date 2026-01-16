@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -129,7 +129,7 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name

@@ -9,6 +9,8 @@ import (
 
 func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This data source is deprecated in favour of using the github_organization_role_teams data source.",
+
 		Read: dataSourceGithubOrganizationSecurityManagersRead,
 
 		Schema: map[string]*schema.Schema{
@@ -51,6 +53,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	allTeams := make([]any, 0)
 
+	//nolint:staticcheck // SA1019: ListSecurityManagerTeams is deprecated but still needed for legacy compatibility
 	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
 	if err != nil {
 		return err
@@ -58,7 +61,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	for _, team := range teams {
 		t := map[string]any{
-			"id":         team.GetID(),
+			"id":         int(team.GetID()),
 			"slug":       team.GetSlug(),
 			"name":       team.GetName(),
 			"permission": team.GetPermission(),
