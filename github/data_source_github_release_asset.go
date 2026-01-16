@@ -32,10 +32,16 @@ func dataSourceGithubReleaseAsset() *schema.Resource {
 				Required:    true,
 				Description: "Name of the repository to retrieve the release asset from",
 			},
+			"download_body": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to download the asset content into the body attribute",
+			},
 			"body": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The release asset body",
+				Description: "The release asset body (requires download_body to be 'true'",
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -98,35 +104,8 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	// Use a client copy to avoid possible mutation of shared GitHub client state
-	// by client.Repositories.DownloadReleaseAsset.
-	clientCopy := client.Client()
-	req, err := http.NewRequestWithContext(ctx, "GET", asset.GetBrowserDownloadURL(), nil)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	req.Header.Set("Accept", "application/octet-stream")
-	resp, err := clientCopy.Do(req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return diag.Errorf("failed to get release asset (%s/%s %d): %s", owner, repository, assetID, resp.Status)
-	}
-
-	buf := new(strings.Builder)
-	if _, err := io.Copy(buf, resp.Body); err != nil {
-		return diag.FromErr(err)
-	}
-
 	d.SetId(buildThreePartID(owner, repository, strconv.FormatInt(assetID, 10)))
 
-	if err := d.Set("body", buf.String()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("url", asset.URL); err != nil {
 		return diag.FromErr(err)
 	}
@@ -152,6 +131,38 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 	if err := d.Set("browser_download_url", asset.BrowserDownloadURL); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if !d.Get("download_body").(bool) {
+		return nil
+	}
+
+	// Use a client copy to avoid possible mutation of shared GitHub client state
+	// by client.Repositories.DownloadReleaseAsset.
+	clientCopy := client.Client()
+	req, err := http.NewRequestWithContext(ctx, "GET", asset.GetBrowserDownloadURL(), nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	req.Header.Set("Accept", "application/octet-stream")
+	resp, err := clientCopy.Do(req)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return diag.Errorf("failed to get release asset (%s/%s %d): %s", owner, repository, assetID, resp.Status)
+	}
+
+	buf := new(strings.Builder)
+	if _, err := io.Copy(buf, resp.Body); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("body", buf.String()); err != nil {
 		return diag.FromErr(err)
 	}
 
