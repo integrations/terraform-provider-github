@@ -27,7 +27,6 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			Providers:         testAccProviders,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
