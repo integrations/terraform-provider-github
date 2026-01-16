@@ -109,7 +109,7 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(asset.GetID(), 10))
+	d.SetId(buildThreePartID(owner, repository, strconv.FormatInt(assetID, 10)))
 
 	if err := d.Set("body", buf.String()); err != nil {
 		return diag.FromErr(err)
