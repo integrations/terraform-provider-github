@@ -687,7 +687,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 
-			d.SetId(*repo.Name)
+			d.SetId(repo.GetName())
 		}
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
@@ -759,6 +759,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	archived := d.Get("archived").(bool)
+	// If the repository is archived on creation, we need to skip calling Update to avoid 403 errors
 	if archived {
 		tflog.Debug(ctx, "Repository archived, skipping modifying topics, pages, visibility, and vulnerability alerts", map[string]any{
 			"owner":      meta.(*Owner).name,
@@ -940,6 +941,13 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		return nil
 	}
 
+	tflog.Debug(ctx, "Updating repository", map[string]any{
+		"owner":           meta.(*Owner).name,
+		"repository":      d.Id(),
+		"archived":        d.Get("archived").(bool),
+		"archived_change": d.HasChange("archived"),
+	})
+
 	client := meta.(*Owner).v3client
 
 	repoReq := resourceGithubRepositoryObject(d)
@@ -989,7 +997,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(*repo.Name)
+	d.SetId(repo.GetName())
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -1017,15 +1025,15 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), topics)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(*repo.Name)
+		d.SetId(repo.GetName())
 
 		if d.HasChange("topics") {
 			topics := repoReq.Topics
-			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), topics)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -1137,7 +1145,7 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	// This is only necessary if the BuildType is "legacy".
-	if update.BuildType == nil || *update.BuildType == "legacy" {
+	if update.BuildType == nil || update.GetBuildType() == "legacy" {
 		pagesSource := pages["source"].([]any)[0].(map[string]any)
 		sourceBranch := pagesSource["branch"].(string)
 		sourcePath := ""
