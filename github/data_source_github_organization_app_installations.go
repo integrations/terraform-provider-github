@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -14,55 +14,67 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"installations": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of GitHub App installations in the organization.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the GitHub App installation.",
 						},
 						"slug": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL-friendly name of the GitHub App.",
 						},
 						"app_id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the GitHub App.",
 						},
 						"repository_selection": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Whether the installation has access to all repositories or only selected ones. Possible values are 'all' or 'selected'.",
 						},
 						"permissions": {
-							Type:     schema.TypeMap,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The permissions granted to the GitHub App installation.",
 						},
 						"events": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The list of events the GitHub App installation subscribes to.",
 						},
 						"html_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL to the GitHub App installation's settings page.",
 						},
 						"client_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The OAuth client ID of the GitHub App.",
 						},
 						"target_id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the account the GitHub App is installed on.",
 						},
 						"target_type": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of account the GitHub App is installed on. Possible values are 'Organization' or 'User'.",
 						},
 						"suspended": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the GitHub App installation is currently suspended.",
 						},
 					},
 				},
@@ -123,7 +135,11 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		result["target_id"] = appInstallation.GetTargetID()
 		result["target_type"] = appInstallation.GetTargetType()
 		result["suspended"] = appInstallation.GetSuspendedAt() != nil
-		result["events"] = appInstallation.Events
+		if appInstallation.Events != nil {
+			result["events"] = appInstallation.Events
+		} else {
+			result["events"] = []string{}
+		}
 
 		permissions := make(map[string]string)
 		if appInstallation.Permissions != nil {
