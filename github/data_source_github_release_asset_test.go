@@ -15,8 +15,38 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 	testReleaseAssetName := testAccConf.testPublicRelaseAssetName
 	testReleaseAssetContent := testAccConf.testPublicReleaseAssetContent
 
-	t.Run("queries specified asset ID", func(t *testing.T) {
+	t.Run("queries and downloads specified asset ID", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			data "github_release_asset" "test" {
+				repository = "%s"
+				owner = "%s"
+				asset_id = "%s"
+				download_body = true
+			}
+		`, testReleaseRepository, testRepositoryOwner, testReleaseAssetID)
 
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "asset_id", testReleaseAssetID,
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "name", testReleaseAssetName,
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_release_asset.test", "body", testReleaseAssetContent,
+						),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("queries without downloading the specified asset ID", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			data "github_release_asset" "test" {
 				repository = "%s"
@@ -37,8 +67,8 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 						resource.TestCheckResourceAttr(
 							"data.github_release_asset.test", "name", testReleaseAssetName,
 						),
-						resource.TestCheckResourceAttr(
-							"data.github_release_asset.test", "body", testReleaseAssetContent,
+						resource.TestCheckNoResourceAttr(
+							"data.github_release_asset.test", "body",
 						),
 					),
 				},

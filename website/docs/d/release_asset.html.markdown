@@ -10,16 +10,6 @@ description: |-
 Use this data source to retrieve information about a GitHub release asset.
 
 ## Example Usage
-To retrieve the latest release that is present in a repository:
-
-```hcl
-data "github_release" "example" {
-    repository  = "example-repository"
-    owner       = "example-owner"
-    retrieve_by = "latest"
-}
-```
-
 To retrieve a specific release asset from a repository based on its ID:
 
 ```hcl
@@ -30,7 +20,20 @@ data "github_release_asset" "example" {
 }
 ```
 
-To retrieve the first release asset associated with the the latest release in a repository:
+To retrieve a specific release asset from a repository, and download its body
+into a `body` attribute on the data source:
+
+```hcl
+data "github_release_asset" "example" {
+    repository    = "example-repository"
+    owner         = "example-owner"
+    asset_id      = 12345
+    download_body = true
+}
+```
+
+
+To retrieve the first release asset associated with the latest release in a repository:
 
 ```hcl
 data "github_release" "example" {
@@ -68,6 +71,7 @@ data "github_release_asset" "example" {
 *  `repository`  -  (Required) Name of the repository to retrieve the release from
 *  `owner`  -  (Required) Owner of the repository
 *  `asset_id`  -  (Required) ID of the release asset to retrieve
+*  `download_body`  -  (Optional) If `true`, download the release asset to the `body` attribute. Defaults to `false`.
 
 ## Attributes Reference
 
@@ -81,4 +85,4 @@ data "github_release_asset" "example" {
 * `created_at` - Date the asset was created
 * `updated_at` - Date the asset was last updated
 * `browser_download_url` - Browser URL from which the release asset can be downloaded
-* `body` - The release asset body
+* `body` - The release asset body (requires `download_body` to be `true`)
