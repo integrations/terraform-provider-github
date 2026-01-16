@@ -155,6 +155,7 @@ resource "github_repository_ruleset" "test" {
 		name = "%s"
 		auto_init = false
 		vulnerability_alerts = true
+		visibility = "%s"
 	}
 
 	resource "github_repository_environment" "example" {
@@ -184,7 +185,7 @@ resource "github_repository_ruleset" "test" {
 			}
 		}
 	}
-`, repoName)
+`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
@@ -236,7 +237,7 @@ resource "github_repository_ruleset" "test" {
 		}
 
 		max_file_size {
-			max_file_size = 1048576
+			max_file_size = 99
 		}
 
 		file_extension_restriction {
@@ -257,14 +258,14 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test-push"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "push"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.max_file_size.0.max_file_size", "1048576"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.max_file_size.0.max_file_size", "99"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_extension_restriction.0.restricted_file_extensions.0", "*.zip"),
 					),
 				},
@@ -280,13 +281,14 @@ resource "github_repository_ruleset" "test" {
 
 		config := `
 resource "github_repository" "test" {
-	name         = "%[1]s"
-	description  = "Terraform acceptance tests %[2]s"
+	name         = "%s"
+	description  = "Terraform acceptance tests %s"
 	vulnerability_alerts = true
+	visibility = "%s"
 }
 
 resource "github_repository_ruleset" "test" {
-	name        = "%[3]s"
+	name        = "%s"
 	repository  = github_repository.test.id
 	target      = "branch"
 	enforcement = "active"
@@ -302,13 +304,13 @@ resource "github_repository_ruleset" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, name),
+					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, name),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", name),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, nameUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, nameUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", nameUpdated),
 					),
@@ -326,6 +328,7 @@ resource "github_repository" "test" {
 	name         = "%s"
 	description  = "Terraform acceptance tests %[1]s"
 	auto_init    = true
+	visibility = "%s"
 }
 
 resource "github_repository_ruleset" "test" {
@@ -356,13 +359,14 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, repoName)
+`, repoName, baseVisibility)
 
 		configUpdated := fmt.Sprintf(`
 resource "github_repository" "test" {
 	name         = "%s"
 	description  = "Terraform acceptance tests %[1]s"
 	auto_init    = true
+	visibility = "%s"
 }
 
 resource "github_repository_ruleset" "test" {
@@ -382,7 +386,7 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, repoName)
+`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
@@ -411,11 +415,12 @@ resource "github_repository_ruleset" "test" {
 		bypassMode := "always"
 		bypassModeUpdated := "exempt"
 
-		config := fmt.Sprintf(`
+		config := `
 resource "github_repository" "test" {
 	name         = "%s"
 	description  = "Terraform acceptance tests %s"
 	auto_init    = true
+	visibility = "%s"
 }
 
 resource "github_repository_ruleset" "test" {
@@ -441,20 +446,20 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, repoName, randomID, bypassMode)
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { skipUnauthenticated(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, randomID, bypassMode),
+					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, bypassMode),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, randomID, bypassModeUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, bypassModeUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
 					),
@@ -473,7 +478,8 @@ resource "github_repository_ruleset" "test" {
 			  description  = "Terraform acceptance tests %s"
 			  auto_init    = true
 			  default_branch = "main"
-	                        vulnerability_alerts = true
+				vulnerability_alerts = true
+				visibility = "%s"	
 			}
 
 			resource "github_repository_environment" "example" {
@@ -498,7 +504,7 @@ resource "github_repository_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, repoName, randomID)
+		`, repoName, randomID, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -520,6 +526,10 @@ resource "github_repository_ruleset" "test" {
 }
 
 func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
+	baseVisibility := "public"
+	if testAccConf.authMode == enterprise {
+		baseVisibility = "private" // Enable tests to run on GHEC EMU
+	}
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
@@ -528,6 +538,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				name      = "%s"
 				auto_init = true
 				archived  = false
+				visibility = "%s"
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -537,10 +548,10 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, repoName)
+		`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
+			PreCheck:  func() { skipUnauthenticated(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{Config: config},
@@ -558,6 +569,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				name      = "%s"
 				auto_init = true
 				archived  = true
+				visibility = "%s"
 			}
 			resource "github_repository_ruleset" "test" {
 				name       = "test"
@@ -566,10 +578,10 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, repoName)
+		`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
+			PreCheck:  func() { skipUnauthenticated(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
