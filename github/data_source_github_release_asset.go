@@ -148,7 +148,7 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 	if err := d.Set("created_at", asset.CreatedAt.String()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("created_at", asset.UpdatedAt.String()); err != nil {
+	if err := d.Set("updated_at", asset.UpdatedAt.String()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("browser_download_url", asset.BrowserDownloadURL); err != nil {
