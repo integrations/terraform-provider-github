@@ -22,19 +22,13 @@ resource "github_emu_group_mapping" "example_emu_group_mapping" {
 
 The following arguments are supported:
 
-* `team_slug` - (Required) Slug of the GitHub team
-* `group_id`  - (Required) Integer corresponding to the external group ID to be linked
+- `team_slug` - (Required) Slug of the GitHub team
+- `group_id`  - (Required) Integer corresponding to the external group ID to be linked
 
 ## Import
 
-GitHub EMU External Group Mappings can be imported using the external `group_id`, when it maps to a single team, or the `group_id` and `team_slug` separated by a colon, when it maps to multiple teams, e.g.
+GitHub EMU External Group Mappings can be imported using the external `group_id` and `team_slug` separated by a colon, e.g.
 
 ```sh
-# IdP Group with a single team
-$ terraform import github_emu_group_mapping.example_emu_group_mapping 28836
-```
-
-```sh
-# IdP Group with multiple teams
 $ terraform import github_emu_group_mapping.example_emu_group_mapping 28836:emu-test-team
 ```
