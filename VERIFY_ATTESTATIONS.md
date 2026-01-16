@@ -180,7 +180,7 @@ cosign verify-blob-attestation \
 
 A successful verification will output `Verified OK`, confirming that the artifact was built by the trusted GitHub Actions workflow and its provenance is securely recorded.
 
-### Verifying all release artifacts
+### Verifying All Release Artifacts
 
 To verify all release artifacts for a specific version:
 
