@@ -135,7 +135,7 @@ In addition to using the GitHub CLI, you can verify SLSA provenance attestations
 1. Install `cosign` for verifying attestations. See the [installation instructions](https://docs.sigstore.dev/cosign/system_config/installation/).
 2. Install `gh` (GitHub CLI) if you haven't already. See the [installation instructions](https://github.com/cli/cli#installation).
 
-### Download and verify Attestation
+### Download and Verify Attestation
 
 > [!NOTE]
 > Make sure to replace x.y.z with the actual release tag you want to verify.
