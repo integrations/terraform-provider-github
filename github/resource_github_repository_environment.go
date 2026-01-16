@@ -56,21 +56,39 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 			"reviewers": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				MaxItems:    6,
+				MaxItems:    1,
 				Description: "The environment reviewers configuration.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"team_slugs": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							MaxItems:    6,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "Up to 6 slugs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
+						},
+						"user_logins": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							MaxItems:    6,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "Up to 6 logins for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
+						},
 						"teams": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							MaxItems:    6,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
 							Description: "Up to 6 IDs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
+							Deprecated:  "Use team_slugs",
 						},
 						"users": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							MaxItems:    6,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
 							Description: "Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
+							Deprecated:  "Use user_logins.",
 						},
 					},
 				},

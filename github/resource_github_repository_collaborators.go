@@ -3,22 +3,22 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"slices"
-	"sort"
 	"strconv"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCollaboratorsCreate,
-		Read:   resourceGithubRepositoryCollaboratorsRead,
-		Update: resourceGithubRepositoryCollaboratorsUpdate,
-		Delete: resourceGithubRepositoryCollaboratorsDelete,
+		CreateContext: resourceGithubRepositoryCollaboratorsCreateOrUpdate,
+		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
+		UpdateContext: resourceGithubRepositoryCollaboratorsCreateOrUpdate,
+		DeleteContext: resourceGithubRepositoryCollaboratorsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -60,10 +60,35 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 							Optional: true,
 							Default:  "push",
 						},
+						"slug": {
+							Type:        schema.TypeString,
+							Description: "Slug of the team to add to the repository as a collaborator.",
+							Optional:    true,
+						},
 						"team_id": {
 							Type:        schema.TypeString,
-							Description: "Team ID or slug to add to the repository as a collaborator.",
-							Required:    true,
+							Description: "ID of the team to add to the repository as a collaborator.",
+							Optional:    true,
+							Deprecated:  "Use slug.",
+						},
+					},
+				},
+			},
+			"ignore_team": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "List of teams to ignore.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"slug": {
+							Type:        schema.TypeString,
+							Description: "Slug of the team to add to ignore.",
+							Optional:    true,
+						},
+						"team_id": {
+							Type:        schema.TypeString,
+							Description: "ID or slug of the team to ignore.",
+							Optional:    true,
 						},
 					},
 				},
@@ -75,20 +100,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Computed: true,
-			},
-			"ignore_team": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "List of teams to ignore.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"team_id": {
-							Type:        schema.TypeString,
-							Description: "ID or slug of the team to ignore.",
-							Required:    true,
-						},
-					},
-				},
 			},
 		},
 
@@ -102,123 +113,180 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 	}
 }
 
-type userCollaborator struct {
-	permission string
-	username   string
+func resourceGithubRepositoryCollaboratorsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	isOrg := meta.IsOrganization
+
+	repoName := d.Get("repository").(string)
+	users := d.Get("user").(*schema.Set).List()
+	teams := d.Get("team").(*schema.Set).List()
+	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+
+	inUsers, err := getUserCollaborators(users)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if checkDuplicateUsers(inUsers) {
+		return diag.Errorf("duplicate usernames found in user collaborators")
+	}
+
+	inTeams, err := getTeamCollaborators(ctx, meta, teams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if checkDuplicateTeams(inTeams) {
+		return diag.Errorf("duplicate teams found in team collaborators")
+	}
+
+	inIgnoreTeams, err := getTeamIdentities(ctx, meta, ignoreTeams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, inUsers)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if isOrg {
+		err = updateTeamCollaborators(ctx, client, owner, repoName, inTeams, inIgnoreTeams)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	d.SetId(repoName)
+
+	ghInvitations, err := listInvitations(ctx, client, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	invitationIds := make(map[string]string, len(ghInvitations))
+	for _, i := range ghInvitations {
+		invitationIds[i.login] = strconv.FormatInt(*i.invitationID, 10)
+	}
+
+	if err = d.Set("invitation_ids", invitationIds); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func (c userCollaborator) Empty() bool {
-	return c == userCollaborator{}
+func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	isOrg := meta.IsOrganization
+
+	repoName := d.Id()
+	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+
+	inIgnoreTeams, err := getTeamIdentities(ctx, meta, ignoreTeams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = d.Set("user", ghUsers.flatten())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if isOrg {
+		ghTeams, err := listTeamCollaborators(ctx, client, owner, repoName, inIgnoreTeams)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		err = d.Set("team", ghTeams.flatten())
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	ghInvitations, err := listInvitations(ctx, client, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	invitationIds := make(map[string]string, len(ghInvitations))
+	for _, i := range ghInvitations {
+		invitationIds[i.login] = strconv.FormatInt(*i.invitationID, 10)
+	}
+
+	if err = d.Set("invitation_ids", invitationIds); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-type invitedCollaborator struct {
-	userCollaborator
-	invitationID int64
+func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	isOrg := meta.IsOrganization
+
+	repoName := d.Id()
+	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+
+	inIgnoreTeams, err := getTeamIdentities(ctx, meta, ignoreTeams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Removing all collaborators from repository %s.", repoName))
+
+	err = updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if isOrg {
+		err = updateTeamCollaborators(ctx, client, owner, repoName, nil, inIgnoreTeams)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
 }
 
-func flattenUserCollaborator(obj userCollaborator) any {
-	if obj.Empty() {
-		return nil
-	}
-	transformed := map[string]any{
-		"permission": obj.permission,
-		"username":   obj.username,
-	}
+func listUserCollaborators(ctx context.Context, client *github.Client, owner, repoName string) (userCollaborators, error) {
+	col := make([]userCollaborator, 0)
 
-	return transformed
-}
-
-func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollaborator) []any {
-	if objs == nil && invites == nil {
-		return nil
-	}
-
-	for _, invite := range invites {
-		objs = append(objs, invite.userCollaborator)
-	}
-
-	sort.SliceStable(objs, func(i, j int) bool {
-		return objs[i].username < objs[j].username
-	})
-
-	items := make([]any, len(objs))
-	for i, obj := range objs {
-		items[i] = flattenUserCollaborator(obj)
-	}
-
-	return items
-}
-
-type teamCollaborator struct {
-	permission string
-	teamID     int64
-	teamSlug   string
-}
-
-func (c teamCollaborator) Empty() bool {
-	return c == teamCollaborator{}
-}
-
-func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) any {
-	if obj.Empty() {
-		return nil
-	}
-
-	var teamIDString string
-	if slices.Contains(teamSlugs, obj.teamSlug) {
-		teamIDString = obj.teamSlug
-	} else {
-		teamIDString = strconv.FormatInt(obj.teamID, 10)
-	}
-
-	transformed := map[string]any{
-		"permission": obj.permission,
-		"team_id":    teamIDString,
-	}
-
-	return transformed
-}
-
-func flattenTeamCollaborators(objs []teamCollaborator, teamSlugs []string) []any {
-	if objs == nil {
-		return nil
-	}
-
-	sort.SliceStable(objs, func(i, j int) bool {
-		return objs[i].teamID < objs[j].teamID
-	})
-
-	items := make([]any, len(objs))
-	for i, obj := range objs {
-		items[i] = flattenTeamCollaborator(obj, teamSlugs)
-	}
-
-	return items
-}
-
-func listUserCollaborators(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string) ([]userCollaborator, error) {
-	userCollaborators := make([]userCollaborator, 0)
 	affiliations := []string{"direct", "outside"}
 	for _, affiliation := range affiliations {
-		opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
-		}, Affiliation: affiliation}
+		opt := &github.ListCollaboratorsOptions{
+			ListOptions: github.ListOptions{
+				PerPage: maxPerPage,
+			},
+			Affiliation: affiliation,
+		}
 
 		for {
-			collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
-				owner, repoName, opt)
+			collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repoName, opt)
 			if err != nil {
 				return nil, err
 			}
 
 			for _, c := range collaborators {
-				// owners are listed in the collaborators list even though they don't have direct permissions
-				if !isOrg && c.GetLogin() == owner {
-					continue
-				}
-				permissionName := getPermission(c.GetRoleName())
-
-				userCollaborators = append(userCollaborators, userCollaborator{permissionName, c.GetLogin()})
+				col = append(col, userCollaborator{
+					userIdentity: userIdentity{
+						login: c.GetLogin(),
+					},
+					permission: getPermission(c.GetRoleName()),
+				})
 			}
 
 			if resp.NextPage == 0 {
@@ -227,11 +295,11 @@ func listUserCollaborators(client *github.Client, isOrg bool, ctx context.Contex
 			opt.Page = resp.NextPage
 		}
 	}
-	return userCollaborators, nil
+	return col, nil
 }
 
-func listInvitations(client *github.Client, ctx context.Context, owner, repoName string) ([]invitedCollaborator, error) {
-	invitedCollaborators := make([]invitedCollaborator, 0)
+func listInvitations(ctx context.Context, client *github.Client, owner, repoName string) ([]userCollaborator, error) {
+	col := make([]userCollaborator, 0)
 
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
@@ -241,10 +309,14 @@ func listInvitations(client *github.Client, ctx context.Context, owner, repoName
 		}
 
 		for _, i := range invitations {
-			permissionName := getPermission(i.GetPermissions())
+			id := i.GetID()
 
-			invitedCollaborators = append(invitedCollaborators, invitedCollaborator{
-				userCollaborator{permissionName, i.GetInvitee().GetLogin()}, i.GetID(),
+			col = append(col, userCollaborator{
+				userIdentity: userIdentity{
+					login: i.GetInvitee().GetLogin(),
+				},
+				permission:   getPermission(i.GetPermissions()),
+				invitationID: &id,
 			})
 		}
 
@@ -253,17 +325,17 @@ func listInvitations(client *github.Client, ctx context.Context, owner, repoName
 		}
 		opt.Page = resp.NextPage
 	}
-	return invitedCollaborators, nil
+
+	return col, nil
 }
 
-func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string, ignoreTeamIds []int64) ([]teamCollaborator, error) {
-	allTeams := make([]teamCollaborator, 0)
+func listTeamCollaborators(ctx context.Context, client *github.Client, owner, repoName string, ignoreTeams []teamIdentity) (teamCollaborators, error) {
+	col := make([]teamCollaborator, 0)
 
-	if !isOrg {
-		return allTeams, nil
+	opt := &github.ListOptions{
+		PerPage: maxPerPage,
 	}
 
-	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		repoTeams, resp, err := client.Repositories.ListTeams(ctx, owner, repoName, opt)
 		if err != nil {
@@ -271,11 +343,19 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		}
 
 		for _, t := range repoTeams {
-			if slices.Contains(ignoreTeamIds, t.GetID()) {
+			slug := t.GetSlug()
+			if slices.ContainsFunc(ignoreTeams, func(ignore teamIdentity) bool {
+				return ignore.slug == slug
+			}) {
 				continue
 			}
 
-			allTeams = append(allTeams, teamCollaborator{permission: getPermission(t.GetPermission()), teamID: t.GetID(), teamSlug: t.GetSlug()})
+			col = append(col, teamCollaborator{
+				teamIdentity: teamIdentity{
+					slug: slug,
+				},
+				permission: getPermission(t.GetPermission()),
+			})
 		}
 
 		if resp.NextPage == 0 {
@@ -284,359 +364,148 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		opt.Page = resp.NextPage
 	}
 
-	return allTeams, nil
+	return col, nil
 }
 
-func listAllCollaborators(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string, ignoreTeamIds []int64) ([]userCollaborator, []invitedCollaborator, []teamCollaborator, error) {
-	userCollaborators, err := listUserCollaborators(client, isOrg, ctx, owner, repoName)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	invitations, err := listInvitations(client, ctx, owner, repoName)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	teamCollaborators, err := listTeams(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return userCollaborators, invitations, teamCollaborators, err
-}
+func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Client, owner, repoName string, inUsers userCollaborators) error {
+	lookup := make(map[string]userCollaborator)
+	seen := make(map[string]any)
+	remove := make([]string, 0)
 
-func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []userCollaborator, hasInvites []invitedCollaborator, meta any) error {
-	client := meta.(*Owner).v3client
+	for _, inUser := range inUsers {
+		lookup[inUser.login] = inUser
+	}
 
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName)
+	if err != nil {
+		return err
+	}
 
-	for _, has := range hasUsers {
-		var wantPermission string
-		for _, w := range want {
-			userData := w.(map[string]any)
-			if userData["username"] == has.username {
-				wantPermission = userData["permission"].(string)
-				break
-			}
-		}
-		if wantPermission == "" { // user should NOT have permission
-			log.Printf("[DEBUG] Removing user %s from repo: %s.", has.username, repoName)
-			_, err := client.Repositories.RemoveCollaborator(ctx, owner, repoName, has.username)
-			if err != nil {
-				err = handleArchivedRepoDelete(err, "repository collaborator", has.username, owner, repoName)
+	for _, ghUser := range ghUsers {
+		inUser, ok := lookup[ghUser.login]
+		if ok {
+			seen[ghUser.login] = nil
+
+			if ghUser.permission != inUser.permission {
+				tflog.Info(ctx, fmt.Sprintf("Updating user %s permission from %s to %s for repo %s.", inUser.login, ghUser.permission, inUser.permission, repoName))
+				_, _, err := client.Repositories.AddCollaborator(
+					ctx, owner, repoName, inUser.login, &github.RepositoryAddCollaboratorOptions{
+						Permission: inUser.permission,
+					})
 				if err != nil {
 					return err
 				}
 			}
-		} else if wantPermission != has.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
-			_, _, err := client.Repositories.AddCollaborator(
-				ctx, owner, repoName, has.username, &github.RepositoryAddCollaboratorOptions{
-					Permission: wantPermission,
-				},
-			)
-			if err != nil {
-				return err
-			}
+		} else {
+			remove = append(remove, ghUser.login)
 		}
 	}
 
-	for _, has := range hasInvites {
-		var wantPermission string
-		for _, u := range want {
-			userData := u.(map[string]any)
-			if userData["username"] == has.username {
-				wantPermission = userData["permission"].(string)
-				break
-			}
-		}
-		if wantPermission == "" { // user should NOT have permission
-			log.Printf("[DEBUG] Deleting invite for user %s from repo: %s.", has.username, repoName)
-			_, err := client.Repositories.DeleteInvitation(ctx, owner, repoName, has.invitationID)
-			if err != nil {
-				err = handleArchivedRepoDelete(err, "repository collaborator invitation", has.username, owner, repoName)
+	ghInvites, err := listInvitations(ctx, client, owner, repoName)
+	if err != nil {
+		return err
+	}
+
+	for _, ghInvite := range ghInvites {
+		inInvite, ok := lookup[ghInvite.login]
+		if ok {
+			seen[ghInvite.login] = nil
+
+			if ghInvite.permission != inInvite.permission {
+				tflog.Info(ctx, fmt.Sprintf("Updating invite for user %s permission from %s to %s for repo %s.", inInvite.login, ghInvite.permission, inInvite.permission, repoName))
+				_, _, err := client.Repositories.UpdateInvitation(ctx, owner, repoName, *ghInvite.invitationID, inInvite.permission)
 				if err != nil {
 					return err
 				}
 			}
-		} else if wantPermission != has.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating invite for user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
-			_, _, err := client.Repositories.UpdateInvitation(ctx, owner, repoName, has.invitationID, wantPermission)
+		} else {
+			tflog.Info(ctx, fmt.Sprintf("Deleting invite for user %s from repo %s.", ghInvite.login, repoName))
+			_, err := client.Repositories.DeleteInvitation(ctx, owner, repoName, *ghInvite.invitationID)
 			if err != nil {
-				return err
+				return handleArchivedRepoDelete(err, "repository collaborator invitation", ghInvite.login, owner, repoName)
 			}
 		}
 	}
 
-	for _, w := range want {
-		userData := w.(map[string]any)
-		username := userData["username"].(string)
-		permission := userData["permission"].(string)
-		var found bool
-		for _, has := range hasUsers {
-			if username == has.username {
-				found = true
-				break
-			}
-		}
-		if found {
+	for _, inUser := range inUsers {
+		if _, ok := seen[inUser.login]; ok {
 			continue
 		}
-		for _, has := range hasInvites {
-			if username == has.username {
-				found = true
-				break
-			}
-		}
-		if found {
-			continue
-		}
-		// user needs to be added
-		log.Printf("[DEBUG] Inviting user %s with permission %s for repo: %s.", username, permission, repoName)
-		_, _, err := client.Repositories.AddCollaborator(
-			ctx, owner, repoName, username, &github.RepositoryAddCollaboratorOptions{
-				Permission: permission,
-			},
-		)
+
+		tflog.Info(ctx, fmt.Sprintf("Inviting user %s to repo %s with permission %s.", inUser.login, repoName, inUser.permission))
+		_, _, err := client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, &github.RepositoryAddCollaboratorOptions{
+			Permission: inUser.permission,
+		})
 		if err != nil {
 			return err
+		}
+	}
+
+	for _, l := range remove {
+		tflog.Info(ctx, fmt.Sprintf("Removing user %s from repo %s.", l, repoName))
+		_, err := client.Repositories.RemoveCollaborator(ctx, owner, repoName, l)
+		if err != nil {
+			return handleArchivedRepoDelete(err, "repository collaborator", l, owner, repoName)
 		}
 	}
 
 	return nil
 }
 
-func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
-	client := meta.(*Owner).v3client
-	orgID := meta.(*Owner).id
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func updateTeamCollaborators(ctx context.Context, client *github.Client, owner, repoName string, inTeams teamCollaborators, ignoreTeams []teamIdentity) error {
+	lookup := make(map[string]teamCollaborator)
+	seen := make(map[string]any)
+	remove := make([]string, 0)
 
-	remove := make([]teamCollaborator, 0)
-	for _, hasTeam := range has {
-		var wantPerm string
-		for _, w := range want {
-			teamData := w.(map[string]any)
-			teamIDString := teamData["team_id"].(string)
-			teamID, err := getTeamID(teamIDString, meta)
-			if err != nil {
-				return err
+	for _, inTeam := range inTeams {
+		lookup[inTeam.slug] = inTeam
+	}
+
+	ghTeams, err := listTeamCollaborators(ctx, client, owner, repoName, ignoreTeams)
+	if err != nil {
+		return err
+	}
+
+	for _, ghTeam := range ghTeams {
+		inTeam, ok := lookup[ghTeam.slug]
+		if ok {
+			seen[ghTeam.slug] = nil
+
+			if ghTeam.permission != inTeam.permission {
+				tflog.Info(ctx, fmt.Sprintf("Updating team %s permission from %s to %s for repo %s.", inTeam.slug, ghTeam.permission, inTeam.permission, repoName))
+				_, err := client.Teams.AddTeamRepoBySlug(ctx, owner, inTeam.slug, owner, repoName, &github.TeamAddTeamRepoOptions{
+					Permission: inTeam.permission,
+				})
+				if err != nil {
+					return err
+				}
 			}
-			if teamID == hasTeam.teamID {
-				wantPerm = teamData["permission"].(string)
-				break
-			}
-		}
-		if wantPerm == "" { // user should NOT have permission
-			remove = append(remove, hasTeam)
-		} else if wantPerm != hasTeam.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
-			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
-					Permission: wantPerm,
-				},
-			)
-			if err != nil {
-				return err
-			}
+		} else {
+			remove = append(remove, ghTeam.slug)
 		}
 	}
 
-	for _, t := range want {
-		teamData := t.(map[string]any)
-		teamIDString := teamData["team_id"].(string)
-		teamID, err := getTeamID(teamIDString, meta)
-		if err != nil {
-			return err
-		}
-		var found bool
-		for _, c := range has {
-			if teamID == c.teamID {
-				found = true
-				break
-			}
-		}
-		if found {
+	for _, inTeam := range inTeams {
+		if _, ok := seen[inTeam.slug]; ok {
 			continue
 		}
-		permission := teamData["permission"].(string)
-		// team needs to be added
-		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamIDString, permission, repoName)
-		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
-				Permission: permission,
-			},
-		)
+
+		tflog.Info(ctx, fmt.Sprintf("Adding team %s to repo % with permission %s.", inTeam.slug, repoName, inTeam.permission))
+		_, err := client.Teams.AddTeamRepoBySlug(ctx, owner, inTeam.slug, owner, repoName, &github.TeamAddTeamRepoOptions{
+			Permission: inTeam.permission,
+		})
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, team := range remove {
-		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
-		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
+	for _, s := range remove {
+		tflog.Info(ctx, fmt.Sprintf("Removing team %s from repo %s.", s, repoName))
+		_, err := client.Teams.RemoveTeamRepoBySlug(ctx, owner, s, owner, repoName)
 		if err != nil {
-			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %d", team.teamID), owner, repoName)
-			if err != nil {
-				return err
-			}
+			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", s), owner, repoName)
 		}
 	}
 
 	return nil
-}
-
-func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	isOrg := meta.(*Owner).IsOrganization
-	users := d.Get("user").(*schema.Set).List()
-	teams := d.Get("team").(*schema.Set).List()
-	repoName := d.Get("repository").(string)
-	ctx := context.Background()
-
-	teamsMap := make(map[string]struct{}, len(teams))
-	for _, team := range teams {
-		teamIDString := team.(map[string]any)["team_id"].(string)
-		if _, found := teamsMap[teamIDString]; found {
-			return fmt.Errorf("duplicate set member: %s", teamIDString)
-		}
-		teamsMap[teamIDString] = struct{}{}
-	}
-	usersMap := make(map[string]struct{}, len(users))
-	for _, user := range users {
-		username := user.(map[string]any)["username"].(string)
-		if _, found := usersMap[username]; found {
-			return fmt.Errorf("duplicate set member found: %s", username)
-		}
-		usersMap[username] = struct{}{}
-	}
-
-	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
-	if err != nil {
-		return err
-	}
-
-	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
-	if err != nil {
-		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
-	}
-
-	err = matchTeamCollaborators(repoName, teams, teamCollaborators, meta)
-	if err != nil {
-		return err
-	}
-
-	err = matchUserCollaboratorsAndInvites(repoName, users, userCollaborators, invitations, meta)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(repoName)
-
-	return resourceGithubRepositoryCollaboratorsRead(d, meta)
-}
-
-func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	isOrg := meta.(*Owner).IsOrganization
-	repoName := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
-	if err != nil {
-		return err
-	}
-
-	userCollaborators, invitedCollaborators, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
-	if err != nil {
-		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
-	}
-
-	invitationIds := make(map[string]string, len(invitedCollaborators))
-	for _, i := range invitedCollaborators {
-		invitationIds[i.username] = strconv.FormatInt(i.invitationID, 10)
-	}
-
-	sourceTeams := d.Get("team").(*schema.Set).List()
-	teamSlugs := make([]string, len(sourceTeams))
-	for i, t := range sourceTeams {
-		teamIdString := t.(map[string]any)["team_id"].(string)
-		_, parseIntErr := strconv.ParseInt(teamIdString, 10, 64)
-		if parseIntErr != nil {
-			teamSlugs[i] = teamIdString
-		}
-	}
-
-	err = d.Set("repository", repoName)
-	if err != nil {
-		return err
-	}
-	err = d.Set("user", flattenUserCollaborators(userCollaborators, invitedCollaborators))
-	if err != nil {
-		return err
-	}
-	err = d.Set("team", flattenTeamCollaborators(teamCollaborators, teamSlugs))
-	if err != nil {
-		return err
-	}
-	err = d.Set("invitation_ids", invitationIds)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func resourceGithubRepositoryCollaboratorsUpdate(d *schema.ResourceData, meta any) error {
-	return resourceGithubRepositoryCollaboratorsCreate(d, meta)
-}
-
-func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	isOrg := meta.(*Owner).IsOrganization
-	repoName := d.Get("repository").(string)
-	ctx := context.Background()
-
-	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
-	if err != nil {
-		return err
-	}
-
-	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
-	if err != nil {
-		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
-	}
-
-	log.Printf("[DEBUG] Deleting all users, invites and collaborators for repo: %s.", repoName)
-
-	// delete all users
-	err = matchUserCollaboratorsAndInvites(repoName, nil, userCollaborators, invitations, meta)
-	if err != nil {
-		return err
-	}
-
-	// delete all teams
-	err = matchTeamCollaborators(repoName, nil, teamCollaborators, meta)
-	return err
-}
-
-func getIgnoreTeamIds(d *schema.ResourceData, meta any) ([]int64, error) {
-	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
-	ignoreTeamIds := make([]int64, len(ignoreTeams))
-
-	for i, t := range ignoreTeams {
-		s := t.(map[string]any)["team_id"].(string)
-		id, err := getTeamID(s, meta)
-		if err != nil {
-			return nil, err
-		}
-		ignoreTeamIds[i] = id
-	}
-
-	return ignoreTeamIds, nil
 }

@@ -38,23 +38,21 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
-						// TODO: Add these fields when go-github is v68+
-						// See https://github.com/google/go-github/issues/3364
-						// "assignment": {
-						// 	Description: "Determines if the team has a direct, indirect, or mixed relationship to a role.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
-						// "parent_team_id": {
-						// 	Description: "The ID of the parent team if this is an indirect assignment.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
-						// "parent_team_slug": {
-						// 	Description: "The slug of the parent team if this is an indirect assignment.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
+						"assignment": {
+							Description: "Determines if the team has a direct, indirect, or mixed relationship to a role.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"parent_team_id": {
+							Description: "The ID of the parent team if this is an indirect assignment.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"parent_team_slug": {
+							Description: "The slug of the parent team if this is an indirect assignment.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
 					},
 				},
 			},

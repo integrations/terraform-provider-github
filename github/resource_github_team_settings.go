@@ -12,24 +12,27 @@ import (
 
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSettingsCreate,
-		Read:   resourceGithubTeamSettingsRead,
-		Update: resourceGithubTeamSettingsUpdate,
-		Delete: resourceGithubTeamSettingsDelete,
+		CreateContext: resourceGithubTeamSettingsCreate,
+		ReadContext:   resourceGithubTeamSettingsRead,
+		UpdateContext: resourceGithubTeamSettingsUpdate,
+		DeleteContext: resourceGithubTeamSettingsDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubTeamSettingsImport,
+			StateContext: resourceGithubTeamSettingsImport,
 		},
 		Schema: map[string]*schema.Schema{
+			"team_slug": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"team_slug", "team_id"},
+				Description:  "The team slug.",
+			},
 			"team_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The GitHub team id or the GitHub team slug.",
-			},
-			"team_slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The slug of the Team within the Organization.",
+				Description: "The team id or slug.",
+				Deprecated:  "Use team_slug.",
 			},
 			"team_uid": {
 				Type:        schema.TypeString,

@@ -14,12 +14,12 @@ import (
 
 func resourceGithubTeamRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamRepositoryCreate,
-		Read:   resourceGithubTeamRepositoryRead,
-		Update: resourceGithubTeamRepositoryUpdate,
-		Delete: resourceGithubTeamRepositoryDelete,
+		CreateContext: resourceGithubTeamRepositoryCreate,
+		ReadContext:   resourceGithubTeamRepositoryRead,
+		UpdateContext: resourceGithubTeamRepositoryUpdate,
+		DeleteContext: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
 				if err != nil {
 					return nil, err
@@ -36,11 +36,19 @@ func resourceGithubTeamRepository() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"team_slug": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"team_slug", "team_id"},
+				Description:  "The team slug.",
+			},
 			"team_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "ID or slug of team",
+				Deprecated:  "Use team_slug.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
