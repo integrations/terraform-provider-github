@@ -40,7 +40,7 @@ gh attestation verify --repo integrations/terraform-provider-github --source-ref
   "$artifact"
 ```
 
-### Verifying all artifacts at once
+### Verifying All Artifacts
 
 Alternatively, you can verify all downloaded artifacts with a loop that provides individual status reporting:
 
