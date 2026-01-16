@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -97,15 +98,27 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
+	// Use a client copy to avoid possible mutation of shared GitHub client state
+	// by client.Repositories.DownloadReleaseAsset.
 	clientCopy := client.Client()
-	respBody, _, err := client.Repositories.DownloadReleaseAsset(ctx, owner, repository, assetID, clientCopy)
+	req, err := http.NewRequestWithContext(ctx, "GET", asset.GetBrowserDownloadURL(), nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	defer respBody.Close()
+
+	req.Header.Set("Accept", "application/octet-stream")
+	resp, err := clientCopy.Do(req)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return diag.Errorf("failed to get release asset (%s/%s %d): %s", owner, repository, assetID, resp.Status)
+	}
 
 	buf := new(strings.Builder)
-	if _, err := io.Copy(buf, respBody); err != nil {
+	if _, err := io.Copy(buf, resp.Body); err != nil {
 		return diag.FromErr(err)
 	}
 
