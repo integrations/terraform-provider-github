@@ -209,6 +209,55 @@ func TestAccGithubRepository(t *testing.T) {
 			},
 		})
 	})
+	t.Run("unarchives archived repositories without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sunarchive-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
+				archived     = false
+				visibility   = "%s"
+			}
+		`, testRepoName, baseVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"false",
+						),
+					),
+				},
+				{
+					Config: strings.Replace(config,
+						`archived     = false`,
+						`archived     = true`, 1),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"true",
+						),
+					),
+				},
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"false",
+						),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("creates_repositories_as_archived_without_error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%screate-and-archive-%s", testResourcePrefix, randomID)
@@ -246,8 +295,9 @@ func TestAccGithubRepository(t *testing.T) {
 				name         = "%s"
 				description  = "Terraform acceptance tests %[1]s"
 				has_projects = false
+				visibility   = "%s"
 			}
-		`, testRepoName)
+		`, testRepoName, baseVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -524,8 +574,9 @@ func TestAccGithubRepository(t *testing.T) {
 				auto_init          = true
 				archive_on_destroy = true
 				archived           = false
+				visibility         = "%s"
 			}
-		`, testRepoName)
+		`, testRepoName, baseVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
