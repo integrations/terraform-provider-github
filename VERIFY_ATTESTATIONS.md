@@ -106,7 +106,7 @@ cosign verify-blob \
   "terraform-provider-github_${version}_SHA256SUMS"
 ```
 
-### Verify artifact checksums
+### Verify Artifact Checksums
 
 After verifying the checksums file, verify your downloaded artifacts match the checksums:
 
