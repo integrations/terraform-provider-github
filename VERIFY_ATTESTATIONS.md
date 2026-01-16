@@ -86,7 +86,7 @@ In addition to artifact attestations, you can verify release artifacts using [Co
 
 First, install Cosign if you haven't already. See the [installation instructions](https://docs.sigstore.dev/cosign/system_config/installation/) for your platform.
 
-### Verify checksums file
+### Verify Checksums File
 
 Download the checksums file and its signature bundle:
 
