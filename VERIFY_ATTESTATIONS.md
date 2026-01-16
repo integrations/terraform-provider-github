@@ -2,13 +2,12 @@
 
 This project started to use GitHub Action to create attestations for the release artifacts. Building software with artifact attestation streamlines supply chain security and helps us achieve [SLSA](https://slsa.dev/) v1.0 Build Level 3 for this project.
 
+> [!INFO]
+> Not all artifacts may have attestations generated for them. Please check the [repository attestations](https://github.com/integrations/terraform-provider-github/attestations) to see which artifacts have attestations available.
+>
+> Attestations are only available for releases from `v6.9.0`.
+
 ## Verifying release artifacts attestations with GitHub CLI
-
-> [!WARNING]
-> Not all artifacts may have attestations generated for them. Please check the [attestations](https://github.com/integrations/terraform-provider-github/attestations) page for this repository to see which artifacts have attestations available.
-
-> [!CAUTION]
-> The attestations are available only for the releases created since the version `v6.9.0` of this project.
 
 ### Prerequisites
 
