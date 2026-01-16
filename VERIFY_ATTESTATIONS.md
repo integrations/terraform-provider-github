@@ -53,7 +53,7 @@ for artifact in terraform-provider-github_${version}_*.zip; do
 done
 ```
 
-### Using optional flags
+### Using Optional Flags
 
 The `gh attestation verify` command supports additional flags for more specific verification:
 
