@@ -13,6 +13,10 @@ import (
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
+	baseVisibility := "public"
+	if testAccConf.authMode == enterprise {
+		baseVisibility = "private" // Enable tests to run on GHEC EMU
+	}
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
@@ -23,6 +27,7 @@ resource "github_repository" "test" {
 	auto_init = true
 	default_branch = "main"
 	vulnerability_alerts = true
+	visibility = "%s"
 }
 
 resource "github_repository_environment" "example" {
@@ -112,7 +117,7 @@ resource "github_repository_ruleset" "test" {
 		}
 	}
 }
-`, repoName)
+`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
