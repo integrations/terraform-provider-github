@@ -191,7 +191,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
