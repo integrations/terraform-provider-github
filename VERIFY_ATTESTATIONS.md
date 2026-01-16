@@ -1,4 +1,4 @@
-# Using artifact Attestations to achieve SLSA v1 Build Level 3
+# Using Artifact Attestations to Achieve SLSA v1 Build Level 3
 
 This project started to use GitHub Action to create attestations for the release artifacts. Building software with artifact attestation streamlines supply chain security and helps us achieve [SLSA](https://slsa.dev/) v1.0 Build Level 3 for this project.
 
