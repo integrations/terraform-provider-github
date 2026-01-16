@@ -16,6 +16,10 @@ import (
 )
 
 func TestAccGithubRepository(t *testing.T) {
+	baseVisibility := "public"
+	if testAccConf.authMode == enterprise {
+		baseVisibility = "private" // Enable tests to run on GHEC EMU
+	}
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%screate-%s", testResourcePrefix, randomID)
@@ -169,8 +173,9 @@ func TestAccGithubRepository(t *testing.T) {
 				name         = "%s"
 				description  = "Terraform acceptance tests %[1]s"
 				archived     = false
+				visibility   = "%s"
 			}
-		`, testRepoName)
+		`, testRepoName, baseVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -200,6 +205,35 @@ func TestAccGithubRepository(t *testing.T) {
 						`archived     = false`,
 						`archived     = true`, 1),
 					Check: checks["after"],
+				},
+			},
+		})
+	})
+
+	t.Run("creates and archives repositories without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%screate-and-archive-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
+				archived     = true
+				visibility   = "%s"
+			}
+		`, testRepoName, baseVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "archived",
+							"true",
+						),
+					),
 				},
 			},
 		})
