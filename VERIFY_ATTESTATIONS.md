@@ -1,13 +1,13 @@
-# Using artifact attestations to achieve SLSA v1 Build Level 3
+# Using artifact Attestations to achieve SLSA v1 Build Level 3
 
 This project started to use GitHub Action to create attestations for the release artifacts. Building software with artifact attestation streamlines supply chain security and helps us achieve [SLSA](https://slsa.dev/) v1.0 Build Level 3 for this project.
 
-> [!INFO]
+> [!NOTE]
 > Not all artifacts may have attestations generated for them. Please check the [repository attestations](https://github.com/integrations/terraform-provider-github/attestations) to see which artifacts have attestations available.
 >
 > Attestations are only available for releases from `v6.9.0`.
 
-## Verifying release artifacts attestations with GitHub CLI
+## Verifying release artifacts Attestations with GitHub CLI
 
 ### Prerequisites
 
@@ -75,11 +75,10 @@ gh attestation verify --owner integrations --signer-workflow \
 
 ## Verifying checksums file signature with Cosign and checking artifact integrity
 
-> [!WARNING]
-> Not all the releases may have Cosign signature for the checksum files.
-
-> [!CAUTION]
-> The Cosign signatures are available only for the releases created since the version `v6.9.0` of this project.
+> [!NOTE]
+> Not all artifacts may have attestations generated for them. Please check the [repository attestations](https://github.com/integrations/terraform-provider-github/attestations) to see which artifacts have attestations available.
+>
+> Attestations are only available for releases from `v6.9.0`.
 
 In addition to artifact attestations, you can verify release artifacts using [Cosign](https://docs.sigstore.dev/cosign/overview/). Cosign is a tool for signing and verifying software artifacts and container images.
 
@@ -136,14 +135,16 @@ In addition to using the GitHub CLI, you can verify SLSA provenance attestations
 1. Install `cosign` for verifying attestations. See the [installation instructions](https://docs.sigstore.dev/cosign/system_config/installation/).
 2. Install `gh` (GitHub CLI) if you haven't already. See the [installation instructions](https://github.com/cli/cli#installation).
 
-### Download and verify attestation
+### Download and verify Attestation
 
 > [!NOTE]
 > Make sure to replace x.y.z with the actual release tag you want to verify.
 > Replace artifact name with the actual artifact you want to verify.
 
-> [!CAUTION]
-> The attestations are available only for the releases created since the version `v6.9.0` of this project.
+> [!NOTE]
+> Not all artifacts may have attestations generated for them. Please check the [repository attestations](https://github.com/integrations/terraform-provider-github/attestations) to see which artifacts have attestations available.
+>
+> Attestations are only available for releases from `v6.9.0`.
 
 First, download the artifact you want to verify:
 
