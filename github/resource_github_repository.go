@@ -793,7 +793,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+	err := updateVulnerabilityAlerts(ctx, d, client, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1041,7 +1041,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.HasChange("vulnerability_alerts") {
-		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+		err = updateVulnerabilityAlerts(ctx, d, client, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -1267,7 +1267,7 @@ func resourceGithubParseFullName(resourceDataLike interface {
 	return parts[0], parts[1], true
 }
 
-func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
+func updateVulnerabilityAlerts(ctx context.Context, d *schema.ResourceData, client *github.Client, owner, repoName string) error {
 	updateVulnerabilityAlertsSDK := client.Repositories.DisableVulnerabilityAlerts
 	vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts")
 
@@ -1278,7 +1278,14 @@ func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ct
 	}
 
 	resp, err := updateVulnerabilityAlertsSDK(ctx, owner, repoName)
-	if err != nil {
+	if err != nil && resp != nil {
+		tflog.Debug(ctx, "Error updating vulnerability alerts", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"error":       err.Error(),
+			"status_code": resp.StatusCode,
+			"body":        resp.Body,
+		})
 		// Check if the error is because an Organization or Enterprise policy is preventing the change
 		// This is a temporary workaround while we extract Vulnerability Alerts into a separate resource.
 		if resp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "An enforced security configuration prevented modifying") && !ok {
