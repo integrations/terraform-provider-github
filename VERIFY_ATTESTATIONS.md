@@ -7,7 +7,7 @@ This project started to use GitHub Action to create attestations for the release
 >
 > Attestations are only available for releases from `v6.9.0`.
 
-## Verifying release artifacts Attestations with GitHub CLI
+## Verifying with GitHub CLI
 
 ### Prerequisites
 
