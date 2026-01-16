@@ -209,8 +209,7 @@ func TestAccGithubRepository(t *testing.T) {
 			},
 		})
 	})
-
-	t.Run("creates and archives repositories without error", func(t *testing.T) {
+	t.Run("creates_repositories_as_archived_without_error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%screate-and-archive-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

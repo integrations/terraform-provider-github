@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -755,6 +756,24 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			return diag.FromErr(err)
 		}
 		d.SetId(repo.GetName())
+	}
+
+	archived := d.Get("archived").(bool)
+	if archived {
+		tflog.Debug(ctx, "Repository archived, skipping modifying topics, pages, visibility, and vulnerability alerts", map[string]any{
+			"owner":      meta.(*Owner).name,
+			"repository": d.Id(),
+			"archived":   archived,
+		})
+		// Archived is not set on Repository.Create, so we need to PATCH the repository to set it
+		repo, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+			Archived: github.Ptr(archived),
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(repo.GetName())
+		return resourceGithubRepositoryRead(ctx, d, meta)
 	}
 
 	topics := repoReq.Topics
