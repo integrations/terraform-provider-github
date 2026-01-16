@@ -13,7 +13,7 @@ This project started to use GitHub Action to create attestations for the release
 
 First, install GitHub CLI if you haven't already. See the [installation instructions](https://github.com/cli/cli#installation) for your platform.
 
-### Verifying attestations
+### Verifying Attestations
 
 To verify artifact attestations generated during the build process, use the `gh attestation verify` command from the GitHub CLI.
 
