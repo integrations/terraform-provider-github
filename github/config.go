@@ -134,6 +134,14 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 			if remoteOrg != nil {
 				owner.id = remoteOrg.GetID()
 				owner.IsOrganization = true
+				// MembersCannotForkPrivateRepos is intentionally inverted from the API's
+				// MembersCanForkPrivateRepos field. This ensures the default zero value (false)
+				// means "no restriction" which is correct for:
+				// - Personal accounts (non-org): forking is always allowed, no org policy applies
+				// - Organizations that allow forking: MembersCanForkPrivateRepos=true → inverted to false
+				// Only when an org explicitly disallows forking (MembersCanForkPrivateRepos=false)
+				// does this become true, triggering the guard that skips sending AllowForking
+				// to the API to avoid HTTP 422 errors.
 				owner.MembersCannotForkPrivateRepos = !remoteOrg.GetMembersCanForkPrivateRepos()
 			}
 		}
