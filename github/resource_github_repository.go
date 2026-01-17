@@ -259,12 +259,6 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
-			"org_allow_forking": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Set to 'true' if the org allows forking.",
-			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -640,13 +634,9 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure allow forking if repository is not public
-	// skip this when the org doesn't allow forking
-	orgAllowForking, ok := d.Get("org_allow_forking").(bool)
-	if ok && orgAllowForking {
-		allowForking, forkingOk := d.Get("allow_forking").(bool)
-		if forkingOk && visibility != "public" {
-			repository.AllowForking = github.Ptr(allowForking)
-		}
+	allowForking, ok := d.Get("allow_forking").(bool)
+	if ok && visibility != "public" {
+		repository.AllowForking = github.Ptr(allowForking)
 	}
 
 	return repository
@@ -665,6 +655,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 	isPrivate := repoReq.GetVisibility() == "private"
 	repoReq.Private = github.Ptr(isPrivate)
+
+	if !meta.(*Owner).MembersCanForkPrivateRepos {
+		repoReq.AllowForking = nil
+	}
+
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
 
@@ -948,6 +943,10 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = nil
 	}
 
+	if !meta.(*Owner).MembersCanForkPrivateRepos {
+		repoReq.AllowForking = nil
+	}
+
 	if !d.HasChange("security_and_analysis") {
 		repoReq.SecurityAndAnalysis = nil
 		log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
@@ -1036,6 +1035,9 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if d.HasChanges("visibility", "private") {
 		repoReq.Visibility = github.Ptr(visibility)
 		repoReq.AllowForking = allowForking
+		if !meta.(*Owner).MembersCanForkPrivateRepos {
+			repoReq.AllowForking = nil
+		}
 
 		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
 		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
