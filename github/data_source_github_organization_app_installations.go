@@ -84,7 +84,7 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
@@ -93,7 +93,7 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 		PerPage: maxPerPage,
 	}
 
-	results := make([]map[string]interface{}, 0)
+	results := make([]map[string]any, 0)
 	for {
 		appInstallations, resp, err := client.Organizations.ListInstallations(ctx, owner, options)
 		if err != nil {
@@ -117,15 +117,15 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	return nil
 }
 
-func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0)
+func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) []map[string]any {
+	results := make([]map[string]any, 0)
 
 	if orgAppInstallations == nil {
 		return results
 	}
 
 	for _, appInstallation := range orgAppInstallations {
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 
 		result["id"] = appInstallation.GetID()
 		result["slug"] = appInstallation.GetAppSlug()
