@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v82/github"
@@ -51,29 +52,28 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	id, ok := d.GetOk("group_id")
-	if !ok {
-		return diag.Errorf("could not get group id from provided value")
-	}
-	id64, err := getInt64FromInterface(id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	id64 := toInt64(d.Get("group_id"))
+	teamSlug := d.Get("team_slug").(string)
 
-	tflog.Debug(ctx, "Querying external group from GitHub API", map[string]any{
-		"org_name": orgName,
-		"group_id": id64,
-	})
+	tflog.SetField(ctx, "group_id", id64)
+	tflog.SetField(ctx, "team_slug", teamSlug)
+	tflog.SetField(ctx, "org_name", orgName)
 
-	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
+	tflog.Debug(ctx, "Querying external groups linked to team from GitHub API")
+
+	groupsList, resp, err := client.Teams.ListExternalGroupsForTeamBySlug(ctx, orgName, teamSlug)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			// If the group is not found, remove it from state
-			tflog.Info(ctx, "Removing EMU group mapping from state because it no longer exists in GitHub", map[string]any{
-				"org_name":    orgName,
-				"group_id":    id64,
+		if resp != nil && resp.StatusCode == http.StatusBadRequest {
+			tflog.Info(ctx, "Removing EMU group mapping from state because the team has explicit members in GitHub", map[string]any{
 				"resource_id": d.Id(),
-				"status_code": resp.StatusCode,
+			})
+			d.SetId("")
+			return nil
+		}
+		if resp != nil && (resp.StatusCode == http.StatusNotFound) {
+			// If the Group is not found, remove it from state
+			tflog.Info(ctx, "Removing EMU group mapping from state because team no longer exists in GitHub", map[string]any{
+				"resource_id": d.Id(),
 			})
 			d.SetId("")
 			return nil
@@ -81,37 +81,32 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	tflog.Debug(ctx, "Successfully retrieved external group from GitHub API", map[string]any{
-		"org_name":   orgName,
-		"group_id":   id64,
-		"team_count": len(group.Teams),
-	})
-
-	if len(group.Teams) < 1 {
-		// if there's not a team linked, that means it was removed outside of terraform
-		// and we should remove it from our state
-		tflog.Info(ctx, "Removing EMU group mapping from state because no teams are linked", map[string]any{
-			"org_name":    orgName,
-			"group_id":    id64,
+	if len(groupsList.Groups) < 1 {
+		tflog.Info(ctx, "Removing EMU group mapping from state because no external groups are linked to the team", map[string]any{
 			"resource_id": d.Id(),
 		})
 		d.SetId("")
 		return nil
 	}
 
-	etag := resp.Header.Get("ETag")
-	tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
-		"etag": etag,
+	// A team can only be linked to one external group
+	group := groupsList.Groups[0]
+
+	tflog.Debug(ctx, "Successfully retrieved external group from GitHub API", map[string]any{
+		"group_id":   group.GetGroupID(),
+		"group_name": group.GetGroupName(),
 	})
+
+	if group.GetGroupID() != id64 {
+		return diag.Errorf("group id mismatch: %d != %d", group.GetGroupID(), id64)
+	}
+
+	etag := resp.Header.Get("ETag")
 	if err = d.Set("etag", etag); err != nil {
 		return diag.FromErr(err)
 	}
 
-	groupIDInt := int(group.GetGroupID())
-	tflog.Trace(ctx, "Setting state attribute: group_id", map[string]any{
-		"group_id": groupIDInt,
-	})
-	if err = d.Set("group_id", groupIDInt); err != nil {
+	if err = d.Set("group_id", int(group.GetGroupID())); err != nil {
 		return diag.FromErr(err)
 	}
 	return nil
