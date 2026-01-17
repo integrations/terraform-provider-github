@@ -656,7 +656,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	isPrivate := repoReq.GetVisibility() == "private"
 	repoReq.Private = github.Ptr(isPrivate)
 
-	if !meta.(*Owner).MembersCanForkPrivateRepos {
+	if meta.(*Owner).MembersCannotForkPrivateRepos {
 		repoReq.AllowForking = nil
 	}
 
@@ -850,11 +850,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
 		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
-		if orgAllowForking, ok := d.Get("org_allow_forking").(bool); ok && orgAllowForking {
-			_ = d.Set("allow_forking", repo.GetAllowForking())
-		} else {
-			_ = d.Set("allow_forking", false)
-		}
+		_ = d.Set("allow_forking", repo.GetAllowForking())
 		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		_ = d.Set("has_downloads", repo.GetHasDownloads())
@@ -943,7 +939,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = nil
 	}
 
-	if !meta.(*Owner).MembersCanForkPrivateRepos {
+	if meta.(*Owner).MembersCannotForkPrivateRepos {
 		repoReq.AllowForking = nil
 	}
 
@@ -1035,7 +1031,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if d.HasChanges("visibility", "private") {
 		repoReq.Visibility = github.Ptr(visibility)
 		repoReq.AllowForking = allowForking
-		if !meta.(*Owner).MembersCanForkPrivateRepos {
+		if meta.(*Owner).MembersCannotForkPrivateRepos {
 			repoReq.AllowForking = nil
 		}
 
