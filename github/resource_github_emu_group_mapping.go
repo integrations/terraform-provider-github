@@ -32,6 +32,11 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Required:    true,
 				Description: "Integer corresponding to the external group ID to be linked.",
 			},
+			"group_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the external group.",
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -109,6 +114,11 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	if err = d.Set("group_id", int(group.GetGroupID())); err != nil {
 		return diag.FromErr(err)
 	}
+
+	if err = d.Set("group_name", group.GetGroupName()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
@@ -137,7 +147,7 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 
 	tflog.Debug(ctx, "Updating connected external group via GitHub API")
 
-	_, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -155,6 +165,10 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 		"etag": etag,
 	})
 	if err = d.Set("etag", etag); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("group_name", group.GetGroupName()); err != nil {
 		return diag.FromErr(err)
 	}
 
