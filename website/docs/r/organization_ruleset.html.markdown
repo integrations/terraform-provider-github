@@ -310,7 +310,7 @@ The `rules` block supports the following:
 - `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_property`. (see [below for nested schema](#conditions.repository_name))
 - `repository_property` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_name`. (see [below for nested schema](#conditions.repository_property))
 
-One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
+One of `repository_id`, `repository_name`, or `repository_property` must be set for the rule to target any repositories.
 
 #### conditions.ref_name ####
 
@@ -328,7 +328,7 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 
 - `include` - (Optional) (List of Repository Properties) The repository properties and values to include. All of these properties must match for the condition to pass. (see [below for nested schema](#conditions.repository_property.properties))
 
-- `exclude` - (Optional) (List of Repository Properties) The repository properties and values to exclude. The condition will not pass if any of these properties match.(see [below for nested schema](#conditions.repository_property.properties))
+- `exclude` - (Optional) (List of Repository Properties) The repository properties and values to exclude. The condition will not pass if any of these properties match. (see [below for nested schema](#conditions.repository_property.properties))
 
 #### conditions.repository_property.properties ####
 
