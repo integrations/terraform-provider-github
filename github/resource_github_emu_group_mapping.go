@@ -124,45 +124,27 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+	tflog.SetField(ctx, "org_name", orgName)
 
-	teamSlug, ok := d.GetOk("team_slug")
-	if !ok {
-		return diag.Errorf("could not get team slug from provided value")
-	}
+	teamSlug := d.Get("team_slug").(string)
+	tflog.SetField(ctx, "team_slug", teamSlug)
 
-	id, ok := d.GetOk("group_id")
-	if !ok {
-		return diag.Errorf("could not get group id from provided value")
-	}
-	id64, err := getInt64FromInterface(id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	teamSlugStr := teamSlug.(string)
-
+	id64 := toInt64(d.Get("group_id"))
+	tflog.SetField(ctx, "group_id", id64)
 	eg := &github.ExternalGroup{
-		GroupID: &id64,
+		GroupID: github.Ptr(id64),
 	}
 
-	tflog.Debug(ctx, "Updating connected external group via GitHub API", map[string]any{
-		"org_name":  orgName,
-		"team_slug": teamSlugStr,
-		"group_id":  id64,
-	})
+	tflog.Debug(ctx, "Updating connected external group via GitHub API")
 
-	_, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlugStr, eg)
+	_, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	tflog.Debug(ctx, "Successfully updated connected external group", map[string]any{
-		"org_name":  orgName,
-		"team_slug": teamSlugStr,
-		"group_id":  id64,
-	})
+	tflog.Debug(ctx, "Successfully updated connected external group")
 
-	newResourceID := fmt.Sprintf("teams/%s/external-groups", teamSlugStr)
+	newResourceID := fmt.Sprintf("teams/%s/external-groups", teamSlug)
 	tflog.Trace(ctx, "Setting resource ID", map[string]any{
 		"resource_id": newResourceID,
 	})
@@ -177,8 +159,9 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 	}
 
 	tflog.Trace(ctx, "Resource created or updated successfully", map[string]any{
-		"resource_id": newResourceID,
+		"resource_id": d.Id(),
 	})
+
 	return nil
 }
 
@@ -217,25 +200,6 @@ func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.Resource
 		"resource_id": d.Id(),
 	})
 	return nil
-}
-
-func getInt64FromInterface(val any) (int64, error) {
-	var id64 int64
-	switch val := val.(type) {
-	case int64:
-		id64 = val
-	case int:
-		id64 = int64(val)
-	case string:
-		var err error
-		id64, err = strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return 0, fmt.Errorf("could not parse id from string: %w", err)
-		}
-	default:
-		return 0, fmt.Errorf("unexpected type converting to int64 from interface")
-	}
-	return id64, nil
 }
 
 func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
