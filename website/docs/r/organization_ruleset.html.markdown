@@ -212,6 +212,18 @@ The `rules` block supports the following:
 - `required_approving_review_count` - (Optional) (Number) The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.
 
 - `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
+- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests targeting matching branches. Note: This feature is in beta and subject to change. (see [below for nested schema](#rules.pull_request.required_reviewers))
+
+#### rules.pull_request.required_reviewers ####
+
+- `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rules.pull_request.required_reviewers.reviewer))
+- `file_patterns` - (Required) (List of String) File patterns (fnmatch syntax) that this reviewer must approve.
+- `minimum_approvals` - (Required) (Number) Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.
+
+#### rules.pull_request.required_reviewers.reviewer ####
+
+- `id` - (Required) (Number) The ID of the reviewer (team ID).
+- `type` - (Required) (String) The type of reviewer. Currently only `Team` is supported.
 
 #### rules.copilot_code_review ####
 

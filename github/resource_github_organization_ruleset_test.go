@@ -624,3 +624,222 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		t.Errorf("Expected 4 restricted file extensions, got %d", len(restrictedExts))
 	}
 }
+
+func TestAccGithubOrganizationRulesetRequiredReviewers(t *testing.T) {
+	t.Run("create_ruleset_with_required_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-ruleset-rr-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-rr-ruleset-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-rr-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+	auto_init = true
+	ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name        = "%s"
+	description = "Test team for required reviewers"
+	privacy     = "closed"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			required_approving_review_count   = 1
+			required_review_thread_resolution = true
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go", "*.tf"]
+				minimum_approvals = 2
+			}
+		}
+	}
+}
+`, repoName, teamName, rulesetName)
+
+		checks := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "2"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.1", "*.tf"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("update_required_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-org-ruleset-rr-upd-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-rr-upd-ruleset-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-rr-upd-%s", testResourcePrefix, randomID)
+
+		configInitial := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+	auto_init = true
+	ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name        = "%s"
+	description = "Test team for required reviewers"
+	privacy     = "closed"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 1
+			}
+		}
+	}
+}
+`, repoName, teamName, rulesetName)
+
+		configUpdated := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+	auto_init = true
+	ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name        = "%s"
+	description = "Test team for required reviewers"
+	privacy     = "closed"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go", "*.tf", "*.md"]
+				minimum_approvals = 3
+			}
+		}
+	}
+}
+`, repoName, teamName, rulesetName)
+
+		checksInitial := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+		)
+
+		checksUpdated := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "3"),
+			resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "3"),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: configInitial,
+						Check:  checksInitial,
+					},
+					{
+						Config: configUpdated,
+						Check:  checksUpdated,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}

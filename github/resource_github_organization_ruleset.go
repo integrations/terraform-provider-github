@@ -238,6 +238,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
 									},
+									"required_reviewers": requiredReviewersSchema(),
 								},
 							},
 						},
