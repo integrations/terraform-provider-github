@@ -112,9 +112,45 @@ The following arguments are supported:
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 
-~> Note: This attribute can contain multiple string patterns.
-If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) is defaulted to.
-For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation]("https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy") for more information.
+~> **Note:** This attribute can contain multiple string patterns.
+If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_id) is defaulted to.
+
+For example, given the following workflow:
+```yaml
+...
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      ...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      ...
+```
+The value to use in `contexts` would be either `Build and Test` or `build` for the first job, and `test` for the second job.
+
+For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations?versionId=free-pro-team%40latest&productId=actions&restPage=how-tos%2Cwrite-workflows#adding-a-matrix-strategy-to-your-workflow-job) for more information.
+
+For example, given the following workflow:
+```yaml
+jobs:
+  example_matrix:
+    strategy:
+      matrix:
+        version: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest]
+```
+The values to use in `contexts` would be any of the following six options:
+- `example_matrix (10, ubuntu-latest)`
+- `example_matrix (10, windows-latest)`
+- `example_matrix (12, ubuntu-latest)`
+- `example_matrix (12, windows-latest)`
+- `example_matrix (14, ubuntu-latest)`
+- `example_matrix (14, windows-latest)`
+or combinations thereof.
+
 For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
 
 ### Required Pull Request Reviews
