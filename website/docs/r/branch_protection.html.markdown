@@ -114,7 +114,6 @@ The following arguments are supported:
 
 ~> **Note:** This attribute can contain multiple string patterns.
 If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_id) is defaulted to.
-
 For example, given the following workflow:
 ```yaml
 ...
@@ -130,9 +129,7 @@ jobs:
       ...
 ```
 The value to use in `contexts` would be either `Build and Test` or `build` for the first job, and `test` for the second job.
-
 For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations?versionId=free-pro-team%40latest&productId=actions&restPage=how-tos%2Cwrite-workflows#adding-a-matrix-strategy-to-your-workflow-job) for more information.
-
 For example, given the following workflow:
 ```yaml
 jobs:
@@ -150,7 +147,6 @@ The values to use in `contexts` would be any of the following six options:
 - `example_matrix (14, ubuntu-latest)`
 - `example_matrix (14, windows-latest)`
 or combinations thereof.
-
 For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
 
 ### Required Pull Request Reviews
