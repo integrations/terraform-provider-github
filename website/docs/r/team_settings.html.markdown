@@ -30,6 +30,7 @@ resource "github_team_settings" "code_review_settings" {
       algorithm = "ROUND_ROBIN"
       member_count = 1
       notify = true
+      excluded_team_member_node_ids = ["MDQ6VXNlcjU4MzIzMQ=="]
   }
 }
 ```
@@ -48,6 +49,7 @@ The following arguments are supported:
 * `algorithm` - (Optional) The algorithm to use when assigning pull requests to team members. Supported values are `ROUND_ROBIN` and `LOAD_BALANCE`. Default value is `ROUND_ROBIN`
 * `member_count` - (Optional) The number of team members to assign to a pull request
 * `notify` - (Optional) whether to notify the entire team when at least one member is also assigned to the pull request
+* `excluded_team_member_node_ids` - (Optional) A list of team member node IDs to exclude from the PR review process. These are GitHub user node IDs that can be obtained from the GitHub GraphQL API.
 
 
 ## Import

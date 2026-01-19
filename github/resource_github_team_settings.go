@@ -83,6 +83,14 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Default:     false,
 							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
+						"excluded_team_member_node_ids": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "A list of team member node IDs to exclude from the PR review process.",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
 					},
 				},
 			},
@@ -151,6 +159,9 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 			return err
 		}
 	}
+	// NOTE: The exclusion list is not available via the GraphQL read query yet.
+	// The excluded_team_member_node_ids field can be set but cannot be read back from the GitHub API.
+	// This is because the GraphQL API for team review assignments is currently in preview.
 
 	return nil
 }
@@ -177,12 +188,22 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 				} `graphql:"updateTeamReviewAssignment(input:$input)"`
 			}
 
+			exclusionList := make([]string, 0)
+			if excludedIDs, ok := settings["excluded_team_member_node_ids"]; ok && excludedIDs != nil {
+				for _, v := range excludedIDs.(*schema.Set).List() {
+					if v != nil {
+						exclusionList = append(exclusionList, v.(string))
+					}
+				}
+			}
+
 			return graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
 				TeamID:                           d.Id(),
 				ReviewRequestDelegation:          true,
 				ReviewRequestDelegationAlgorithm: settings["algorithm"].(string),
 				ReviewRequestDelegationCount:     settings["member_count"].(int),
 				ReviewRequestDelegationNotifyAll: settings["notify"].(bool),
+				ExcludedTeamMemberIds:            exclusionList,
 			}, nil)
 		}
 	}
@@ -252,12 +273,13 @@ func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, 
 }
 
 type UpdateTeamReviewAssignmentInput struct {
-	ClientMutationID                 string `json:"clientMutationId,omitempty"`
-	TeamID                           string `graphql:"id" json:"id"`
-	ReviewRequestDelegation          bool   `graphql:"enabled" json:"enabled"`
-	ReviewRequestDelegationAlgorithm string `graphql:"algorithm" json:"algorithm"`
-	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount" json:"teamMemberCount"`
-	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam" json:"notifyTeam"`
+	ClientMutationID                 string   `json:"clientMutationId,omitempty"`
+	TeamID                           string   `graphql:"id" json:"id"`
+	ReviewRequestDelegation          bool     `graphql:"enabled" json:"enabled"`
+	ReviewRequestDelegationAlgorithm string   `graphql:"algorithm" json:"algorithm"`
+	ReviewRequestDelegationCount     int      `graphql:"teamMemberCount" json:"teamMemberCount"`
+	ReviewRequestDelegationNotifyAll bool     `graphql:"notifyTeam" json:"notifyTeam"`
+	ExcludedTeamMemberIds            []string `graphql:"excludedTeamMemberIds" json:"excludedTeamMemberIds"`
 }
 
 func defaultTeamReviewAssignmentSettings(id string) UpdateTeamReviewAssignmentInput {
