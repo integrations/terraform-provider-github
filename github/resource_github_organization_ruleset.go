@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -25,6 +26,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
+
+		CustomizeDiff: customdiff.All(
+			validateOrganizationRulesetConditions,
+		),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -87,12 +92,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id`, or `repository_property`.",
+				Description: "Parameters for an organization ruleset condition. Push rulesets require exactly one of: repository_id, repository_name, or repository_property. Branch/tag rulesets require ref_name AND exactly one repository targeting option.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -119,9 +124,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
-							AtLeastOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
-							Description:  "Conditions to target repositories by property ",
+							Description:  "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -189,8 +192,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
-							AtLeastOneOf: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -221,8 +222,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"repository_id": {
 							Type:         schema.TypeList,
 							Optional:     true,
-							ExactlyOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
-							AtLeastOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
 							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,

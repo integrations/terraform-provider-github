@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -267,11 +268,6 @@ resource "github_organization_ruleset" "test" {
 			exclude = []
 		}
 
-		ref_name {
-			include = ["~ALL"]
-			exclude = []
-		}
-	}
 
 	rules {
 		file_path_restriction {
@@ -551,6 +547,246 @@ resource "github_organization_ruleset" "test" {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("push_no_ref_name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-push-no-ref-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "push"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		max_file_size {
+			max_file_size = 50
+		}
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "push"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("push_with_ref_name_should_fail", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-push-with-ref-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "push"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		max_file_size {
+			max_file_size = 50
+		}
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name cannot be set for push rulesets"),
+				},
+			},
+		})
+	})
+
+	t.Run("push_with_repository_property", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-push-repo-prop-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "push"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include {
+				name = "test-property"
+				property_values = ["test-value"]
+			}
+			exclude {
+				name = "exclude-property"
+				property_values = ["exclude-value"]
+			}
+		}
+	}
+
+	rules {
+		max_file_size {
+			max_file_size = 50
+		}
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "push"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("branch_requires_ref_name", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-branch-missing-ref-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("branch rulesets require ref_name to be set"),
+				},
+			},
+		})
+	})
+
+	t.Run("branch_missing_repo_targeting", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-branch-no-repo-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("branch rulesets require exactly one of repository_id, repository_name, or repository_property"),
+				},
+			},
+		})
+	})
+
+	t.Run("multiple_repo_targeting_should_fail", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-multi-target-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		repository_id = [123, 456]
+
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("require exactly one of repository_id, repository_name, or repository_property"),
 				},
 			},
 		})
