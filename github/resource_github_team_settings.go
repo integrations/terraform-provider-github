@@ -10,6 +10,28 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+// getUserNodeId retrieves the GraphQL node ID for a given username
+func getUserNodeId(ctx context.Context, meta interface{}, username string) (string, error) {
+	client := meta.(*Owner).v4client
+	
+	var query struct {
+		User struct {
+			ID githubv4.ID `graphql:"id"`
+		} `graphql:"user(login: $username)"`
+	}
+	
+	variables := map[string]interface{}{
+		"username": githubv4.String(username),
+	}
+	
+	err := client.Query(ctx, &query, variables)
+	if err != nil {
+		return "", fmt.Errorf("failed to query user %s: %v", username, err)
+	}
+	
+	return string(query.User.ID.(githubv4.String)), nil
+}
+
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubTeamSettingsCreate,
@@ -83,10 +105,10 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Default:     false,
 							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
-						"excluded_team_member_node_ids": {
+						"excluded_team_members": {
 							Type:        schema.TypeSet,
 							Optional:    true,
-							Description: "A list of team member node IDs to exclude from the PR review process.",
+							Description: "A list of team member usernames to exclude from the PR review process.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -189,10 +211,15 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 			}
 
 			exclusionList := make([]string, 0)
-			if excludedIDs, ok := settings["excluded_team_member_node_ids"]; ok && excludedIDs != nil {
-				for _, v := range excludedIDs.(*schema.Set).List() {
+			if excludedMembers, ok := settings["excluded_team_members"]; ok && excludedMembers != nil {
+				for _, v := range excludedMembers.(*schema.Set).List() {
 					if v != nil {
-						exclusionList = append(exclusionList, v.(string))
+						username := v.(string)
+						nodeId, err := getUserNodeId(ctx, meta, username)
+						if err != nil {
+							return fmt.Errorf("failed to get node ID for user %s: %v", username, err)
+						}
+						exclusionList = append(exclusionList, nodeId)
 					}
 				}
 			}
