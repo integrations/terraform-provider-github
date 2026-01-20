@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -40,7 +41,7 @@ func getBatchUserNodeIds(ctx context.Context, meta any, usernames []string) (map
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
 	err := client.Query(ctx, query.Addr().Interface(), variables)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "Could not resolve to a User with the login of") {
 		return nil, fmt.Errorf("failed to query users in batch: %w", err)
 	}
 
