@@ -129,7 +129,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Default:     false,
 							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
-						"excluded_team_members": {
+						"excluded_members": {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "A list of team member usernames to exclude from the PR review process.",
@@ -235,7 +235,7 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 			}
 
 			exclusionList := make([]githubv4.ID, 0)
-			if excludedMembers, ok := settings["excluded_team_members"]; ok && excludedMembers != nil {
+			if excludedMembers, ok := settings["excluded_members"]; ok && excludedMembers != nil {
 				// Collect all usernames first
 				usernames := make([]string, 0)
 				for _, v := range excludedMembers.(*schema.Set).List() {

@@ -138,7 +138,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 					algorithm = "ROUND_ROBIN"
 					member_count = 1
 					notify = true
-					excluded_team_members = ["octocat", "defunkt"]
+					excluded_members = ["octocat", "defunkt"]
 				}
 			}
 		`, teamName)
@@ -149,7 +149,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 				"ROUND_ROBIN",
 			),
 			resource.TestCheckResourceAttr(
-				"github_team_settings.test", "review_request_delegation.0.excluded_team_members.#",
+				"github_team_settings.test", "review_request_delegation.0.excluded_members.#",
 				"2",
 			),
 		)
