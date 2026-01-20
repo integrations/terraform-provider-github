@@ -163,7 +163,7 @@ func TestGetInstallationAccessToken(t *testing.T) {
 		t.Fatalf("could not parse test server url")
 	}
 
-	accessToken, err := getInstallationAccessToken(u, fakeJWT, testGitHubAppInstallationID)
+	accessToken, err := getInstallationAccessToken(u, fakeJWT, testGitHubAppInstallationID, nil)
 	if err != nil {
 		t.Logf("Unexpected error: %s", err)
 		t.Fail()
