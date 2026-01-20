@@ -586,7 +586,7 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 	return &securityAndAnalysis
 }
 
-func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
+func resourceGithubRepositoryObject(d *schema.ResourceData, meta any) *github.Repository {
 	visibility := calculateVisibility(d)
 
 	repository := &github.Repository{
@@ -633,8 +633,9 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		}
 	}
 
-	// only configure allow forking if repository is not public
-	if allowForking, ok := d.GetOk("allow_forking"); ok && visibility != "public" {
+	// only configure allow forking if repository is org-owned and not public
+	// allow_forking can only be changed on org-owned repositories
+	if allowForking, ok := d.GetOk("allow_forking"); ok && visibility != "public" && meta.(*Owner).IsOrganization {
 		if val, ok := allowForking.(bool); ok {
 			repository.AllowForking = github.Ptr(val)
 		}
@@ -650,7 +651,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
-	repoReq := resourceGithubRepositoryObject(d)
+	repoReq := resourceGithubRepositoryObject(d, meta)
 	owner := meta.(*Owner).name
 	repoName := repoReq.GetName()
 
@@ -923,7 +924,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	client := meta.(*Owner).v3client
 
-	repoReq := resourceGithubRepositoryObject(d)
+	repoReq := resourceGithubRepositoryObject(d, meta)
 
 	// handle visibility updates separately from other fields
 	visibility := repoReq.GetVisibility()
@@ -1051,7 +1052,7 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 			if err := d.Set("archived", true); err != nil {
 				return diag.FromErr(err)
 			}
-			repoReq := resourceGithubRepositoryObject(d)
+			repoReq := resourceGithubRepositoryObject(d, meta)
 			// Always remove `web_commit_signoff_required` when archiving, to avoid 422 error
 			repoReq.WebCommitSignoffRequired = nil
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
