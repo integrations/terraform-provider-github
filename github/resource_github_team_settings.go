@@ -21,7 +21,7 @@ func getBatchUserNodeIds(ctx context.Context, meta any, usernames []string) (map
 
 	// Create GraphQL variables and query struct using reflection (similar to data_source_github_users.go)
 	type UserFragment struct {
-		ID githubv4.ID `graphql:"id"`
+		ID string `graphql:"id"`
 	}
 
 	var fields []reflect.StructField
@@ -49,7 +49,7 @@ func getBatchUserNodeIds(ctx context.Context, meta any, usernames []string) (map
 		label := fmt.Sprintf("User%d", idx)
 		user := query.FieldByName(label).Interface().(UserFragment)
 		if user.ID != "" {
-			result[username] = string(user.ID.(githubv4.String))
+			result[username] = user.ID
 		}
 	}
 
