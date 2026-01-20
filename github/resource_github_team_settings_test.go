@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -196,6 +197,108 @@ func TestAccGithubTeamSettings(t *testing.T) {
 					ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
 				},
 			},
+		})
+	})
+}
+
+func TestBatchUserNodeIds(t *testing.T) {
+	t.Run("fetches user node IDs in batch", func(t *testing.T) {
+		if len(testAccConf.testExternalUser) == 0 {
+			t.Skip("No external user provided")
+		}
+
+		// Skip if not authenticated
+		skipUnauthenticated(t)
+
+		// Create a test owner/meta object
+		owner, err := getTestMeta()
+		if err != nil {
+			t.Fatalf("Failed to get test meta: %v", err)
+		}
+
+		ctx := context.Background()
+
+		// Test with single user
+		t.Run("single user", func(t *testing.T) {
+			usernames := []string{testAccConf.testExternalUser}
+			result, err := getBatchUserNodeIds(ctx, owner, usernames)
+
+			if err != nil {
+				t.Fatalf("getBatchUserNodeIds failed: %v", err)
+			}
+
+			if len(result) != 1 {
+				t.Errorf("Expected 1 result, got %d", len(result))
+			}
+
+			nodeId, exists := result[testAccConf.testExternalUser]
+			if !exists {
+				t.Errorf("Expected node ID for user %s", testAccConf.testExternalUser)
+			}
+
+			if nodeId == "" {
+				t.Errorf("Node ID should not be empty")
+			}
+
+			t.Logf("Successfully fetched node ID %s for user %s", nodeId, testAccConf.testExternalUser)
+		})
+
+		// Test with multiple users (using same user multiple times for simplicity)
+		t.Run("multiple users", func(t *testing.T) {
+			usernames := []string{testAccConf.testExternalUser, "octocat"} // octocat is a well-known GitHub user
+			result, err := getBatchUserNodeIds(ctx, owner, usernames)
+
+			if err != nil {
+				t.Fatalf("getBatchUserNodeIds failed: %v", err)
+			}
+
+			// We expect at least the test user to exist
+			if len(result) == 0 {
+				t.Errorf("Expected at least 1 result, got %d", len(result))
+			}
+
+			// Check that our test user exists
+			nodeId, exists := result[testAccConf.testExternalUser]
+			if !exists {
+				t.Errorf("Expected node ID for user %s", testAccConf.testExternalUser)
+			} else if nodeId == "" {
+				t.Errorf("Node ID should not be empty")
+			}
+
+			t.Logf("Successfully fetched %d node IDs in batch request", len(result))
+			for username, nodeId := range result {
+				t.Logf("  User: %s, Node ID: %s", username, nodeId)
+			}
+		})
+
+		// Test with empty list
+		t.Run("empty usernames list", func(t *testing.T) {
+			usernames := []string{}
+			result, err := getBatchUserNodeIds(ctx, owner, usernames)
+
+			if err != nil {
+				t.Fatalf("getBatchUserNodeIds failed: %v", err)
+			}
+
+			if len(result) != 0 {
+				t.Errorf("Expected 0 results for empty list, got %d", len(result))
+			}
+		})
+
+		// Test with non-existent user
+		t.Run("non-existent user", func(t *testing.T) {
+			nonExistentUser := "this-user-definitely-does-not-exist-12345"
+			usernames := []string{nonExistentUser}
+			result, err := getBatchUserNodeIds(ctx, owner, usernames)
+
+			if err != nil {
+				t.Fatalf("getBatchUserNodeIds failed: %v", err)
+			}
+
+			// Non-existent users should not appear in results
+			if len(result) != 0 {
+				t.Errorf("Expected 0 results for non-existent user, got %d", len(result))
+			}
 		})
 	})
 }
