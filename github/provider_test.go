@@ -51,7 +51,7 @@ func TestProvider(t *testing.T) {
 }
 
 func TestAccProviderConfigure(t *testing.T) {
-	t.Run("can be configured to run anonymously", func(t *testing.T) {
+	t.Run("can_be_configured_to_run_anonymously", func(t *testing.T) {
 		config := `
 		provider "github" {
 		}
@@ -71,10 +71,36 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 	})
 
+	t.Run("can_be_configured_with_app_auth_and_ignore_github_token", func(t *testing.T) {
+		t.Skip("This test requires a valid app auth setup to run.")
+		config := fmt.Sprintf(`
+provider "github" {
+	owner = "%s"
+	app_auth {
+		id = "1234567890"
+		installation_id = "1234567890"
+		pem_file = "1234567890"
+	}
+}
+
+data "github_ip_ranges" "test" {}
+`, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
 	t.Run("can be configured to run insecurely", func(t *testing.T) {
 		config := `
 		provider "github" {
-			token = ""
 			insecure = true
 		}
 		data "github_ip_ranges" "test" {}
@@ -231,6 +257,7 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 	})
 	t.Run("should not allow both token and app_auth to be configured", func(t *testing.T) {
+		t.Skip("This would be a semver breaking change, this will be reinstated for v7.")
 		config := fmt.Sprintf(`
 			provider "github" {
 				owner = "%s"
@@ -251,31 +278,6 @@ func TestAccProviderConfigure(t *testing.T) {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile(`"app_auth": conflicts with token`),
-				},
-			},
-		})
-	})
-	t.Run("should not allow app_auth and GITHUB_TOKEN to be configured", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				owner = "%s"
-				app_auth {
-					id = "1234567890"
-					installation_id = "1234567890"
-					pem_file = "1234567890"
-				}
-			}
-
-			data "github_ip_ranges" "test" {}
-			`, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:      config,
-					ExpectError: regexp.MustCompile(`"token": conflicts with app_auth`),
 				},
 			},
 		})

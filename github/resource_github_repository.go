@@ -634,9 +634,10 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure allow forking if repository is not public
-	allowForking, ok := d.Get("allow_forking").(bool)
-	if ok && visibility != "public" {
-		repository.AllowForking = github.Ptr(allowForking)
+	if allowForking, ok := d.GetOk("allow_forking"); ok && visibility != "public" {
+		if val, ok := allowForking.(bool); ok {
+			repository.AllowForking = github.Ptr(val)
+		}
 	}
 
 	return repository

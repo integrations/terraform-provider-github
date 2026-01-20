@@ -95,7 +95,6 @@ resource "github_organization_ruleset" "test" {
 		required_signatures = false
 
 		pull_request {
-			allowed_merge_methods = ["merge", "rebase", "squash"]
 			required_approving_review_count   = 2
 			required_review_thread_resolution = true
 			require_code_owner_review         = true
