@@ -197,6 +197,19 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
+
+		// NOTE: The exclusion list is not available via the GraphQL read query yet.
+		// The excluded_team_member_node_ids field can be set but cannot be read back from the GitHub API.
+		// This is because the GraphQL API for team review assignments is currently in preview.
+		// As a workaround, we preserve the excluded_members from the current state.
+		if currentDelegation := d.Get("review_request_delegation").([]any); len(currentDelegation) > 0 {
+			if currentSettings, ok := currentDelegation[0].(map[string]any); ok {
+				if excludedMembers, exists := currentSettings["excluded_members"]; exists {
+					reviewRequestDelegation["excluded_members"] = excludedMembers
+				}
+			}
+		}
+
 		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
 			return err
 		}
@@ -205,9 +218,8 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 			return err
 		}
 	}
-	// NOTE: The exclusion list is not available via the GraphQL read query yet.
-	// The excluded_team_member_node_ids field can be set but cannot be read back from the GitHub API.
-	// This is because the GraphQL API for team review assignments is currently in preview.
+	// NOTE: The excluded members are preserved from the current state in the read logic above
+	// since the GitHub API doesn't currently support reading them back.
 
 	return nil
 }
