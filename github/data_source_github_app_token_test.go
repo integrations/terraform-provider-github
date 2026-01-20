@@ -92,7 +92,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 					"Accept":       "application/vnd.github.v3+json",
 					"Content-Type": "application/json",
 				},
-				ExpectedBody:  []byte(`{"repositories":["repo1","repo2"]}`),
+				ExpectedBody: []byte(`{"repositories":["repo1","repo2"]}`),
 				ResponseBody: fmt.Sprintf(`{"token": "%s"}`, expectedAccessToken),
 				StatusCode:   201,
 			},
