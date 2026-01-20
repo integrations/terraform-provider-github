@@ -4,32 +4,56 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
-// getUserNodeId retrieves the GraphQL node ID for a given username
-func getUserNodeId(ctx context.Context, meta interface{}, username string) (string, error) {
+// getBatchUserNodeIds retrieves the GraphQL node IDs for multiple usernames in a single request.
+func getBatchUserNodeIds(ctx context.Context, meta any, usernames []string) (map[string]string, error) {
+	if len(usernames) == 0 {
+		return make(map[string]string), nil
+	}
+
 	client := meta.(*Owner).v4client
 
-	var query struct {
-		User struct {
-			ID githubv4.ID `graphql:"id"`
-		} `graphql:"user(login: $username)"`
+	// Create GraphQL variables and query struct using reflection (similar to data_source_github_users.go)
+	type UserFragment struct {
+		ID githubv4.ID `graphql:"id"`
 	}
 
-	variables := map[string]interface{}{
-		"username": githubv4.String(username),
+	var fields []reflect.StructField
+	variables := make(map[string]any)
+
+	for idx, username := range usernames {
+		label := fmt.Sprintf("User%d", idx)
+		variables[label] = githubv4.String(username)
+		fields = append(fields, reflect.StructField{
+			Name: label,
+			Type: reflect.TypeFor[UserFragment](),
+			Tag:  reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
+		})
 	}
 
-	err := client.Query(ctx, &query, variables)
+	query := reflect.New(reflect.StructOf(fields)).Elem()
+
+	err := client.Query(ctx, query.Addr().Interface(), variables)
 	if err != nil {
-		return "", fmt.Errorf("failed to query user %s: %v", username, err)
+		return nil, fmt.Errorf("failed to query users in batch: %w", err)
 	}
 
-	return string(query.User.ID.(githubv4.String)), nil
+	result := make(map[string]string)
+	for idx, username := range usernames {
+		label := fmt.Sprintf("User%d", idx)
+		user := query.FieldByName(label).Interface().(UserFragment)
+		if user.ID != "" {
+			result[username] = string(user.ID.(githubv4.String))
+		}
+	}
+
+	return result, nil
 }
 
 func resourceGithubTeamSettings() *schema.Resource {
@@ -212,14 +236,29 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 
 			exclusionList := make([]githubv4.ID, 0)
 			if excludedMembers, ok := settings["excluded_team_members"]; ok && excludedMembers != nil {
+				// Collect all usernames first
+				usernames := make([]string, 0)
 				for _, v := range excludedMembers.(*schema.Set).List() {
 					if v != nil {
 						username := v.(string)
-						nodeId, err := getUserNodeId(ctx, meta, username)
-						if err != nil {
-							return fmt.Errorf("failed to get node ID for user %s: %v", username, err)
+						usernames = append(usernames, username)
+					}
+				}
+
+				// Get all node IDs in a single batch request
+				if len(usernames) > 0 {
+					nodeIds, err := getBatchUserNodeIds(ctx, meta, usernames)
+					if err != nil {
+						return fmt.Errorf("failed to get node IDs for excluded members: %w", err)
+					}
+
+					// Convert to the exclusion list
+					for _, username := range usernames {
+						if nodeId, exists := nodeIds[username]; exists {
+							exclusionList = append(exclusionList, githubv4.ID(nodeId))
+						} else {
+							return fmt.Errorf("failed to get node ID for user %s: user not found", username)
 						}
-						exclusionList = append(exclusionList, githubv4.ID(nodeId))
 					}
 				}
 			}
