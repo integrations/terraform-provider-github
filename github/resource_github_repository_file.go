@@ -24,6 +24,8 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			StateContext: resourceGithubRepositoryFileImporter,
 		},
 
+		Description: "This resource allows you to create and manage files within a GitHub repository.",
+
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
