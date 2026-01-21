@@ -182,12 +182,16 @@ func TestAccGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 								if !ok {
 									t.Errorf("not found: github_actions_organization_secret.test_secret")
 								}
+								meta, err := getTestMeta()
+								if err != nil {
+									return err
+								}
 								// Now that the secret is created, update it to trigger a drift.
-								client := testAccProvider.Meta().(*Owner).v3client
-								owner := testAccProvider.Meta().(*Owner).name
+								client := meta.v3client
+								owner := meta.name
 								ctx := t.Context()
 
-								keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, testAccProvider.Meta().(*Owner))
+								keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, meta)
 								if err != nil {
 									t.Errorf("Failed to get organization public key details: %v", err)
 								}
