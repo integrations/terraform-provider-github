@@ -422,8 +422,6 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
 
-	var branch string
-
 	opts := resourceGithubRepositoryFileOptions(d)
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
@@ -443,7 +441,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 				return diag.FromErr(err)
 			}
 		}
-		branch = b.(string)
+		branch := b.(string)
 		opts.Branch = github.Ptr(branch)
 	}
 
