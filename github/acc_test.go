@@ -117,7 +117,7 @@ func TestMain(m *testing.M) {
 		// https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
 		testPublicRelaseAssetId:           "207956097",
 		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
-		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}\n",
+		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
