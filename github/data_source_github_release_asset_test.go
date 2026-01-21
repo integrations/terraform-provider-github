@@ -21,7 +21,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 				repository = "%s"
 				owner = "%s"
 				asset_id = "%s"
-				download_body = true
+				download_file = true
 			}
 		`, testReleaseRepository, testRepositoryOwner, testReleaseAssetID)
 
@@ -38,7 +38,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 							"data.github_release_asset.test", "name", testReleaseAssetName,
 						),
 						resource.TestCheckResourceAttr(
-							"data.github_release_asset.test", "body", testReleaseAssetContent,
+							"data.github_release_asset.test", "file", testReleaseAssetContent,
 						),
 					),
 				},
@@ -68,7 +68,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 							"data.github_release_asset.test", "name", testReleaseAssetName,
 						),
 						resource.TestCheckNoResourceAttr(
-							"data.github_release_asset.test", "body",
+							"data.github_release_asset.test", "file",
 						),
 					),
 				},

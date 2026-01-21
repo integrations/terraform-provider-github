@@ -20,15 +20,15 @@ data "github_release_asset" "example" {
 }
 ```
 
-To retrieve a specific release asset from a repository, and download its body
-into a `body` attribute on the data source:
+To retrieve a specific release asset from a repository, and download the file
+into a `file` attribute on the data source:
 
 ```hcl
 data "github_release_asset" "example" {
     repository    = "example-repository"
     owner         = "example-owner"
     asset_id      = 12345
-    download_body = true
+    download_file = true
 }
 ```
 
@@ -71,7 +71,7 @@ data "github_release_asset" "example" {
 *  `repository`  -  (Required) Name of the repository to retrieve the release from
 *  `owner`  -  (Required) Owner of the repository
 *  `asset_id`  -  (Required) ID of the release asset to retrieve
-*  `download_body`  -  (Optional) If `true`, download the release asset to the `body` attribute. Defaults to `false`.
+*  `download_file`  -  (Optional) Whether to download the asset content into the file attribute. Defaults to `false`.
 
 ## Attributes Reference
 
@@ -85,4 +85,4 @@ data "github_release_asset" "example" {
 * `created_at` - Date the asset was created
 * `updated_at` - Date the asset was last updated
 * `browser_download_url` - Browser URL from which the release asset can be downloaded
-* `body` - The release asset body (requires `download_body` to be `true`)
+* `file` - The release asset file contents (requires `download_file` to be `true`)
