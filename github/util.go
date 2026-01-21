@@ -291,6 +291,15 @@ func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (str
 	return team.GetSlug(), nil
 }
 
+// is404 checks if the error is a GitHub 404 Not Found response.
+func is404(err error) bool {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		return ghErr.Response.StatusCode == http.StatusNotFound
+	}
+	return false
+}
+
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
