@@ -1,12 +1,22 @@
 package github
 
 import (
+	"context"
 	"log"
 	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+type Target string
+
+const (
+	TargetPush   Target = "push"
+	TargetBranch Target = "branch"
+	TargetTag    Target = "tag"
 )
 
 // This is a workaround for the SDK not setting the default value for the allowed_merge_methods field.
@@ -221,19 +231,26 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 }
 
 func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
-	if conditions == nil || conditions.RefName == nil {
+	return flattenConditionsWithContext(context.TODO(), conditions, org)
+}
+
+func flattenConditionsWithContext(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
+	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
+		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
 	}
 
 	conditionsMap := make(map[string]any)
 	refNameSlice := make([]map[string]any, 0)
 
-	refNameSlice = append(refNameSlice, map[string]any{
-		"include": conditions.RefName.Include,
-		"exclude": conditions.RefName.Exclude,
-	})
+	if conditions.RefName != nil {
+		refNameSlice = append(refNameSlice, map[string]any{
+			"include": conditions.RefName.Include,
+			"exclude": conditions.RefName.Exclude,
+		})
 
-	conditionsMap["ref_name"] = refNameSlice
+		conditionsMap["ref_name"] = refNameSlice
+	}
 
 	// org-only fields
 	if org {
@@ -576,7 +593,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
-		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
+		log.Printf("[DEBUG] Flattened Pull Request rules slice: %#v", pullRequestSlice)
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
