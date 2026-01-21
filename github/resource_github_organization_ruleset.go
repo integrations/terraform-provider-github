@@ -27,7 +27,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
-		CustomizeDiff: resourceGithubOrganizationRulesetValidate,
+		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -39,7 +39,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:     schema.TypeString,
 				Required: true,
-				// The API accepts an `repository` target, but any rule created with that doesn't show up in the UI, nor does it have any rules.
+				// The API accepts an `repository` target, but we don't support it yet.
 				ValidateFunc: validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}, false),
 				Description:  "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
 			},
@@ -865,7 +865,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubOrganizationRulesetValidate(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	err := validateRulesetConditions(ctx, d, true)
 	if err != nil {
 		return err
