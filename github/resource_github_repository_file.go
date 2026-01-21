@@ -119,7 +119,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(*github.Ptr(d.Get("content").(string))),
+		Content: []byte(d.Get("content").(string)),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
@@ -127,13 +127,11 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		opts.Message = new(string)
-		*opts.Message = commitMessage.(string)
+		opts.Message = github.Ptr(commitMessage.(string))
 	}
 
 	if SHA, hasSHA := d.GetOk("sha"); hasSHA {
-		opts.SHA = new(string)
-		*opts.SHA = SHA.(string)
+		opts.SHA = github.Ptr(SHA.(string))
 	}
 
 	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
@@ -148,10 +146,10 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	}
 
 	if hasCommitAuthor && hasCommitEmail {
-		name := commitAuthor.(string)
-		mail := commitEmail.(string)
-		opts.Author = &github.CommitAuthor{Name: &name, Email: &mail}
-		opts.Committer = &github.CommitAuthor{Name: &name, Email: &mail}
+		name := github.Ptr(commitAuthor.(string))
+		mail := github.Ptr(commitEmail.(string))
+		opts.Author = &github.CommitAuthor{Name: name, Email: mail}
+		opts.Committer = &github.CommitAuthor{Name: name, Email: mail}
 	}
 
 	return opts, nil
@@ -202,8 +200,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	}
 
 	if opts.Message == nil {
-		m := fmt.Sprintf("Add %s", file)
-		opts.Message = &m
+		opts.Message = github.Ptr(fmt.Sprintf("Add %s", file))
 	}
 
 	log.Printf("[DEBUG] Checking if overwriting a repository file: %s/%s/%s", owner, repo, file)
@@ -397,8 +394,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	}
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		m := fmt.Sprintf("Update %s", file)
-		opts.Message = &m
+		opts.Message = github.Ptr(fmt.Sprintf("Update %s", file))
 	}
 
 	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
@@ -428,8 +424,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	}
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		m := fmt.Sprintf("Delete %s", file)
-		opts.Message = &m
+		opts.Message = github.Ptr(fmt.Sprintf("Delete %s", file))
 	}
 
 	if b, ok := d.GetOk("branch"); ok {
@@ -460,7 +455,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 			}
 		}
 		branch = b.(string)
-		opts.Branch = &branch
+		opts.Branch = github.Ptr(branch)
 	}
 
 	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
