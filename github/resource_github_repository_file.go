@@ -21,39 +21,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryFileUpdate,
 		DeleteContext: resourceGithubRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				parts := strings.Split(d.Id(), ":")
-
-				if len(parts) > 2 {
-					return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
-				}
-
-				client := meta.(*Owner).v3client
-				owner := meta.(*Owner).name
-				repo, file := splitRepoFilePath(parts[0])
-				// test if a file exists in a repository.
-				opts := &github.RepositoryContentGetOptions{}
-				if len(parts) == 2 {
-					opts.Ref = parts[1]
-					if err := d.Set("branch", parts[1]); err != nil {
-						return nil, err
-					}
-				}
-				fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
-				if err != nil {
-					return nil, err
-				}
-				if fc == nil {
-					return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
-				}
-
-				d.SetId(fmt.Sprintf("%s/%s", repo, file))
-				if err = d.Set("overwrite_on_create", false); err != nil {
-					return nil, err
-				}
-
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGithubRepositoryFileImporter,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -505,4 +473,38 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 		}
 	}
 	return false
+}
+
+func resourceGithubRepositoryFileImporter(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), ":")
+
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+	}
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	repo, file := splitRepoFilePath(parts[0])
+
+	opts := &github.RepositoryContentGetOptions{}
+	if len(parts) == 2 {
+		opts.Ref = parts[1]
+		if err := d.Set("branch", parts[1]); err != nil {
+			return nil, err
+		}
+	}
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	if err != nil {
+		return nil, err
+	}
+	if fc == nil {
+		return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
+	}
+
+	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	if err = d.Set("overwrite_on_create", false); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
