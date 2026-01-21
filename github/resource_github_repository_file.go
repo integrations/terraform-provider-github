@@ -68,16 +68,18 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description: "The commit message when creating, updating or deleting the file",
 			},
 			"commit_author": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    false,
-				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     false,
+				Description:  "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
+				RequiredWith: []string{"commit_email"},
 			},
 			"commit_email": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    false,
-				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     false,
+				Description:  "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
+				RequiredWith: []string{"commit_author"},
 			},
 			"sha": {
 				Type:        schema.TypeString,
@@ -117,7 +119,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.RepositoryContentFileOptions, error) {
+func resourceGithubRepositoryFileOptions(d *schema.ResourceData) *github.RepositoryContentFileOptions {
 	opts := &github.RepositoryContentFileOptions{
 		Content: []byte(d.Get("content").(string)),
 	}
@@ -137,14 +139,6 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
-	if hasCommitAuthor && !hasCommitEmail {
-		return nil, fmt.Errorf("cannot set commit_author without setting commit_email")
-	}
-
-	if hasCommitEmail && !hasCommitAuthor {
-		return nil, fmt.Errorf("cannot set commit_email without setting commit_author")
-	}
-
 	if hasCommitAuthor && hasCommitEmail {
 		name := github.Ptr(commitAuthor.(string))
 		mail := github.Ptr(commitEmail.(string))
@@ -152,7 +146,7 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) (*github.Reposi
 		opts.Committer = &github.CommitAuthor{Name: name, Email: mail}
 	}
 
-	return opts, nil
+	return opts
 }
 
 func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -184,10 +178,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		checkOpt.Ref = branch.(string)
 	}
 
-	opts, err := resourceGithubRepositoryFileOptions(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	opts := resourceGithubRepositoryFileOptions(d)
 
 	if opts.Message == nil {
 		opts.Message = github.Ptr(fmt.Sprintf("Add %s", file))
@@ -406,10 +397,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 		}
 	}
 
-	opts, err := resourceGithubRepositoryFileOptions(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	opts := resourceGithubRepositoryFileOptions(d)
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
 		opts.Message = github.Ptr(fmt.Sprintf("Update %s", file))
@@ -436,10 +424,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 
 	var branch string
 
-	opts, err := resourceGithubRepositoryFileOptions(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	opts := resourceGithubRepositoryFileOptions(d)
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
 		opts.Message = github.Ptr(fmt.Sprintf("Delete %s", file))
@@ -462,7 +447,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 		opts.Branch = github.Ptr(branch)
 	}
 
-	_, _, err = client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
+	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
 }
 
