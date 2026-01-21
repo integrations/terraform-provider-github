@@ -1,6 +1,7 @@
 package github
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -14,6 +15,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 	testReleaseAssetID := testAccConf.testPublicRelaseAssetId
 	testReleaseAssetName := testAccConf.testPublicRelaseAssetName
 	testReleaseAssetContent := testAccConf.testPublicReleaseAssetContent
+	base64EncodedAssetContent := base64.StdEncoding.EncodeToString([]byte(testReleaseAssetContent))
 
 	t.Run("queries and downloads specified asset ID", func(t *testing.T) {
 		config := fmt.Sprintf(`
@@ -38,7 +40,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 							"data.github_release_asset.test", "name", testReleaseAssetName,
 						),
 						resource.TestCheckResourceAttr(
-							"data.github_release_asset.test", "file", testReleaseAssetContent,
+							"data.github_release_asset.test", "file", base64EncodedAssetContent,
 						),
 					),
 				},

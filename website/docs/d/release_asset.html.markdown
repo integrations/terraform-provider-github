@@ -85,4 +85,4 @@ data "github_release_asset" "example" {
 * `created_at` - Date the asset was created
 * `updated_at` - Date the asset was last updated
 * `browser_download_url` - Browser URL from which the release asset can be downloaded
-* `file` - The release asset file contents (requires `download_file` to be `true`)
+* `file` - The base64-encoded release asset file contents (requires `download_file` to be `true`)

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"strconv"
@@ -41,7 +42,7 @@ func dataSourceGithubReleaseAsset() *schema.Resource {
 			"file": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The release asset file contents (requires `download_file` to be `true`",
+				Description: "The base64-encoded release asset file contents (requires `download_file` to be `true`",
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -158,8 +159,22 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	buf := new(strings.Builder)
-	if _, err := io.Copy(buf, resp.Body); err != nil {
-		return diag.FromErr(err)
+	encoder := base64.NewEncoder(base64.StdEncoding, buf)
+	defer encoder.Close()
+	buffer := make([]byte, 4096)
+	for {
+		n, err := resp.Body.Read(buffer)
+		if err != nil && err != io.EOF {
+			return diag.FromErr(err)
+		}
+		if n > 0 {
+			if _, err := encoder.Write(buffer[:n]); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		if err == io.EOF {
+			break
+		}
 	}
 
 	if err := d.Set("file", buf.String()); err != nil {
