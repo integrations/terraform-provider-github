@@ -172,8 +172,8 @@ func Test_parseID(t *testing.T) {
 			testName: "three_parts_expected_two",
 			id:       "part1:part2:part3",
 			count:    2,
-			expect:   nil,
-			hasError: true,
+			expect:   []string{"part1", "part2:part3"},
+			hasError: false,
 		},
 		{
 			testName: "empty_id",

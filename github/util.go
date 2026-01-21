@@ -60,8 +60,15 @@ func parseID(id string, count int) ([]string, error) {
 	}
 
 	parts := strings.Split(id, idSeparator)
-	if len(parts) != count {
+	if len(parts) < count {
 		return nil, fmt.Errorf("unexpected ID format (%q); expected %d parts separated by %q", id, count, idSeparator)
+	}
+
+	// If the number of part is greater than expected, we assume that the
+	// extra parts are due to the separator being part of a value. We join
+	// the extra parts back together for the last part.
+	if len(parts) > count {
+		parts = append(parts[:count-1], strings.Join(parts[count-1:], idSeparator))
 	}
 
 	return parts, nil
