@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -26,7 +27,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
-		CustomizeDiff: resourceGithubRepositoryRulesetValidate,
+		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -792,7 +793,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryRulesetValidate(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
 	err := validateRulesetConditions(ctx, d, false)
 	if err != nil {
 		return err
