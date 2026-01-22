@@ -1,4 +1,4 @@
-version: "2"
+version: '2'
 run:
   modules-download-mode: vendor
 
@@ -19,7 +19,7 @@ linters:
     - misspell
     - modernize
     - nilerr
-    - nilnesserr
+    - nilnesserr # https://golangci-lint.run/docs/linters/configuration/#nilnesserr
     - predeclared
     - staticcheck
     - unconvert
@@ -45,7 +45,7 @@ linters:
         text: always receives
       - linters:
           - staticcheck
-        text: "SA1019.*ByID.*deprecated"
+        text: 'SA1019.*ByID.*deprecated'
 
 issues:
   max-issues-per-linter: 0
