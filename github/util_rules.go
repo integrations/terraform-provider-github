@@ -213,8 +213,32 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 		}
 	}
 
-	// org-only fields
+	// org-only fields (includes enterprise rulesets)
 	if org {
+		// organization_name (enterprise-only)
+		if v, ok := inputConditions["organization_name"].([]any); ok && v != nil && len(v) != 0 {
+			inputOrgName := v[0].(map[string]any)
+			include := make([]string, 0)
+			exclude := make([]string, 0)
+
+			for _, v := range inputOrgName["include"].([]any) {
+				if v != nil {
+					include = append(include, v.(string))
+				}
+			}
+
+			for _, v := range inputOrgName["exclude"].([]any) {
+				if v != nil {
+					exclude = append(exclude, v.(string))
+				}
+			}
+
+			rulesetConditions.OrganizationName = &github.RepositoryRulesetOrganizationNamesConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
+		}
+
 		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]any)
@@ -274,8 +298,18 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 		conditionsMap["ref_name"] = refNameSlice
 	}
 
-	// org-only fields
+	// org-only fields (includes enterprise rulesets)
 	if org {
+		// organization_name (enterprise-only)
+		if conditions.OrganizationName != nil {
+			organizationNameSlice := make([]map[string]any, 0)
+			organizationNameSlice = append(organizationNameSlice, map[string]any{
+				"include": conditions.OrganizationName.Include,
+				"exclude": conditions.OrganizationName.Exclude,
+			})
+			conditionsMap["organization_name"] = organizationNameSlice
+		}
+
 		repositoryNameSlice := make([]map[string]any, 0)
 
 		if conditions.RepositoryName != nil {
