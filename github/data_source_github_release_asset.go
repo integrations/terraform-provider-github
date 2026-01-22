@@ -33,16 +33,16 @@ func dataSourceGithubReleaseAsset() *schema.Resource {
 				Required:    true,
 				Description: "Name of the repository to retrieve the release asset from",
 			},
-			"download_file": {
+			"download_file_contents": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Whether to download the asset content into the file attribute",
+				Description: "Whether to download the asset file content into the `file_contents` attribute",
 			},
-			"file": {
+			"file_contents": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The base64-encoded release asset file contents (requires `download_file` to be `true`",
+				Description: "The base64-encoded release asset file contents (requires `download_file_contents` to be `true`)",
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -135,7 +135,7 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	if !d.Get("download_file").(bool) {
+	if !d.Get("download_file_contents").(bool) {
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if err := d.Set("file", buf.String()); err != nil {
+	if err := d.Set("file_contents", buf.String()); err != nil {
 		return diag.FromErr(err)
 	}
 

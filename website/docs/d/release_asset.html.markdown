@@ -71,7 +71,7 @@ data "github_release_asset" "example" {
 *  `repository`  -  (Required) Name of the repository to retrieve the release from
 *  `owner`  -  (Required) Owner of the repository
 *  `asset_id`  -  (Required) ID of the release asset to retrieve
-*  `download_file`  -  (Optional) Whether to download the asset content into the file attribute. Defaults to `false`.
+*  `download_file_contents`  -  (Optional) Whether to download the asset file content into the `file_contents` attribute (defaults to `false`)
 
 ## Attributes Reference
 
@@ -85,4 +85,4 @@ data "github_release_asset" "example" {
 * `created_at` - Date the asset was created
 * `updated_at` - Date the asset was last updated
 * `browser_download_url` - Browser URL from which the release asset can be downloaded
-* `file` - The base64-encoded release asset file contents (requires `download_file` to be `true`)
+* `file_contents` - The base64-encoded release asset file contents (requires `download_file_contents` to be `true`)

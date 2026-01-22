@@ -23,7 +23,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 				repository = "%s"
 				owner = "%s"
 				asset_id = "%s"
-				download_file = true
+				download_file_contents = true
 			}
 		`, testReleaseRepository, testRepositoryOwner, testReleaseAssetID)
 
@@ -40,7 +40,7 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 							"data.github_release_asset.test", "name", testReleaseAssetName,
 						),
 						resource.TestCheckResourceAttr(
-							"data.github_release_asset.test", "file", base64EncodedAssetContent,
+							"data.github_release_asset.test", "file_contents", base64EncodedAssetContent,
 						),
 					),
 				},
