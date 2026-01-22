@@ -990,19 +990,13 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+		// GitHub API docs say that the ReplaceAllTopics endpoint should be used instead of updating the repository with the topics field
+		// https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#update-a-repository
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		d.SetId(*repo.Name)
-
-		if d.HasChange("topics") {
-			topics := repoReq.Topics
-			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
 	}
 
 	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
