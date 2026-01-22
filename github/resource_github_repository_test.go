@@ -369,7 +369,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("configures topics for a repository", func(t *testing.T) {
+	t.Run("configures_topics_for_a_repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stopic-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -380,20 +380,29 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "topics.#",
-				"2",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "topics.#",
+							"2",
+						),
+					),
+				},
+				{
+					Config: strings.Replace(config,
+						`topics			= ["terraform", "testing"]`,
+						`topics			= ["terraform", "testing", "extra-topic"]`, 1),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository.test", "topics.#",
+							"3",
+						),
+					),
 				},
 			},
 		})
