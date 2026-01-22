@@ -13,10 +13,13 @@ import (
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
-	baseVisibility := "public"
+	baseRepoVisibility := "public"
+
 	if testAccConf.authMode == enterprise {
-		baseVisibility = "private" // Enable tests to run on GHEC EMU
+		// This enables repos to be created even in GHEC EMU
+		baseRepoVisibility = "private"
 	}
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
@@ -90,34 +93,36 @@ resource "github_repository_ruleset" "test" {
 		required_signatures = false
 
 		pull_request {
-			dismiss_stale_reviews_on_push     = true
-			require_code_owner_review         = true
-			require_last_push_approval        = true
+			allowed_merge_methods             = ["merge", "squash", "rebase"]
 			required_approving_review_count   = 2
 			required_review_thread_resolution = true
+			require_code_owner_review         = true
+			dismiss_stale_reviews_on_push     = true
+			require_last_push_approval        = true
 		}
 
 		required_status_checks {
-			do_not_enforce_on_create             = true
-			strict_required_status_checks_policy = true
 
 			required_check {
 				context = "ci"
 			}
-		}
 
-		non_fast_forward = true
+			strict_required_status_checks_policy = true
+			do_not_enforce_on_create             = true
+		}
 
 		required_code_scanning {
 			required_code_scanning_tool {
-			alerts_threshold          = "errors"
-			security_alerts_threshold = "high_or_higher"
-			tool                      = "CodeQL"
+				alerts_threshold = "errors"
+				security_alerts_threshold = "high_or_higher"
+				tool = "CodeQL"
 			}
 		}
+
+		non_fast_forward = true
 	}
 }
-`, repoName, baseVisibility)
+`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -185,10 +190,10 @@ resource "github_repository_ruleset" "test" {
 			}
 		}
 	}
-`, repoName, baseVisibility)
+`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -249,7 +254,7 @@ resource "github_repository_ruleset" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
+			PreCheck:  func() { skipUnlessEnterprise(t) },
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
@@ -276,8 +281,8 @@ resource "github_repository_ruleset" "test" {
 	t.Run("update_ruleset_name", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
-		name := fmt.Sprintf(`ruleset-%[1]s`, randomID)
-		nameUpdated := fmt.Sprintf(`%[1]s-renamed`, randomID)
+		name := fmt.Sprintf("ruleset-%s", randomID)
+		nameUpdated := fmt.Sprintf("%s-renamed", name)
 
 		config := `
 resource "github_repository" "test" {
@@ -304,13 +309,13 @@ resource "github_repository_ruleset" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, name),
+					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, name),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", name),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, nameUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, nameUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", nameUpdated),
 					),
@@ -323,45 +328,19 @@ resource "github_repository_ruleset" "test" {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name         = "%s"
-	description  = "Terraform acceptance tests %[1]s"
-	auto_init    = true
-	visibility = "%s"
+		bypassActorsConfig := `
+bypass_actors {
+  actor_type = "DeployKey"
+  bypass_mode = "always"
 }
 
-resource "github_repository_ruleset" "test" {
-	name        = "test-bypass"
-	repository  = github_repository.test.id
-	target      = "branch"
-	enforcement = "active"
-
-	bypass_actors {
-		actor_type = "DeployKey"
-		bypass_mode = "always"
-	}
-
-	bypass_actors {
-		actor_id    = 5
-		actor_type  = "RepositoryRole"
-		bypass_mode = "always"
-	}
-
-	conditions {
-		ref_name {
-			include = ["~ALL"]
-			exclude = []
-		}
-	}
-
-	rules {
-		creation = true
-	}
+bypass_actors {
+  actor_id    = 5
+  actor_type  = "RepositoryRole"
+  bypass_mode = "always"
 }
-`, repoName, baseVisibility)
-
-		configUpdated := fmt.Sprintf(`
+`
+		baseConfig := `
 resource "github_repository" "test" {
 	name         = "%s"
 	description  = "Terraform acceptance tests %[1]s"
@@ -382,15 +361,19 @@ resource "github_repository_ruleset" "test" {
 		}
 	}
 
+	%s
+
 	rules {
 		creation = true
 	}
 }
-`, repoName, baseVisibility)
+`
+		config := fmt.Sprintf(baseConfig, repoName, baseRepoVisibility, bypassActorsConfig)
 
+		configUpdated := fmt.Sprintf(baseConfig, repoName, baseRepoVisibility, "")
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -453,13 +436,13 @@ resource "github_repository_ruleset" "test" {
 			Providers: testAccProviders,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, bypassMode),
+					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, bypassMode),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, bypassModeUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, bypassModeUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
 					),
@@ -504,7 +487,7 @@ resource "github_repository_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, repoName, randomID, baseVisibility)
+		`, repoName, randomID, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -526,10 +509,13 @@ resource "github_repository_ruleset" "test" {
 }
 
 func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
-	baseVisibility := "public"
+	baseRepoVisibility := "public"
+
 	if testAccConf.authMode == enterprise {
-		baseVisibility = "private" // Enable tests to run on GHEC EMU
+		// This enables repos to be created even in GHEC EMU
+		baseRepoVisibility = "private"
 	}
+
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
@@ -548,11 +534,11 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, repoName, baseVisibility)
+		`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config},
 				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
@@ -578,15 +564,339 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 				enforcement = "active"
 				rules { creation = true }
 			}
-		`, repoName, baseVisibility)
+		`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
 			},
 		})
+	})
+}
+
+func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
+	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-ref-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-with-ref"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-rules-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-branch-rule"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-branch-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-branch-push-rule"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-tag-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-tag-push-rule"
+				repository  = github_repository.test.id
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'file_path_restriction' is a push-only rule, not valid for tag target
+					file_path_restriction {
+						restricted_file_paths = ["secrets/"]
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for tag target"),
+				},
+			},
+		})
+	})
+}
+
+func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
+	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+	rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+	baseRepoVisibility := "public"
+
+	if testAccConf.authMode == enterprise {
+		// This enables repos to be created even in GHEC EMU
+		baseRepoVisibility = "private"
+	}
+
+	config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 1
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, baseRepoVisibility, teamName, rulesetName)
+
+	// Updated config: change minimum_approvals from 1 to 2
+	configUpdated := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 2
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, baseRepoVisibility, teamName, rulesetName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { skipUnlessHasOrgs(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+				),
+			},
+			{
+				Config: configUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+				),
+			},
+			{
+				ResourceName:            "github_repository_ruleset.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+				ImportStateVerifyIgnore: []string{"etag"},
+			},
+		},
 	})
 }
 

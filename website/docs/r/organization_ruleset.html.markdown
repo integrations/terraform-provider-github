@@ -65,36 +65,35 @@ resource "github_organization_ruleset" "example" {
   }
 }
 
-# Example with push ruleset  
+# Example with push ruleset
+# Note: Push targets must NOT have ref_name in conditions, only repository_name or repository_id
 resource "github_organization_ruleset" "example_push" {
   name        = "example_push"
   target      = "push"
   enforcement = "active"
 
   conditions {
-    ref_name {
-      include = ["~ALL"]
-      exclude = []
-    }
     repository_name {
-      include = ["~ALL"] 
+      include = ["~ALL"]
       exclude = []
     }
   }
 
   rules {
+    # Push targets only support these rules:
+    # file_path_restriction, max_file_size, max_file_path_length, file_extension_restriction
     file_path_restriction {
       restricted_file_paths = [".github/workflows/*", "*.env"]
     }
-    
+
     max_file_size {
       max_file_size = 100  # 100 MB
     }
-    
+
     max_file_path_length {
       max_file_path_length = 255
     }
-    
+
     file_extension_restriction {
       restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
     }
@@ -114,11 +113,13 @@ resource "github_organization_ruleset" "example_push" {
 
 - `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-- `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`. (see [below for nested schema](#conditions))
+- `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. For `push` targets, `ref_name` must NOT be set - only `repository_name` or `repository_id` should be used. (see [below for nested schema](#conditions))
 
 #### Rules ####
 
 The `rules` block supports the following:
+
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
 
 - `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#rulesbranch_name_pattern))
 
@@ -219,9 +220,27 @@ The `rules` block supports the following:
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
+- `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
+
+- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
+
+#### rules.pull_request.required_reviewers ####
+
+- `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rulespull_requestrequired_reviewersreviewer))
+
+- `file_patterns` - (Required) (List of String) File patterns (fnmatch syntax) that this reviewer must approve.
+
+- `minimum_approvals` - (Required) (Number) Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.
+
+#### rules.pull_request.required_reviewers.reviewer ####
+
+- `id` - (Required) (Number) The ID of the reviewer (Team ID).
+
+- `type` - (Required) (String) The type of reviewer. Currently only `Team` is supported.
+
 #### rules.required_status_checks ####
 
-- `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checks.required_check))
+- `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checksrequired_check))
 
 - `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
@@ -239,7 +258,7 @@ The `rules` block supports the following:
 
 - `do_not_enforce_on_create` - (Optional) (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it. Defaults to `false`.
 
-- `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_workflows.required_workflow))
+- `required_workflow` - (Required) (Block Set, Min: 1) Actions workflows that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_workflowsrequired_workflow))
 
 #### rules.required_workflows.required_workflow ####
 
@@ -251,7 +270,7 @@ The `rules` block supports the following:
 
 #### rules.required_code_scanning ####
 
-- `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_workflows.required_code_scanning_tool))
+- `required_code_scanning_tool` - (Required) (Block Set, Min: 1) Actions code scanning tools that are required. Multiple can be defined. (see [below for nested schema](#rulesrequired_code_scanningrequired_code_scanning_tool))
 
 #### rules.required_code_scanning.required_code_scanning_tool ####
 
@@ -289,7 +308,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-- `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
+- `actor_id` - (Optional) (Number) The ID of the actor that can bypass a ruleset. Some actor types such as `DeployKey` do not have an ID.
 
 - `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
@@ -305,11 +324,13 @@ The `rules` block supports the following:
 
 #### conditions ####
 
-- `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
+- `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` targets. (see [below for nested schema](#conditionsref_name))
 - `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
-- `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditions.repository_name))
+- `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditionsrepository_name))
 
 One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
+
+~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs.
 
 #### conditions.ref_name ####
 
@@ -320,8 +341,8 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 #### conditions.repository_name ####
 
 - `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
-
 - `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
+- `protected` - (Optional) (Boolean) Whether renaming of target repositories is prevented. Defaults to `false`.
 
 ## Attributes Reference
 

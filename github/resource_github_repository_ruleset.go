@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -27,6 +27,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -37,7 +39,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				ValidateFunc: validation.StringInSlice([]string{string(TargetBranch), string(TargetPush), string(TargetTag)}, false),
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
@@ -229,6 +231,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
 									},
+									"required_reviewers": requiredReviewersSchema(),
 								},
 							},
 						},
@@ -681,8 +684,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub",
-					owner, repoName, rulesetID)
+				tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 				d.SetId("")
 				return nil
 			}
@@ -691,8 +693,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	}
 
 	if ruleset == nil {
-		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
-			owner, repoName, rulesetID)
+		tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub (empty response)", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 		d.SetId("")
 		return nil
 	}
@@ -729,7 +730,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 	if repo.GetArchived() {
-		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
+		tflog.Info(ctx, "Repository is archived, skipping ruleset update", map[string]any{"owner": owner, "repo_name": repoName})
 		return nil
 	}
 
@@ -755,9 +756,9 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
+	tflog.Debug(ctx, "Deleting repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName))
+	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", strconv.FormatInt(rulesetID, 10), owner, repoName))
 }
 
 func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -773,10 +774,10 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if rulesetID == 0 {
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
 	}
-	log.Printf("[DEBUG] Importing repository ruleset with ID: %d, for repository: %s", rulesetID, repoName)
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
+
+	tflog.Debug(ctx, "Importing repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if repository == nil || err != nil {
@@ -791,4 +792,18 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	err := validateRulesetConditions(ctx, d, false)
+	if err != nil {
+		return err
+	}
+
+	err = validateRulesetRules(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

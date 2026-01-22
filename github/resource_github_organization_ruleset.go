@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-github/v81/github"
@@ -26,6 +27,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -34,16 +37,17 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				Type:     schema.TypeString,
+				Required: true,
+				// The API accepts an `repository` target, but we don't support it yet.
+				ValidateFunc: validation.StringInSlice([]string{string(TargetBranch), string(TargetTag), string(TargetPush)}, false),
+				Description:  "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
+				Description:  "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
 			},
 			"bypass_actors": {
 				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
@@ -62,7 +66,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
+							Description:  "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -87,13 +91,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` targets. One of `repository_name` or `repository_id` is always required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -119,6 +124,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
+							Description:  "Targets repositories that match the specified name patterns.",
 							ExactlyOneOf: []string{"conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
@@ -238,6 +244,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
 									},
+									"required_reviewers": requiredReviewersSchema(),
 								},
 							},
 						},
@@ -278,9 +285,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"context": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The status check context name that must be present on the commit.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+													Description:      "The status check context name that must be present on the commit.",
 												},
 												"integration_id": {
 													Type:        schema.TypeInt,
@@ -308,7 +316,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Prevent users with push access from force pushing to branches.",
+							Description: "Prevent users with push access from force pushing to refs.",
 						},
 						"commit_message_pattern": {
 							Type:        schema.TypeList,
@@ -487,9 +495,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Description: "The repository in which the workflow is defined.",
 												},
 												"path": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The path to the workflow YAML definition file.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory"), "path"),
+													Description:      "The path to the workflow YAML definition file.",
 												},
 												"ref": {
 													Type:        schema.TypeString,
@@ -611,8 +620,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset for caching purposes.",
 			},
 		},
 	}
@@ -710,7 +720,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	_ = d.Set("target", ruleset.GetTarget())
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
+	_ = d.Set("conditions", flattenConditionsWithContext(ctx, ruleset.GetConditions(), true))
 	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
@@ -852,4 +862,18 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	})
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	err := validateRulesetConditions(ctx, d, true)
+	if err != nil {
+		return err
+	}
+
+	err = validateRulesetRules(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
