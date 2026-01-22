@@ -142,7 +142,7 @@ initial repository creation and create the target branch inside of the repositor
 
 * `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
 
-* `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
+* `ignore_vulnerability_alerts_during_read` (Optional, Deprecated) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read. Use the provider-level `ignore_vulnerability_alerts_during_read` instead.
 
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 

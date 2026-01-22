@@ -126,6 +126,8 @@ The following arguments are supported in the `provider` block:
 
 * `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
 
+* `ignore_vulnerability_alerts_during_read` - (Optional) Set to `true` to skip the vulnerability alerts API call during resource read operations. This is useful when using tokens without admin permissions. Defaults to `false`.
+
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`,
