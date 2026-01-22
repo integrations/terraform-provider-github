@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -321,7 +322,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Specifies if the repository should be archived. Defaults to 'false'. NOTE Currently, the API does not support unarchiving.",
+				Description: "Specifies if the repository should be archived. Defaults to 'false'. Unarchiving is supported by setting this back to 'false'.",
 			},
 			"archive_on_destroy": {
 				Type:        schema.TypeBool,
@@ -686,7 +687,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 
-			d.SetId(*repo.Name)
+			d.SetId(repo.GetName())
 		}
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
@@ -757,6 +758,25 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		d.SetId(repo.GetName())
 	}
 
+	archived := d.Get("archived").(bool)
+	// If the repository is archived on creation, we need to skip calling Update to avoid 403 errors
+	if archived {
+		tflog.Debug(ctx, "Repository archived, skipping modifying topics, pages, visibility, and vulnerability alerts", map[string]any{
+			"owner":      meta.(*Owner).name,
+			"repository": d.Id(),
+			"archived":   archived,
+		})
+		// Archived is not set on Repository.Create, so we need to PATCH the repository to set it
+		repo, _, err := client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+			Archived: github.Ptr(archived),
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(repo.GetName())
+		return resourceGithubRepositoryRead(ctx, d, meta)
+	}
+
 	topics := repoReq.Topics
 	if len(topics) > 0 {
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
@@ -773,7 +793,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+	err := updateVulnerabilityAlerts(ctx, d, client, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -915,11 +935,18 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// Can only update a repository if it is not archived or the update is to
-	// archive the repository (unarchiving is not supported by the GitHub API)
+	// archive the repository
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
 		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
 	}
+
+	tflog.Debug(ctx, "Updating repository", map[string]any{
+		"owner":           meta.(*Owner).name,
+		"repository":      d.Id(),
+		"archived":        d.Get("archived").(bool),
+		"archived_change": d.HasChange("archived"),
+	})
 
 	client := meta.(*Owner).v3client
 
@@ -970,7 +997,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(*repo.Name)
+	d.SetId(repo.GetName())
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -998,15 +1025,15 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	if d.HasChange("topics") {
 		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), topics)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(*repo.Name)
+		d.SetId(repo.GetName())
 
 		if d.HasChange("topics") {
 			topics := repoReq.Topics
-			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), topics)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -1014,7 +1041,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.HasChange("vulnerability_alerts") {
-		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+		err = updateVulnerabilityAlerts(ctx, d, client, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -1118,7 +1145,7 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
 	// This is only necessary if the BuildType is "legacy".
-	if update.BuildType == nil || *update.BuildType == "legacy" {
+	if update.BuildType == nil || update.GetBuildType() == "legacy" {
 		pagesSource := pages["source"].([]any)[0].(map[string]any)
 		sourceBranch := pagesSource["branch"].(string)
 		sourcePath := ""
@@ -1240,7 +1267,7 @@ func resourceGithubParseFullName(resourceDataLike interface {
 	return parts[0], parts[1], true
 }
 
-func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
+func updateVulnerabilityAlerts(ctx context.Context, d *schema.ResourceData, client *github.Client, owner, repoName string) error {
 	updateVulnerabilityAlertsSDK := client.Repositories.DisableVulnerabilityAlerts
 	vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts")
 
@@ -1251,7 +1278,14 @@ func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ct
 	}
 
 	resp, err := updateVulnerabilityAlertsSDK(ctx, owner, repoName)
-	if err != nil {
+	if err != nil && resp != nil {
+		tflog.Debug(ctx, "Error updating vulnerability alerts", map[string]any{
+			"owner":       owner,
+			"repository":  repoName,
+			"error":       err.Error(),
+			"status_code": resp.StatusCode,
+			"body":        resp.Body,
+		})
 		// Check if the error is because an Organization or Enterprise policy is preventing the change
 		// This is a temporary workaround while we extract Vulnerability Alerts into a separate resource.
 		if resp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "An enforced security configuration prevented modifying") && !ok {
