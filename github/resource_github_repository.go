@@ -410,6 +410,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
+				Deprecated:  "Use the provider-level ignore_vulnerability_alerts_during_read instead.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
@@ -896,7 +897,11 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
+	// Check both provider-level and resource-level settings.
+	// Provider-level setting is preferred as it's available during import.
+	ignoreVulnerabilityAlerts := meta.(*Owner).IgnoreVulnerabilityAlertsDuringRead ||
+		d.Get("ignore_vulnerability_alerts_during_read").(bool)
+	if !ignoreVulnerabilityAlerts {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return diag.Errorf("error reading repository vulnerability alerts: %s", err.Error())

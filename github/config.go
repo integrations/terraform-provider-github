@@ -16,26 +16,28 @@ import (
 )
 
 type Config struct {
-	Token            string
-	Owner            string
-	BaseURL          *url.URL
-	IsGHES           bool
-	Insecure         bool
-	WriteDelay       time.Duration
-	ReadDelay        time.Duration
-	RetryDelay       time.Duration
-	RetryableErrors  map[int]bool
-	MaxRetries       int
-	ParallelRequests bool
+	Token                               string
+	Owner                               string
+	BaseURL                             *url.URL
+	IsGHES                              bool
+	Insecure                            bool
+	WriteDelay                          time.Duration
+	ReadDelay                           time.Duration
+	RetryDelay                          time.Duration
+	RetryableErrors                     map[int]bool
+	MaxRetries                          int
+	ParallelRequests                    bool
+	IgnoreVulnerabilityAlertsDuringRead bool
 }
 
 type Owner struct {
-	name           string
-	id             int64
-	v3client       *github.Client
-	v4client       *githubv4.Client
-	StopContext    context.Context
-	IsOrganization bool
+	name                                string
+	id                                  int64
+	v3client                            *github.Client
+	v4client                            *githubv4.Client
+	StopContext                         context.Context
+	IsOrganization                      bool
+	IgnoreVulnerabilityAlertsDuringRead bool
 }
 
 const (
@@ -164,6 +166,7 @@ func (c *Config) Meta() (any, error) {
 	owner.v4client = v4client
 	owner.v3client = v3client
 	owner.StopContext = context.Background()
+	owner.IgnoreVulnerabilityAlertsDuringRead = c.IgnoreVulnerabilityAlertsDuringRead
 
 	_, err = c.ConfigureOwner(&owner)
 	if err != nil {

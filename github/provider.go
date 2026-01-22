@@ -130,6 +130,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", "100"),
 				Description: descriptions["max_per_page"],
 			},
+			"ignore_vulnerability_alerts_during_read": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["ignore_vulnerability_alerts_during_read"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -337,6 +343,8 @@ func init() {
 			"Defaults to 3",
 		"max_per_page": "Number of items per page for pagination" +
 			"Defaults to 100",
+		"ignore_vulnerability_alerts_during_read": "Set to true to not call the vulnerability alerts endpoint " +
+			"so the provider can be used without admin permissions.",
 	}
 }
 
@@ -469,18 +477,21 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
+		ignoreVulnerabilityAlertsDuringRead := d.Get("ignore_vulnerability_alerts_during_read").(bool)
+
 		config := Config{
-			Token:            token,
-			BaseURL:          baseURL,
-			Insecure:         insecure,
-			Owner:            owner,
-			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
-			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
-			RetryDelay:       time.Duration(retryDelay) * time.Millisecond,
-			RetryableErrors:  retryableErrors,
-			MaxRetries:       maxRetries,
-			ParallelRequests: parallelRequests,
-			IsGHES:           isGHES,
+			Token:                               token,
+			BaseURL:                             baseURL,
+			Insecure:                            insecure,
+			Owner:                               owner,
+			WriteDelay:                          time.Duration(writeDelay) * time.Millisecond,
+			ReadDelay:                           time.Duration(readDelay) * time.Millisecond,
+			RetryDelay:                          time.Duration(retryDelay) * time.Millisecond,
+			RetryableErrors:                     retryableErrors,
+			MaxRetries:                          maxRetries,
+			ParallelRequests:                    parallelRequests,
+			IsGHES:                              isGHES,
+			IgnoreVulnerabilityAlertsDuringRead: ignoreVulnerabilityAlertsDuringRead,
 		}
 
 		meta, err := config.Meta()
