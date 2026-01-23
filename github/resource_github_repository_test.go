@@ -1314,9 +1314,11 @@ func Test_expandPages(t *testing.T) {
 	})
 
 	t.Run("manages private pages feature for a repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sprivate-pages-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
+				name         = "%s"
 				auto_init    = true
 				pages {
 					source {
@@ -1325,38 +1327,21 @@ func Test_expandPages(t *testing.T) {
 					public = false
 				}
 			}
-		`, randomID)
+		`, testRepoName)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "pages.0.public",
-				"false",
-			),
+			resource.TestCheckResourceAttr("github_repository.test", "pages.0.public", "false"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				ProviderFactories: providerFactories,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, organization) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this feature")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this feature")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }
