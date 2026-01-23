@@ -154,27 +154,6 @@ func dataSourceGithubEnterpriseRuleset() *schema.Resource {
 								},
 							},
 						},
-						"repository_property": {
-							Type:        schema.TypeList,
-							Computed:    true,
-							Description: "Conditions for repository properties that the ruleset targets.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"include": {
-										Type:        schema.TypeList,
-										Computed:    true,
-										Elem:        &schema.Schema{Type: schema.TypeString},
-										Description: "Array of repository property patterns to include.",
-									},
-									"exclude": {
-										Type:        schema.TypeList,
-										Computed:    true,
-										Elem:        &schema.Schema{Type: schema.TypeString},
-										Description: "Array of repository property patterns to exclude.",
-									},
-								},
-							},
-						},
 						"ref_name": {
 							Type:        schema.TypeList,
 							Computed:    true,
@@ -298,6 +277,60 @@ func dataSourceGithubEnterpriseRuleset() *schema.Resource {
 										Type:        schema.TypeBool,
 										Computed:    true,
 										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
+								},
+							},
+						},
+						// Repository target rules (only valid when target = "repository")
+						"repository_creation": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Only allow users with bypass permission to create repositories. Only valid for `repository` target.",
+						},
+						"repository_deletion": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Only allow users with bypass permission to delete repositories. Only valid for `repository` target.",
+						},
+						"repository_transfer": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Only allow users with bypass permission to transfer repositories. Only valid for `repository` target.",
+						},
+						"repository_name": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Restrict repository names to match specified patterns. Only valid for `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"negate": {
+										Type:        schema.TypeBool,
+										Computed:    true,
+										Description: "If true, the rule will fail if the pattern matches.",
+									},
+									"pattern": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The pattern to match repository names against.",
+									},
+								},
+							},
+						},
+						"repository_visibility": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Restrict repository visibility changes. Only valid for `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"internal": {
+										Type:        schema.TypeBool,
+										Computed:    true,
+										Description: "Allow internal visibility for repositories.",
+									},
+									"private": {
+										Type:        schema.TypeBool,
+										Computed:    true,
+										Description: "Allow private visibility for repositories.",
 									},
 								},
 							},
