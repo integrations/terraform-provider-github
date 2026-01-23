@@ -690,9 +690,15 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 	}
 
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, "Created enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -754,15 +760,33 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", ruleset.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target", ruleset.GetTarget()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("conditions", flattenConditions(ruleset.GetConditions(), true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ruleset.Rules, true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Trace(ctx, "Successfully read enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -807,9 +831,15 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 	}
 
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, "Updated enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
