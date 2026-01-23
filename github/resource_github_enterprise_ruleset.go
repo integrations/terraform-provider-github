@@ -89,15 +89,15 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an enterprise ruleset condition. Enterprise rulesets must include organization targeting (organization_name, organization_id, or organization_property) and repository targeting (repository_name, repository_id, or repository_property). For branch and tag targets, ref_name is also required.",
+				Description: "Parameters for an enterprise ruleset condition. Enterprise rulesets must include organization targeting (organization_name or organization_id) and repository targeting (repository_name or repository_id). For branch and tag targets, ref_name is also required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"organization_name": {
 							Type:          schema.TypeList,
 							Optional:      true,
 							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.organization_id", "conditions.0.organization_property"},
-							Description:   "Conditions for organization names that the ruleset targets. Conflicts with `organization_id` and `organization_property`.",
+							ConflictsWith: []string{"conditions.0.organization_id"},
+							Description:   "Conditions for organization names that the ruleset targets. Conflicts with `organization_id`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -158,8 +158,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:          schema.TypeList,
 							Optional:      true,
 							MaxItems:      1,
-							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id` and `repository_property`.",
-							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id`.",
+							ConflictsWith: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -230,6 +230,72 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Commits pushed to matching branches must have verified signatures.",
+						},
+						"merge_queue": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Merges must be performed via a merge queue.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"check_response_timeout_minutes": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed.",
+									},
+									"grouping_strategy": {
+										Type:             schema.TypeString,
+										Required:         true,
+										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge.",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+									},
+									"max_entries_to_build": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "Limit the number of queued pull requests requesting checks and workflow runs at the same time.",
+									},
+									"max_entries_to_merge": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum number of PRs that will be merged together in a group.",
+									},
+									"merge_method": {
+										Type:             schema.TypeString,
+										Required:         true,
+										Description:      "Method to use when merging changes from queued pull requests. Can be one of `MERGE`, `SQUASH`, or `REBASE`.",
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+									},
+									"min_entries_to_merge": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The minimum number of PRs that will be merged together in a group.",
+									},
+									"min_entries_to_merge_wait_minutes": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged.",
+									},
+								},
+							},
+						},
+						"required_deployments": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_deployment_environments": {
+										Type:        schema.TypeList,
+										Required:    true,
+										MinItems:    1,
+										Description: "The environments that must be successfully deployed to before branches can be merged.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
 						},
 						"pull_request": {
 							Type:        schema.TypeList,
