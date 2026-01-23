@@ -145,12 +145,11 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							Description:  "Conditions for repository names that the ruleset targets. Conflicts with `repository_id`.",
-							ExactlyOneOf: []string{"conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_id"},
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id`.",
+							ConflictsWith: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
