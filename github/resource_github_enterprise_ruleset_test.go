@@ -43,20 +43,18 @@ func TestAccGithubEnterpriseRuleset_basic(t *testing.T) {
 		`
 	config := fmt.Sprintf(rulesetHCL, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enterprise_slug", testAccConf.enterpriseSlug),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-	)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
-				Check:  check,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enterprise_slug", testAccConf.enterpriseSlug),
+					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
+					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
+					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
+				),
 			},
 		},
 	})
