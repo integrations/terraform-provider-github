@@ -22,6 +22,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 		UpdateContext: resourceGithubEnterpriseRulesetUpdate,
 		DeleteContext: resourceGithubEnterpriseRulesetDelete,
 
+		CustomizeDiff: resourceGithubEnterpriseRulesetCustomizeDiff,
+
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
