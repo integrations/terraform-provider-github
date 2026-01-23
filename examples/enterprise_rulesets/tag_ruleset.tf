@@ -19,11 +19,13 @@ resource "github_enterprise_ruleset" "tag_protection" {
     # Target all organizations
     organization_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     # Target all repositories
     repository_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     # Target specific tag patterns (required for tag target)
@@ -83,15 +85,18 @@ resource "github_enterprise_ruleset" "dev_tag_protection" {
   conditions {
     organization_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     repository_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     # Only apply to development/snapshot tags
     ref_name {
       include = ["*-SNAPSHOT", "*-dev"]
+      exclude = []
     }
   }
 

@@ -266,13 +266,58 @@ resource "github_enterprise_ruleset" "commit_patterns" {
 }
 ```
 
+### Repository Target Ruleset
+
+```hcl
+resource "github_enterprise_ruleset" "repository_management" {
+  enterprise_slug = "my-enterprise"
+  name            = "repository-management"
+  target          = "repository"
+  enforcement     = "active"
+
+  bypass_actors {
+    actor_id    = 1
+    actor_type  = "OrganizationAdmin"
+    bypass_mode = "always"
+  }
+
+  conditions {
+    organization_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+
+    repository_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+  }
+
+  rules {
+    repository_creation = true
+    repository_deletion = true
+    repository_transfer = true
+
+    repository_name {
+      pattern = "^[a-z][a-z0-9-]*$"
+      negate  = false
+    }
+
+    repository_visibility {
+      internal = true
+      private  = true
+    }
+  }
+}
+```
+
 ## Argument Reference
 
 - `enterprise_slug` - (Required) (String) The slug of the enterprise.
 
 - `name` - (Required) (String) The name of the ruleset.
 
-- `target` - (Required) (String) Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.
+- `target` - (Required) (String) Possible values are `branch`, `tag`, `push`, and `repository`. Note: The `push` and `repository` targets are in beta and are subject to change.
 
 - `enforcement` - (Required) (String) Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.
 
@@ -326,6 +371,16 @@ The `rules` block supports the following:
 
 - `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rulesfile_extension_restriction))
 
+- `repository_creation` - (Optional) (Boolean) Only allow users with bypass permission to create repositories. Only valid for `repository` target.
+
+- `repository_deletion` - (Optional) (Boolean) Only allow users with bypass permission to delete repositories. Only valid for `repository` target.
+
+- `repository_transfer` - (Optional) (Boolean) Only allow users with bypass permission to transfer repositories. Only valid for `repository` target.
+
+- `repository_name` - (Optional) (Block List, Max: 1) Restrict repository names to match specified patterns. Only valid for `repository` target. (see [below for nested schema](#rulesrepository_name))
+
+- `repository_visibility` - (Optional) (Block List, Max: 1) Restrict repository visibility changes. Only valid for `repository` target. (see [below for nested schema](#rulesrepository_visibility))
+
 #### rules.pull_request
 
 - `dismiss_stale_reviews_on_push` - (Optional) (Boolean) New, reviewable commits pushed will dismiss previous pull request review approvals. Defaults to `false`.
@@ -337,6 +392,8 @@ The `rules` block supports the following:
 - `required_approving_review_count` - (Optional) (Number) The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.
 
 - `required_review_thread_resolution` - (Optional) (Boolean) All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.
+
+- `allowed_merge_methods` - (Optional) (List of String, Min: 1) The merge methods allowed for pull requests. Possible values are `merge`, `squash`, and `rebase`.
 
 #### rules.copilot_code_review
 
@@ -451,6 +508,18 @@ The `rules` block supports the following:
 #### rules.file_extension_restriction
 
 - `restricted_file_extensions` - (Required) (List of String, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
+
+#### rules.repository_name
+
+- `pattern` - (Required) (String) The pattern to match repository names against.
+
+- `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches. Defaults to `false`.
+
+#### rules.repository_visibility
+
+- `internal` - (Optional) (Boolean) Allow internal visibility for repositories. Defaults to `false`.
+
+- `private` - (Optional) (Boolean) Allow private visibility for repositories. Defaults to `false`.
 
 ### bypass_actors
 

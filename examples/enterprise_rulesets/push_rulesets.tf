@@ -25,6 +25,7 @@ resource "github_enterprise_ruleset" "push_restrictions" {
     # Target all organizations
     organization_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     # Target all repositories
@@ -105,10 +106,12 @@ resource "github_enterprise_ruleset" "security_push_restrictions" {
   conditions {
     organization_name {
       include = ["~ALL"]
+      exclude = []
     }
 
     repository_name {
       include = ["*-prod", "*-production"]
+      exclude = []
     }
   }
 
