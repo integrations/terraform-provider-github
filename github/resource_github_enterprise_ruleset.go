@@ -38,8 +38,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
+				Description:  "Possible values are `branch`, `tag`, `push`, and `repository`. Note: The `push` target is in beta and is subject to change.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -109,7 +109,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 									},
 									"exclude": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										Description: "Array of organization names or patterns to exclude. The condition will not pass if any of these patterns match.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
@@ -135,7 +135,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 									},
 									"exclude": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										Description: "Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
@@ -162,7 +162,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 									},
 									"exclude": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										Description: "Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
@@ -632,6 +632,65 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
+									},
+								},
+							},
+						},
+						// Repository target rules (only valid when target = "repository")
+						"repository_creation": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to create repositories. Only valid for `repository` target.",
+						},
+						"repository_deletion": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to delete repositories. Only valid for `repository` target.",
+						},
+						"repository_transfer": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to transfer repositories. Only valid for `repository` target.",
+						},
+						"repository_name": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict repository names to match specified patterns. Only valid for `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"negate": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "If true, the rule will fail if the pattern matches.",
+									},
+									"pattern": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The pattern to match repository names against.",
+									},
+								},
+							},
+						},
+						"repository_visibility": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict repository visibility changes. Only valid for `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"internal": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow internal visibility for repositories.",
+									},
+									"private": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow private visibility for repositories.",
 									},
 								},
 							},
