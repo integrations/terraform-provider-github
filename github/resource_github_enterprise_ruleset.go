@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,8 +19,6 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 		ReadContext:   resourceGithubEnterpriseRulesetRead,
 		UpdateContext: resourceGithubEnterpriseRulesetUpdate,
 		DeleteContext: resourceGithubEnterpriseRulesetDelete,
-
-		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -673,7 +670,7 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	name := d.Get("name").(string)
 
-	tflog.Debug(ctx, fmt.Sprintf("Creating enterprise ruleset: %s/%s", enterpriseSlug, name), map[string]any{
+	tflog.Debug(ctx, "Creating enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"name":            name,
 	})
@@ -682,7 +679,7 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 
 	ruleset, resp, err := client.Enterprise.CreateRepositoryRuleset(ctx, enterpriseSlug, rulesetReq)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to create enterprise ruleset: %s/%s", enterpriseSlug, name), map[string]any{
+		tflog.Error(ctx, "Failed to create enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"name":            name,
 			"error":           err.Error(),
@@ -695,7 +692,7 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
-	tflog.Info(ctx, fmt.Sprintf("Created enterprise ruleset: %s/%s (ID: %d)", enterpriseSlug, name, *ruleset.ID), map[string]any{
+	tflog.Info(ctx, "Created enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"name":            name,
 		"ruleset_id":      *ruleset.ID,
@@ -708,14 +705,14 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	tflog.Trace(ctx, fmt.Sprintf("Reading enterprise ruleset: %s", d.Id()), map[string]any{
+	tflog.Trace(ctx, "Reading enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      d.Id(),
 	})
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      d.Id(),
 			"error":           err.Error(),
@@ -739,7 +736,7 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing ruleset %s/%d from state because it no longer exists in GitHub", enterpriseSlug, rulesetID), map[string]any{
+				tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub", map[string]any{
 					"enterprise_slug": enterpriseSlug,
 					"ruleset_id":      rulesetID,
 				})
@@ -747,7 +744,7 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+		tflog.Error(ctx, "Failed to read enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
 			"error":           err.Error(),
@@ -765,7 +762,7 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Trace(ctx, "Successfully read enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 		"name":            ruleset.Name,
@@ -781,7 +778,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      d.Id(),
 			"error":           err.Error(),
@@ -789,7 +786,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Updating enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Debug(ctx, "Updating enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 		"name":            name,
@@ -799,7 +796,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 
 	ruleset, resp, err := client.Enterprise.UpdateRepositoryRuleset(ctx, enterpriseSlug, rulesetID, rulesetReq)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to update enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+		tflog.Error(ctx, "Failed to update enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
 			"error":           err.Error(),
@@ -812,7 +809,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
-	tflog.Info(ctx, fmt.Sprintf("Updated enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Info(ctx, "Updated enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 		"name":            name,
@@ -827,7 +824,7 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      d.Id(),
 			"error":           err.Error(),
@@ -835,14 +832,14 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Deleting enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Debug(ctx, "Deleting enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 	})
 
 	_, err = client.Enterprise.DeleteRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to delete enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+		tflog.Error(ctx, "Failed to delete enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
 			"error":           err.Error(),
@@ -850,7 +847,7 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Deleted enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Info(ctx, "Deleted enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 	})
