@@ -1128,7 +1128,7 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	
 	// Only set the github.PagesUpdate public field if the value is a valid boolean.
 	if v, ok := pages["public"].(bool); ok && v != "" {
-		update.Public = github.Bool(v)
+		update.Public = github.Ptr(v)
 	}
 
 	return update
