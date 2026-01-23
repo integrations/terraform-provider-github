@@ -108,10 +108,14 @@ resource "github_enterprise_ruleset" "org_id_repository_rules" {
   conditions {
     # Use organization_id instead of organization_name
     # This is useful when you know the specific org IDs
-    organization_id = [123456, 789012]
+    organization_id {
+      organization_ids = [123456, 789012]
+    }
 
     # Use repository_id for specific repositories
-    repository_id = [111111, 222222]
+    repository_id {
+      repository_ids = [111111, 222222]
+    }
   }
 
   rules {
