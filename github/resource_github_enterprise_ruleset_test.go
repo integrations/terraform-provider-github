@@ -170,42 +170,10 @@ resource "github_enterprise_ruleset" "test" {
 
 func TestAccGithubEnterpriseRuleset_required_workflows(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-enterprise-wf-%s", testResourcePrefix, randomID)
 	rulesetName := fmt.Sprintf("%s-enterprise-wf-ruleset-%s", testResourcePrefix, randomID)
 	workflowFilePath := ".github/workflows/echo.yaml"
 
 	config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name       = "%s"
-	visibility = "private"
-	auto_init  = true
-}
-
-resource "github_repository_file" "workflow_file" {
-	repository     = github_repository.test.name
-	branch         = "main"
-	file           = "%s"
-	content        = <<EOT
-name: Echo Workflow
-
-on: [pull_request]
-
-jobs:
-  echo:
-    runs-on: linux
-    steps:
-      - run: echo "Hello, world!"
-EOT
-	commit_message = "Managed by Terraform"
-	commit_author  = "Terraform User"
-	commit_email   = "terraform@example.com"
-}
-
-resource "github_actions_repository_access_level" "test" {
-	repository   = github_repository.test.name
-	access_level = "organization"
-}
-
 resource "github_enterprise_ruleset" "test" {
 	enterprise_slug = "%s"
 	name            = "%s"
@@ -233,14 +201,14 @@ resource "github_enterprise_ruleset" "test" {
 		required_workflows {
 			do_not_enforce_on_create = true
 			required_workflow {
-				path          = github_repository_file.workflow_file.file
-				repository_id = github_repository.test.repo_id
+				path          = "%s"
+				repository_id = 1234567
 				ref           = "main"
 			}
 		}
 	}
 }
-`, repoName, workflowFilePath, testAccConf.enterpriseSlug, rulesetName)
+`, testAccConf.enterpriseSlug, rulesetName, workflowFilePath)
 
 	check := resource.ComposeTestCheckFunc(
 		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
