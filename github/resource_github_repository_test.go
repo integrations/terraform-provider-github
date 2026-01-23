@@ -1337,7 +1337,7 @@ func Test_expandPages(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
