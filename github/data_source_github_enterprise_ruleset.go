@@ -209,6 +209,67 @@ func dataSourceGithubEnterpriseRuleset() *schema.Resource {
 							Computed:    true,
 							Description: "Commits pushed to matching branches must have verified signatures.",
 						},
+						"merge_queue": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Merges must be performed via a merge queue.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"check_response_timeout_minutes": {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Maximum time for a required status check to report a conclusion.",
+									},
+									"grouping_strategy": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group must pass its required checks to merge.",
+									},
+									"max_entries_to_build": {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Limit the number of queued pull requests requesting checks and workflow runs at the same time.",
+									},
+									"max_entries_to_merge": {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "The maximum number of PRs that will be merged together in a group.",
+									},
+									"merge_method": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Method to use when merging changes from queued pull requests.",
+									},
+									"min_entries_to_merge": {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "The minimum number of PRs that will be merged together in a group.",
+									},
+									"min_entries_to_merge_wait_minutes": {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met.",
+									},
+								},
+							},
+						},
+						"required_deployments": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required_deployment_environments": {
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "The environments that must be successfully deployed to before branches can be merged.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Computed:    true,
