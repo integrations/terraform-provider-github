@@ -1339,6 +1339,38 @@ func Test_expandPages(t *testing.T) {
 			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
 		}
 	})
+
+	t.Run("manages private pages feature for a repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sprivate-pages-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				auto_init    = true
+				pages {
+					source {
+						branch = "main"
+					}
+					public = false
+				}
+			}
+		`, testRepoName)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository.test", "pages.0.public", "false"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, organization) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
 }
 
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
