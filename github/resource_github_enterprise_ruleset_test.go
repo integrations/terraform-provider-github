@@ -746,3 +746,55 @@ resource "github_enterprise_ruleset" "test" {
 		},
 	})
 }
+
+func TestAccGithubEnterpriseRuleset_organizationID(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	rulesetName := fmt.Sprintf("%s-enterprise-org-id-%s", testResourcePrefix, randomID)
+
+	config := fmt.Sprintf(`
+resource "github_enterprise_ruleset" "test" {
+	enterprise_slug = "%s"
+	name            = "%s"
+	target          = "branch"
+	enforcement     = "active"
+
+	conditions {
+		organization_id = [2284107]
+
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, testAccConf.enterpriseSlug, rulesetName)
+
+	check := resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
+		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
+		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
+		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.organization_id.#", "1"),
+		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.organization_id.0", "2284107"),
+	)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { skipUnlessEnterprise(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  check,
+			},
+		},
+	})
+}
+

@@ -239,6 +239,21 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 		}
 
+		// organization_id (enterprise-only)
+		if v, ok := inputConditions["organization_id"].([]any); ok && v != nil && len(v) != 0 {
+			organizationIDs := make([]int64, 0)
+
+			for _, v := range v {
+				if v != nil {
+					organizationIDs = append(organizationIDs, toInt64(v))
+				}
+			}
+
+			rulesetConditions.OrganizationID = &github.RepositoryRulesetOrganizationIDsConditionParameters{
+				OrganizationIDs: organizationIDs,
+			}
+		}
+
 		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]any)
@@ -310,6 +325,11 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 			conditionsMap["organization_name"] = organizationNameSlice
 		}
 
+		// organization_id (enterprise-only)
+		if conditions.OrganizationID != nil {
+			conditionsMap["organization_id"] = conditions.OrganizationID.OrganizationIDs
+		}
+
 		repositoryNameSlice := make([]map[string]any, 0)
 
 		if conditions.RepositoryName != nil {
@@ -330,6 +350,7 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 		if conditions.RepositoryID != nil {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
+
 	}
 
 	return []any{conditionsMap}

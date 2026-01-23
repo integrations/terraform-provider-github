@@ -814,3 +814,107 @@ func TestRoundTripRequiredReviewers(t *testing.T) {
 		t.Errorf("Expected reviewer type to be Team after round trip, got %v", reviewerBlock[0]["type"])
 	}
 }
+
+// Tests for new condition types: organization_id
+
+func TestExpandConditionsOrganizationID(t *testing.T) {
+	// Test expanding organization_id condition
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main", "develop"},
+				"exclude": []any{"feature/*"},
+			},
+		},
+		"organization_id": []any{123, 456, 789},
+	}
+
+	input := []any{conditionsMap}
+	result := expandConditions(input, true) // org=true for enterprise rulesets
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+
+	if result.OrganizationID == nil {
+		t.Fatal("Expected OrganizationID to be set")
+	}
+
+	expectedIDs := []int64{123, 456, 789}
+	if len(result.OrganizationID.OrganizationIDs) != len(expectedIDs) {
+		t.Fatalf("Expected %d organization IDs, got %d", len(expectedIDs), len(result.OrganizationID.OrganizationIDs))
+	}
+
+	for i, expectedID := range expectedIDs {
+		if result.OrganizationID.OrganizationIDs[i] != expectedID {
+			t.Errorf("Expected organization ID %d at index %d, got %d", expectedID, i, result.OrganizationID.OrganizationIDs[i])
+		}
+	}
+}
+
+func TestFlattenConditionsOrganizationID(t *testing.T) {
+	// Test flattening organization_id condition
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: &github.RepositoryRulesetRefConditionParameters{
+			Include: []string{"main"},
+			Exclude: []string{},
+		},
+		OrganizationID: &github.RepositoryRulesetOrganizationIDsConditionParameters{
+			OrganizationIDs: []int64{123, 456},
+		},
+	}
+
+	result := flattenConditions(conditions, true)
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+	orgIDs := conditionsMap["organization_id"].([]int64)
+
+	if len(orgIDs) != 2 {
+		t.Fatalf("Expected 2 organization IDs, got %d", len(orgIDs))
+	}
+
+	if orgIDs[0] != 123 || orgIDs[1] != 456 {
+		t.Errorf("Expected organization IDs [123, 456], got %v", orgIDs)
+	}
+}
+
+func TestRoundTripConditionsWithAllProperties(t *testing.T) {
+	// Test that organization_id condition survives expand -> flatten round trip
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main", "develop"},
+				"exclude": []any{"feature/*"},
+			},
+		},
+		"organization_id": []any{123, 456},
+	}
+
+	input := []any{conditionsMap}
+
+	// Expand to GitHub API format
+	expandedConditions := expandConditions(input, true)
+
+	if expandedConditions == nil {
+		t.Fatal("Expected expandedConditions to not be nil")
+	}
+
+	// Flatten back to terraform format
+	flattenedResult := flattenConditions(expandedConditions, true)
+
+	if len(flattenedResult) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
+	}
+
+	flattenedConditionsMap := flattenedResult[0].(map[string]any)
+
+	// Verify organization_id survived
+	orgIDs := flattenedConditionsMap["organization_id"].([]int64)
+	if len(orgIDs) != 2 || orgIDs[0] != 123 || orgIDs[1] != 456 {
+		t.Errorf("Expected organization_id [123, 456] after round trip, got %v", orgIDs)
+	}
+}
