@@ -28,7 +28,7 @@ data "github_enterprise_ruleset" "example" {
 
 - `name` - (String) The name of the ruleset.
 
-- `target` - (String) The target of the ruleset. Possible values are `branch`, `tag`, and `push`.
+- `target` - (String) The target of the ruleset. Possible values are `branch`, `tag`, `push`, and `repository`.
 
 - `enforcement` - (String) The enforcement level of the ruleset. Possible values are `disabled`, `active`, and `evaluate`.
 
@@ -112,6 +112,8 @@ data "github_enterprise_ruleset" "example" {
 
 - `pull_request` - (List) Require all commits be made to a non-target branch and submitted via a pull request. (see [below for nested schema](#rulespull_request))
 
+- `copilot_code_review` - (List) Automatically request Copilot code review for new pull requests. (see [below for nested schema](#rulescopilot_code_review))
+
 - `required_status_checks` - (List) Status checks that are required. (see [below for nested schema](#rulesrequired_status_checks))
 
 - `required_workflows` - (List) Actions workflows that are required. (see [below for nested schema](#rulesrequired_workflows))
@@ -136,6 +138,16 @@ data "github_enterprise_ruleset" "example" {
 
 - `file_extension_restriction` - (List) File extension restrictions for push rulesets. (see [below for nested schema](#rulesfile_extension_restriction))
 
+- `repository_creation` - (Boolean) Only allow users with bypass permission to create repositories. Only valid for `repository` target.
+
+- `repository_deletion` - (Boolean) Only allow users with bypass permission to delete repositories. Only valid for `repository` target.
+
+- `repository_transfer` - (Boolean) Only allow users with bypass permission to transfer repositories. Only valid for `repository` target.
+
+- `repository_name` - (List) Restrict repository names to match specified patterns. Only valid for `repository` target. (see [below for nested schema](#rulesrepository_name))
+
+- `repository_visibility` - (List) Restrict repository visibility changes. Only valid for `repository` target. (see [below for nested schema](#rulesrepository_visibility))
+
 ### rules.pull_request
 
 - `dismiss_stale_reviews_on_push` - (Boolean) New, reviewable commits pushed will dismiss previous pull request review approvals.
@@ -148,11 +160,21 @@ data "github_enterprise_ruleset" "example" {
 
 - `required_review_thread_resolution` - (Boolean) All conversations on code must be resolved before a pull request can be merged.
 
+- `allowed_merge_methods` - (List of String) The merge methods allowed for pull requests. Possible values are `merge`, `squash`, and `rebase`.
+
+### rules.copilot_code_review
+
+- `review_on_push` - (Boolean) Copilot automatically reviews each new push to the pull request.
+
+- `review_draft_pull_requests` - (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review.
+
 ### rules.required_status_checks
 
 - `required_check` - (List) Status checks that are required. (see [below for nested schema](#rulesrequired_status_checksrequired_check))
 
 - `strict_required_status_checks_policy` - (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code.
+
+- `do_not_enforce_on_create` - (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it.
 
 ### rules.required_status_checks.required_check
 
@@ -160,9 +182,13 @@ data "github_enterprise_ruleset" "example" {
 
 - `integration_id` - (Number) The optional integration ID that this status check must originate from.
 
+- `do_not_enforce_on_create` - (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it.
+
 ### rules.required_workflows
 
 - `required_workflow` - (List) Actions workflows that are required. (see [below for nested schema](#rulesrequired_workflowsrequired_workflow))
+
+- `do_not_enforce_on_create` - (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it.
 
 ### rules.required_workflows.required_workflow
 
@@ -249,3 +275,15 @@ data "github_enterprise_ruleset" "example" {
 ### rules.file_extension_restriction
 
 - `restricted_file_extensions` - (List of String) The file extensions that are restricted from being pushed to the commit graph.
+
+### rules.repository_name
+
+- `pattern` - (String) The pattern to match repository names against.
+
+- `negate` - (Boolean) If true, the rule will fail if the pattern matches.
+
+### rules.repository_visibility
+
+- `internal` - (Boolean) Allow internal visibility for repositories.
+
+- `private` - (Boolean) Allow private visibility for repositories.
