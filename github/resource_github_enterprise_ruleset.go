@@ -15,6 +15,8 @@ import (
 
 func resourceGithubEnterpriseRuleset() *schema.Resource {
 	return &schema.Resource{
+		Description: "Manages GitHub enterprise rulesets",
+
 		CreateContext: resourceGithubEnterpriseRulesetCreate,
 		ReadContext:   resourceGithubEnterpriseRulesetRead,
 		UpdateContext: resourceGithubEnterpriseRulesetUpdate,
@@ -61,8 +63,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
+							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "EnterpriseOwner"}, false),
+							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/enterprise-admin/rules for more information",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
