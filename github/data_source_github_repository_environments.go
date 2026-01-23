@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/google/go-github/v81/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryEnvironments() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryEnvironmentsRead,
+		ReadContext: dataSourceGithubRepositoryEnvironmentsRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -36,7 +37,7 @@ func dataSourceGithubRepositoryEnvironments() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryEnvironmentsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -45,9 +46,9 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta any
 
 	for {
 		listOptions := &github.EnvironmentListOptions{}
-		environments, resp, err := client.Repositories.ListEnvironments(context.Background(), orgName, repoName, listOptions)
+		environments, resp, err := client.Repositories.ListEnvironments(ctx, orgName, repoName, listOptions)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		results = append(results, flattenEnvironments(environments)...)
@@ -60,9 +61,8 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta any
 	}
 
 	d.SetId(repoName)
-	err := d.Set("environments", results)
-	if err != nil {
-		return err
+	if err := d.Set("environments", results); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

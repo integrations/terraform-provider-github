@@ -191,7 +191,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
@@ -590,6 +590,28 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
+									},
+								},
+							},
+						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull request. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
 									},
 								},
 							},
