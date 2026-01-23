@@ -607,6 +607,37 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		rulesetRules.CopilotCodeReview = params
 	}
 
+	// Repository target rules
+	if v, ok := rulesMap["repository_creation"].(bool); ok && v {
+		rulesetRules.RepositoryCreate = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_deletion"].(bool); ok && v {
+		rulesetRules.RepositoryDelete = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_transfer"].(bool); ok && v {
+		rulesetRules.RepositoryTransfer = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_name"].([]any); ok && len(v) != 0 {
+		repoNameMap := v[0].(map[string]any)
+		params := &github.SimplePatternRuleParameters{
+			Negate:  repoNameMap["negate"].(bool),
+			Pattern: repoNameMap["pattern"].(string),
+		}
+		rulesetRules.RepositoryName = params
+	}
+
+	if v, ok := rulesMap["repository_visibility"].([]any); ok && len(v) != 0 {
+		visibilityMap := v[0].(map[string]any)
+		params := &github.RepositoryVisibilityRuleParameters{
+			Internal: visibilityMap["internal"].(bool),
+			Private:  visibilityMap["private"].(bool),
+		}
+		rulesetRules.RepositoryVisibility = params
+	}
+
 	return rulesetRules
 }
 
@@ -832,6 +863,29 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
 		})
 		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
+	}
+
+	// Repository target rules
+	rulesMap["repository_creation"] = rules.RepositoryCreate != nil
+	rulesMap["repository_deletion"] = rules.RepositoryDelete != nil
+	rulesMap["repository_transfer"] = rules.RepositoryTransfer != nil
+
+	if rules.RepositoryName != nil {
+		repoNameSlice := make([]map[string]any, 0)
+		repoNameSlice = append(repoNameSlice, map[string]any{
+			"negate":  rules.RepositoryName.Negate,
+			"pattern": rules.RepositoryName.Pattern,
+		})
+		rulesMap["repository_name"] = repoNameSlice
+	}
+
+	if rules.RepositoryVisibility != nil {
+		visibilitySlice := make([]map[string]any, 0)
+		visibilitySlice = append(visibilitySlice, map[string]any{
+			"internal": rules.RepositoryVisibility.Internal,
+			"private":  rules.RepositoryVisibility.Private,
+		})
+		rulesMap["repository_visibility"] = visibilitySlice
 	}
 
 	return []any{rulesMap}
