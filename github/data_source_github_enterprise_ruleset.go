@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -320,7 +319,7 @@ func dataSourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resour
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	rulesetID := int64(d.Get("ruleset_id").(int))
 
-	tflog.Trace(ctx, fmt.Sprintf("Reading enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Trace(ctx, "Reading enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 	})
@@ -330,14 +329,14 @@ func dataSourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resour
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Error(ctx, fmt.Sprintf("Enterprise ruleset not found: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+				tflog.Error(ctx, "Enterprise ruleset not found", map[string]any{
 					"enterprise_slug": enterpriseSlug,
 					"ruleset_id":      rulesetID,
 				})
 				return diag.Errorf("enterprise ruleset %d not found in enterprise %s", rulesetID, enterpriseSlug)
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+		tflog.Error(ctx, "Failed to read enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
 			"error":           err.Error(),
@@ -359,7 +358,7 @@ func dataSourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resour
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read enterprise ruleset: %s/%d", enterpriseSlug, rulesetID), map[string]any{
+	tflog.Trace(ctx, "Successfully read enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 		"name":            ruleset.Name,
