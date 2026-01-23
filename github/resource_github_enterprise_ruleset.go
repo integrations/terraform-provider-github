@@ -89,14 +89,15 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an enterprise ruleset condition. Enterprise rulesets must include organization targeting (organization_name or organization_id) and repository targeting (repository_name or repository_property). For branch and tag targets, ref_name is also required.",
+				Description: "Parameters for an enterprise ruleset condition. Enterprise rulesets must include organization targeting (organization_name, organization_id, or organization_property) and repository targeting (repository_name, repository_id, or repository_property). For branch and tag targets, ref_name is also required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"organization_name": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Conditions for organization names that the ruleset targets. Conflicts with `organization_id`.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							ConflictsWith: []string{"conditions.0.organization_id", "conditions.0.organization_property"},
+							Description:   "Conditions for organization names that the ruleset targets. Conflicts with `organization_id` and `organization_property`.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -116,6 +117,15 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 										},
 									},
 								},
+							},
+						},
+						"organization_id": {
+							Type:          schema.TypeList,
+							Optional:      true,
+							ConflictsWith: []string{"conditions.0.organization_name"},
+							Description:   "Organization IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `organization_name`.",
+							Elem: &schema.Schema{
+								Type: schema.TypeInt,
 							},
 						},
 						"ref_name": {
@@ -148,8 +158,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:          schema.TypeList,
 							Optional:      true,
 							MaxItems:      1,
-							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id`.",
-							ConflictsWith: []string{"conditions.0.repository_id"},
+							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id` and `repository_property`.",
+							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -178,9 +188,10 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							ConflictsWith: []string{"conditions.0.repository_name"},
+							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
