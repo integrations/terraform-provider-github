@@ -68,6 +68,9 @@ type testAccConfig struct {
 	testExternalUserToken string
 	testExternalUser2     string
 
+	// Enterprise test configuration
+	testEnterpriseEMUGroupId int
+
 	// Test options
 	testAdvancedSecurity bool
 }
@@ -148,6 +151,11 @@ func TestMain(m *testing.M) {
 		if len(config.enterpriseSlug) == 0 {
 			fmt.Println("GITHUB_ENTERPRISE_SLUG environment variable not set")
 			os.Exit(1)
+		}
+
+		i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID"))
+		if err == nil {
+			config.testEnterpriseEMUGroupId = i
 		}
 	}
 

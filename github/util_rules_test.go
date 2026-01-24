@@ -418,3 +418,58 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		t.Errorf("Expected 3 restricted file extensions, got %d", len(restrictedExts))
 	}
 }
+
+func TestCopilotCodeReviewRoundTrip(t *testing.T) {
+	// Test that copilot_code_review rule survives expand -> flatten round trip
+	rulesMap := map[string]any{
+		"copilot_code_review": []any{
+			map[string]any{
+				"review_on_push":             true,
+				"review_draft_pull_requests": false,
+			},
+		},
+	}
+
+	input := []any{rulesMap}
+
+	// Expand to GitHub API format
+	expandedRules := expandRules(input, false)
+
+	if expandedRules == nil {
+		t.Fatal("Expected expandedRules to not be nil")
+	}
+
+	if expandedRules.CopilotCodeReview == nil {
+		t.Fatal("Expected CopilotCodeReview rule to be set")
+	}
+
+	if expandedRules.CopilotCodeReview.ReviewOnPush != true {
+		t.Errorf("Expected ReviewOnPush to be true, got %v", expandedRules.CopilotCodeReview.ReviewOnPush)
+	}
+
+	if expandedRules.CopilotCodeReview.ReviewDraftPullRequests != false {
+		t.Errorf("Expected ReviewDraftPullRequests to be false, got %v", expandedRules.CopilotCodeReview.ReviewDraftPullRequests)
+	}
+
+	// Flatten back to terraform format
+	flattenedResult := flattenRules(expandedRules, false)
+
+	if len(flattenedResult) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
+	}
+
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	copilotRules := flattenedRulesMap["copilot_code_review"].([]map[string]any)
+
+	if len(copilotRules) != 1 {
+		t.Fatalf("Expected 1 copilot_code_review rule after round trip, got %d", len(copilotRules))
+	}
+
+	if copilotRules[0]["review_on_push"] != true {
+		t.Errorf("Expected review_on_push to be true, got %v", copilotRules[0]["review_on_push"])
+	}
+
+	if copilotRules[0]["review_draft_pull_requests"] != false {
+		t.Errorf("Expected review_draft_pull_requests to be false, got %v", copilotRules[0]["review_draft_pull_requests"])
+	}
+}
