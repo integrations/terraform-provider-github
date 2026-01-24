@@ -2,14 +2,13 @@ package github
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
-	t.Skip("Acceptance test requires a real GitHub Enterprise environment")
-
 	resourceName := "github_enterprise_ip_allow_list_entry.test"
 	enterpriseSlug := "test-enterprise"
 	ip := "192.168.1.0/24"
@@ -20,7 +19,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 		PreCheck: func() {
 			skipUnlessEnterprise(t)
 		},
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubEnterpriseIpAllowListEntryConfig(enterpriseSlug, ip, name, isActive),
@@ -28,7 +27,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", enterpriseSlug),
 					resource.TestCheckResourceAttr(resourceName, "ip", ip),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
-					resource.TestCheckResourceAttr(resourceName, "is_active", fmt.Sprintf("%t", isActive)),
+					resource.TestCheckResourceAttr(resourceName, "is_active", strconv.FormatBool(isActive)),
 				),
 			},
 			{
@@ -41,8 +40,6 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 }
 
 func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
-	t.Skip("Acceptance test requires a real GitHub Enterprise environment")
-
 	resourceName := "github_enterprise_ip_allow_list_entry.test"
 	enterpriseSlug := "test-enterprise"
 	ip := "192.168.1.0/24"
@@ -57,7 +54,7 @@ func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 		PreCheck: func() {
 			skipUnlessEnterprise(t)
 		},
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubEnterpriseIpAllowListEntryConfig(enterpriseSlug, ip, name, isActive),

@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -12,6 +12,7 @@ import (
 
 func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manage a GitHub Enterprise IP Allow List Entry.",
 		CreateContext: resourceGithubEnterpriseIpAllowListEntryCreate,
 		ReadContext:   resourceGithubEnterpriseIpAllowListEntryRead,
 		UpdateContext: resourceGithubEnterpriseIpAllowListEntryUpdate,
@@ -98,7 +99,7 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *sche
 
 	d.SetId(string(mutation.CreateIpAllowListEntry.IpAllowListEntry.ID))
 
-	return resourceGithubEnterpriseIpAllowListEntryRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -129,7 +130,9 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-			log.Printf("[INFO] Removing IP allow list entry (%s) from state because it no longer exists in GitHub", d.Id())
+			tflog.Info(ctx, "[INFO] Removing IP allow list entry (%s) from state because it no longer exists in GitHub", map[string]any{
+				"id": d.Id(),
+			})
 			d.SetId("")
 			return nil
 		}
@@ -179,7 +182,7 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	return resourceGithubEnterpriseIpAllowListEntryRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -202,24 +205,4 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 
 	d.SetId("")
 	return nil
-}
-
-// Helper function to get Enterprise ID from slug
-func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlug string) (string, error) {
-	var query struct {
-		Enterprise struct {
-			ID githubv4.ID
-		} `graphql:"enterprise(slug: $slug)"`
-	}
-
-	variables := map[string]interface{}{
-		"slug": githubv4.String(enterpriseSlug),
-	}
-
-	err := client.Query(ctx, &query, variables)
-	if err != nil {
-		return "", err
-	}
-
-	return query.Enterprise.ID.(string), nil
 }
