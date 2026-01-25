@@ -35,8 +35,9 @@ func resourceGithubOrganizationProject() *schema.Resource {
 				Description: "URL of the project.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the project.",
 			},
 		},
 	}

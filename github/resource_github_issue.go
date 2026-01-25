@@ -68,8 +68,9 @@ func resourceGithubIssue() *schema.Resource {
 				Description: "The issue id.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the issue.",
 			},
 		},
 	}
