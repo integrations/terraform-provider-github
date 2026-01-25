@@ -56,8 +56,9 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team membership.",
 			},
 		},
 	}

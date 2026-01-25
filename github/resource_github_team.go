@@ -84,8 +84,9 @@ func resourceGithubTeam() *schema.Resource {
 				Description: "The slug of the created team.",
 			},
 			"members_count": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The number of members in the team.",
 			},
 			"parent_team_read_id": {
 				Type:        schema.TypeString,

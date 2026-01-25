@@ -28,8 +28,9 @@ func resourceOrganizationBlock() *schema.Resource {
 			},
 
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the organization block.",
 			},
 		},
 	}
