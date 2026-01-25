@@ -17,7 +17,6 @@ func dataSourceGithubRestApi() *schema.Resource {
 			"endpoint": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "REST API endpoint to send the GET request to.",
 			},
 			"code": {

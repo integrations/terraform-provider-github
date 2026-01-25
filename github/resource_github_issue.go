@@ -30,7 +30,6 @@ func resourceGithubIssue() *schema.Resource {
 			},
 			"number": {
 				Type:        schema.TypeInt,
-				Required:    false,
 				Computed:    true,
 				Description: "The issue number.",
 			},

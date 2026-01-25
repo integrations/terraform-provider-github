@@ -18,13 +18,11 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository name.",
 			},
 			"environment_name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The target environment name.",
 			},
 			"deployment_branch_policies": {

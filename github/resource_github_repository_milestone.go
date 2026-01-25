@@ -193,17 +193,17 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 
 	milestone := &github.Milestone{}
 	if d.HasChanges("title") {
-		_, n := d.GetChange("title")
+		n := d.Get("title")
 		milestone.Title = github.Ptr(n.(string))
 	}
 
 	if d.HasChanges("description") {
-		_, n := d.GetChange("description")
+		n := d.Get("description")
 		milestone.Description = github.Ptr(n.(string))
 	}
 
 	if d.HasChanges("due_date") {
-		_, n := d.GetChange("due_date")
+		n := d.Get("due_date")
 		dueDate, err := time.Parse(layoutISO, n.(string))
 		if err != nil {
 			return err
@@ -215,7 +215,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 	}
 
 	if d.HasChanges("state") {
-		_, n := d.GetChange("state")
+		n := d.Get("state")
 		milestone.State = github.Ptr(n.(string))
 	}
 
