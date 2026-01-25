@@ -58,6 +58,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"visibility"},
 				Deprecated:    "use visibility instead",
+				Description:   "Deprecated: Use visibility instead. Set to 'true' to create a private repository.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
@@ -379,8 +380,9 @@ func resourceGithubRepository() *schema.Resource {
 							Description: "The GitHub Pages site's build status e.g. building or built.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL for the Pages site.",
 						},
 					},
 				},
@@ -438,17 +440,19 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the repository.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The primary language used in the repository.",
 			},
 			"template": {
 				Type:        schema.TypeList,
