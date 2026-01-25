@@ -8,16 +8,19 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *s
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the repository.",
 			},
 			"use_default": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the repository uses the default template.",
 			},
 			"include_claim_keys": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "A list of OpenID Connect claim keys.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
