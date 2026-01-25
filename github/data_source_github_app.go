@@ -13,20 +13,24 @@ func dataSourceGithubApp() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The URL-friendly name of the GitHub App.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The app's description.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The app's full name.",
 			},
 			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Node ID of the app.",
 			},
 		},
 	}
