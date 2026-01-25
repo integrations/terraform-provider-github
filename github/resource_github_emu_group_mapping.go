@@ -35,6 +35,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 			"group_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Integer corresponding to the external group ID to be linked.",
 			},
 			"group_name": {
