@@ -98,9 +98,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "The ref (branch or tag) name patterns to include/exclude.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -620,8 +621,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
