@@ -153,7 +153,7 @@ func TestAccGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 		destroyOnDrift := false
 		t.Run("should ignore drift when ignore_changes lifecycle is configured", func(t *testing.T) {
 			// Verify https://github.com/integrations/terraform-provider-github/issues/2614
-			randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
 				resource "github_actions_organization_secret" "test_secret" {
 					secret_name = "test_secret_%s"

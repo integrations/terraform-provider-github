@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-org-secret-%s", testResourcePrefix, randomID)
 		secretName := testAccConf.testOrgSecretName
 		if len(secretName) == 0 {

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubOrganizationSecurityManager(t *testing.T) {
 	t.Run("adds team as security manager", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-sec-mgr-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -39,7 +39,7 @@ func TestAccGithubOrganizationSecurityManager(t *testing.T) {
 	})
 
 	t.Run("handles team name changes", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-sec-mgr-%s", testResourcePrefix, randomID)
 		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
 		config := fmt.Sprintf(`

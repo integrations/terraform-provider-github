@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 	t.Run("enables automated security fixes without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		enabled := "enabled = false"
 		updatedEnabled := "enabled = true"
@@ -65,7 +65,7 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 	})
 
 	t.Run("disables automated security fixes without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		enabled := "enabled = true"
 		updatedEnabled := "enabled = false"
@@ -120,7 +120,7 @@ func TestAccGithubRepositoryDependabotSecurityUpdates(t *testing.T) {
 	})
 
 	t.Run("imports automated security fixes without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-depbot-updates-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
 	t.Run("creates a repository environment", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "environment / test"
 		config := fmt.Sprintf(`
@@ -62,7 +62,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 	})
 
 	t.Run("creates a repository environment with id separator", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "environment:test"
 		config := fmt.Sprintf(`
@@ -114,7 +114,7 @@ func TestAccGithubRepositoryEnvironment(t *testing.T) {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "environment / test"
 		config := fmt.Sprintf(`
