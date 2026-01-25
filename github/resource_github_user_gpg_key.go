@@ -17,6 +17,9 @@ func resourceGithubUserGpgKey() *schema.Resource {
 		Create:      resourceGithubUserGpgKeyCreate,
 		Read:        resourceGithubUserGpgKeyRead,
 		Delete:      resourceGithubUserGpgKeyDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {

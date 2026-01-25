@@ -769,6 +769,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("name", ruleset.Name); err != nil {
 		return diag.FromErr(err)
 	}
+	// lintignore:R004 // `github.RulesetTarget` is a string
 	if err := d.Set("target", ruleset.GetTarget()); err != nil {
 		return diag.FromErr(err)
 	}
