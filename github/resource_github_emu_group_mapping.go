@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -334,7 +333,8 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		"strategy":  "two_part_id",
 	})
 
-	groupIDString, teamSlug, err := parseTwoPartID(d.Id(), "group_id", "team_slug")
+	// <team-slug>:<group-id>
+	teamSlug, groupIDString, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
@@ -349,6 +349,15 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		"team_slug": teamSlug,
 	})
 
+	teamID, err := getTeamID(teamSlug, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("team_id", teamID); err != nil {
+		return nil, err
+	}
+
 	if err := d.Set("group_id", groupID); err != nil {
 		return nil, err
 	}
@@ -357,11 +366,16 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		return nil, err
 	}
 
-	resourceID := fmt.Sprintf("teams/%s/external-groups", teamSlug)
+	resourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, groupIDString)
+	if err != nil {
+		return nil, err
+	}
+
 	tflog.Trace(ctx, "Setting resource ID", map[string]any{
 		"resource_id": resourceID,
 	})
 	d.SetId(resourceID)
+
 	return []*schema.ResourceData{d}, nil
 }
 
