@@ -14,25 +14,30 @@ func dataSourceGithubRestApi() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"endpoint": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "REST API endpoint to send the GET request to.",
 			},
 			"code": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "A response status code.",
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A response status string.",
 			},
 			"headers": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A JSON string containing response headers.",
 			},
 			"body": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A JSON string containing response body.",
 			},
 		},
 	}

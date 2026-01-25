@@ -8,9 +8,10 @@ func dataSourceGithubSshKeys() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"keys": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of GitHub's SSH public keys.",
 			},
 		},
 	}
