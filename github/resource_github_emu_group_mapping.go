@@ -14,9 +14,9 @@ import (
 
 func resourceGithubEMUGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubEMUGroupMappingCreateOrUpdate,
+		CreateContext: resourceGithubEMUGroupMappingCreate,
 		ReadContext:   resourceGithubEMUGroupMappingRead,
-		UpdateContext: resourceGithubEMUGroupMappingCreateOrUpdate,
+		UpdateContext: resourceGithubEMUGroupMappingUpdate,
 		DeleteContext: resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEMUGroupMappingImport,
@@ -139,9 +139,9 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	resourceID := d.Id()
-	tflog.Trace(ctx, "Creating or updating EMU group mapping", map[string]any{
+	tflog.Trace(ctx, "Creating EMU group mapping", map[string]any{
 		"resource_id": resourceID,
 	})
 
@@ -156,13 +156,13 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 	teamSlug := d.Get("team_slug").(string)
 	tflog.SetField(ctx, "team_slug", teamSlug)
 
-	id64 := toInt64(d.Get("group_id"))
-	tflog.SetField(ctx, "group_id", id64)
+	groupID := toInt64(d.Get("group_id"))
+	tflog.SetField(ctx, "group_id", groupID)
 	eg := &github.ExternalGroup{
-		GroupID: github.Ptr(id64),
+		GroupID: github.Ptr(groupID),
 	}
 
-	tflog.Debug(ctx, "Updating connected external group via GitHub API")
+	tflog.Debug(ctx, "Connecting external group to team via GitHub API")
 
 	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 	if err != nil {
@@ -171,7 +171,21 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 
 	tflog.Debug(ctx, "Successfully updated connected external group")
 
-	newResourceID := fmt.Sprintf("teams/%s/external-groups", teamSlug)
+	teamID, err := matchTeamID(ctx, meta, teamSlug, group.Teams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = d.Set("team_id", teamID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	tflog.Trace(ctx, "Setting resource ID", map[string]any{
 		"resource_id": newResourceID,
 	})
@@ -190,6 +204,86 @@ func resourceGithubEMUGroupMappingCreateOrUpdate(ctx context.Context, d *schema.
 	}
 
 	tflog.Trace(ctx, "Resource created or updated successfully", map[string]any{
+		"resource_id": d.Id(),
+	})
+
+	return nil
+}
+
+func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	resourceID := d.Id()
+	tflog.Trace(ctx, "Updating EMU group mapping", map[string]any{
+		"resource_id": resourceID,
+	})
+
+	err := checkOrganization(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	tflog.SetField(ctx, "org_name", orgName)
+
+	teamSlug := d.Get("team_slug").(string)
+	tflog.SetField(ctx, "team_slug", teamSlug)
+
+	groupID := toInt64(d.Get("group_id"))
+	tflog.SetField(ctx, "group_id", groupID)
+	eg := &github.ExternalGroup{
+		GroupID: github.Ptr(groupID),
+	}
+
+	if d.HasChanges("group_id", "team_slug") {
+
+		var teamID int64
+
+		tflog.Debug(ctx, "Updating connected external group via GitHub API")
+
+		group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Debug(ctx, "Successfully updated connected external group")
+
+		if d.HasChange("team_slug") {
+			teamID, err = matchTeamID(ctx, meta, teamSlug, group.Teams)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			err = d.Set("team_id", teamID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			teamID = toInt64(d.Get("team_id"))
+		}
+
+		etag := resp.Header.Get("ETag")
+		tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
+			"etag": etag,
+		})
+		if err = d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err = d.Set("group_name", group.GetGroupName()); err != nil {
+			return diag.FromErr(err)
+		}
+
+		newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Trace(ctx, "Setting resource ID", map[string]any{
+			"resource_id": newResourceID,
+		})
+		d.SetId(newResourceID)
+	}
+
+	tflog.Trace(ctx, "Updated successfully", map[string]any{
 		"resource_id": d.Id(),
 	})
 
