@@ -40,8 +40,9 @@ func resourceGithubProjectCard() *schema.Resource {
 				Description: "Must be either 'Issue' or 'PullRequest'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the project card.",
 			},
 			"card_id": {
 				Type:        schema.TypeInt,
