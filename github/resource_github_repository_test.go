@@ -1666,7 +1666,7 @@ func TestAccGithubRepository_fork(t *testing.T) {
 // 	return nil
 // }
 
-func TestAccRepository_VulnerabilityAlerts(t *testing.T) {
+func TestAccGithubRepository_VulnerabilityAlerts(t *testing.T) {
 	t.Run("can enable vulnerability alerts", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%svulnerability-alerts-%s", testResourcePrefix, randomID)

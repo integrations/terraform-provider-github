@@ -701,7 +701,9 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
+	if target := ruleset.Target; target != nil {
+		_ = d.Set("target", string(*target))
+	}
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
 	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
