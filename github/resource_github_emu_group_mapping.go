@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -20,6 +21,9 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEMUGroupMappingImport,
 		},
+		CustomizeDiff: customdiff.All(
+			customdiff.ForceNewIf("team_slug", hasNewTeamID),
+		),
 		Description: "Manages the mapping of an external group to a GitHub team.",
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -404,4 +408,46 @@ func matchTeamID(ctx context.Context, meta any, teamSlug string, groupTeams []*g
 		}
 	}
 	return teamID, nil
+}
+
+func hasNewTeamID(ctx context.Context, diff *schema.ResourceDiff, meta any) bool {
+	// Skip for new resources - no existing team_id to compare against
+	if diff.Id() == "" {
+		return false
+	}
+
+	// Only check when team_slug changes
+	if !diff.HasChange("team_slug") {
+		return false
+	}
+
+	// Get old team_id from state
+	oldTeamID := toInt64(diff.Get("team_id"))
+	if oldTeamID == 0 {
+		return false
+	}
+
+	// Resolve new team_slug to team ID via API
+	oldTeamSlug, newTeamSlug := diff.GetChange("team_slug")
+	newTeamID, err := getTeamID(newTeamSlug.(string), meta)
+	if err != nil {
+		// If team doesn't exist or API fails, skip ForceNew check and let Read handle it
+		tflog.Debug(ctx, "Unable to resolve new team_slug to team ID, skipping ForceNew check", map[string]any{
+			"new_team_slug": newTeamSlug,
+			"error":         err.Error(),
+		})
+		return false
+	}
+
+	if newTeamID != oldTeamID {
+		tflog.Debug(ctx, "Team ID changed, forcing new resource", map[string]any{
+			"old_team_id":   oldTeamID,
+			"new_team_id":   newTeamID,
+			"new_team_slug": newTeamSlug,
+			"old_team_slug": oldTeamSlug,
+		})
+		return true
+	}
+
+	return false
 }
