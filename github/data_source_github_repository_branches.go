@@ -13,33 +13,39 @@ func dataSourceGithubRepositoryBranches() *schema.Resource {
 		Read: dataSourceGithubRepositoryBranchesRead,
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository to retrieve the branches from.",
 			},
 			"only_protected_branches": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,
 				ConflictsWith: []string{"only_non_protected_branches"},
+				Description:   "If true, the branches attributes will be populated only with protected branches.",
 			},
 			"only_non_protected_branches": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,
 				ConflictsWith: []string{"only_protected_branches"},
+				Description:   "If true, the branches attributes will be populated only with non protected branches.",
 			},
 			"branches": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The list of this repository's branches.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the branch.",
 						},
 						"protected": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the branch is protected.",
 						},
 					},
 				},
