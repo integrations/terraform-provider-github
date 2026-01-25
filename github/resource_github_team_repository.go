@@ -55,8 +55,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team repository association.",
 			},
 		},
 	}
