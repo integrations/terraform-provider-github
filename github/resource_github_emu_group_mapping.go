@@ -21,7 +21,13 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEMUGroupMappingImport,
 		},
+		Description: "Manages the mapping of an external group to a GitHub team.",
 		Schema: map[string]*schema.Schema{
+			"team_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "ID of the GitHub team.",
+			},
 			"team_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -57,10 +63,10 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	id64 := toInt64(d.Get("group_id"))
+	groupID := toInt64(d.Get("group_id"))
 	teamSlug := d.Get("team_slug").(string)
 
-	tflog.SetField(ctx, "group_id", id64)
+	tflog.SetField(ctx, "group_id", groupID)
 	tflog.SetField(ctx, "team_slug", teamSlug)
 	tflog.SetField(ctx, "org_name", orgName)
 
@@ -102,12 +108,12 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		"group_name": group.GetGroupName(),
 	})
 
-	if group.GetGroupID() != id64 {
-		return diag.Errorf("group id mismatch: %d != %d", group.GetGroupID(), id64)
+	if group.GetGroupID() != groupID {
+		return diag.Errorf("group id mismatch: %d != %d", group.GetGroupID(), groupID)
 	}
 
 	etag := resp.Header.Get("ETag")
-	if err = d.Set("etag", etag); err != nil {
+	if err := d.Set("etag", etag); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -116,6 +122,17 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if err = d.Set("group_name", group.GetGroupName()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	teamID, err := matchTeamID(ctx, meta, teamSlug, group.Teams)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if teamID != toInt64(d.Get("team_id")) {
+		return diag.Errorf("configured Team does not match with any team mapped to external group: %d != %d", teamID, toInt64(d.Get("team_id")))
+	}
+	if err := d.Set("team_id", teamID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -252,4 +269,22 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 	})
 	d.SetId(resourceID)
 	return []*schema.ResourceData{d}, nil
+}
+
+func matchTeamID(ctx context.Context, meta any, teamSlug string, groupTeams []*github.ExternalGroupTeam) (int64, error) {
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	configuredTeam, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
+	if err != nil {
+		return 0, err
+	}
+
+	var teamID int64
+	for _, team := range groupTeams {
+		if team.GetTeamID() == configuredTeam.GetID() {
+			teamID = team.GetTeamID()
+			break
+		}
+	}
+	return teamID, nil
 }
