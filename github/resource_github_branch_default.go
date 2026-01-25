@@ -12,10 +12,11 @@ import (
 
 func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchDefaultCreate,
-		Read:   resourceGithubBranchDefaultRead,
-		Delete: resourceGithubBranchDefaultDelete,
-		Update: resourceGithubBranchDefaultUpdate,
+		Description: "Manages the default branch for a repository.",
+		Create:      resourceGithubBranchDefaultCreate,
+		Read:        resourceGithubBranchDefaultRead,
+		Delete:      resourceGithubBranchDefaultDelete,
+		Update:      resourceGithubBranchDefaultUpdate,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

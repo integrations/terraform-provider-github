@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubRepositoryTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamsRead,
+		Description: "Use this data source to retrieve the teams associated with a repository.",
+		Read:        dataSourceGithubTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {

@@ -12,7 +12,8 @@ import (
 // Docs: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
 func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryPullRequestsRead,
+		Description: "Use this data source to retrieve the list of pull requests in a repository.",
+		Read:        dataSourceGithubRepositoryPullRequestsRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:        schema.TypeString,

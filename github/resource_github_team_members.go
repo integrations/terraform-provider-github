@@ -18,10 +18,11 @@ type MemberChange struct {
 
 func resourceGithubTeamMembers() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamMembersCreate,
-		Read:   resourceGithubTeamMembersRead,
-		Update: resourceGithubTeamMembersUpdate,
-		Delete: resourceGithubTeamMembersDelete,
+		Description: "Manages the complete set of members for a team.",
+		Create:      resourceGithubTeamMembersCreate,
+		Read:        resourceGithubTeamMembersRead,
+		Update:      resourceGithubTeamMembersUpdate,
+		Delete:      resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubTeamMembersImport,
 		},

@@ -14,10 +14,11 @@ import (
 
 func resourceGithubTeamRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamRepositoryCreate,
-		Read:   resourceGithubTeamRepositoryRead,
-		Update: resourceGithubTeamRepositoryUpdate,
-		Delete: resourceGithubTeamRepositoryDelete,
+		Description: "Manages a team's access to a repository.",
+		Create:      resourceGithubTeamRepositoryCreate,
+		Read:        resourceGithubTeamRepositoryRead,
+		Update:      resourceGithubTeamRepositoryUpdate,
+		Delete:      resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")

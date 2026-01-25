@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubExternalGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubExternalGroupsRead,
+		Description: "Use this data source to retrieve the external groups for an organization.",
+		Read:        dataSourceGithubExternalGroupsRead,
 		Schema: map[string]*schema.Schema{
 			"external_groups": {
 				Type:        schema.TypeList,

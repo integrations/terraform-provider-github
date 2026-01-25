@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubDependabotPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubDependabotPublicKeyRead,
+		Description: "Use this data source to retrieve the public key for a repository's Dependabot secrets.",
+		Read:        dataSourceGithubDependabotPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

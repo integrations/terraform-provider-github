@@ -8,10 +8,11 @@ import (
 
 func resourceGithubRepositoryDependabotSecurityUpdates() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate,
-		Read:   resourceGithubRepositoryDependabotSecurityUpdatesRead,
-		Update: resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate,
-		Delete: resourceGithubRepositoryDependabotSecurityUpdatesDelete,
+		Description: "Manages the Dependabot security updates setting for a repository.",
+		Create:      resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate,
+		Read:        resourceGithubRepositoryDependabotSecurityUpdatesRead,
+		Update:      resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate,
+		Delete:      resourceGithubRepositoryDependabotSecurityUpdatesDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubRepositoryDependabotSecurityUpdatesImport,
 		},

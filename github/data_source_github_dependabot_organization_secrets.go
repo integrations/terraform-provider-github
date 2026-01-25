@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubDependabotOrganizationSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubDependabotOrganizationSecretsRead,
+		Description: "Use this data source to retrieve the list of Dependabot secrets for an organization.",
+		Read:        dataSourceGithubDependabotOrganizationSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"secrets": {

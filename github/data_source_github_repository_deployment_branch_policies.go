@@ -9,6 +9,7 @@ import (
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Use this data source to retrieve the deployment branch policies for a repository environment.",
 		DeprecationMessage: "This data source is deprecated in favour of the github_repository_environment_deployment_policies data source.",
 
 		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,

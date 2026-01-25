@@ -13,6 +13,7 @@ import (
 
 func resourceGithubBranchProtection() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a branch protection rule for a repository using the GraphQL API.",
 		SchemaVersion: 2,
 
 		Schema: map[string]*schema.Schema{

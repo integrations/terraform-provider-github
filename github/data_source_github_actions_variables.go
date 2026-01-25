@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubActionsVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsVariablesRead,
+		Description: "Use this data source to retrieve the list of variables for a GitHub repository.",
+		Read:        dataSourceGithubActionsVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {

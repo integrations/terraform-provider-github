@@ -12,10 +12,11 @@ import (
 
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSettingsCreate,
-		Read:   resourceGithubTeamSettingsRead,
-		Update: resourceGithubTeamSettingsUpdate,
-		Delete: resourceGithubTeamSettingsDelete,
+		Description: "Manages settings for a team.",
+		Create:      resourceGithubTeamSettingsCreate,
+		Read:        resourceGithubTeamSettingsRead,
+		Update:      resourceGithubTeamSettingsUpdate,
+		Delete:      resourceGithubTeamSettingsDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubTeamSettingsImport,
 		},

@@ -15,9 +15,10 @@ import (
 
 func resourceGithubRepositoryDeployKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryDeployKeyCreate,
-		Read:   resourceGithubRepositoryDeployKeyRead,
-		Delete: resourceGithubRepositoryDeployKeyDelete,
+		Description: "Manages a deploy key for a repository.",
+		Create:      resourceGithubRepositoryDeployKeyCreate,
+		Read:        resourceGithubRepositoryDeployKeyRead,
+		Delete:      resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

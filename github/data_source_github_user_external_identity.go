@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUserExternalIdentityRead,
+		Description: "Use this data source to retrieve the external identity for a user in an organization.",
+		Read:        dataSourceGithubUserExternalIdentityRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {

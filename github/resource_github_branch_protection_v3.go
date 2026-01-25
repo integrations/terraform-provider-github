@@ -14,10 +14,11 @@ import (
 
 func resourceGithubBranchProtectionV3() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchProtectionV3Create,
-		Read:   resourceGithubBranchProtectionV3Read,
-		Update: resourceGithubBranchProtectionV3Update,
-		Delete: resourceGithubBranchProtectionV3Delete,
+		Description: "Manages a branch protection rule for a repository using the REST API (v3).",
+		Create:      resourceGithubBranchProtectionV3Create,
+		Read:        resourceGithubBranchProtectionV3Read,
+		Update:      resourceGithubBranchProtectionV3Update,
+		Delete:      resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

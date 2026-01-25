@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubRepositories() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoriesRead,
+		Description: "Use this data source to search for GitHub repositories.",
+		Read:        dataSourceGithubRepositoriesRead,
 
 		Schema: map[string]*schema.Schema{
 			"query": {

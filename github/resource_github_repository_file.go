@@ -15,10 +15,11 @@ import (
 
 func resourceGithubRepositoryFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryFileCreate,
-		Read:   resourceGithubRepositoryFileRead,
-		Update: resourceGithubRepositoryFileUpdate,
-		Delete: resourceGithubRepositoryFileDelete,
+		Description: "Manages a file within a repository.",
+		Create:      resourceGithubRepositoryFileCreate,
+		Read:        resourceGithubRepositoryFileRead,
+		Update:      resourceGithubRepositoryFileUpdate,
+		Delete:      resourceGithubRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")

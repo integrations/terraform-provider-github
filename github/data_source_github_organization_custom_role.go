@@ -12,6 +12,7 @@ import (
 
 func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Use this data source to retrieve information about an organization's custom role.",
 		DeprecationMessage: "This data source is deprecated and will be removed in a future release. Use the github_organization_repository_role data source instead.",
 
 		Read: dataSourceGithubOrganizationCustomRoleRead,

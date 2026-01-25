@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubActionsOrganizationSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationSecretsRead,
+		Description: "Use this data source to retrieve the list of secrets for a GitHub organization.",
+		Read:        dataSourceGithubActionsOrganizationSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"secrets": {

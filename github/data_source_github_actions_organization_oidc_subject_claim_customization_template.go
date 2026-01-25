@@ -6,7 +6,8 @@ import (
 
 func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead,
+		Description: "Use this data source to retrieve the OpenID Connect subject claim customization template for an organization.",
+		Read:        dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateRead,
 
 		Schema: map[string]*schema.Schema{
 			"include_claim_keys": {

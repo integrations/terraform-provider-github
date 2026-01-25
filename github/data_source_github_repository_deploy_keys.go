@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryDeployKeysRead,
+		Description: "Use this data source to retrieve the deploy keys for a repository.",
+		Read:        dataSourceGithubRepositoryDeployKeysRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
