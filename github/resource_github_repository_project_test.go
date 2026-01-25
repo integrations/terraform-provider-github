@@ -13,7 +13,7 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a repository project", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-project-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 

@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		config := fmt.Sprintf(`
 			resource "github_dependabot_organization_secret" "test" {

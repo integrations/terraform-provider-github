@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	t.Run("creates enterprise runner groups without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -56,7 +56,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner group visibility to selected orgs", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -108,7 +108,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -147,7 +147,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a runner group with selected orgs without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"

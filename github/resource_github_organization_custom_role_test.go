@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubOrganizationCustomRole(t *testing.T) {
 	t.Run("creates custom repo role without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 		resource "github_organization_custom_role" "test" {
 			name        = "tf-acc-test-%s"
@@ -43,7 +43,7 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 	// More tests can go here following the same format...
 	t.Run("updates custom repo role without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 		resource "github_organization_custom_role" "test" {
 			name        = "tf-acc-test-%s"
@@ -98,7 +98,7 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 	})
 
 	t.Run("imports custom repo role without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {
 			  name        = "tf-acc-test-%s"

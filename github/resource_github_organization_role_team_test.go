@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubOrganizationRoleTeam(t *testing.T) {
 	t.Run("adds team to an organization org role", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-org-role-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`

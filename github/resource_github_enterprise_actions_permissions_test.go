@@ -47,7 +47,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		enabledOrganizations := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
 		displayName := fmt.Sprintf("Tf Acc Test displayname %s", randomID)
@@ -163,8 +163,8 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 	t.Run("test setting of enterprise enabled organizations", func(t *testing.T) {
 		allowedActions := "all"
 		enabledOrganizations := "selected"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		randomID2 := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
+		randomID2 := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 		orgName2 := fmt.Sprintf("tf-acc-test-displayname%s", randomID2)
 

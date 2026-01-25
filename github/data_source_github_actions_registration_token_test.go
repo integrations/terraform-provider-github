@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	repoName := fmt.Sprintf("%srepo-actions-regtoken-%s", testResourcePrefix, randomID)
 
 	t.Run("get a repository registration token without error", func(t *testing.T) {

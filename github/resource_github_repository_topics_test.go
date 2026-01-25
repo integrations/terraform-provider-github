@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryTopics(t *testing.T) {
 	t.Run("create repository topics and import them", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -49,7 +49,7 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 	})
 
 	t.Run("create repository topics and update them", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		configBefore := fmt.Sprintf(`

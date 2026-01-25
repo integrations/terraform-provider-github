@@ -15,7 +15,7 @@ import (
 
 func TestAccGithubUserSshKey(t *testing.T) {
 	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testKey := newTestKey()
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {
@@ -52,7 +52,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 	})
 
 	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testKey := newTestKey()
 		config := fmt.Sprintf(`
 			resource "github_user_ssh_key" "test" {

@@ -12,7 +12,7 @@ import (
 
 func TestAccGithubIssue(t *testing.T) {
 	t.Run("creates an issue without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		title := "issue_title"
 		body := "issue_body"
@@ -110,7 +110,7 @@ func TestAccGithubIssue(t *testing.T) {
 	})
 
 	t.Run("imports a issue without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {

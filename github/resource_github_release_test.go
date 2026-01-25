@@ -13,7 +13,7 @@ import (
 
 func TestAccGithubReleaseResource(t *testing.T) {
 	t.Run("create a release with defaults", func(t *testing.T) {
-		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomRepoPart := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-release-%s", testResourcePrefix, randomRepoPart)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 
@@ -76,7 +76,7 @@ func TestAccGithubReleaseResource(t *testing.T) {
 	})
 
 	t.Run("create a release on branch", func(t *testing.T) {
-		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomRepoPart := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-release-%s", testResourcePrefix, randomRepoPart)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 		testBranchName := "test"

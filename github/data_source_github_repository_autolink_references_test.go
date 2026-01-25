@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	repoName := fmt.Sprintf("%srepo-autolink-refs-%s", testResourcePrefix, randomID)
 
 	t.Run("queries autolink references", func(t *testing.T) {

@@ -15,7 +15,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 	}
 
 	t.Run("creates invitations without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -50,7 +50,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 	})
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		configWithOwner := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -127,7 +127,7 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 		t.Skip("GH_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
 	}
 	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-collab-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

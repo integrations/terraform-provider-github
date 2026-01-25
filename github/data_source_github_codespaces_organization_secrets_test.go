@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubCodespacesOrganizationSecretsDataSource(t *testing.T) {
 	t.Run("queries organization codespaces secrets from a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		secretName := fmt.Sprintf("ORG_CS_SECRET_1_%s", randomID)
 
 		config := fmt.Sprintf(`
