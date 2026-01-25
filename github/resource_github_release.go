@@ -274,7 +274,7 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.Re
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	if err = d.Set("repository", *repository.Name); err != nil {
+	if err = d.Set("repository", repository.Name); err != nil {
 		return []*schema.ResourceData{d}, err
 	}
 

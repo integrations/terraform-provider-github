@@ -17,7 +17,6 @@ func dataSourceGithubActionsRegistrationToken() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The name of the repository.",
 			},
 			"token": {

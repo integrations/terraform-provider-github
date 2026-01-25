@@ -27,6 +27,7 @@ func resourceGithubOrganizationWebhookResourceV0() *schema.Resource {
 			"configuration": {
 				Type:        schema.TypeMap,
 				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: "Webhook configuration options.",
 			},
 			"url": {

@@ -19,13 +19,11 @@ func dataSourceGithubRef() *schema.Resource {
 			"ref": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository ref to look up. Must be formatted 'heads/<ref>' for branches, and 'tags/<ref>' for tags.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository name.",
 			},
 			"owner": {
@@ -75,7 +73,7 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
 	if err != nil {
 		return err
 	}
-	err = d.Set("sha", *refData.Object.SHA)
+	err = d.Set("sha", refData.Object.SHA)
 	if err != nil {
 		return err
 	}

@@ -48,10 +48,10 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		}
 
 		testSchema := map[string]*schema.Schema{
-			"app_id":          {Type: schema.TypeString, Description: "The GitHub App ID."},
-			"installation_id": {Type: schema.TypeString, Description: "The GitHub App installation instance ID."},
-			"pem_file":        {Type: schema.TypeString, Description: "The content of the GitHub App PEM file."},
-			"token":           {Type: schema.TypeString, Description: "The generated GitHub App installation access token."},
+			"app_id":          {Type: schema.TypeString, Required: true, Description: "The GitHub App ID."},
+			"installation_id": {Type: schema.TypeString, Required: true, Description: "The GitHub App installation instance ID."},
+			"pem_file":        {Type: schema.TypeString, Required: true, Description: "The content of the GitHub App PEM file."},
+			"token":           {Type: schema.TypeString, Computed: true, Description: "The generated GitHub App installation access token."},
 		}
 
 		schema := schema.TestResourceDataRaw(t, testSchema, map[string]any{

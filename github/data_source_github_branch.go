@@ -19,13 +19,11 @@ func dataSourceGithubBranch() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository name.",
 			},
 			"branch": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository branch to retrieve.",
 			},
 			"etag": {
@@ -73,11 +71,11 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	if err != nil {
 		return err
 	}
-	err = d.Set("ref", *ref.Ref)
+	err = d.Set("ref", ref.Ref)
 	if err != nil {
 		return err
 	}
-	err = d.Set("sha", *ref.Object.SHA)
+	err = d.Set("sha", ref.Object.SHA)
 	if err != nil {
 		return err
 	}

@@ -121,8 +121,8 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 	}
 
 	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("branch", *repository.DefaultBranch)
-	_ = d.Set("repository", *repository.Name)
+	_ = d.Set("branch", repository.DefaultBranch)
+	_ = d.Set("repository", repository.Name)
 	return nil
 }
 

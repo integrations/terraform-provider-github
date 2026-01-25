@@ -784,7 +784,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	_ = d.Set("repository", *repository.Name)
+	_ = d.Set("repository", repository.Name)
 
 	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
 	if ruleset == nil || err != nil {

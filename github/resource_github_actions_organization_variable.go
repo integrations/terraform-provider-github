@@ -181,7 +181,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
 		return err
 	}
-	if err = d.Set("visibility", *variable.Visibility); err != nil {
+	if err = d.Set("visibility", variable.Visibility); err != nil {
 		return err
 	}
 
