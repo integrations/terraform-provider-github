@@ -51,8 +51,9 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Description: "A title.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the deploy key.",
 			},
 		},
 	}
