@@ -36,24 +36,28 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"identities": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of identities returned from GitHub.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"login": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The username of the GitHub user.",
 						},
 						"saml_identity": {
-							Type:     schema.TypeMap,
-							Computed: true,
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Description: "An object containing the user's SAML data. This object will be empty if the user is not managed by SAML.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
 						},
 						"scim_identity": {
-							Type:     schema.TypeMap,
-							Computed: true,
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Description: "An object containing the user's SCIM data. This object will be empty if the user is not managed by SCIM.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},

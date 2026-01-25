@@ -17,21 +17,25 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 		Read: dataSourceGithubOrganizationCustomRoleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the custom role.",
 			},
 			"base_role": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The system role from which the role inherits permissions.",
 			},
 			"permissions": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "A list of additional permissions included in this role.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The description for the custom role.",
 			},
 		},
 	}
