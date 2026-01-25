@@ -32,8 +32,9 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 				Description: "The repository to install the app on.",
 			},
 			"repo_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the repository.",
 			},
 		},
 	}

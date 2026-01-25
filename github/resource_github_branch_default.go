@@ -39,9 +39,10 @@ func resourceGithubBranchDefault() *schema.Resource {
 				Description: "Indicate if it should rename the branch rather than use an existing branch. Defaults to 'false'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the default branch object.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
