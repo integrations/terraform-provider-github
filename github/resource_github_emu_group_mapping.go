@@ -47,6 +47,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Computed: true,
 			},
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubEMUGroupMappingResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubEMUGroupMappingInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 	}
 }
 
