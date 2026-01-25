@@ -16,26 +16,31 @@ func dataSourceGithubRef() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository ref to look up. Must be formatted 'heads/<ref>' for branches, and 'tags/<ref>' for tags.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The GitHub repository name.",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Owner of the repository.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ref.",
 			},
 			"sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The reference's HEAD commit's SHA1.",
 			},
 		},
 	}
