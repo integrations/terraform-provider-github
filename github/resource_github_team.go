@@ -106,8 +106,9 @@ func resourceGithubTeam() *schema.Resource {
 				Description: "The Node ID of the created team.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team.",
 			},
 		},
 	}
