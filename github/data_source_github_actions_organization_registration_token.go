@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubActionsOrganizationRegistrationToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationRegistrationTokenRead,
+		Description: "Use this data source to retrieve a registration token for a GitHub Actions self-hosted runner in an organization.",
+		Read:        dataSourceGithubActionsOrganizationRegistrationTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"token": {

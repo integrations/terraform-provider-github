@@ -9,6 +9,7 @@ import (
 
 func resourceGithubRepositoryProject() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages a classic project within a repository.",
 		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
 
 		Create: resourceGithubRepositoryProjectCreate,

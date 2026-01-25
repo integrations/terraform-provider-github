@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubTree() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTreeRead,
+		Description: "Use this data source to retrieve the file tree for a repository.",
+		Read:        dataSourceGithubTreeRead,
 		Schema: map[string]*schema.Schema{
 			"recursive": {
 				Type:        schema.TypeBool,

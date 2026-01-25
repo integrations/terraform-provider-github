@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubRepositoryWebhooks() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryWebhooksRead,
+		Description: "Use this data source to retrieve the webhooks for a repository.",
+		Read:        dataSourceGithubRepositoryWebhooksRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

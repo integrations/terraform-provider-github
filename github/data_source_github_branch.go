@@ -12,7 +12,8 @@ import (
 
 func dataSourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchRead,
+		Description: "Use this data source to retrieve information about a branch in a repository.",
+		Read:        dataSourceGithubBranchRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

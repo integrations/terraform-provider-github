@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsPublicKeyRead,
+		Description: "Use this data source to retrieve the public key for a repository's GitHub Actions secrets.",
+		Read:        dataSourceGithubActionsPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

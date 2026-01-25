@@ -130,7 +130,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description:  "Targets repositories that match the specified name patterns.",
 							ExactlyOneOf: []string{"conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_id"},
-							Description:  "The repository name patterns to include/exclude.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {

@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamSyncGroupsRead,
+		Description: "Use this data source to retrieve the identity provider groups for team synchronization in an organization.",
+		Read:        dataSourceGithubOrganizationTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
 			"groups": {

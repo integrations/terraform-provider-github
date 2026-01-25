@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubRestApi() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRestApiRead,
+		Description: "Use this data source to perform a GET request to the GitHub REST API.",
+		Read:        dataSourceGithubRestApiRead,
 
 		Schema: map[string]*schema.Schema{
 			"endpoint": {

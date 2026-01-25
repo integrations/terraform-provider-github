@@ -12,7 +12,8 @@ import (
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamsRead,
+		Description: "Use this data source to retrieve the teams in an organization.",
+		Read:        dataSourceGithubOrganizationTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"root_teams_only": {

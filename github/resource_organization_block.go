@@ -12,9 +12,10 @@ import (
 
 func resourceOrganizationBlock() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOrganizationBlockCreate,
-		Read:   resourceOrganizationBlockRead,
-		Delete: resourceOrganizationBlockDelete,
+		Description: "Manages blocking a user from an organization.",
+		Create:      resourceOrganizationBlockCreate,
+		Read:        resourceOrganizationBlockRead,
+		Delete:      resourceOrganizationBlockDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

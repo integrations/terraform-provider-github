@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubAppToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubAppTokenRead,
+		Description: "Use this data source to generate an installation access token for a GitHub App.",
+		Read:        dataSourceGithubAppTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"app_id": {

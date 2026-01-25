@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubEnterprise() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEnterpriseRead,
+		Description: "Use this data source to retrieve information about a GitHub Enterprise.",
+		Read:        dataSourceGithubEnterpriseRead,
 		Schema: map[string]*schema.Schema{
 			"database_id": {
 				Type:        schema.TypeInt,

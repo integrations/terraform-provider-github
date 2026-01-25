@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubApp() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubAppRead,
+		Description: "Use this data source to retrieve information about a GitHub App.",
+		Read:        dataSourceGithubAppRead,
 
 		Schema: map[string]*schema.Schema{
 			"slug": {

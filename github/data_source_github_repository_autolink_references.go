@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryAutolinkReferencesRead,
+		Description: "Use this data source to retrieve the autolink references for a repository.",
+		Read:        dataSourceGithubRepositoryAutolinkReferencesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

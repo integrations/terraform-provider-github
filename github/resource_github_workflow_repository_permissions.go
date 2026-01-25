@@ -10,10 +10,11 @@ import (
 
 func resourceGithubWorkflowRepositoryPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate,
-		Read:   resourceGithubWorkflowRepositoryPermissionsRead,
-		Update: resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate,
-		Delete: resourceGithubWorkflowRepositoryPermissionsDelete,
+		Description: "Manages the default workflow permissions and fork pull request settings for a repository.",
+		Create:      resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate,
+		Read:        resourceGithubWorkflowRepositoryPermissionsRead,
+		Update:      resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate,
+		Delete:      resourceGithubWorkflowRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

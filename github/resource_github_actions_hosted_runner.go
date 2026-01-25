@@ -18,10 +18,11 @@ import (
 
 func resourceGithubActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsHostedRunnerCreate,
-		Read:   resourceGithubActionsHostedRunnerRead,
-		Update: resourceGithubActionsHostedRunnerUpdate,
-		Delete: resourceGithubActionsHostedRunnerDelete,
+		Description: "Manages a GitHub Actions hosted runner.",
+		Create:      resourceGithubActionsHostedRunnerCreate,
+		Read:        resourceGithubActionsHostedRunnerRead,
+		Update:      resourceGithubActionsHostedRunnerUpdate,
+		Delete:      resourceGithubActionsHostedRunnerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

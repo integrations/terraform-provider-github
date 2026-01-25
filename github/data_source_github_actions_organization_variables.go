@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationVariablesRead,
+		Description: "Use this data source to retrieve the list of variables for a GitHub organization.",
+		Read:        dataSourceGithubActionsOrganizationVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"variables": {

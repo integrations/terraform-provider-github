@@ -10,6 +10,7 @@ import (
 
 func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
+		Description: "Manages the repository access list for an organization Dependabot secret.",
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,

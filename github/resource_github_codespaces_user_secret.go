@@ -14,9 +14,10 @@ import (
 
 func resourceGithubCodespacesUserSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespacesUserSecretCreateOrUpdate,
-		Read:   resourceGithubCodespacesUserSecretRead,
-		Delete: resourceGithubCodespacesUserSecretDelete,
+		Description: "Manages a Codespaces secret for a user.",
+		Create:      resourceGithubCodespacesUserSecretCreateOrUpdate,
+		Read:        resourceGithubCodespacesUserSecretRead,
+		Delete:      resourceGithubCodespacesUserSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {

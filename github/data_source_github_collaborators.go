@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCollaboratorsRead,
+		Description: "Use this data source to retrieve the collaborators for a repository.",
+		Read:        dataSourceGithubCollaboratorsRead,
 
 		Schema: map[string]*schema.Schema{
 			"owner": {

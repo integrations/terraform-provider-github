@@ -32,7 +32,8 @@ type ExternalIdentities struct {
 
 func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationExternalIdentitiesRead,
+		Description: "Use this data source to retrieve the external identities (SAML/SCIM) for an organization.",
+		Read:        dataSourceGithubOrganizationExternalIdentitiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"identities": {

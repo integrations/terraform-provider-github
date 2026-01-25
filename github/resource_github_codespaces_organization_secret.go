@@ -15,9 +15,10 @@ import (
 
 func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubCodespacesOrganizationSecretRead,
-		Delete: resourceGithubCodespacesOrganizationSecretDelete,
+		Description: "Manages a Codespaces secret within an organization.",
+		Create:      resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
+		Read:        resourceGithubCodespacesOrganizationSecretRead,
+		Delete:      resourceGithubCodespacesOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {

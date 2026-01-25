@@ -4,7 +4,8 @@ import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
+		Description: "Use this data source to retrieve the OpenID Connect subject claim customization template for a repository.",
+		Read:        dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {

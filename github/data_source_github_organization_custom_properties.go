@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationCustomPropertiesRead,
+		Description: "Use this data source to retrieve information about an organization's custom property.",
+		Read:        dataSourceGithubOrganizationCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"property_name": {
