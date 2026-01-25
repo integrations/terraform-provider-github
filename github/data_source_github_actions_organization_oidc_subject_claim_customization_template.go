@@ -10,8 +10,9 @@ func dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate() 
 
 		Schema: map[string]*schema.Schema{
 			"include_claim_keys": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "A list of OpenID Connect claim keys.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
