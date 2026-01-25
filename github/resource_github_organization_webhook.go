@@ -52,8 +52,9 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 				Description: "Indicate if the webhook should receive events.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the webhook.",
 			},
 		},
 	}

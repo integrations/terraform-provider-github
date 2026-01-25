@@ -85,8 +85,9 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Description: "Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the autolink reference.",
 			},
 		},
 	}
