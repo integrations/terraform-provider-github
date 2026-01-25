@@ -126,6 +126,36 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("forces new when switching to different team", func(t *testing.T) {
+		t.Skip("Skipping this test because we don't have terraform-plugin-testing available yet.")
+		randomID := acctest.RandString(5)
+		teamName1 := fmt.Sprintf("%semu1-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%semu2-%s", testResourcePrefix, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2, groupID, "test1"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_emu_group_mapping.test", "team_slug", teamName1),
+					),
+				},
+				{
+					Config: testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2, groupID, "test2"),
+					// ConfigPlanChecks: resource.ConfigPlanChecks{
+					// 	PreApply: []plancheck.PlanCheck{
+					// 		plancheckExpectKnownValues("github_emu_group_mapping.test", "team_slug", teamName2),
+					// 		plancheck.ExpectResourceAction("github_emu_group_mapping.test", plancheck.ResourceActionDestroyBeforeCreate), // Verify that ForceNew is triggered
+					// 	},
+					// },
+				},
+			},
+		})
+	})
 }
 
 func testAccCheckGithubEMUGroupMappingDestroy(s *terraform.State) error {
@@ -182,4 +212,21 @@ func testAccGithubEMUGroupMappingConfig(teamName string, groupID int) string {
 		group_id  = %d
 	}
 	`, teamName, groupID)
+}
+
+func testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2 string, groupID int, useTeam string) string {
+	return fmt.Sprintf(`
+	resource "github_team" "test1" {
+		name        = "%s"
+		description = "EMU group mapping test team 1"
+	}
+	resource "github_team" "test2" {
+		name        = "%s"
+		description = "EMU group mapping test team 2"
+	}
+	resource "github_emu_group_mapping" "test" {
+		team_slug = github_team.%s.slug
+		group_id  = %d
+	}
+	`, teamName1, teamName2, useTeam, groupID)
 }
