@@ -15,8 +15,9 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of teams with the security manager role.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
