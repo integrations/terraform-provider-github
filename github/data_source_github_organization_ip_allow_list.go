@@ -13,33 +13,40 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"ip_allow_list": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of allowed IP addresses.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the IP allow list entry.",
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the IP allow list entry.",
 						},
 						"allow_list_value": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "A single IP address or range of IP addresses in CIDR notation.",
 						},
 						"is_active": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the entry is currently active.",
 						},
 						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Identifies the date and time when the object was created.",
 						},
 						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Identifies the date and time when the object was last updated.",
 						},
 					},
 				},
