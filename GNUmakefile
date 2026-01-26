@@ -50,6 +50,15 @@ lintcheck:
 tf-provider-lint:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running TF provider lint on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿";
+	# Disabled linter rules:
+	# AT001: TestCase missing CheckDestroy - not yet adopted across all tests
+	# AT003: should use underscores in acc test names - not yet adopted across all tests
+	# AT004: provider declaration should be omitted - intentionally kept for provider configuration tests
+	# AT006: acc tests should not contain multiple resource.Test() invocations - not yet adopted across all tests
+	# XAT001: acceptance test should use ErrorCheck - not all resources support destroy verification
+	# XR003: resource should configure Timeouts - not yet adopted across all resources
+	# XR007: avoid os/exec.Command - intentionally used for GitHub CLI integration and ssh-keygen in tests
+	# XS002: schema should use keys in alphabetical order - not sure we want to enforce this
 	tfproviderlintx \
 		-AT001=false \
 		-AT003=false \
