@@ -13,8 +13,9 @@ Before submitting an issue or a pull request, please search the repository for e
 1. Fork and clone the repository.
 2. Create a new branch: `git switch -c my-branch-name`.
 3. Make your change, add tests, and make sure the tests still pass.
-4. Push to your fork and submit a pull request.
-5. Pat yourself on the back and wait for your pull request to be reviewed and merged.
+4. Run `make fmt; make lint; make tf-provider-lint` to check for formatting, linting, and provider linting errors.
+5. Push to your fork and submit a pull request.
+6. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
@@ -33,9 +34,9 @@ This section describes a typical sequence performed when developing locally. Ful
 Once you have the repository cloned, there's a couple of additional steps you'll need to take. Since most of the testing is acceptance or integration testing, we need to manipulate real GitHub resources in order to run it. Useful setup steps are listed below:
 
 - If you haven't already, [create a GitHub organization you can use for testing](#github-organization).
-  - Optional: you may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
-  - Your organization _must_ have a repository called `terraform-template-module`. The [terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) repo is a good, re-usable example.
-    - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
+    - Optional: you may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
+    - Your organization _must_ have a repository called `terraform-template-module`. The [terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) repo is a good, re-usable example.
+        - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
 - If you haven't already, generate a Personal Access Token (PAT) for authenticating your test runs.
 - Export the necessary configuration for authenticating your provider with GitHub
 
@@ -52,7 +53,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 ### Local Development Iteration
 
 1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.
-1. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
+2. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
 
 ```sh
 TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
