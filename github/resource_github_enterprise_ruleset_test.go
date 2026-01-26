@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGithubEnterpriseRuleset_basic(t *testing.T) {
@@ -766,3 +767,77 @@ resource "github_enterprise_ruleset" "test" {
 	})
 }
 
+
+func TestAccGithubEnterpriseRuleset_import(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	rulesetName := fmt.Sprintf("%s-enterprise-import-%s", testResourcePrefix, randomID)
+
+	rulesetHCL := `
+		resource "github_enterprise_ruleset" "test" {
+			enterprise_slug = "%s"
+			name            = "%s"
+			target          = "branch"
+			enforcement     = "active"
+
+			conditions {
+				organization_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+
+				repository_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+
+				ref_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+			}
+
+			rules {
+				creation = true
+			}
+		}
+		`
+	config := fmt.Sprintf(rulesetHCL, testAccConf.enterpriseSlug, rulesetName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { skipUnlessEnterprise(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+			{
+				ResourceName:            "github_enterprise_ruleset.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdFunc:       importEnterpriseRulesetByResourcePath("github_enterprise_ruleset.test"),
+				ImportStateVerifyIgnore: []string{"etag"},
+			},
+		},
+	})
+}
+
+func importEnterpriseRulesetByResourcePath(rulesetLogicalName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		ruleset := s.RootModule().Resources[rulesetLogicalName]
+		if ruleset == nil {
+			return "", fmt.Errorf("Cannot find %s in terraform state", rulesetLogicalName)
+		}
+
+		rulesetID := ruleset.Primary.ID
+		if rulesetID == "" {
+			return "", fmt.Errorf("ruleset %s does not have an id in terraform state", rulesetLogicalName)
+		}
+
+		enterpriseSlug := ruleset.Primary.Attributes["enterprise_slug"]
+		if enterpriseSlug == "" {
+			return "", fmt.Errorf("ruleset %s does not have enterprise_slug in terraform state", rulesetLogicalName)
+		}
+
+		return fmt.Sprintf("%s:%s", enterpriseSlug, rulesetID), nil
+	}
+}
