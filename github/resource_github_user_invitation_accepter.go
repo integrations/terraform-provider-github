@@ -10,6 +10,7 @@ import (
 )
 
 func resourceGithubUserInvitationAccepter() *schema.Resource {
+	// lintignore:XR002
 	return &schema.Resource{
 		Description: "Accepts a repository invitation for the authenticated user.",
 		Create:      resourceGithubUserInvitationAccepterCreate,

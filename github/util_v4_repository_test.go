@@ -117,15 +117,15 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 	responses := template.Must(template.New("node_match").Parse(nodeMatchTmpl))
 	_, err := responses.New("node_no_match").Parse(nodeNoMatchTmpl)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	_, err = responses.New("repo_match").Parse(repoMatchTmpl)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	_, err = responses.New("repo_no_match").Parse(repoNoMatchTmpl)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	mux := http.NewServeMux()
@@ -206,7 +206,7 @@ func (l localRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 func mustRead(r io.Reader) string {
 	b, err := io.ReadAll(r)
 	if err != nil {
-		panic(err)
+		panic(err) // lintignore:R009
 	}
 	return string(b)
 }
@@ -214,6 +214,6 @@ func mustRead(r io.Reader) string {
 func mustWrite(w io.Writer, s string) {
 	_, err := io.WriteString(w, s)
 	if err != nil {
-		panic(err)
+		panic(err) // lintignore:R009
 	}
 }
