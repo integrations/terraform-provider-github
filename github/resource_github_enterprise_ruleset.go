@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -21,6 +22,10 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 		ReadContext:   resourceGithubEnterpriseRulesetRead,
 		UpdateContext: resourceGithubEnterpriseRulesetUpdate,
 		DeleteContext: resourceGithubEnterpriseRulesetDelete,
+
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubEnterpriseRulesetImport,
+		},
 
 		CustomizeDiff: resourceGithubEnterpriseRulesetCustomizeDiff,
 
@@ -956,5 +961,42 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 	})
 
 	return nil
+}
+
+func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	enterpriseSlug, rulesetIDStr, err := parseTwoPartID(d.Id(), "enterprise_slug", "ruleset_id")
+	if err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+
+	rulesetID, err := strconv.ParseInt(rulesetIDStr, 10, 64)
+	if err != nil {
+		return []*schema.ResourceData{d}, unconvertibleIdErr(rulesetIDStr, err)
+	}
+	if rulesetID == 0 {
+		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+	}
+
+	tflog.Debug(ctx, "Importing enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
+	})
+
+	client := meta.(*Owner).v3client
+
+	ruleset, _, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
+	if ruleset == nil || err != nil {
+		return []*schema.ResourceData{d}, err
+	}
+
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	_ = d.Set("enterprise_slug", enterpriseSlug)
+
+	tflog.Info(ctx, "Imported enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
+	})
+
+	return []*schema.ResourceData{d}, nil
 }
 
