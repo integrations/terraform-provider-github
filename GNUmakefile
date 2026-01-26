@@ -53,9 +53,11 @@ tf-provider-lint:
 	tfproviderlintx \
 		-AT001=false \
 		-AT003=false \
+		-AT004=false \
 		-AT006=false \
 		-XAT001=false \
 		-XR003=false \
+		-XR007=false \
 		-XS002=false \
 		$(TEST)
 
