@@ -599,8 +599,8 @@ The following additional attributes are exported:
 
 ## Import
 
-GitHub Enterprise Rulesets can be imported using the enterprise slug and ruleset ID in the format `{enterprise_slug}/{ruleset_id}`, e.g.
+GitHub Enterprise Rulesets can be imported using the enterprise slug and ruleset ID in the format `{enterprise_slug}:{ruleset_id}`, e.g.
 
 ```sh
-terraform import github_enterprise_ruleset.example my-enterprise/12345
+terraform import github_enterprise_ruleset.example my-enterprise:12345
 ```
