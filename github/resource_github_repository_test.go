@@ -1399,6 +1399,43 @@ resource "github_repository" "test" {
 			},
 		})
 	})
+
+	t.Run("sets internal visibility for repositories created by a template", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%stemplate-visibility-internal-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "internal" {
+				name       = "%s"
+				visibility = "internal"
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.internal", "visibility",
+				"internal",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.internal", "private",
+				"false",
+			),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
 }
 
 func Test_expandPages(t *testing.T) {

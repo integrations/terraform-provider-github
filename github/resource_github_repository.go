@@ -650,7 +650,8 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	owner := meta.(*Owner).name
 	repoName := repoReq.GetName()
 
-	isPrivate := repoReq.GetVisibility() == "private"
+	// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
+	isPrivate := repoReq.GetVisibility() == "private" || repoReq.GetVisibility() == "internal"
 	repoReq.Private = github.Ptr(isPrivate)
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
