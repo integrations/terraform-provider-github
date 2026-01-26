@@ -9,10 +9,11 @@ import (
 
 func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
-		Read:   resourceGithubDependabotOrganizationSecretRepositoriesRead,
-		Update: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
-		Delete: resourceGithubDependabotOrganizationSecretRepositoriesDelete,
+		Description: "Manages the repository access list for an organization Dependabot secret.",
+		Create:      resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
+		Read:        resourceGithubDependabotOrganizationSecretRepositoriesRead,
+		Update:      resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
+		Delete:      resourceGithubDependabotOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

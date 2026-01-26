@@ -15,10 +15,11 @@ import (
 
 func resourceGithubRepositoryFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryFileCreate,
-		Read:   resourceGithubRepositoryFileRead,
-		Update: resourceGithubRepositoryFileUpdate,
-		Delete: resourceGithubRepositoryFileDelete,
+		Description: "Manages a file within a repository.",
+		Create:      resourceGithubRepositoryFileCreate,
+		Read:        resourceGithubRepositoryFileRead,
+		Update:      resourceGithubRepositoryFileUpdate,
+		Delete:      resourceGithubRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")
@@ -84,7 +85,6 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The name of the commit/branch/tag",
-				ForceNew:    true,
 			},
 			"commit_sha": {
 				Type:        schema.TypeString,
@@ -100,13 +100,11 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"commit_author": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    false,
 				Description: "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 			},
 			"commit_email": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    false,
 				Description: "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 			},
 			"sha": {
@@ -211,7 +209,7 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta any) error 
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 							owner, repo, sourceBranchRefName, err)
 					}
-					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
@@ -408,7 +406,7 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 							owner, repo, sourceBranchRefName, err)
 					}
-					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
@@ -479,7 +477,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 						return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 							owner, repo, sourceBranchRefName, err)
 					}
-					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+					_ = d.Set("autocreate_branch_source_sha", ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
 				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{

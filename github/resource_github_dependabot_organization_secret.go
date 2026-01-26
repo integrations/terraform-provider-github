@@ -15,9 +15,10 @@ import (
 
 func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubDependabotOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubDependabotOrganizationSecretRead,
-		Delete: resourceGithubDependabotOrganizationSecretDelete,
+		Description: "Manages a Dependabot secret within an organization.",
+		Create:      resourceGithubDependabotOrganizationSecretCreateOrUpdate,
+		Read:        resourceGithubDependabotOrganizationSecretRead,
+		Delete:      resourceGithubDependabotOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {

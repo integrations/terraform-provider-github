@@ -91,9 +91,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "The ref (branch or tag) name patterns to include/exclude.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -121,6 +122,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							MaxItems:     1,
 							ExactlyOneOf: []string{"conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_id"},
+							Description:  "The repository name patterns to include/exclude.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -611,8 +613,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
@@ -707,7 +710,9 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
+	if target := ruleset.Target; target != nil {
+		_ = d.Set("target", string(*target))
+	}
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
 	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))

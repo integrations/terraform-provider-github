@@ -8,16 +8,19 @@ import (
 
 func dataSourceGithubCodespacesOrganizationPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCodespacesOrganizationPublicKeyRead,
+		Description: "Use this data source to retrieve the public key for an organization's Codespaces secrets.",
+		Read:        dataSourceGithubCodespacesOrganizationPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The identifier for the key.",
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Base64 encoded public key.",
 			},
 		},
 	}

@@ -98,9 +98,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "The ref (branch or tag) name patterns to include/exclude.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -620,8 +621,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
@@ -699,7 +701,9 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
+	if target := ruleset.Target; target != nil {
+		_ = d.Set("target", string(*target))
+	}
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
 	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
@@ -782,7 +786,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	_ = d.Set("repository", *repository.Name)
+	_ = d.Set("repository", repository.Name)
 
 	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
 	if ruleset == nil || err != nil {

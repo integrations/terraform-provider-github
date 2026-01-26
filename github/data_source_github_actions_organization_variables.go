@@ -10,33 +10,40 @@ import (
 
 func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationVariablesRead,
+		Description: "Use this data source to retrieve the list of variables for a GitHub organization.",
+		Read:        dataSourceGithubActionsOrganizationVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"variables": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of variables for the organization.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the variable.",
 						},
 						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The value of the variable.",
 						},
 						"visibility": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The visibility of the variable (all, private, or selected).",
 						},
 						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of the variable creation.",
 						},
 						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of the variable last update.",
 						},
 					},
 				},

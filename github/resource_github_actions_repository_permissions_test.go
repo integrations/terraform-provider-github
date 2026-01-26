@@ -11,7 +11,7 @@ import (
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 	t.Run("test setting of basic actions repository permissions", func(t *testing.T) {
 		allowedActions := "local_only"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -49,7 +49,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -100,7 +100,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -144,7 +144,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 	t.Run("test not setting of repository allowed actions without error", func(t *testing.T) {
 		allowedActions := "selected"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -185,7 +185,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 	t.Run("test disabling actions on a repository", func(t *testing.T) {
 		actionsEnabled := false
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -221,7 +221,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 	// https://github.com/integrations/terraform-provider-github/issues/2182
 	t.Run("test load with disabled actions", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

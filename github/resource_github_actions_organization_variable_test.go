@@ -73,7 +73,7 @@ func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 
 	t.Run("creates an organization variable scoped to a repo without error", func(t *testing.T) {
 		value := "my_variable_value"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-org-var-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

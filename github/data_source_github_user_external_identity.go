@@ -9,30 +9,35 @@ import (
 
 func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUserExternalIdentityRead,
+		Description: "Use this data source to retrieve the external identity for a user in an organization.",
+		Read:        dataSourceGithubUserExternalIdentityRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The username of the member to fetch external identity for.",
 			},
 			"saml_identity": {
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "An object containing the user's SAML data (name_id, username, family_name, given_name).",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"scim_identity": {
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "An object containing the user's SCIM data (username, family_name, given_name).",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"login": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The username of the GitHub user.",
 			},
 		},
 	}

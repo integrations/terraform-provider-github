@@ -18,7 +18,7 @@ func TestAccGithubRepositoryRuleset(t *testing.T) {
 		baseVisibility = "private" // Enable tests to run on GHEC EMU
 	}
 	t.Run("create_branch_ruleset", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -147,7 +147,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -203,7 +203,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -274,7 +274,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
 		name := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		nameUpdated := fmt.Sprintf(`%[1]s-renamed`, randomID)
@@ -320,7 +320,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -409,7 +409,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-update-%s", testResourcePrefix, randomID)
 
 		bypassMode := "always"
@@ -469,7 +469,7 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -531,7 +531,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 		baseVisibility = "private" // Enable tests to run on GHEC EMU
 	}
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -562,7 +562,7 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

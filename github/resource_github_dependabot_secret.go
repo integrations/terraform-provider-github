@@ -16,9 +16,10 @@ import (
 
 func resourceGithubDependabotSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubDependabotSecretCreateOrUpdate,
-		Read:   resourceGithubDependabotSecretRead,
-		Delete: resourceGithubDependabotSecretDelete,
+		Description: "Manages a Dependabot secret within a repository.",
+		Create:      resourceGithubDependabotSecretCreateOrUpdate,
+		Read:        resourceGithubDependabotSecretRead,
+		Delete:      resourceGithubDependabotSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubDependabotSecretImport,
 		},

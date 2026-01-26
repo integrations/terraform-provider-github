@@ -12,7 +12,7 @@ import (
 
 func TestAccGithubActionsVariable(t *testing.T) {
 	t.Run("creates and updates repository variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		updatedValue := "my_updated_variable_value"
@@ -75,7 +75,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 	})
 
 	t.Run("deletes repository variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
@@ -102,7 +102,7 @@ func TestAccGithubActionsVariable(t *testing.T) {
 	})
 
 	t.Run("imports repository variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-var-%s", testResourcePrefix, randomID)
 		varName := "test_variable"
 		value := "variable_value"

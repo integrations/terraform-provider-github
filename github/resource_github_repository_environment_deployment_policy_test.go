@@ -12,7 +12,7 @@ import (
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	t.Run("creates a repository environment with branch-based deployment policy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "environment / test"
 		config := fmt.Sprintf(`
@@ -78,7 +78,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	})
 
 	t.Run("updates the pattern for a branch-based deployment policy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		var deploymentPolicyId string
 
@@ -193,7 +193,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	})
 
 	t.Run("creates a repository environment with tag-based deployment policy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -259,7 +259,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 	t.Run("updates the pattern for a tag-based deployment policy", func(t *testing.T) {
 		var deploymentPolicyId string
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 
 		config1 := fmt.Sprintf(`
@@ -385,7 +385,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 	t.Run("recreates deployment policy when pattern type changes from branch to tag", func(t *testing.T) {
 		var deploymentPolicyId string
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 
 		config1 := fmt.Sprintf(`
@@ -511,7 +511,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 	t.Run("recreates deployment policy when pattern type changes from tag to branch", func(t *testing.T) {
 		var deploymentPolicyId string
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 
 		config1 := fmt.Sprintf(`
@@ -636,7 +636,7 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "environment / test"
 		config := fmt.Sprintf(`
@@ -686,7 +686,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when no patterns are set", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -722,7 +722,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when both patterns are set", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -760,7 +760,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when an empty branch pattern is set", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -797,7 +797,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when an empty tag pattern is set", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-deploy-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

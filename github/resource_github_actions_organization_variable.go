@@ -13,10 +13,11 @@ import (
 
 func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationVariableCreate,
-		Read:   resourceGithubActionsOrganizationVariableRead,
-		Update: resourceGithubActionsOrganizationVariableUpdate,
-		Delete: resourceGithubActionsOrganizationVariableDelete,
+		Description: "Manages a GitHub Actions variable within an organization.",
+		Create:      resourceGithubActionsOrganizationVariableCreate,
+		Read:        resourceGithubActionsOrganizationVariableRead,
+		Update:      resourceGithubActionsOrganizationVariableUpdate,
+		Delete:      resourceGithubActionsOrganizationVariableDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -180,7 +181,7 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
 		return err
 	}
-	if err = d.Set("visibility", *variable.Visibility); err != nil {
+	if err = d.Set("visibility", variable.Visibility); err != nil {
 		return err
 	}
 

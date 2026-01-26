@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubCodespacesSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCodespacesSecretsRead,
+		Description: "Use this data source to retrieve the list of Codespaces secrets for a repository.",
+		Read:        dataSourceGithubCodespacesSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -29,21 +30,25 @@ func dataSourceGithubCodespacesSecrets() *schema.Resource {
 				Description:   "The name of the repository.",
 			},
 			"secrets": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of Codespaces secrets for the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the secret.",
 						},
 						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of the secret creation.",
 						},
 						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of the secret last update.",
 						},
 					},
 				},

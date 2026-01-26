@@ -46,7 +46,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -186,8 +186,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		randomID2 := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
+		randomID2 := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID)
 		repoName2 := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID2)
 

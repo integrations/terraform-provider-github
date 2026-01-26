@@ -15,7 +15,7 @@ import (
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 	t.Run("creates and updates environment variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		updatedValue := "my_updated_variable_value"
@@ -84,7 +84,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 	})
 
 	t.Run("deletes environment variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {
@@ -117,7 +117,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 	})
 
 	t.Run("imports environment variables without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-env-var-%s", testResourcePrefix, randomID)
 		value := "my_variable_value"
 		envName := "environment / test"
@@ -159,7 +159,7 @@ func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
 }
 
 func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	repoName := fmt.Sprintf("%srepo-act-env-var-exist-%s", testResourcePrefix, randomID)
 	envName := "environment / test"
 	varName := "test_variable"

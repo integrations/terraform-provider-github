@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Run("creates repository autolink reference without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -106,7 +106,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -229,7 +229,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference by key prefix without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "oof" {
@@ -269,7 +269,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

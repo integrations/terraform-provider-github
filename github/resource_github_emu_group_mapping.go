@@ -32,8 +32,9 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Description: "Integer corresponding to the external group ID to be linked.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the EMU group mapping.",
 			},
 		},
 	}

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubOrganizationRole(t *testing.T) {
 	t.Run("can create an empty organization role", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		config := fmt.Sprintf(`
 			resource "github_organization_role" "test" {
@@ -39,7 +39,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an empty organization role with a base role", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		baseRole := "read"
 
@@ -70,7 +70,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		baseRole := "none"
 		permission0 := "read_organization_actions_usage_metrics"
@@ -105,7 +105,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role with repo permissions", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		description := "This is a test org role."
 		baseRole := "write"
@@ -143,7 +143,7 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role with org and repo permissions", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		description := "This is a test org role."
 		baseRole := "write"

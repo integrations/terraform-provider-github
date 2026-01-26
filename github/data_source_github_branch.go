@@ -12,30 +12,34 @@ import (
 
 func dataSourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchRead,
+		Description: "Use this data source to retrieve information about a branch in a repository.",
+		Read:        dataSourceGithubBranchRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The GitHub repository name.",
 			},
 			"branch": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The repository branch to retrieve.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the branch object.",
 			},
 			"ref": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A string representing a branch reference, in the form of refs/heads/<branch>.",
 			},
 			"sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The SHA1 of the branch HEAD commit.",
 			},
 		},
 	}
@@ -67,11 +71,11 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	if err != nil {
 		return err
 	}
-	err = d.Set("ref", *ref.Ref)
+	err = d.Set("ref", ref.Ref)
 	if err != nil {
 		return err
 	}
-	err = d.Set("sha", *ref.Object.SHA)
+	err = d.Set("sha", ref.Object.SHA)
 	if err != nil {
 		return err
 	}

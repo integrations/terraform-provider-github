@@ -13,7 +13,7 @@ import (
 
 func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-env-secret-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
@@ -97,7 +97,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-env-secret-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 
@@ -143,7 +143,7 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 }
 
 func TestAccGithubActionsEnvironmentSecretIgnoreChanges(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	repoName := fmt.Sprintf("%srepo-act-env-secret-ic-%s", testResourcePrefix, randomID)
 
 	t.Run("creates environment secrets using lifecycle ignore_changes", func(t *testing.T) {

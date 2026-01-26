@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubOrganizationRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)
 		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
 
@@ -179,7 +179,7 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_push_ruleset", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		rulesetName := fmt.Sprintf("%s-push-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -262,7 +262,7 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("test-acc-ruleset-%s", randomID)
 		nameUpdated := fmt.Sprintf("test-acc-ruleset-updated-%s", randomID)
 
@@ -311,7 +311,7 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		rulesetName := fmt.Sprintf("%s-bypass-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -400,7 +400,7 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		bypassMode := "always"
 		bypassModeUpdated := "exempt"
@@ -457,7 +457,7 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		config := fmt.Sprintf(`
 	resource "github_organization_ruleset" "test" {

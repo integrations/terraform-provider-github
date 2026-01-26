@@ -14,7 +14,7 @@ import (
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
 	t.Run("configures default settings when empty", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -88,7 +88,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures default settings when conversation resolution is true", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -165,7 +165,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures required status checks", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -223,7 +223,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -278,7 +278,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -320,7 +320,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions with node_id", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -370,7 +370,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions with username", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -416,7 +416,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions with blocksCreations false", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -460,7 +460,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures force pushes and deletions", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -505,7 +505,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures non-empty list of force push bypassers", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -550,7 +550,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		repoName := teamName
 		config := fmt.Sprintf(`
@@ -603,7 +603,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures empty list of force push bypassers", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -643,7 +643,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures non-empty list of pull request bypassers", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -686,7 +686,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures empty list of pull request bypassers", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
