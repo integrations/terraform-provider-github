@@ -996,7 +996,6 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(*repo.Name)
 	}
 
 	if d.IsNewResource() || d.HasChange("vulnerability_alerts") {
