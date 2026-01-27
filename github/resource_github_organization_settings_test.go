@@ -25,6 +25,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			has_repository_projects = true
 			default_repository_permission = "read"
 			members_can_create_repositories = true
+			members_can_change_repo_visibility = true
 			members_can_create_public_repositories = true
 			members_can_create_private_repositories = true
 			members_can_create_internal_repositories = false
@@ -45,6 +46,150 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"billing_email", "test@example.com",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"company", "Test Company",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"blog", "https://example.com",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"email", "test@example.com",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"twitter_username", "Test",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"location", "Test Location",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"name", "Test Name",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"description", "Test Description",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"has_organization_projects", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"has_repository_projects", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"default_repository_permission", "read",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_change_repo_visibility", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_public_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_private_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_internal_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_pages", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_public_pages", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_private_pages", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_fork_private_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"web_commit_signoff_required", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"advanced_security_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_alerts_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependabot_security_updates_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"dependency_graph_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_enabled_for_new_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_validity_checks_enabled", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_delete_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_change_repo_visibility", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_invite_outside_collaborators", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_delete_issues", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"display_commenter_full_name_setting_enabled", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"readers_can_create_discussions", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_create_teams", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_view_dependency_insights", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"default_repository_branch", "main",
 			),
 		)
 
@@ -150,6 +295,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 		resource "github_organization_settings" "test" {
 			billing_email = "test@example.com"
 			members_can_create_private_repositories = false
+			members_can_change_repo_visibility = false
 			members_can_create_internal_repositories = false
 			members_can_fork_private_repositories = false
 			web_commit_signoff_required = false
@@ -169,6 +315,10 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"members_can_create_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_change_repo_visibility", "false",
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
@@ -225,6 +375,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 		resource "github_organization_settings" "test" {
 			billing_email = "test@example.com"
 			members_can_create_private_repositories = false
+			members_can_change_repo_visibility = true
 			members_can_create_internal_repositories = true
 			members_can_fork_private_repositories = false
 			web_commit_signoff_required = true
@@ -244,6 +395,10 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"members_can_create_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"members_can_change_repo_visibility", "true",
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
@@ -520,6 +675,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_enabled_for_new_repositories", "true"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "true"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_repositories", "true"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_change_repo_visibility", "true"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_internal_repositories", "true"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "true"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "true"),
@@ -551,6 +707,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				secret_scanning_enabled_for_new_repositories = false
 				secret_scanning_push_protection_enabled_for_new_repositories = false
 				members_can_create_private_repositories = false
+				members_can_change_repo_visibility = false
 				members_can_create_internal_repositories = false
 				members_can_create_pages = false
 				members_can_create_public_pages = false
@@ -567,6 +724,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_enabled_for_new_repositories", "false"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "false"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_change_repo_visibility", "false"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_internal_repositories", "false"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "false"),
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "false"),

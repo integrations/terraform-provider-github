@@ -81,6 +81,12 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Default:     true,
 				Description: "Whether or not organization members can create new repositories.",
 			},
+			"members_can_change_repo_visibility": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Whether or not organization members can change the visibility of repositories.",
+			},
 			"members_can_create_internal_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -251,6 +257,9 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	if shouldInclude("members_can_create_repositories") {
 		settings.MembersCanCreateRepos = github.Ptr(d.Get("members_can_create_repositories").(bool))
 	}
+	if shouldInclude("members_can_change_repo_visibility") {
+		settings.MembersCanChangeRepoVisibility = github.Ptr(d.Get("members_can_change_repo_visibility").(bool))
+	}
 	if shouldInclude("members_can_create_private_repositories") {
 		settings.MembersCanCreatePrivateRepos = github.Ptr(d.Get("members_can_create_private_repositories").(bool))
 	}
@@ -356,6 +365,9 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	}
 	if settings.MembersCanCreateRepos != nil {
 		log.Printf("[DEBUG]   MembersCanCreateRepos: %v", *settings.MembersCanCreateRepos)
+	}
+	if settings.MembersCanChangeRepoVisibility != nil {
+		log.Printf("[DEBUG]   MembersCanChangeRepoVisibility: %v", *settings.MembersCanChangeRepoVisibility)
 	}
 	if settings.MembersCanCreatePrivateRepos != nil {
 		log.Printf("[DEBUG]   MembersCanCreatePrivateRepos: %v", *settings.MembersCanCreatePrivateRepos)
@@ -466,6 +478,9 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 		return err
 	}
 	if err = d.Set("members_can_create_repositories", orgSettings.GetMembersCanCreateRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("members_can_change_repo_visibility", orgSettings.GetMembersCanChangeRepoVisibility()); err != nil {
 		return err
 	}
 	if err = d.Set("members_can_create_internal_repositories", orgSettings.GetMembersCanCreateInternalRepos()); err != nil {
