@@ -362,7 +362,7 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		"team_slug": teamSlug,
 	})
 
-	teamID, err := getTeamID(teamSlug, meta)
+	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +429,7 @@ func hasNewTeamID(ctx context.Context, diff *schema.ResourceDiff, meta any) bool
 
 	// Resolve new team_slug to team ID via API
 	oldTeamSlug, newTeamSlug := diff.GetChange("team_slug")
-	newTeamID, err := getTeamID(newTeamSlug.(string), meta)
+	newTeamID, err := lookupTeamID(ctx, meta.(*Owner), newTeamSlug.(string))
 	if err != nil {
 		// If team doesn't exist or API fails, skip ForceNew check and let Read handle it
 		tflog.Debug(ctx, "Unable to resolve new team_slug to team ID, skipping ForceNew check", map[string]any{

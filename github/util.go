@@ -370,3 +370,15 @@ func toInt64(v any) int64 {
 		return 0
 	}
 }
+
+// lookupTeamID looks up the ID of a team by its slug.
+func lookupTeamID(ctx context.Context, meta *Owner, slug string) (int64, error) {
+	client := meta.v3client
+	owner := meta.name
+
+	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, slug)
+	if err != nil {
+		return 0, err
+	}
+	return team.GetID(), nil
+}
