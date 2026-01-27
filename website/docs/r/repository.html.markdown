@@ -140,9 +140,9 @@ initial repository creation and create the target branch inside of the repositor
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
-* `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
+* `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings. To manage this setting, admin permissions are required; use `ignore_vulnerability_alerts` if you lack permissions.
 
-* `ignore_vulnerability_alerts` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions.
+* `ignore_vulnerability_alerts` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions. When enabled, the `vulnerability_alerts` setting is not managed.
 
 * `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read. If `ignore_vulnerability_alerts` is set, this field is ignored.
 
