@@ -1422,7 +1422,7 @@ resource "github_repository" "test" {
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
-						resource.TestCheckResourceAttr("github_repository.test", "private", "false"),
+						resource.TestCheckResourceAttr("github_repository.test", "private", "true"),
 					),
 				},
 			},
