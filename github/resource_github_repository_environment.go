@@ -240,7 +240,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 
 	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, url.PathEscape(envName))
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
 	}
 
 	return nil
