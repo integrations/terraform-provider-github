@@ -465,7 +465,6 @@ func TestPreviewHeaderInjectorTransport_RoundTrip(t *testing.T) {
 
 			// Execute RoundTrip
 			resp, err := injector.RoundTrip(req)
-
 			// Verify no error
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -504,7 +503,7 @@ func TestPreviewHeaderInjectorTransport_RoundTrip(t *testing.T) {
 	}
 }
 
-// mockRoundTripper is a mock implementation of http.RoundTripper for testing
+// mockRoundTripper is a mock implementation of http.RoundTripper for testing.
 type mockRoundTripper struct {
 	roundTripFunc func(*http.Request) (*http.Response, error)
 }
