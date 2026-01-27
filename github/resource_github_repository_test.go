@@ -418,20 +418,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
 				},
 			},
 		})
@@ -453,20 +448,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.owner, testAccConf.testOrgTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
 				},
 			},
 		})
@@ -791,40 +781,23 @@ resource "github_repository" "test" {
 						`, testRepoName, updatedMergeCommitTitle, updatedMergeCommitMessage),
 		}
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					mergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					mergeCommitMessage,
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					updatedMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					updatedMergeCommitMessage,
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", mergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", mergeCommitMessage),
+					),
 				},
 				{
 					Config: configs["after"],
-					Check:  checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", updatedMergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", updatedMergeCommitMessage),
+					),
 				},
 			},
 		})
@@ -860,24 +833,12 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					squashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					squashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", squashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", squashMergeCommitMessage),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					updatedSquashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					updatedSquashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", updatedSquashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", updatedSquashMergeCommitMessage),
 			),
 		}
 
