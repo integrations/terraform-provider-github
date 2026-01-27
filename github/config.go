@@ -193,7 +193,7 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 			// If one has been set, it's necessary to preserve it as-is, without
 			// appending previewHeaders value.
 			// See https://github.com/google/go-github/pull/3392
-		} else if !(strings.ToLower(name) == "accept" && header == "application/octet-stream") {
+		} else if strings.ToLower(name) != "accept" || header != "application/octet-stream" {
 			header = strings.Join([]string{header, value}, ",")
 		}
 		req.Header.Set(name, header)
