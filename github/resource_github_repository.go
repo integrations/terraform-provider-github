@@ -995,7 +995,6 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(*repo.Name)
 	}
 
 	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
