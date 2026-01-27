@@ -650,9 +650,6 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	owner := meta.(*Owner).name
 	repoName := repoReq.GetName()
 
-	// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
-	isPrivate := repoReq.GetVisibility() == "private" || repoReq.GetVisibility() == "internal"
-	repoReq.Private = github.Ptr(isPrivate)
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
 
@@ -666,11 +663,14 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			templateRepoOwner := templateConfigMap["owner"].(string)
 			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
 
+			// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
+			private := repoReq.GetVisibility() != "public"
+
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:               &repoName,
 				Owner:              &owner,
 				Description:        github.Ptr(d.Get("description").(string)),
-				Private:            github.Ptr(isPrivate),
+				Private:            github.Ptr(private),
 				IncludeAllBranches: github.Ptr(includeAllBranches),
 			}
 
