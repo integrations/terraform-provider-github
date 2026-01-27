@@ -23,12 +23,7 @@ func resourceGithubRepository() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryUpdate,
 		DeleteContext: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				if err := d.Set("auto_init", false); err != nil {
-					return nil, err
-				}
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGithubRepositoryImport,
 		},
 
 		SchemaVersion: 1,
@@ -409,6 +404,7 @@ func resourceGithubRepository() *schema.Resource {
 			"ignore_vulnerability_alerts_during_read": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     false,
 				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
 			},
 			"full_name": {
@@ -634,7 +630,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure allow forking if repository is not public
-	if allowForking, ok := d.GetOk("allow_forking"); ok && visibility != "public" {
+	if allowForking, ok := d.GetOkExists("allow_forking"); ok && visibility != "public" { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
 		if val, ok := allowForking.(bool); ok {
 			repository.AllowForking = github.Ptr(val)
 		}
@@ -771,11 +767,6 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		if err != nil {
 			return diag.FromErr(err)
 		}
-	}
-
-	err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
-	if err != nil {
-		return diag.FromErr(err)
 	}
 
 	return resourceGithubRepositoryUpdate(ctx, d, meta)
@@ -1013,10 +1004,12 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	if d.HasChange("vulnerability_alerts") {
-		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
-		if err != nil {
-			return diag.FromErr(err)
+	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+		if val, ok := v.(bool); ok {
+			err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
@@ -1063,6 +1056,16 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
 	return diag.FromErr(err)
+}
+
+func resourceGithubRepositoryImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	if err := d.Set("auto_init", false); err != nil {
+		return nil, err
+	}
+	if err := d.Set("ignore_vulnerability_alerts_during_read", true); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 func expandPages(input []any) *github.Pages {
@@ -1240,23 +1243,17 @@ func resourceGithubParseFullName(resourceDataLike interface {
 	return parts[0], parts[1], true
 }
 
-func updateVulnerabilityAlerts(d *schema.ResourceData, client *github.Client, ctx context.Context, owner, repoName string) error {
-	updateVulnerabilityAlertsSDK := client.Repositories.DisableVulnerabilityAlerts
-	vulnerabilityAlerts, ok := d.GetOk("vulnerability_alerts")
+func updateVulnerabilityAlerts(ctx context.Context, client *github.Client, owner, repoName string, state bool) error {
+	var err error
 
-	// Only if the vulnerability alerts are specifically set to true, enable them.
-	// Otherwise, disable them as GitHub defaults to enabled and we have not wanted to introduce a breaking change for this yet.
-	if ok && vulnerabilityAlerts.(bool) {
-		updateVulnerabilityAlertsSDK = client.Repositories.EnableVulnerabilityAlerts
+	if state {
+		_, err = client.Repositories.EnableVulnerabilityAlerts(ctx, owner, repoName)
+	} else {
+		_, err = client.Repositories.DisableVulnerabilityAlerts(ctx, owner, repoName)
 	}
-
-	resp, err := updateVulnerabilityAlertsSDK(ctx, owner, repoName)
 	if err != nil {
-		// Check if the error is because an Organization or Enterprise policy is preventing the change
-		// This is a temporary workaround while we extract Vulnerability Alerts into a separate resource.
-		if resp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "An enforced security configuration prevented modifying") && !ok {
-			return nil
-		}
+		return err
 	}
-	return err
+
+	return nil
 }
