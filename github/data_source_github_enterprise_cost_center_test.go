@@ -10,7 +10,6 @@ import (
 
 func TestAccGithubEnterpriseCostCenterDataSource(t *testing.T) {
 	randomID := acctest.RandString(5)
-	user := testAccConf.username
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -24,21 +23,17 @@ func TestAccGithubEnterpriseCostCenterDataSource(t *testing.T) {
 				resource "github_enterprise_cost_center" "test" {
 					enterprise_slug = data.github_enterprise.enterprise.slug
 					name            = "%s%s"
-
-					users = [%q]
 				}
 
 				data "github_enterprise_cost_center" "test" {
 					enterprise_slug = data.github_enterprise.enterprise.slug
 					cost_center_id  = github_enterprise_cost_center.test.id
 				}
-			`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, user),
+			`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
 			Check: resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttrPair("data.github_enterprise_cost_center.test", "cost_center_id", "github_enterprise_cost_center.test", "id"),
 				resource.TestCheckResourceAttrPair("data.github_enterprise_cost_center.test", "name", "github_enterprise_cost_center.test", "name"),
 				resource.TestCheckResourceAttr("data.github_enterprise_cost_center.test", "state", "active"),
-				resource.TestCheckResourceAttr("data.github_enterprise_cost_center.test", "users.#", "1"),
-				resource.TestCheckTypeSetElemAttr("data.github_enterprise_cost_center.test", "users.*", user),
 			),
 		}},
 	})

@@ -89,7 +89,11 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 	if state != nil {
 		stateStr = *state
 	}
-	d.SetId(buildTwoPartID(enterpriseSlug, stateStr))
+	id, err := buildID(enterpriseSlug, stateStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
 	if err := d.Set("cost_centers", items); err != nil {
 		return diag.FromErr(err)
 	}
