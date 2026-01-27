@@ -201,6 +201,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
 										Optional:    true,
+										Computed:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
@@ -644,6 +645,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
 
 	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
 		"owner":      owner,
