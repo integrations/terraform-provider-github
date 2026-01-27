@@ -411,6 +411,11 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
 			},
+			"ignore_vulnerability_alerts": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions.",
+			},
 			"full_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -773,9 +778,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
-	if err != nil {
-		return diag.FromErr(err)
+	if !d.Get("ignore_vulnerability_alerts").(bool) {
+		err := updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return resourceGithubRepositoryUpdate(ctx, d, meta)
@@ -896,7 +903,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
+	if !d.Get("ignore_vulnerability_alerts").(bool) && !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return diag.Errorf("error reading repository vulnerability alerts: %s", err.Error())
@@ -1013,7 +1020,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	if d.HasChange("vulnerability_alerts") {
+	if !d.Get("ignore_vulnerability_alerts").(bool) && d.HasChange("vulnerability_alerts") {
 		err = updateVulnerabilityAlerts(d, client, ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)

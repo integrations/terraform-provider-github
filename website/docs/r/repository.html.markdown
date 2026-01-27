@@ -144,6 +144,8 @@ initial repository creation and create the target branch inside of the repositor
 
 * `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
 
+* `ignore_vulnerability_alerts` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions.
+
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
 ### GitHub Pages Configuration
