@@ -82,7 +82,31 @@ func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Res
 		return diag.FromErr(err)
 	}
 
-	if err := setCostCenterResourceFields(d, cc); err != nil {
+	// Extract resources by type
+	users := make([]string, 0)
+	organizations := make([]string, 0)
+	repositories := make([]string, 0)
+	for _, resource := range cc.Resources {
+		if resource == nil {
+			continue
+		}
+		switch resource.Type {
+		case "User":
+			users = append(users, resource.Name)
+		case "Org":
+			organizations = append(organizations, resource.Name)
+		case "Repo":
+			repositories = append(repositories, resource.Name)
+		}
+	}
+
+	if err := d.Set("users", users); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("organizations", organizations); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repositories", repositories); err != nil {
 		return diag.FromErr(err)
 	}
 
