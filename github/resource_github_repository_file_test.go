@@ -335,4 +335,106 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("handles files larger than 1MB", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		initialContent := strings.Repeat("A", 1200000)
+		updatedContent := strings.Repeat("B", 1200000)
+
+		initialConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "tf-acc-test-large-file-%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "large-file.txt"
+				content        = %q
+				commit_message = "Add large file (>1MB) to test raw encoding"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, randomID, initialContent)
+
+		updatedConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "tf-acc-test-large-file-%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "large-file.txt"
+				content        = %q
+				commit_message = "Update large file (>1MB) to test raw encoding on read"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, randomID, updatedContent)
+
+		initialCheck := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				initialContent,
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "sha",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "file",
+				"large-file.txt",
+			),
+		)
+
+		updatedCheck := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_file.test", "content",
+				updatedContent,
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "sha",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_repository_file.test", "commit_sha",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: initialConfig,
+						Check:  initialCheck,
+					},
+					{
+						Config: updatedConfig,
+						Check:  updatedCheck,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }
