@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 run:
   modules-download-mode: vendor
 
@@ -45,7 +45,7 @@ linters:
         text: always receives
       - linters:
           - staticcheck
-        text: 'SA1019.*ByID.*deprecated'
+        text: "SA1019.*ByID.*deprecated"
 
 issues:
   max-issues-per-linter: 0
