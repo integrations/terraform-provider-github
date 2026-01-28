@@ -98,7 +98,7 @@ resource "github_repository_ruleset" "example_push" {
 
 - `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
+- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. Required for branch and tag rulesets. Must NOT be set for push rulesets. (see [below for nested schema](#conditions))
 
 - `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
@@ -294,7 +294,7 @@ The `rules` block supports the following:
 
 #### conditions ####
 
-- `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
+- `ref_name` - (Optional) (Block List, Max: 1) Required for branch and tag rulesets. Must NOT be set for push rulesets. (see [below for nested schema](#conditions.ref_name))
 
 #### conditions.ref_name ####
 
