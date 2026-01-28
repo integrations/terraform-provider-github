@@ -100,7 +100,7 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
-* `allow_forking` - (Optional) Set to `true` to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.
+* `allow_forking` - (Optional) Configure private forking for organization owned private and internal repositories; set to `true` to enable, `false` to disable, and leave unset for the default behaviour. Configuring this requires that private forking is not being explicitly configured at the organization level.
 
 * `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title. Applicable only if `allow_squash_merge` is `true`.
 
@@ -140,9 +140,9 @@ initial repository creation and create the target branch inside of the repositor
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
-* `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
+* `vulnerability_alerts` - (Optional) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to `true` to enable, set to `false` to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level.
 
-* `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
+* `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read, if this is set to `true` and `vulnerability_alerts` is unset then the computed value of `vulnerability_alerts` will be nil.
 
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
@@ -245,6 +245,6 @@ The following additional attributes are exported:
 
 Repositories can be imported using the `name`, e.g.
 
-```text
-$ terraform import github_repository.terraform terraform
+```shell
+terraform import github_repository.terraform myrepo
 ```
