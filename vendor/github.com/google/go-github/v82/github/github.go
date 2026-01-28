@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	Version = "v81.0.0"
+	Version = "v82.0.0"
 
 	defaultAPIVersion = "2022-11-28"
 	defaultBaseURL    = "https://api.github.com/"
@@ -336,6 +336,10 @@ func addOptions(s string, opts any) (string, error) {
 // authentication, either use Client.WithAuthToken or provide NewClient with
 // an http.Client that will perform the authentication for you (such as that
 // provided by the golang.org/x/oauth2 library).
+//
+// Note: When using a nil httpClient, the default client has no timeout set.
+// This may not be suitable for production environments. It is recommended to
+// provide a custom http.Client with an appropriate timeout.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
@@ -1523,6 +1527,7 @@ const (
 	DependencySnapshotsCategory
 	CodeSearchCategory
 	AuditLogCategory
+	DependencySBOMCategory
 
 	Categories // An array of this length will be able to contain all rate limit categories.
 )
@@ -1573,6 +1578,11 @@ func GetRateLimitCategory(method, path string) RateLimitCategory {
 	// https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/orgs?apiVersion=2022-11-28#get-the-audit-log-for-an-organization
 	case strings.HasSuffix(path, "/audit-log"):
 		return AuditLogCategory
+
+	// https://docs.github.com/en/rest/dependency-graph/sboms?apiVersion=2022-11-28#export-a-software-bill-of-materials-sbom-for-a-repository
+	case strings.HasPrefix(path, "/repos/") &&
+		strings.HasSuffix(path, "/dependency-graph/sbom"):
+		return DependencySBOMCategory
 	}
 }
 
