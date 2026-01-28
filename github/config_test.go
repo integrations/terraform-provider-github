@@ -390,7 +390,7 @@ func TestPreviewHeaderInjectorTransport_RoundTrip(t *testing.T) {
 			existingHeaders: map[string]string{},
 			expectedHeaders: map[string]string{
 				"Accept":               "application/vnd.github.v3+json",
-				"X-GitHub-Api-Version": "2022-11-28",
+				"X-Github-Api-Version": "2022-11-28",
 			},
 			expectRoundTripCall: true,
 		},
@@ -406,7 +406,7 @@ func TestPreviewHeaderInjectorTransport_RoundTrip(t *testing.T) {
 			},
 			expectedHeaders: map[string]string{
 				"Accept":               "application/json,application/vnd.github.v3+json",
-				"X-GitHub-Api-Version": "2021-01-01,2022-11-28",
+				"X-Github-Api-Version": "2021-01-01,2022-11-28",
 			},
 			expectRoundTripCall: true,
 		},
