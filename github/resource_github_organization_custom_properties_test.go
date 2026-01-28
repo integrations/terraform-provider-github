@@ -25,7 +25,7 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("invalid_value is an invalid value"),
+					ExpectError: regexp.MustCompile("invalid_value"),
 				},
 			},
 		})

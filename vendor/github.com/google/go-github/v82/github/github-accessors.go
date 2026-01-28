@@ -2222,6 +2222,14 @@ func (b *BypassActor) GetBypassMode() *BypassMode {
 	return b.BypassMode
 }
 
+// GetSecurityConfigurationID returns the SecurityConfigurationID field if it's non-nil, zero value otherwise.
+func (b *BypassReviewer) GetSecurityConfigurationID() int64 {
+	if b == nil || b.SecurityConfigurationID == nil {
+		return 0
+	}
+	return *b.SecurityConfigurationID
+}
+
 // GetApp returns the App field.
 func (c *CheckRun) GetApp() *App {
 	if c == nil {
@@ -3436,6 +3444,22 @@ func (c *CodeSecurityConfiguration) GetSecretScanningDelegatedAlertDismissal() s
 		return ""
 	}
 	return *c.SecretScanningDelegatedAlertDismissal
+}
+
+// GetSecretScanningDelegatedBypass returns the SecretScanningDelegatedBypass field if it's non-nil, zero value otherwise.
+func (c *CodeSecurityConfiguration) GetSecretScanningDelegatedBypass() string {
+	if c == nil || c.SecretScanningDelegatedBypass == nil {
+		return ""
+	}
+	return *c.SecretScanningDelegatedBypass
+}
+
+// GetSecretScanningDelegatedBypassOptions returns the SecretScanningDelegatedBypassOptions field.
+func (c *CodeSecurityConfiguration) GetSecretScanningDelegatedBypassOptions() *SecretScanningDelegatedBypassOptions {
+	if c == nil {
+		return nil
+	}
+	return c.SecretScanningDelegatedBypassOptions
 }
 
 // GetSecretScanningGenericSecrets returns the SecretScanningGenericSecrets field if it's non-nil, zero value otherwise.
@@ -7102,14 +7126,6 @@ func (c *CustomPatternBackfillScan) GetPatternSlug() string {
 	return *c.PatternSlug
 }
 
-// GetDefaultValue returns the DefaultValue field if it's non-nil, zero value otherwise.
-func (c *CustomProperty) GetDefaultValue() string {
-	if c == nil || c.DefaultValue == nil {
-		return ""
-	}
-	return *c.DefaultValue
-}
-
 // GetDescription returns the Description field if it's non-nil, zero value otherwise.
 func (c *CustomProperty) GetDescription() string {
 	if c == nil || c.Description == nil {
@@ -10196,6 +10212,14 @@ func (g *GenerateJITConfigRequest) GetWorkFolder() string {
 		return ""
 	}
 	return *g.WorkFolder
+}
+
+// GetConfigurationFilePath returns the ConfigurationFilePath field if it's non-nil, zero value otherwise.
+func (g *GenerateNotesOptions) GetConfigurationFilePath() string {
+	if g == nil || g.ConfigurationFilePath == nil {
+		return ""
+	}
+	return *g.ConfigurationFilePath
 }
 
 // GetPreviousTagName returns the PreviousTagName field if it's non-nil, zero value otherwise.
@@ -22598,6 +22622,14 @@ func (r *RateLimits) GetCore() *Rate {
 	return r.Core
 }
 
+// GetDependencySBOM returns the DependencySBOM field.
+func (r *RateLimits) GetDependencySBOM() *Rate {
+	if r == nil {
+		return nil
+	}
+	return r.DependencySBOM
+}
+
 // GetDependencySnapshots returns the DependencySnapshots field.
 func (r *RateLimits) GetDependencySnapshots() *Rate {
 	if r == nil {
@@ -23902,10 +23934,10 @@ func (r *Repository) GetParent() *Repository {
 	return r.Parent
 }
 
-// GetPermissions returns the Permissions map if it's non-nil, an empty map otherwise.
-func (r *Repository) GetPermissions() map[string]bool {
-	if r == nil || r.Permissions == nil {
-		return map[string]bool{}
+// GetPermissions returns the Permissions field.
+func (r *Repository) GetPermissions() *RepositoryPermissions {
+	if r == nil {
+		return nil
 	}
 	return r.Permissions
 }
@@ -25020,6 +25052,46 @@ func (r *RepositoryPermissionLevel) GetUser() *User {
 		return nil
 	}
 	return r.User
+}
+
+// GetAdmin returns the Admin field if it's non-nil, zero value otherwise.
+func (r *RepositoryPermissions) GetAdmin() bool {
+	if r == nil || r.Admin == nil {
+		return false
+	}
+	return *r.Admin
+}
+
+// GetMaintain returns the Maintain field if it's non-nil, zero value otherwise.
+func (r *RepositoryPermissions) GetMaintain() bool {
+	if r == nil || r.Maintain == nil {
+		return false
+	}
+	return *r.Maintain
+}
+
+// GetPull returns the Pull field if it's non-nil, zero value otherwise.
+func (r *RepositoryPermissions) GetPull() bool {
+	if r == nil || r.Pull == nil {
+		return false
+	}
+	return *r.Pull
+}
+
+// GetPush returns the Push field if it's non-nil, zero value otherwise.
+func (r *RepositoryPermissions) GetPush() bool {
+	if r == nil || r.Push == nil {
+		return false
+	}
+	return *r.Push
+}
+
+// GetTriage returns the Triage field if it's non-nil, zero value otherwise.
+func (r *RepositoryPermissions) GetTriage() bool {
+	if r == nil || r.Triage == nil {
+		return false
+	}
+	return *r.Triage
 }
 
 // GetAssetsURL returns the AssetsURL field if it's non-nil, zero value otherwise.
