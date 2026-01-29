@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -103,7 +103,7 @@ func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
 			if (err != nil) != d.shouldError {
 				t.Fatalf("unexpected error state: %s", err.Error())
 			}
-			if diff := deep.Equal(got, expectedState); !d.shouldError && diff != nil {
+			if diff := cmp.Diff(expectedState, got); !d.shouldError && diff != "" {
 				t.Fatal(diff)
 			}
 		})
