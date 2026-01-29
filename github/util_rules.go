@@ -174,8 +174,47 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 		}
 	}
 
-	// org-only fields
+	// org-only fields (includes enterprise rulesets)
 	if org {
+		// organization_name (enterprise-only)
+		if v, ok := inputConditions["organization_name"].([]any); ok && v != nil && len(v) != 0 {
+			inputOrgName := v[0].(map[string]any)
+			include := make([]string, 0)
+			exclude := make([]string, 0)
+
+			for _, v := range inputOrgName["include"].([]any) {
+				if v != nil {
+					include = append(include, v.(string))
+				}
+			}
+
+			for _, v := range inputOrgName["exclude"].([]any) {
+				if v != nil {
+					exclude = append(exclude, v.(string))
+				}
+			}
+
+			rulesetConditions.OrganizationName = &github.RepositoryRulesetOrganizationNamesConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
+		}
+
+		// organization_id (enterprise-only)
+		if v, ok := inputConditions["organization_id"].([]any); ok && v != nil && len(v) != 0 {
+			organizationIDs := make([]int64, 0)
+
+			for _, v := range v {
+				if v != nil {
+					organizationIDs = append(organizationIDs, toInt64(v))
+				}
+			}
+
+			rulesetConditions.OrganizationID = &github.RepositoryRulesetOrganizationIDsConditionParameters{
+				OrganizationIDs: organizationIDs,
+			}
+		}
+
 		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]any)
@@ -232,8 +271,23 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 
 	conditionsMap["ref_name"] = refNameSlice
 
-	// org-only fields
+	// org-only fields (includes enterprise rulesets)
 	if org {
+		// organization_name (enterprise-only)
+		if conditions.OrganizationName != nil {
+			organizationNameSlice := make([]map[string]any, 0)
+			organizationNameSlice = append(organizationNameSlice, map[string]any{
+				"include": conditions.OrganizationName.Include,
+				"exclude": conditions.OrganizationName.Exclude,
+			})
+			conditionsMap["organization_name"] = organizationNameSlice
+		}
+
+		// organization_id (enterprise-only)
+		if conditions.OrganizationID != nil {
+			conditionsMap["organization_id"] = conditions.OrganizationID.OrganizationIDs
+		}
+
 		repositoryNameSlice := make([]map[string]any, 0)
 
 		if conditions.RepositoryName != nil {
@@ -254,6 +308,7 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 		if conditions.RepositoryID != nil {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
+
 	}
 
 	return []any{conditionsMap}
@@ -525,6 +580,37 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		rulesetRules.CopilotCodeReview = params
 	}
 
+	// Repository target rules
+	if v, ok := rulesMap["repository_creation"].(bool); ok && v {
+		rulesetRules.RepositoryCreate = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_deletion"].(bool); ok && v {
+		rulesetRules.RepositoryDelete = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_transfer"].(bool); ok && v {
+		rulesetRules.RepositoryTransfer = &github.EmptyRuleParameters{}
+	}
+
+	if v, ok := rulesMap["repository_name"].([]any); ok && len(v) != 0 {
+		repoNameMap := v[0].(map[string]any)
+		params := &github.SimplePatternRuleParameters{
+			Negate:  repoNameMap["negate"].(bool),
+			Pattern: repoNameMap["pattern"].(string),
+		}
+		rulesetRules.RepositoryName = params
+	}
+
+	if v, ok := rulesMap["repository_visibility"].([]any); ok && len(v) != 0 {
+		visibilityMap := v[0].(map[string]any)
+		params := &github.RepositoryVisibilityRuleParameters{
+			Internal: visibilityMap["internal"].(bool),
+			Private:  visibilityMap["private"].(bool),
+		}
+		rulesetRules.RepositoryVisibility = params
+	}
+
 	return rulesetRules
 }
 
@@ -749,6 +835,29 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
 		})
 		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
+	}
+
+	// Repository target rules
+	rulesMap["repository_creation"] = rules.RepositoryCreate != nil
+	rulesMap["repository_deletion"] = rules.RepositoryDelete != nil
+	rulesMap["repository_transfer"] = rules.RepositoryTransfer != nil
+
+	if rules.RepositoryName != nil {
+		repoNameSlice := make([]map[string]any, 0)
+		repoNameSlice = append(repoNameSlice, map[string]any{
+			"negate":  rules.RepositoryName.Negate,
+			"pattern": rules.RepositoryName.Pattern,
+		})
+		rulesMap["repository_name"] = repoNameSlice
+	}
+
+	if rules.RepositoryVisibility != nil {
+		visibilitySlice := make([]map[string]any, 0)
+		visibilitySlice = append(visibilitySlice, map[string]any{
+			"internal": rules.RepositoryVisibility.Internal,
+			"private":  rules.RepositoryVisibility.Private,
+		})
+		rulesMap["repository_visibility"] = visibilitySlice
 	}
 
 	return []any{rulesMap}
