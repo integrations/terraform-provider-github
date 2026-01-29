@@ -1,0 +1,27 @@
+---
+layout: "github"
+page_title: "GitHub: github_actions_remove_token"
+description: |-
+  Get a GitHub Actions repository remove token.
+---
+
+# actions_remove_token
+
+Use this data source to retrieve a GitHub Actions repository remove token. This token can then be used to remove a self-hosted runner.
+
+## Example Usage
+
+```hcl
+data "github_actions_remove_token" "example" {
+  repository = "example_repo"
+}
+```
+
+## Argument Reference
+
+ * `repository` - (Required) Name of the repository to get a GitHub Actions remove token for.
+
+## Attributes Reference
+
+ * `token` - The token that has been retrieved.
+ * `expires_at` - The token expiration date.
