@@ -23,25 +23,25 @@ import (
 //     Push rulesets will reject branch/tag rules with "Invalid rule '<name>'" error.
 //  3. Generally, push rules deal with file content (paths, sizes, extensions),
 //     while branch/tag rules deal with ref lifecycle and merge requirements.
-var branchTagOnlyRules = []string{
-	"creation",
-	"update",
-	"deletion",
-	"required_linear_history",
-	"required_signatures",
-	"pull_request",
-	"required_status_checks",
-	"non_fast_forward",
-	"commit_message_pattern",
-	"commit_author_email_pattern",
-	"committer_email_pattern",
-	"branch_name_pattern",
-	"tag_name_pattern",
-	"required_workflows",
-	"required_code_scanning",
-	"required_deployments",
-	"merge_queue",
-	"copilot_code_review",
+var branchTagOnlyRules = []github.RepositoryRuleType{
+	github.RulesetRuleTypeCreation,
+	github.RulesetRuleTypeUpdate,
+	github.RulesetRuleTypeDeletion,
+	github.RulesetRuleTypeRequiredLinearHistory,
+	github.RulesetRuleTypeRequiredSignatures,
+	github.RulesetRuleTypePullRequest,
+	github.RulesetRuleTypeRequiredStatusChecks,
+	github.RulesetRuleTypeNonFastForward,
+	github.RulesetRuleTypeCommitMessagePattern,
+	github.RulesetRuleTypeCommitAuthorEmailPattern,
+	github.RulesetRuleTypeCommitterEmailPattern,
+	github.RulesetRuleTypeBranchNamePattern,
+	github.RulesetRuleTypeTagNamePattern,
+	github.RulesetRuleTypeWorkflows,
+	github.RulesetRuleTypeCodeScanning,
+	github.RulesetRuleTypeRequiredDeployments,
+	github.RulesetRuleTypeMergeQueue,
+	github.RulesetRuleTypeCopilotCodeReview,
 }
 
 // pushOnlyRules contains rules that are only valid for push targets.
@@ -56,11 +56,11 @@ var branchTagOnlyRules = []string{
 //     attempt to create a branch ruleset via API or UI with each rule type.
 //     Branch rulesets will reject push-only rules with an error.
 //  3. Push rules control file content: paths, sizes, extensions, path lengths.
-var pushOnlyRules = []string{
-	"file_path_restriction",
-	"max_file_path_length",
-	"file_extension_restriction",
-	"max_file_size",
+var pushOnlyRules = []github.RepositoryRuleType{
+	github.RulesetRuleTypeFilePathRestriction,
+	github.RulesetRuleTypeMaxFilePathLength,
+	github.RulesetRuleTypeFileExtensionRestriction,
+	github.RulesetRuleTypeMaxFileSize,
 }
 
 func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
@@ -86,7 +86,7 @@ func validateRulesForBranchTagTarget(ctx context.Context, d *schema.ResourceDiff
 	return validateRules(ctx, d, branchTagOnlyRules)
 }
 
-func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []string) error {
+func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []github.RepositoryRuleType) error {
 	target := github.RulesetTarget(d.Get("target").(string))
 	rules := d.Get("rules").([]any)[0].(map[string]any)
 	for ruleName := range rules {
@@ -108,7 +108,7 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []s
 				continue
 			}
 		}
-		if slices.Contains(allowedRules, ruleName) {
+		if slices.Contains(allowedRules, github.RepositoryRuleType(ruleName)) {
 			continue
 		} else {
 			tflog.Debug(ctx, fmt.Sprintf("Invalid rule for %s target", target), map[string]any{"rule": ruleName, "value": ruleValue})
