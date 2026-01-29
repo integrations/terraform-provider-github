@@ -888,7 +888,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Test flatten functionality (organization rulesets use org=true)
-	flattenedResult := flattenRules(expandedRules, true)
+	flattenedResult := flattenRules(t.Context(), expandedRules, true)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))

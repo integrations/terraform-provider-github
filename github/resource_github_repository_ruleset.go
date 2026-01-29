@@ -657,7 +657,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
+	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, false))
 
 	return nil
 }
@@ -704,8 +704,8 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	_ = d.Set("target", ruleset.GetTarget())
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
+	_ = d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false))
+	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, false))
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
