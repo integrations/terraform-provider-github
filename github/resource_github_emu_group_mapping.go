@@ -208,7 +208,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	teamID, err := matchTeamID(ctx, meta, teamSlug, group.Teams)
+	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
 	if err != nil {
 		return diag.FromErr(err)
 	}
