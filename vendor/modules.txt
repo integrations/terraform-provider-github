@@ -62,9 +62,6 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v73 v73.0.0
-## explicit; go 1.23.0
-github.com/google/go-github/v73/github
 # github.com/google/go-github/v82 v82.0.0
 ## explicit; go 1.24.0
 github.com/google/go-github/v82/github
@@ -74,9 +71,6 @@ github.com/google/go-querystring/query
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/mux v1.8.1
-## explicit; go 1.20
-github.com/gorilla/mux
 # github.com/hashicorp/errwrap v1.0.0
 ## explicit
 github.com/hashicorp/errwrap
@@ -215,9 +209,6 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/migueleliasweb/go-github-mock v1.5.0
-## explicit; go 1.24.4
-github.com/migueleliasweb/go-github-mock/src/mock
 # github.com/mitchellh/copystructure v1.2.0
 ## explicit; go 1.15
 github.com/mitchellh/copystructure
@@ -322,9 +313,6 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.11.0
-## explicit; go 1.23.0
-golang.org/x/time/rate
 # golang.org/x/tools v0.40.0
 ## explicit; go 1.24.0
 golang.org/x/tools/cmd/stringer

@@ -1,15 +1,15 @@
 package github
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/migueleliasweb/go-github-mock/src/mock"
 )
 
 type (
@@ -41,30 +41,38 @@ func testResourceGithubEMUGroupMappingInstanceStateDataV1(t *testing.T) map[stri
 	return v0
 }
 
-func buildMockClientForMigrationV0toV1() *http.Client {
-	return mock.NewMockedHTTPClient(
-		mock.WithRequestMatch(
-			mock.GetOrgsTeamsExternalGroupsByOrgByTeamSlug,
-			github.ExternalGroupList{
-				Groups: []*github.ExternalGroup{
-					{
-						GroupID: github.Ptr(int64(testGroupID)),
-						Teams: []*github.ExternalGroupTeam{
-							{
-								TeamID: github.Ptr(int64(testTeamID)),
-							},
-						},
-					},
-				},
+func buildMockResponsesForMigrationV0toV1() []*mockResponse {
+	return []*mockResponse{
+		{
+			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s/external-groups", "test-org", "test-team"),
+			ExpectedHeaders: map[string]string{
+				"Accept": "application/vnd.github.v3+json",
 			},
-		),
-		mock.WithRequestMatch(
-			mock.GetOrgsTeamsByOrgByTeamSlug,
-			github.Team{
-				ID: github.Ptr(int64(testTeamID)),
+			ResponseBody: fmt.Sprintf(`
+{
+	"groups": [
+		{
+			"group_id": %d,
+			"group_name": "test-group",
+			"updated_at": "2021-01-24T11:31:04-06:00"
+		}
+	]
+}`, int64(testGroupID)),
+			StatusCode: 201,
+		},
+		{
+			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s", "test-org", "test-team"),
+			ExpectedHeaders: map[string]string{
+				"Accept": "application/vnd.github.v3+json",
 			},
-		),
-	)
+			ResponseBody: fmt.Sprintf(`
+{
+	"id": %d
+}
+`, testTeamID),
+			StatusCode: 200,
+		},
+	}
 }
 
 func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
@@ -75,27 +83,35 @@ func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
 	}
 
 	for _, d := range []struct {
-		testName      string
-		migrationFunc schema.StateUpgradeFunc
-		rawState      currentStateFunc
-		want          expectedStateFunc
-		buildClient   func() *http.Client
-		shouldError   bool
+		testName           string
+		migrationFunc      schema.StateUpgradeFunc
+		rawState           currentStateFunc
+		want               expectedStateFunc
+		buildMockResponses func() []*mockResponse
+		shouldError        bool
 	}{
 		{
-			testName:      "migrates v0 to v1",
-			migrationFunc: resourceGithubEMUGroupMappingInstanceStateUpgradeV0,
-			rawState:      testResourceGithubEMUGroupMappingInstanceStateDataV0,
-			want:          testResourceGithubEMUGroupMappingInstanceStateDataV1,
-			buildClient:   buildMockClientForMigrationV0toV1,
-			shouldError:   false,
+			testName:           "migrates v0 to v1",
+			migrationFunc:      resourceGithubEMUGroupMappingInstanceStateUpgradeV0,
+			rawState:           testResourceGithubEMUGroupMappingInstanceStateDataV0,
+			want:               testResourceGithubEMUGroupMappingInstanceStateDataV1,
+			buildMockResponses: buildMockResponsesForMigrationV0toV1,
+			shouldError:        false,
 		},
 	} {
 		t.Run(d.testName, func(t *testing.T) {
 			t.Parallel()
 
-			ghClient := github.NewClient(d.buildClient())
-			meta.v3client = ghClient
+			ts := githubApiMock(d.buildMockResponses())
+			defer ts.Close()
+
+			httpCl := http.DefaultClient
+			httpCl.Transport = http.DefaultTransport
+
+			client := github.NewClient(httpCl)
+			u, _ := url.Parse(ts.URL + "/")
+			client.BaseURL = u
+			meta.v3client = client
 
 			currentState := d.rawState()
 			got, err := d.migrationFunc(t.Context(), currentState, meta)
