@@ -1202,7 +1202,7 @@ resource "github_repository" "test" {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-internal-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-			resource "github_repository" "internal" {
+			resource "github_repository" "test" {
 				name       = "%s"
 				visibility = "internal"
 			}
@@ -1210,7 +1210,7 @@ resource "github_repository" "test" {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_repository.internal", "visibility",
+				"github_repository.test", "visibility",
 				"internal",
 			),
 		)
@@ -1395,6 +1395,35 @@ resource "github_repository" "test" {
 				{
 					Config: config,
 					Check:  check,
+				},
+			},
+		})
+	})
+
+	t.Run("create_internal_repo_from_template", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+            resource "github_repository" "test" {  
+				name       = "%s"
+				visibility = "internal"
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
+						resource.TestCheckResourceAttr("github_repository.test", "private", "true"),
+					),
 				},
 			},
 		})
