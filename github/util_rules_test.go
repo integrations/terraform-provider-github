@@ -57,7 +57,7 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 		NonFastForward:        &github.EmptyRuleParameters{},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -126,7 +126,7 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -167,7 +167,7 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -224,7 +224,7 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -292,7 +292,7 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -372,7 +372,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -452,7 +452,7 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -485,7 +485,7 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
@@ -531,7 +531,7 @@ func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing
 		},
 	}
 
-	result := flattenConditions(conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
@@ -599,7 +599,7 @@ func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))

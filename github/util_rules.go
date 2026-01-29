@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"log"
 	"reflect"
 	"sort"
 
@@ -219,11 +218,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	return rulesetConditions
 }
 
-func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
-	return flattenConditionsWithContext(context.TODO(), conditions, org)
-}
-
-func flattenConditionsWithContext(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
+func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
 	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
 		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
@@ -537,7 +532,7 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	return rulesetRules
 }
 
-func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
+func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org bool) []any {
 	if rules == nil {
 		return []any{}
 	}
@@ -582,7 +577,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
-		log.Printf("[DEBUG] Flattened Pull Request rules slice: %#v", pullRequestSlice)
+		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 

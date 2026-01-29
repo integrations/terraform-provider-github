@@ -654,7 +654,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
+	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, true))
 
 	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
 		"owner":      owner,
@@ -721,8 +721,8 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	_ = d.Set("target", ruleset.GetTarget())
 	_ = d.Set("enforcement", ruleset.Enforcement)
 	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditionsWithContext(ctx, ruleset.GetConditions(), true))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
+	_ = d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true))
+	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, true))
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
 
