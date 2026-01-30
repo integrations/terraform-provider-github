@@ -52,11 +52,6 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Description: "The list of events the GitHub App installation subscribes to.",
 						},
-						"html_url": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The URL to the GitHub App installation's settings page.",
-						},
 						"client_id": {
 							Type:        schema.TypeString,
 							Computed:    true,
