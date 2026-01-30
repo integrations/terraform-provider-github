@@ -665,11 +665,19 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, false))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -711,15 +719,33 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 		return nil
 	}
 
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false))
-	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, false))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", ruleset.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target", ruleset.GetTarget()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), false)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -752,9 +778,15 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -796,9 +828,11 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	_ = d.Set("repository", *repository.Name)
+	if err := d.Set("repository", repository.GetName()); err != nil {
+		return []*schema.ResourceData{d}, err
+	}
 
-	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
+	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, repository.GetName(), rulesetID, false)
 	if ruleset == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}

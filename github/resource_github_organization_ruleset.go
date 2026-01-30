@@ -663,10 +663,18 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	}
 
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, true))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
 		"owner":      owner,
@@ -728,15 +736,33 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true))
-	_ = d.Set("rules", flattenRules(ctx, ruleset.Rules, true))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", ruleset.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target", ruleset.GetTarget()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 		"owner":      owner,
@@ -781,9 +807,15 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	}
 
 	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 		"owner":      owner,
