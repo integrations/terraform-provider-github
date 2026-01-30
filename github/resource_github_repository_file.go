@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -21,7 +20,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryFileUpdate,
 		DeleteContext: resourceGithubRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubRepositoryFileImporter,
+			StateContext: resourceGithubRepositoryFileImport,
 		},
 
 		Description: "This resource allows you to create and manage files within a GitHub repository.",
@@ -222,38 +221,6 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	}
 
 	return resourceGithubRepositoryFileRead(ctx, d, meta)
-}
-
-func createBranch(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	branch := d.Get("branch").(string)
-	repo := d.Get("repository").(string)
-
-	branchRefName := "refs/heads/" + branch
-	sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
-	sourceBranchRefName := "refs/heads/" + sourceBranchName
-
-	if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
-		ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
-		if err != nil {
-			return diag.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
-				owner, repo, sourceBranchRefName, err.Error())
-		}
-		err = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-	branchRef := github.CreateRef{
-		Ref: branchRefName,
-		SHA: sourceBranchSHA,
-	}
-	if _, _, err := client.Git.CreateRef(ctx, owner, repo, branchRef); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
 }
 
 func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -459,23 +426,19 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 	return false
 }
 
-func resourceGithubRepositoryFileImporter(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	parts := strings.Split(d.Id(), ":")
-
-	if len(parts) > 2 {
-		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	repoFilePath, branch, err := parseID2(d.Id())
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path>:<branch>. %w", err)
 	}
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	repo, file := splitRepoFilePath(parts[0])
+	repo, file := splitRepoFilePath(repoFilePath)
 
-	opts := &github.RepositoryContentGetOptions{}
-	if len(parts) == 2 {
-		opts.Ref = parts[1]
-		if err := d.Set("branch", parts[1]); err != nil {
-			return nil, err
-		}
+	opts := &github.RepositoryContentGetOptions{Ref: branch}
+	if err := d.Set("branch", branch); err != nil {
+		return nil, err
 	}
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
@@ -491,4 +454,36 @@ func resourceGithubRepositoryFileImporter(ctx context.Context, d *schema.Resourc
 	}
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func createBranch(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	branch := d.Get("branch").(string)
+	repo := d.Get("repository").(string)
+
+	branchRefName := "refs/heads/" + branch
+	sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+	sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+	if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+		ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+		if err != nil {
+			return diag.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+				owner, repo, sourceBranchRefName, err.Error())
+		}
+		err = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+	branchRef := github.CreateRef{
+		Ref: branchRefName,
+		SHA: sourceBranchSHA,
+	}
+	if _, _, err := client.Git.CreateRef(ctx, owner, repo, branchRef); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
