@@ -49,6 +49,9 @@ type testAccConfig struct {
 	testPublicRepository              string
 	testPublicRepositoryOwner         string
 	testPublicReleaseId               int
+	testPublicRelaseAssetId           string
+	testPublicRelaseAssetName         string
+	testPublicReleaseAssetContent     string
 	testPublicTemplateRepository      string
 	testPublicTemplateRepositoryOwner string
 	testGHActionsAppInstallationId    int
@@ -105,11 +108,16 @@ func TestMain(m *testing.M) {
 	}
 
 	config := testAccConfig{
-		baseURL:                           baseURL,
-		authMode:                          authMode,
-		testPublicRepository:              "terraform-provider-github",
-		testPublicRepositoryOwner:         "integrations",
-		testPublicReleaseId:               186531906,
+		baseURL:                   baseURL,
+		authMode:                  authMode,
+		testPublicRepository:      "terraform-provider-github",
+		testPublicRepositoryOwner: "integrations",
+		testPublicReleaseId:       186531906,
+		// The terraform-provider-github_6.4.0_manifest.json asset ID from
+		// https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
+		testPublicRelaseAssetId:           "207956097",
+		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
+		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
