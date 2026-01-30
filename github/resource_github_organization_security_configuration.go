@@ -337,39 +337,81 @@ func resourceGithubOrganizationSecurityConfigurationRead(d *schema.ResourceData,
 		return err
 	}
 
-	d.Set("name", configuration.Name)
-	d.Set("description", configuration.Description)
-	d.Set("advanced_security", configuration.GetAdvancedSecurity())
-	d.Set("dependency_graph", configuration.GetDependencyGraph())
-	d.Set("dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction())
+	if err = d.Set("name", configuration.Name); err != nil {
+		return err
+	}
+	if err = d.Set("description", configuration.Description); err != nil {
+		return err
+	}
+	if err = d.Set("advanced_security", configuration.GetAdvancedSecurity()); err != nil {
+		return err
+	}
+	if err = d.Set("dependency_graph", configuration.GetDependencyGraph()); err != nil {
+		return err
+	}
+	if err = d.Set("dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()); err != nil {
+		return err
+	}
 	if err := d.Set("dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)); err != nil {
 		return err
 	}
-	d.Set("dependabot_alerts", configuration.GetDependabotAlerts())
-	d.Set("dependabot_security_updates", configuration.GetDependabotSecurityUpdates())
-	d.Set("code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup())
+	if err = d.Set("dependabot_alerts", configuration.GetDependabotAlerts()); err != nil {
+		return err
+	}
+	if err = d.Set("dependabot_security_updates", configuration.GetDependabotSecurityUpdates()); err != nil {
+		return err
+	}
+	if err = d.Set("code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()); err != nil {
+		return err
+	}
 	if err := d.Set("code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)); err != nil {
 		return err
 	}
-	d.Set("code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal())
+	if err = d.Set("code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()); err != nil {
+		return err
+	}
 	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
 		return err
 	}
-	d.Set("code_security", configuration.GetCodeSecurity())
-	d.Set("secret_scanning", configuration.GetSecretScanning())
-	d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection())
-	d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass())
+	if err = d.Set("code_security", configuration.GetCodeSecurity()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
+		return err
+	}
 	if err := d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
 		return err
 	}
-	d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks())
-	d.Set("secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns())
-	d.Set("secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets())
-	d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal())
-	d.Set("secret_protection", configuration.GetSecretProtection())
-	d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting())
-	d.Set("enforcement", configuration.GetEnforcement())
-	d.Set("target_type", configuration.GetTargetType())
+	if err = d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_protection", configuration.GetSecretProtection()); err != nil {
+		return err
+	}
+	if err = d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
+		return err
+	}
+	if err = d.Set("enforcement", configuration.GetEnforcement()); err != nil {
+		return err
+	}
+	if err = d.Set("target_type", configuration.GetTargetType()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -423,70 +465,70 @@ func expandCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurity
 	config := github.CodeSecurityConfiguration{
 		Name:                                  d.Get("name").(string),
 		Description:                           d.Get("description").(string),
-		AdvancedSecurity:                      github.String(d.Get("advanced_security").(string)),
-		DependencyGraph:                       github.String(d.Get("dependency_graph").(string)),
-		DependencyGraphAutosubmitAction:       github.String(d.Get("dependency_graph_autosubmit_action").(string)),
-		DependabotAlerts:                      github.String(d.Get("dependabot_alerts").(string)),
-		DependabotSecurityUpdates:             github.String(d.Get("dependabot_security_updates").(string)),
-		CodeScanningDefaultSetup:              github.String(d.Get("code_scanning_default_setup").(string)),
-		CodeScanningDelegatedAlertDismissal:   github.String(d.Get("code_scanning_delegated_alert_dismissal").(string)),
-		CodeSecurity:                          github.String(d.Get("code_security").(string)),
-		SecretScanning:                        github.String(d.Get("secret_scanning").(string)),
-		SecretScanningPushProtection:          github.String(d.Get("secret_scanning_push_protection").(string)),
-		SecretScanningDelegatedBypass:         github.String(d.Get("secret_scanning_delegated_bypass").(string)),
-		SecretScanningValidityChecks:          github.String(d.Get("secret_scanning_validity_checks").(string)),
-		SecretScanningNonProviderPatterns:     github.String(d.Get("secret_scanning_non_provider_patterns").(string)),
-		SecretScanningGenericSecrets:          github.String(d.Get("secret_scanning_generic_secrets").(string)),
-		SecretScanningDelegatedAlertDismissal: github.String(d.Get("secret_scanning_delegated_alert_dismissal").(string)),
-		SecretProtection:                      github.String(d.Get("secret_protection").(string)),
-		PrivateVulnerabilityReporting:         github.String(d.Get("private_vulnerability_reporting").(string)),
-		Enforcement:                           github.String(d.Get("enforcement").(string)),
-		TargetType:                            github.String(d.Get("target_type").(string)),
+		AdvancedSecurity:                      github.Ptr(d.Get("advanced_security").(string)),
+		DependencyGraph:                       github.Ptr(d.Get("dependency_graph").(string)),
+		DependencyGraphAutosubmitAction:       github.Ptr(d.Get("dependency_graph_autosubmit_action").(string)),
+		DependabotAlerts:                      github.Ptr(d.Get("dependabot_alerts").(string)),
+		DependabotSecurityUpdates:             github.Ptr(d.Get("dependabot_security_updates").(string)),
+		CodeScanningDefaultSetup:              github.Ptr(d.Get("code_scanning_default_setup").(string)),
+		CodeScanningDelegatedAlertDismissal:   github.Ptr(d.Get("code_scanning_delegated_alert_dismissal").(string)),
+		CodeSecurity:                          github.Ptr(d.Get("code_security").(string)),
+		SecretScanning:                        github.Ptr(d.Get("secret_scanning").(string)),
+		SecretScanningPushProtection:          github.Ptr(d.Get("secret_scanning_push_protection").(string)),
+		SecretScanningDelegatedBypass:         github.Ptr(d.Get("secret_scanning_delegated_bypass").(string)),
+		SecretScanningValidityChecks:          github.Ptr(d.Get("secret_scanning_validity_checks").(string)),
+		SecretScanningNonProviderPatterns:     github.Ptr(d.Get("secret_scanning_non_provider_patterns").(string)),
+		SecretScanningGenericSecrets:          github.Ptr(d.Get("secret_scanning_generic_secrets").(string)),
+		SecretScanningDelegatedAlertDismissal: github.Ptr(d.Get("secret_scanning_delegated_alert_dismissal").(string)),
+		SecretProtection:                      github.Ptr(d.Get("secret_protection").(string)),
+		PrivateVulnerabilityReporting:         github.Ptr(d.Get("private_vulnerability_reporting").(string)),
+		Enforcement:                           github.Ptr(d.Get("enforcement").(string)),
+		TargetType:                            github.Ptr(d.Get("target_type").(string)),
 	}
 
 	if v, ok := d.GetOk("dependency_graph_autosubmit_action_options"); ok {
-		optionsList := v.([]interface{})
+		optionsList := v.([]any)
 		if len(optionsList) > 0 {
-			m := optionsList[0].(map[string]interface{})
+			m := optionsList[0].(map[string]any)
 			config.DependencyGraphAutosubmitActionOptions = &github.DependencyGraphAutosubmitActionOptions{
-				LabeledRunners: github.Bool(m["labeled_runners"].(bool)),
+				LabeledRunners: github.Ptr(m["labeled_runners"].(bool)),
 			}
 		}
 	}
 
 	if v, ok := d.GetOk("code_scanning_default_setup_options"); ok {
-		optionsList := v.([]interface{})
+		optionsList := v.([]any)
 		if len(optionsList) > 0 {
-			m := optionsList[0].(map[string]interface{})
+			m := optionsList[0].(map[string]any)
 			config.CodeScanningDefaultSetupOptions = &github.CodeScanningDefaultSetupOptions{
 				RunnerType: m["runner_type"].(string),
 			}
 			if runnerLabel, ok := m["runner_label"].(string); ok && runnerLabel != "" {
-				config.CodeScanningDefaultSetupOptions.RunnerLabel = github.String(runnerLabel)
+				config.CodeScanningDefaultSetupOptions.RunnerLabel = github.Ptr(runnerLabel)
 			}
 		}
 	}
 
 	if v, ok := d.GetOk("code_scanning_options"); ok {
-		optionsList := v.([]interface{})
+		optionsList := v.([]any)
 		if len(optionsList) > 0 {
-			m := optionsList[0].(map[string]interface{})
+			m := optionsList[0].(map[string]any)
 			config.CodeScanningOptions = &github.CodeScanningOptions{
-				AllowAdvanced: github.Bool(m["allow_advanced"].(bool)),
+				AllowAdvanced: github.Ptr(m["allow_advanced"].(bool)),
 			}
 		}
 	}
 
 	if v, ok := d.GetOk("secret_scanning_delegated_bypass_options"); ok {
-		optionsList := v.([]interface{})
+		optionsList := v.([]any)
 		if len(optionsList) > 0 {
-			m := optionsList[0].(map[string]interface{})
+			m := optionsList[0].(map[string]any)
 			options := &github.SecretScanningDelegatedBypassOptions{}
 			if reviewersV, ok := m["reviewers"]; ok {
-				reviewersList := reviewersV.([]interface{})
+				reviewersList := reviewersV.([]any)
 				reviewers := make([]*github.BypassReviewer, 0, len(reviewersList))
 				for _, rV := range reviewersList {
-					rM := rV.(map[string]interface{})
+					rM := rV.(map[string]any)
 					reviewers = append(reviewers, &github.BypassReviewer{
 						ReviewerID:   int64(rM["reviewer_id"].(int)),
 						ReviewerType: rM["reviewer_type"].(string),
@@ -501,54 +543,54 @@ func expandCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurity
 	return config
 }
 
-func flattenDependencyGraphAutosubmitActionOptions(options *github.DependencyGraphAutosubmitActionOptions) []interface{} {
+func flattenDependencyGraphAutosubmitActionOptions(options *github.DependencyGraphAutosubmitActionOptions) []any {
 	if options == nil {
-		return []interface{}{}
+		return []any{}
 	}
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	if options.LabeledRunners != nil {
 		m["labeled_runners"] = *options.LabeledRunners
 	}
-	return []interface{}{m}
+	return []any{m}
 }
 
-func flattenCodeScanningDefaultSetupOptions(options *github.CodeScanningDefaultSetupOptions) []interface{} {
+func flattenCodeScanningDefaultSetupOptions(options *github.CodeScanningDefaultSetupOptions) []any {
 	if options == nil {
-		return []interface{}{}
+		return []any{}
 	}
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	m["runner_type"] = options.RunnerType
 	if options.RunnerLabel != nil {
 		m["runner_label"] = *options.RunnerLabel
 	}
-	return []interface{}{m}
+	return []any{m}
 }
 
-func flattenCodeScanningOptions(options *github.CodeScanningOptions) []interface{} {
+func flattenCodeScanningOptions(options *github.CodeScanningOptions) []any {
 	if options == nil {
-		return []interface{}{}
+		return []any{}
 	}
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	if options.AllowAdvanced != nil {
 		m["allow_advanced"] = *options.AllowAdvanced
 	}
-	return []interface{}{m}
+	return []any{m}
 }
 
-func flattenSecretScanningDelegatedBypassOptions(options *github.SecretScanningDelegatedBypassOptions) []interface{} {
+func flattenSecretScanningDelegatedBypassOptions(options *github.SecretScanningDelegatedBypassOptions) []any {
 	if options == nil {
-		return []interface{}{}
+		return []any{}
 	}
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	if options.Reviewers != nil {
-		reviewers := make([]interface{}, 0, len(options.Reviewers))
+		reviewers := make([]any, 0, len(options.Reviewers))
 		for _, r := range options.Reviewers {
-			rM := make(map[string]interface{})
+			rM := make(map[string]any)
 			rM["reviewer_id"] = r.ReviewerID
 			rM["reviewer_type"] = r.ReviewerType
 			reviewers = append(reviewers, rM)
 		}
 		m["reviewers"] = reviewers
 	}
-	return []interface{}{m}
+	return []any{m}
 }
