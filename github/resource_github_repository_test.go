@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepository(t *testing.T) {
@@ -1404,7 +1403,7 @@ resource "github_repository" "test" {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-            resource "github_repository" "test" {  
+            resource "github_repository" "test" {
 				name       = "%s"
 				visibility = "internal"
 				template {
@@ -1506,8 +1505,8 @@ func Test_expandPages(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -1576,8 +1575,8 @@ func Test_expandPages(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: initialConfig,
@@ -1639,14 +1638,35 @@ func (d resourceDataLike) GetOk(key string) (any, bool) {
 }
 
 func TestResourceGithubParseFullName(t *testing.T) {
-	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "myrepo/myorg"}))
-	assert.True(t, ok)
-	assert.Equal(t, "myrepo", repo)
-	assert.Equal(t, "myorg", org)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{}))
-	assert.False(t, ok)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
-	assert.False(t, ok)
+	t.Run("parses valid full name", func(t *testing.T) {
+		o := "moyorg"
+		r := "myrepo"
+
+		org, repo, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": fmt.Sprintf("%s/%s", o, r)}))
+		if !ok {
+			t.Error("expected ok to be true, got false")
+		}
+		if org != o {
+			t.Errorf("unexpected org (wanted %s, got %s)", o, org)
+		}
+		if repo != r {
+			t.Errorf("unexpected repo (wanted %s, got %s)", r, repo)
+		}
+	})
+
+	t.Run("handles missing full name", func(t *testing.T) {
+		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{}))
+		if ok {
+			t.Fatal("expected ok to be false, got true")
+		}
+	})
+
+	t.Run("handles malformed full name", func(t *testing.T) {
+		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
+		if ok {
+			t.Fatal("expected ok to be false, got true")
+		}
+	})
 }
 
 func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {

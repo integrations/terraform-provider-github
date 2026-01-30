@@ -88,8 +88,8 @@ func TestAccGithubIssueLabel(t *testing.T) {
 				archived = true`, 1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
