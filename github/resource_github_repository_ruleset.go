@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+var supportedRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}
+
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGithubRepositoryRulesetCreate,
@@ -31,28 +33,28 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
-				Description:  "The name of the ruleset.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+				Description:      "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}, false),
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedRulesetTargetTypes, false)),
 				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less")),
 				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false)),
+				Description:      "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
 				Type:             schema.TypeList,
@@ -68,16 +70,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
+							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -199,7 +201,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
 											Type:             schema.TypeString,
-											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
 									"dismiss_stale_reviews_on_push": {
@@ -288,49 +290,49 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          60,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "check_response_timeout_minutes"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 360)),
 										Description:      "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.",
 									},
 									"grouping_strategy": {
 										Type:             schema.TypeString,
 										Optional:         true,
 										Default:          "ALLGREEN",
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false)),
 										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.",
 									},
 									"max_entries_to_build": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.",
 									},
 									"max_entries_to_merge": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "The maximum number of PRs that will be merged together in a group. Defaults to `5`.",
 									},
 									"merge_method": {
 										Type:             schema.TypeString,
 										Optional:         true,
 										Default:          "MERGE",
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false)),
 										Description:      "Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.",
 									},
 									"min_entries_to_merge": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          1,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "min_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "The minimum number of PRs that will be merged together in a group. Defaults to `1`.",
 									},
 									"min_entries_to_merge_wait_minutes": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "min_entries_to_merge_wait_minutes"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 360)),
 										Description:      "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.",
 									},
 								},
@@ -558,7 +560,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Required:         true,
 										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 									},
 								},
 							},
