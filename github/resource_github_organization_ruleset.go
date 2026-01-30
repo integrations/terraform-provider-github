@@ -31,23 +31,23 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
-				Description:  "The name of the ruleset.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+				Description:      "The name of the ruleset.",
 			},
 			"target": {
 				Type:     schema.TypeString,
 				Required: true,
 				// The API accepts an `repository` target, but we don't support it yet.
-				ValidateFunc: validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}, false),
-				Description:  "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}, false)),
+				Description:      "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
 			},
 			"enforcement": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false)),
+				Description:      "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
 			},
 			"bypass_actors": {
 				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
@@ -63,16 +63,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
 						},
 						"bypass_mode": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
+							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -212,7 +212,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
 											Type:             schema.TypeString,
-											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
 									"dismiss_stale_reviews_on_push": {
@@ -497,7 +497,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"path": {
 													Type:             schema.TypeString,
 													Required:         true,
-													ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory"), "path"),
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory")),
 													Description:      "The path to the workflow YAML definition file.",
 												},
 												"ref": {
@@ -577,7 +577,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Required:         true,
 										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 									},
 								},
 							},
