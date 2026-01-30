@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -42,7 +43,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedRulesetTargetTypes, false)),
-				Description:  "Possible values are `branch`, `push` and `tag`.",
+				Description:      "Possible values are " + strings.Join(supportedRulesetTargetTypes[:len(supportedRulesetTargetTypes)-1], ", ") + " and " + supportedRulesetTargetTypes[len(supportedRulesetTargetTypes)-1],
 			},
 			"repository": {
 				Type:             schema.TypeString,
