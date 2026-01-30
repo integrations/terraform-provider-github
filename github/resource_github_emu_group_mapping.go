@@ -95,13 +95,12 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 
 	tflog.Debug(ctx, "Successfully updated connected external group")
 
-	teamID, err := matchTeamID(ctx, meta, teamSlug, group.Teams)
+	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = d.Set("team_id", teamID)
-	if err != nil {
+	if err := d.Set("team_id", teamID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -119,11 +118,11 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
 		"etag": etag,
 	})
-	if err = d.Set("etag", etag); err != nil {
+	if err := d.Set("etag", etag); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("group_name", group.GetGroupName()); err != nil {
+	if err := d.Set("group_name", group.GetGroupName()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -200,11 +199,11 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("group_id", int(group.GetGroupID())); err != nil {
+	if err := d.Set("group_id", int(group.GetGroupID())); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("group_name", group.GetGroupName()); err != nil {
+	if err := d.Set("group_name", group.GetGroupName()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -247,8 +246,6 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 
 	if d.HasChanges("group_id", "team_slug") {
 
-		var teamID int64
-
 		tflog.Debug(ctx, "Updating connected external group via GitHub API")
 
 		group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
@@ -258,31 +255,19 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 
 		tflog.Debug(ctx, "Successfully updated connected external group")
 
-		if d.HasChange("team_slug") {
-			teamID, err = matchTeamID(ctx, meta, teamSlug, group.Teams)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			err = d.Set("team_id", teamID)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			teamID = toInt64(d.Get("team_id"))
-		}
-
 		etag := resp.Header.Get("ETag")
 		tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
 			"etag": etag,
 		})
-		if err = d.Set("etag", etag); err != nil {
+		if err := d.Set("etag", etag); err != nil {
 			return diag.FromErr(err)
 		}
 
-		if err = d.Set("group_name", group.GetGroupName()); err != nil {
+		if err := d.Set("group_name", group.GetGroupName()); err != nil {
 			return diag.FromErr(err)
 		}
+
+		teamID := toInt64(d.Get("team_id"))
 
 		newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
 		if err != nil {
@@ -390,24 +375,6 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 	d.SetId(resourceID)
 
 	return []*schema.ResourceData{d}, nil
-}
-
-func matchTeamID(ctx context.Context, meta any, teamSlug string, groupTeams []*github.ExternalGroupTeam) (int64, error) {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	configuredTeam, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
-	if err != nil {
-		return 0, err
-	}
-
-	var teamID int64
-	for _, team := range groupTeams {
-		if team.GetTeamID() == configuredTeam.GetID() {
-			teamID = team.GetTeamID()
-			break
-		}
-	}
-	return teamID, nil
 }
 
 func hasNewTeamID(ctx context.Context, diff *schema.ResourceDiff, meta any) bool {
