@@ -80,15 +80,21 @@ type testAccConfig struct {
 
 var testAccConf *testAccConfig
 
+var testAccProviders map[string]*schema.Provider = map[string]*schema.Provider{
+	"github": Provider(),
+}
+
 // providerFactories are used to instantiate a provider during acceptance testing.
 // The factory function will be invoked for every Terraform CLI command executed
 // to create a provider server to which the CLI can reattach.
-var providerFactories = map[string]func() (*schema.Provider, error){
-	//nolint:unparam
-	"github": func() (*schema.Provider, error) {
-		return Provider(), nil
-	},
-}
+var (
+	providerFactories = map[string]func() (*schema.Provider, error){
+		//nolint:unparam
+		"github": func() (*schema.Provider, error) {
+			return Provider(), nil
+		},
+	}
+)
 
 func TestMain(m *testing.M) {
 	authMode := testMode(os.Getenv("GH_TEST_AUTH_MODE"))
