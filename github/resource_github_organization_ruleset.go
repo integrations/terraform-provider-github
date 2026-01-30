@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,6 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var supportedOrgRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -40,8 +43,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				// The API accepts an `repository` target, but we don't support it yet.
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}, false)),
-				Description:      "The target of the ruleset. Possible values are `branch`, `tag` and `push`.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedOrgRulesetTargetTypes, false)),
+				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedOrgRulesetTargetTypes[:len(supportedOrgRulesetTargetTypes)-1], ", ") + " and " + supportedOrgRulesetTargetTypes[len(supportedOrgRulesetTargetTypes)-1] + ".",
 			},
 			"enforcement": {
 				Type:             schema.TypeString,
