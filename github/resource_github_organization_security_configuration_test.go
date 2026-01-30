@@ -21,7 +21,6 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			secret_scanning_push_protection = "enabled"
 			private_vulnerability_reporting = "enabled"
 			enforcement = "enforced"
-			target_type = "global"
 		}`
 
 		check := resource.ComposeTestCheckFunc(

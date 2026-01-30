@@ -63,6 +63,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependency_graph_autosubmit_action_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				MaxItems:    1,
 				Description: "The dependency graph autosubmit action options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -105,6 +106,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_default_setup_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				MaxItems:    1,
 				Description: "The code scanning default setup options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -135,6 +137,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				MaxItems:    1,
 				Description: "The code scanning options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -278,13 +281,8 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			},
 			"target_type": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "global",
-				ForceNew:    true,
-				Description: "The target type of the code security configuration. Can be one of 'global', 'all'.",
-				ValidateFunc: validation.StringInSlice([]string{
-					"global", "all",
-				}, false),
+				Computed:    true,
+				Description: "The target type of the code security configuration.",
 			},
 		},
 	}
@@ -373,7 +371,11 @@ func resourceGithubOrganizationSecurityConfigurationRead(d *schema.ResourceData,
 	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
 		return err
 	}
-	if err = d.Set("code_security", configuration.GetCodeSecurity()); err != nil {
+	codeSec := configuration.GetCodeSecurity()
+	if codeSec == "" {
+		codeSec = "disabled"
+	}
+	if err = d.Set("code_security", codeSec); err != nil {
 		return err
 	}
 	if err = d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
@@ -400,7 +402,11 @@ func resourceGithubOrganizationSecurityConfigurationRead(d *schema.ResourceData,
 	if err = d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
 		return err
 	}
-	if err = d.Set("secret_protection", configuration.GetSecretProtection()); err != nil {
+	secretProt := configuration.GetSecretProtection()
+	if secretProt == "" {
+		secretProt = "disabled"
+	}
+	if err = d.Set("secret_protection", secretProt); err != nil {
 		return err
 	}
 	if err = d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
@@ -431,7 +437,6 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(d *schema.ResourceDat
 	}
 
 	config := expandCodeSecurityConfiguration(d)
-	config.TargetType = nil // TargetType cannot be updated
 
 	_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
@@ -465,14 +470,12 @@ func expandCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurity
 	config := github.CodeSecurityConfiguration{
 		Name:                                  d.Get("name").(string),
 		Description:                           d.Get("description").(string),
-		AdvancedSecurity:                      github.Ptr(d.Get("advanced_security").(string)),
 		DependencyGraph:                       github.Ptr(d.Get("dependency_graph").(string)),
 		DependencyGraphAutosubmitAction:       github.Ptr(d.Get("dependency_graph_autosubmit_action").(string)),
 		DependabotAlerts:                      github.Ptr(d.Get("dependabot_alerts").(string)),
 		DependabotSecurityUpdates:             github.Ptr(d.Get("dependabot_security_updates").(string)),
 		CodeScanningDefaultSetup:              github.Ptr(d.Get("code_scanning_default_setup").(string)),
 		CodeScanningDelegatedAlertDismissal:   github.Ptr(d.Get("code_scanning_delegated_alert_dismissal").(string)),
-		CodeSecurity:                          github.Ptr(d.Get("code_security").(string)),
 		SecretScanning:                        github.Ptr(d.Get("secret_scanning").(string)),
 		SecretScanningPushProtection:          github.Ptr(d.Get("secret_scanning_push_protection").(string)),
 		SecretScanningDelegatedBypass:         github.Ptr(d.Get("secret_scanning_delegated_bypass").(string)),
@@ -480,10 +483,21 @@ func expandCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurity
 		SecretScanningNonProviderPatterns:     github.Ptr(d.Get("secret_scanning_non_provider_patterns").(string)),
 		SecretScanningGenericSecrets:          github.Ptr(d.Get("secret_scanning_generic_secrets").(string)),
 		SecretScanningDelegatedAlertDismissal: github.Ptr(d.Get("secret_scanning_delegated_alert_dismissal").(string)),
-		SecretProtection:                      github.Ptr(d.Get("secret_protection").(string)),
 		PrivateVulnerabilityReporting:         github.Ptr(d.Get("private_vulnerability_reporting").(string)),
 		Enforcement:                           github.Ptr(d.Get("enforcement").(string)),
-		TargetType:                            github.Ptr(d.Get("target_type").(string)),
+	}
+
+	advSec := d.Get("advanced_security").(string)
+	codeSec := d.Get("code_security").(string)
+	secretProt := d.Get("secret_protection").(string)
+
+	if advSec == "enabled" {
+		config.AdvancedSecurity = github.Ptr(advSec)
+	} else if codeSec == "enabled" || secretProt == "enabled" {
+		config.CodeSecurity = github.Ptr(codeSec)
+		config.SecretProtection = github.Ptr(secretProt)
+	} else {
+		config.AdvancedSecurity = github.Ptr(advSec)
 	}
 
 	if v, ok := d.GetOk("dependency_graph_autosubmit_action_options"); ok {
