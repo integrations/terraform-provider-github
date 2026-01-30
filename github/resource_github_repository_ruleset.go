@@ -18,8 +18,6 @@ import (
 
 var supportedRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}
 
-var operatorValidation = validation.ToDiagFunc(validation.StringInSlice([]string{"starts_with", "ends_with", "contains", "regex"}, false))
-
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGithubRepositoryRulesetCreate,
