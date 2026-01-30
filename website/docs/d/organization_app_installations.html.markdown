@@ -26,7 +26,7 @@ data "github_organization_app_installations" "all" {}
 The `installation` block consists of:
 
  * `id` - The ID of the GitHub App installation.
- * `slug` - The URL-friendly name of the GitHub App.
+ * `app_slug` - The URL-friendly name of the GitHub App.
  * `app_id` - The ID of the GitHub App.
  * `repository_selection` - Whether the installation has access to all repositories or only selected ones. Possible values are `all` or `selected`.
  * `permissions` - A map of the permissions granted to the GitHub App installation.
@@ -36,3 +36,6 @@ The `installation` block consists of:
  * `target_id` - The ID of the account the GitHub App is installed on.
  * `target_type` - The type of account the GitHub App is installed on. Possible values are `Organization` or `User`.
  * `suspended` - Whether the GitHub App installation is currently suspended.
+ * `single_file_paths` - The list of single file paths the GitHub App installation has access to.
+ * `created_at` - The date the GitHub App installation was created.
+ * `updated_at` - The date the GitHub App installation was last updated.

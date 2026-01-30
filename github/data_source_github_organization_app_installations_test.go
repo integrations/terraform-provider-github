@@ -17,7 +17,7 @@ func TestAccGithubOrganizationAppInstallations(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.id"),
-					resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.slug"),
+					resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.app_slug"),
 					resource.TestCheckResourceAttrSet("data.github_organization_app_installations.test", "installations.0.app_id"),
 				),
 			},

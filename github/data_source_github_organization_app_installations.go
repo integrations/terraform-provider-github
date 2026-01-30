@@ -25,7 +25,7 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 							Computed:    true,
 							Description: "The ID of the GitHub App installation.",
 						},
-						"slug": {
+						"app_slug": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The URL-friendly name of the GitHub App.",
@@ -76,6 +76,22 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "Whether the GitHub App installation is currently suspended.",
+						},
+						"single_file_paths": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The list of single file paths the GitHub App installation has access to.",
+						},
+						"created_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The date the GitHub App installation was created.",
+						},
+						"updated_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The date the GitHub App installation was last updated.",
 						},
 					},
 				},
@@ -128,7 +144,7 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		result := make(map[string]any)
 
 		result["id"] = appInstallation.GetID()
-		result["slug"] = appInstallation.GetAppSlug()
+		result["app_slug"] = appInstallation.GetAppSlug()
 		result["app_id"] = appInstallation.GetAppID()
 		result["repository_selection"] = appInstallation.GetRepositorySelection()
 		result["html_url"] = appInstallation.GetHTMLURL()
@@ -143,6 +159,15 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		}
 
 		result["permissions"] = flattenInstallationPermissions(appInstallation.Permissions)
+
+		if appInstallation.SingleFilePaths != nil {
+			result["single_file_paths"] = appInstallation.SingleFilePaths
+		} else {
+			result["single_file_paths"] = []string{}
+		}
+
+		result["created_at"] = appInstallation.GetCreatedAt().Format("2006-01-02T15:04:05Z")
+		result["updated_at"] = appInstallation.GetUpdatedAt().Format("2006-01-02T15:04:05Z")
 
 		results = append(results, result)
 	}
