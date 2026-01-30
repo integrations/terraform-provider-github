@@ -31,7 +31,6 @@ The `installation` block consists of:
  * `repository_selection` - Whether the installation has access to all repositories or only selected ones. Possible values are `all` or `selected`.
  * `permissions` - A map of the permissions granted to the GitHub App installation.
  * `events` - The list of events the GitHub App installation subscribes to.
- * `html_url` - The URL to the GitHub App installation's settings page.
  * `client_id` - The OAuth client ID of the GitHub App.
  * `target_id` - The ID of the account the GitHub App is installed on.
  * `target_type` - The type of account the GitHub App is installed on. Possible values are `Organization` or `User`.

@@ -141,7 +141,6 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		result["app_slug"] = appInstallation.GetAppSlug()
 		result["app_id"] = appInstallation.GetAppID()
 		result["repository_selection"] = appInstallation.GetRepositorySelection()
-		result["html_url"] = appInstallation.GetHTMLURL()
 		result["client_id"] = appInstallation.GetClientID()
 		result["target_id"] = appInstallation.GetTargetID()
 		result["target_type"] = appInstallation.GetTargetType()
