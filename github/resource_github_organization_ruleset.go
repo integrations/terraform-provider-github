@@ -339,9 +339,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -369,9 +370,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -399,9 +401,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -430,9 +433,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -461,9 +465,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
