@@ -9,8 +9,6 @@ description: |-
 
 This resource manages mappings between external groups for enterprise managed users and GitHub teams. It wraps the [Teams#ExternalGroups API](https://docs.github.com/en/rest/reference/teams#external-groups). Note that this is a distinct resource from `github_team_sync_group_mapping`. `github_emu_group_mapping` is special to the Enterprise Managed User (EMU) external group feature, whereas `github_team_sync_group_mapping` is specific to Identity Provider Groups.
 
-!> **Warning:**: This resources `Read` function has a fundamental bug. It doesn't verify that the group is actually linked to the team. Someone could modify the linked group outside of Terraform and the resource would not detect it.
-
 ## Example Usage
 
 ```hcl
@@ -29,8 +27,8 @@ The following arguments are supported:
 
 ## Import
 
-GitHub EMU External Group Mappings can be imported using the external `group_id` and `team_slug` separated by a colon, e.g.
+GitHub EMU External Group Mappings can be imported using the `team_slug` and external `group_id` separated by a colon, e.g.
 
 ```sh
-$ terraform import github_emu_group_mapping.example_emu_group_mapping 28836:emu-test-team
+$ terraform import github_emu_group_mapping.example_emu_group_mapping emu-test-team:28836
 ```
