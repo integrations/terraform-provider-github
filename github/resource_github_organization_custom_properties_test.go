@@ -20,8 +20,8 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 		}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -52,8 +52,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -90,8 +90,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -125,8 +125,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -163,8 +163,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -196,8 +196,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -236,8 +236,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -278,8 +278,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 		const resourceName = "github_organization_custom_properties.test"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					// First, create a property with values_editable_by set

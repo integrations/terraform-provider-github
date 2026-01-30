@@ -710,8 +710,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 		`, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -748,8 +748,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 		`, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -785,8 +785,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 		`, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -822,8 +822,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 		`, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,

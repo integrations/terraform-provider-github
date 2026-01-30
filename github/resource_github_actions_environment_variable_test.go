@@ -185,8 +185,8 @@ func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
 	`, repoName, envName, varName, value)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { skipUnauthenticated(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { skipUnauthenticated(t) },
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				// First, create the repository and environment.
@@ -204,15 +204,19 @@ func TestAccGithubActionsEnvironmentVariable_alreadyExists(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						// Now that the repo and env are created, create the variable using the API.
-						client := testAccProvider.Meta().(*Owner).v3client
-						owner := testAccProvider.Meta().(*Owner).name
+						meta, err := getTestMeta()
+						if err != nil {
+							return err
+						}
+						client := meta.v3client
+						owner := meta.name
 						ctx := context.Background()
 
 						variable := &github.ActionsVariable{
 							Name:  varName,
 							Value: value,
 						}
-						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
+						_, err = client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), variable)
 						return err
 					},
 				),

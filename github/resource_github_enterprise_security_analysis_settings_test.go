@@ -29,8 +29,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -63,8 +63,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -117,8 +117,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
@@ -148,8 +148,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -180,8 +180,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -228,8 +228,8 @@ func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["with_link"],

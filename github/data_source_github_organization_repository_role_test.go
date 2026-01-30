@@ -32,8 +32,8 @@ func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
 		`, roleName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
