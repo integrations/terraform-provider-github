@@ -125,8 +125,7 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	}
 
 	d.SetId(owner)
-	err := d.Set("installations", results)
-	if err != nil {
+	if err := d.Set("installations", results); err != nil {
 		return diag.FromErr(err)
 	}
 
