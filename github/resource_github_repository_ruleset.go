@@ -226,10 +226,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it. Defaults to `false`.",
 									},
 									"required_approving_review_count": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Default:     0,
-										Description: "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          0,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 10)),
+										Description:      "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
 									},
 									"required_review_thread_resolution": {
 										Type:        schema.TypeBool,
@@ -518,14 +519,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Description:      "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "errors", "errors_and_warnings", "all"}, false)),
 												},
 												"security_alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Description:      "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "critical", "high_or_higher", "medium_or_higher", "all"}, false)),
 												},
 												"tool": {
 													Type:        schema.TypeString,
@@ -581,9 +584,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The maximum allowed length of a file path.",
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed length of a file path.",
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 32767)),
 									},
 								},
 							},
