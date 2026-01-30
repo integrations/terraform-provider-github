@@ -6,32 +6,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
-
-var (
-	testAccProviders         map[string]*schema.Provider
-	testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
-	testAccProvider          *schema.Provider
-)
-
-func init() {
-	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"github": testAccProvider,
-	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error) {
-		return map[string]func() (*schema.Provider, error){
-			//nolint:unparam
-			"github": func() (*schema.Provider, error) {
-				p := Provider()
-				*providers = append(*providers, p)
-				return p, nil
-			},
-		}
-	}
-}
 
 func TestProvider(t *testing.T) {
 	t.Run("runs internal validation without error", func(t *testing.T) {

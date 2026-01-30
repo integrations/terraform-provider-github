@@ -250,8 +250,8 @@ resource "github_repository_ruleset" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -390,8 +390,8 @@ resource "github_repository_ruleset" "test" {
 `, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -450,8 +450,8 @@ resource "github_repository_ruleset" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, repoName, randomID, baseVisibility, bypassMode),
@@ -552,8 +552,8 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 		`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config},
 				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
@@ -582,8 +582,8 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 		`, repoName, baseVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
 			},
