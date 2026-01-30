@@ -139,6 +139,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"members_can_change_repo_visibility": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"summary_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -264,6 +268,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 		_ = d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
 		_ = d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
 		_ = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
+		_ = d.Set("members_can_change_repo_visibility", organization.GetMembersCanChangeRepoVisibility())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
