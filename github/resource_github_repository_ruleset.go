@@ -18,6 +18,8 @@ import (
 
 var supportedRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}
 
+var operatorValidation = validation.ToDiagFunc(validation.StringInSlice([]string{"starts_with", "ends_with", "contains", "regex"}, false))
+
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGithubRepositoryRulesetCreate,
@@ -362,9 +364,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -392,9 +395,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -422,9 +426,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -453,9 +458,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -484,9 +490,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
