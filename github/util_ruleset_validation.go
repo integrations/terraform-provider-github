@@ -97,8 +97,12 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []g
 		if !exists {
 			continue
 		}
-		if ruleName == "required_code_scanning" {
-			ruleName = string(github.RulesetRuleTypeCodeScanning) // This is one of the few rules which is not mapped to the same name in the API.
+		// These are the few rules which are not mapped to the same name in the API.
+		switch ruleName {
+		case "required_code_scanning":
+			ruleName = string(github.RulesetRuleTypeCodeScanning)
+		case "required_workflows":
+			ruleName = string(github.RulesetRuleTypeWorkflows)
 		}
 		switch ruleValue := ruleValue.(type) {
 		case []any:
