@@ -100,10 +100,10 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner := meta.(*Owner).name
-
-	client := meta.(*Owner).v3client
+func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	owner := meta.name
+	client := meta.v3client
 
 	options := &github.ListOptions{
 		PerPage: maxPerPage,
