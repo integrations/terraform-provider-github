@@ -22,7 +22,6 @@ resource "github_repository" "test" {
 	name = "%s"
 	visibility = "private"
 	auto_init = true
-	ignore_vulnerability_alerts_during_read = true
 }
 
 resource "github_repository_file" "workflow_file" {

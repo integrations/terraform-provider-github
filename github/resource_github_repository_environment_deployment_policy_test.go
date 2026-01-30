@@ -23,7 +23,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -90,7 +89,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -141,7 +139,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -203,7 +200,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -270,7 +266,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -321,7 +316,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -396,7 +390,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -447,7 +440,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -522,7 +514,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -573,7 +564,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -691,7 +681,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -727,7 +716,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -765,7 +753,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
@@ -802,7 +789,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
-				ignore_vulnerability_alerts_during_read = true
 			}
 
 			resource "github_repository_environment" "test" {
