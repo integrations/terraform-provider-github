@@ -15,9 +15,12 @@ interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is 
 
 For the purposes of security, the contents of the `plaintext_value` field have been marked as `sensitive` to Terraform,
 but it is important to note that **this does not hide it from state files**. You should treat state as sensitive always.
+
 It is also advised that you do not store plaintext values in your code but rather populate the `encrypted_value`
 using fields from a resource, data source or variable as, while encrypted in state, these will be easily accessible
 in your code. See below for an example of this abstraction.
+
+-> **Note:** Write-Only argument `plaintext_value_wo` is available to use in place of `plaintext_value`. Write-Only argumentss are supported in HashiCorp Terraform 1.11.0 and later. [Learn more](https://developer.hashicorp.com/terraform/language/manage-sensitive-data/ephemeral#write-only-arguments).
 
 ## Example Usage
 
@@ -86,11 +89,13 @@ resource "github_actions_environment_secret" "example_secret" {
 The following arguments are supported:
 
 
-* `repository`              - (Required) Name of the repository.
-* `environment`             - (Required) Name of the environment.
-* `secret_name`             - (Required) Name of the secret.
-* `encrypted_value`         - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value`         - (Optional) Plaintext value of the secret to be encrypted.
+* `repository`                  - (Required) Name of the repository.
+* `environment`                 - (Required) Name of the environment.
+* `secret_name`                 - (Required) Name of the secret.
+* `encrypted_value`             - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+* `plaintext_value`             - (Optional) Plaintext value of the secret to be encrypted.
+* `plaintext_value_wo`          - (Optional, Write-Only) Plaintext value of the secret to be encrypted.
+* `plaintext_value_wo_version`  - (Optional) Used together with `plaintext_value_wo` to trigger an update. Increment this value when an update to `plaintext_value_wo` is required.
 
 ## Attributes Reference
 
