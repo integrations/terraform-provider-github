@@ -14,10 +14,10 @@ import (
 
 func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationSecurityConfigurationCreate,
-		Read:   resourceGithubOrganizationSecurityConfigurationRead,
-		Update: resourceGithubOrganizationSecurityConfigurationUpdate,
-		Delete: resourceGithubOrganizationSecurityConfigurationDelete,
+		CreateContext: resourceGithubOrganizationSecurityConfigurationCreate,
+		ReadContext:   resourceGithubOrganizationSecurityConfigurationRead,
+		UpdateContext: resourceGithubOrganizationSecurityConfigurationUpdate,
+		DeleteContext: resourceGithubOrganizationSecurityConfigurationDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
