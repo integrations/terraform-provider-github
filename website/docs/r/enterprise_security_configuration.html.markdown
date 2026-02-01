@@ -1,18 +1,19 @@
 ---
 layout: "github"
-page_title: "GitHub: github_organization_security_configuration"
+page_title: "GitHub: github_enterprise_security_configuration"
 description: |-
-  Manages a code security configuration for a GitHub Organization.
+  Manages a code security configuration for a GitHub Enterprise.
 ---
 
-# github_organization_security_configuration
+# github_enterprise_security_configuration
 
-This resource allows you to create and manage code security configurations for a GitHub Organization.
+This resource allows you to create and manage code security configurations for a GitHub Enterprise.
 
 ## Example Usage
 
 ```hcl
-resource "github_organization_security_configuration" "default" {
+resource "github_enterprise_security_configuration" "default" {
+  enterprise_slug                 = "my-enterprise"
   name                            = "default-config"
   description                     = "Default security configuration"
   advanced_security               = "enabled"
@@ -31,6 +32,7 @@ resource "github_organization_security_configuration" "default" {
 
 The following arguments are supported:
 
+* `enterprise_slug` - (Required) The slug of the enterprise.
 * `name` - (Required) The name of the code security configuration.
 * `description` - (Required) A description of the code security configuration.
 * `advanced_security` - (Optional) The advanced security configuration. Can be one of `enabled`, `disabled`. Defaults to `disabled`.
@@ -94,8 +96,8 @@ The `reviewers` block supports:
 
 ## Import
 
-GitHub Code Security Configurations can be imported using the configuration ID, e.g.
+GitHub Enterprise Code Security Configurations can be imported using the enterprise slug and the configuration ID, e.g.
 
 ```text
-$ terraform import github_organization_security_configuration.example 123
+$ terraform import github_enterprise_security_configuration.example my-enterprise/123
 ```

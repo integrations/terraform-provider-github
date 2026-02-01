@@ -8,13 +8,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
-	t.Run("creates organization security configuration without error", func(t *testing.T) {
+func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
+	t.Run("creates enterprise security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configName := fmt.Sprintf("test-config-%s", randomID)
 
 		config := fmt.Sprintf(`
-		resource "github_organization_security_configuration" "test" {
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
 			name = "%s"
 			description = "Test configuration"
 			advanced_security = "enabled"
@@ -26,29 +27,29 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			secret_scanning_push_protection = "enabled"
 			private_vulnerability_reporting = "enabled"
 			enforcement = "enforced"
-		}`, configName)
+		}`, testAccConf.enterpriseSlug, configName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"name", configName,
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"description", "Test configuration",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"advanced_security", "enabled",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"enforcement", "enforced",
 			),
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -56,57 +57,60 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:        "github_enterprise_security_configuration.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf("%s/", testAccConf.enterpriseSlug),
 				},
 			},
 		})
 	})
 
-	t.Run("updates organization security configuration without error", func(t *testing.T) {
+	t.Run("updates enterprise security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configName := fmt.Sprintf("test-config-%s", randomID)
 		configNameUpdated := fmt.Sprintf("test-config-updated-%s", randomID)
 
 		configBefore := fmt.Sprintf(`
-		resource "github_organization_security_configuration" "test" {
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
 			name = "%s"
 			description = "Test configuration"
 			advanced_security = "disabled"
-		}`, configName)
+		}`, testAccConf.enterpriseSlug, configName)
 
 		configAfter := fmt.Sprintf(`
-		resource "github_organization_security_configuration" "test" {
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
 			name = "%s"
 			description = "Test configuration updated"
 			advanced_security = "enabled"
-		}`, configNameUpdated)
+		}`, testAccConf.enterpriseSlug, configNameUpdated)
 
 		checkBefore := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"name", configName,
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"advanced_security", "disabled",
 			),
 		)
 
 		checkAfter := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"name", configNameUpdated,
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"advanced_security", "enabled",
 			),
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -121,12 +125,13 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		})
 	})
 
-	t.Run("creates organization security configuration with options", func(t *testing.T) {
+	t.Run("creates enterprise security configuration with options", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configName := fmt.Sprintf("test-config-options-%s", randomID)
 
 		config := fmt.Sprintf(`
-		resource "github_organization_security_configuration" "test" {
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
 			name = "%s"
 			description = "Test configuration with options"
 			advanced_security = "enabled"
@@ -141,30 +146,29 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				runner_label = "code-scanning"
 			}
 			secret_scanning = "enabled"
-			secret_scanning_push_protection = "enabled"
-		}`, configName)
+		}`, testAccConf.enterpriseSlug, configName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"name", configName,
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"dependency_graph_autosubmit_action_options.0.labeled_runners", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"code_scanning_default_setup_options.0.runner_type", "labeled",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_security_configuration.test",
+				"github_enterprise_security_configuration.test",
 				"code_scanning_default_setup_options.0.runner_label", "code-scanning",
 			),
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -172,9 +176,10 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:        "github_enterprise_security_configuration.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf("%s/", testAccConf.enterpriseSlug),
 				},
 			},
 		})
