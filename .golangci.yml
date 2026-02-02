@@ -19,6 +19,7 @@ linters:
     - misspell
     - modernize
     - nilerr
+    - nilnesserr # https://golangci-lint.run/docs/linters/configuration/#nilnesserr
     - predeclared
     - staticcheck
     - unconvert
