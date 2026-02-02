@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -157,11 +157,6 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, met
 }
 
 func getAllAccessibleRepos(meta any, idString string) (map[string]int64, int64, error) {
-	err := checkOrganization(meta)
-	if err != nil {
-		return nil, 0, err
-	}
-
 	installationID, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return nil, 0, unconvertibleIdErr(idString, err)

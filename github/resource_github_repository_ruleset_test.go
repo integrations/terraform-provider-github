@@ -17,6 +17,7 @@ func TestAccGithubRepositoryRuleset(t *testing.T) {
 	if testAccConf.authMode == enterprise {
 		baseVisibility = "private" // Enable tests to run on GHEC EMU
 	}
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
@@ -25,7 +26,6 @@ func TestAccGithubRepositoryRuleset(t *testing.T) {
 resource "github_repository" "test" {
 	name = "%s"
 	auto_init = true
-	default_branch = "main"
 	vulnerability_alerts = true
 	visibility = "%s"
 }
@@ -135,6 +135,7 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
@@ -479,7 +480,7 @@ resource "github_repository_ruleset" "test" {
 			  auto_init    = true
 			  default_branch = "main"
 				vulnerability_alerts = true
-				visibility = "%s"	
+				visibility = "%s"
 			}
 
 			resource "github_repository_environment" "example" {

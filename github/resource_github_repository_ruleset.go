@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -192,6 +192,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
 										Optional:    true,
+										Computed:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
@@ -654,6 +655,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	_ = d.Set("ruleset_id", ruleset.ID)
 	_ = d.Set("node_id", ruleset.GetNodeID())
 	_ = d.Set("etag", resp.Header.Get("ETag"))
+	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
 
 	return nil
 }

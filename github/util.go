@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -21,7 +21,7 @@ import (
 
 const (
 	idSeparator        = ":"
-	idSeperatorEscaped = `??`
+	idSeparatorEscaped = `??`
 )
 
 // https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
@@ -29,12 +29,12 @@ var maxPerPage = 100
 
 // escapeIDPart escapes any idSeparator characters in a string.
 func escapeIDPart(part string) string {
-	return strings.ReplaceAll(part, idSeparator, idSeperatorEscaped)
+	return strings.ReplaceAll(part, idSeparator, idSeparatorEscaped)
 }
 
 // unescapeIDPart unescapes any escaped idSeparator characters in a string.
 func unescapeIDPart(part string) string {
-	return strings.ReplaceAll(part, idSeperatorEscaped, idSeparator)
+	return strings.ReplaceAll(part, idSeparatorEscaped, idSeparator)
 }
 
 // buildID joins the parts with the idSeparator.
@@ -44,12 +44,13 @@ func buildID(parts ...string) (string, error) {
 		return "", fmt.Errorf("no parts provided to build id")
 	}
 
-	id := strings.Join(parts, idSeparator)
-
-	if p := strings.Split(id, idSeparator); len(p) != l {
-		return "", fmt.Errorf("unescaped seperators in id parts %v", parts)
+	for i, p := range parts {
+		if i < l-1 && strings.Contains(p, idSeparator) {
+			return "", fmt.Errorf("unescaped separator in non-final part %q", p)
+		}
 	}
 
+	id := strings.Join(parts, idSeparator)
 	return id, nil
 }
 
@@ -59,7 +60,7 @@ func parseID(id string, count int) ([]string, error) {
 		return nil, fmt.Errorf("id is empty")
 	}
 
-	parts := strings.Split(id, idSeparator)
+	parts := strings.SplitN(id, idSeparator, count)
 	if len(parts) != count {
 		return nil, fmt.Errorf("unexpected ID format (%q); expected %d parts separated by %q", id, count, idSeparator)
 	}

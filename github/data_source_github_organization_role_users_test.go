@@ -10,6 +10,10 @@ import (
 
 func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 	t.Run("get the organization role users without error", func(t *testing.T) {
+		if testAccConf.testOrgUser == "" {
+			t.Skip("Skipping test because no organization user has been configured")
+		}
+
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_organization_role_user" "test" {
@@ -44,6 +48,10 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 	})
 
 	t.Run("get indirect organization role users without error", func(t *testing.T) {
+		if testAccConf.testOrgUser == "" {
+			t.Skip("Skipping test because no organization user has been configured")
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134

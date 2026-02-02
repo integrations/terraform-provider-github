@@ -18,11 +18,11 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description:   descriptions["token"],
-				ConflictsWith: []string{"app_auth"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description: descriptions["token"],
+				// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -94,11 +94,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:          schema.TypeList,
-				Optional:      true,
-				MaxItems:      1,
-				Description:   descriptions["app_auth"],
-				ConflictsWith: []string{"token"},
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["app_auth"],
+				// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -267,6 +267,7 @@ func Provider() *schema.Provider {
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
 			"github_ref":                                                            dataSourceGithubRef(),
 			"github_release":                                                        dataSourceGithubRelease(),
+			"github_release_asset":                                                  dataSourceGithubReleaseAsset(),
 			"github_repositories":                                                   dataSourceGithubRepositories(),
 			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
