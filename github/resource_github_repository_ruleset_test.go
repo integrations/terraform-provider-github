@@ -138,7 +138,7 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "2"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
@@ -553,27 +553,36 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-				archived  = true
-				visibility = "%s"
-			}
-			resource "github_repository_ruleset" "test" {
-				name       = "test"
-				repository = github_repository.test.name
-				target     = "branch"
-				enforcement = "active"
-				rules { creation = true }
-			}
-		`, repoName, baseRepoVisibility)
+		repoConfig := `
+	resource "github_repository" "test" {
+		name      = "%s"
+		auto_init = true
+		archived  = %t
+		visibility = "%s"
+	}
+	%s
+`
+		rulesetConfig := `
+resource "github_repository_ruleset" "test" {
+	name       = "test"
+	repository = github_repository.test.name
+	target     = "branch"
+	enforcement = "active"
+	rules { creation = true }
+}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
+				{
+					Config: fmt.Sprintf(repoConfig, repoName, false, baseRepoVisibility, ""),
+				},
+				{
+					Config:      fmt.Sprintf(repoConfig, repoName, true, baseRepoVisibility, rulesetConfig),
+					ExpectError: regexp.MustCompile("cannot create ruleset on archived repository"),
+				},
 			},
 		})
 	})
