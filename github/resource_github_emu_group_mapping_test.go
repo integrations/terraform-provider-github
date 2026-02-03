@@ -133,19 +133,34 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		teamName1 := fmt.Sprintf("%semu1-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%semu2-%s", testResourcePrefix, randomID)
 
+		config := `
+resource "github_team" "test1" {
+	name        = "%s"
+	description = "EMU group mapping test team 1"
+}
+resource "github_team" "test2" {
+	name        = "%s"
+	description = "EMU group mapping test team 2"
+}
+resource "github_emu_group_mapping" "test" {
+	team_slug = github_team.%s.slug
+	group_id  = %d
+}
+`
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2, groupID, "test1"),
+					Config: fmt.Sprintf(config, teamName1, teamName2, "test1", groupID),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_emu_group_mapping.test", "team_slug", teamName1),
 					),
 				},
 				{
-					Config: testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2, groupID, "test2"),
+					Config: fmt.Sprintf(config, teamName1, teamName2, "test2", groupID),
 					// ConfigPlanChecks: resource.ConfigPlanChecks{
 					// 	PreApply: []plancheck.PlanCheck{
 					// 		plancheckExpectKnownValues("github_emu_group_mapping.test", "team_slug", teamName2),
@@ -212,21 +227,4 @@ func testAccGithubEMUGroupMappingConfig(teamName string, groupID int) string {
 		group_id  = %d
 	}
 	`, teamName, groupID)
-}
-
-func testAccGithubEMUGroupMappingTwoTeamsConfig(teamName1, teamName2 string, groupID int, useTeam string) string {
-	return fmt.Sprintf(`
-	resource "github_team" "test1" {
-		name        = "%s"
-		description = "EMU group mapping test team 1"
-	}
-	resource "github_team" "test2" {
-		name        = "%s"
-		description = "EMU group mapping test team 2"
-	}
-	resource "github_emu_group_mapping" "test" {
-		team_slug = github_team.%s.slug
-		group_id  = %d
-	}
-	`, teamName1, teamName2, useTeam, groupID)
 }
