@@ -168,8 +168,8 @@ func TestAccGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 			`, randomID, destroyOnDrift)
 
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessHasOrgs(t) },
-				Providers: testAccProviders,
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -183,11 +183,15 @@ func TestAccGithubActionsOrganizationSecret_DestroyOnDrift(t *testing.T) {
 									t.Errorf("not found: github_actions_organization_secret.test_secret")
 								}
 								// Now that the secret is created, update it to trigger a drift.
-								client := testAccProvider.Meta().(*Owner).v3client
-								owner := testAccProvider.Meta().(*Owner).name
+								meta, err := getTestMeta()
+								if err != nil {
+									return err
+								}
+								client := meta.v3client
+								owner := meta.name
 								ctx := t.Context()
 
-								keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, testAccProvider.Meta().(*Owner))
+								keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, meta)
 								if err != nil {
 									t.Errorf("Failed to get organization public key details: %v", err)
 								}
