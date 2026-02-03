@@ -4,42 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v82/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-)
-
-type (
-	currentStateFunc  func() map[string]any
-	expectedStateFunc func(t *testing.T) map[string]any
 )
 
 var (
 	testTeamID  = 432574718
 	testGroupID = 1234567890
 )
-
-func testResourceGithubEMUGroupMappingInstanceStateDataV0() map[string]any {
-	return map[string]any{
-		"id":        "teams/test-team/external-groups",
-		"team_slug": "test-team",
-		"group_id":  testGroupID,
-	}
-}
-
-func testResourceGithubEMUGroupMappingInstanceStateDataV1(t *testing.T) map[string]any {
-	v0 := testResourceGithubEMUGroupMappingInstanceStateDataV0()
-	v0["team_id"] = int64(testTeamID)
-	resourceID, err := buildID(strconv.Itoa(testTeamID), v0["team_slug"].(string), strconv.Itoa(v0["group_id"].(int)))
-	if err != nil {
-		t.Fatalf("error building resource ID: %s", err)
-	}
-	v0["id"] = resourceID
-	return v0
-}
 
 func buildMockResponsesForMigrationV0toV1() []*mockResponse {
 	return []*mockResponse{
@@ -75,7 +49,7 @@ func buildMockResponsesForMigrationV0toV1() []*mockResponse {
 	}
 }
 
-func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
+func Test_resourceGithubEMUGroupMappingStateUpgradeV0(t *testing.T) {
 	t.Parallel()
 
 	meta := &Owner{
@@ -84,17 +58,24 @@ func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
 
 	for _, d := range []struct {
 		testName           string
-		migrationFunc      schema.StateUpgradeFunc
-		rawState           currentStateFunc
-		want               expectedStateFunc
+		rawState           map[string]any
+		want               map[string]any
 		buildMockResponses func() []*mockResponse
 		shouldError        bool
 	}{
 		{
-			testName:           "migrates v0 to v1",
-			migrationFunc:      resourceGithubEMUGroupMappingStateUpgradeV0,
-			rawState:           testResourceGithubEMUGroupMappingInstanceStateDataV0,
-			want:               testResourceGithubEMUGroupMappingInstanceStateDataV1,
+			testName: "migrates v0 to v1",
+			rawState: map[string]any{
+				"id":        "teams/test-team/external-groups",
+				"team_slug": "test-team",
+				"group_id":  testGroupID,
+			},
+			want: map[string]any{
+				"id":        "432574718:test-team:1234567890",
+				"team_slug": "test-team",
+				"team_id":   int64(testTeamID),
+				"group_id":  testGroupID,
+			},
 			buildMockResponses: buildMockResponsesForMigrationV0toV1,
 			shouldError:        false,
 		},
@@ -113,14 +94,18 @@ func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
 			client.BaseURL = u
 			meta.v3client = client
 
-			currentState := d.rawState()
-			got, err := d.migrationFunc(t.Context(), currentState, meta)
-			expectedState := d.want(t)
-			if (err != nil) != d.shouldError {
-				t.Fatalf("unexpected error state: %s", err.Error())
+			currentState := d.rawState
+			got, err := resourceGithubEMUGroupMappingStateUpgradeV0(t.Context(), currentState, meta)
+			expectedState := d.want
+			didError := err != nil
+			if d.shouldError && !didError {
+				t.Fatalf("state upgrade should have returned an error. Instead got: %#v", got)
 			}
-			if diff := cmp.Diff(expectedState, got); !d.shouldError && diff != "" {
-				t.Fatal(diff)
+			if !d.shouldError && didError {
+				t.Fatalf("state upgrade should not have returned an error. Instead got: %s", err.Error())
+			}
+			if diff := cmp.Diff(expectedState, got); diff != "" {
+				t.Fatalf("state upgrade returned unexpected state. Diff: %s", diff)
 			}
 		})
 	}
