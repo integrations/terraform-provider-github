@@ -10,6 +10,9 @@ description: |-
 This resource allows you to create and manage GitHub Actions variables within your GitHub repositories.
 You must have write access to a repository to use this resource.
 
+~> Note: github_actions_variable cannot be used in conjunction with github_actions_variables or
+they will fight over what your policy should be. For managing multiple variables in a single resource, use github_actions_variables instead.
+
 
 ## Example Usage
 
