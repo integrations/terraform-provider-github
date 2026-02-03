@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/google/go-github/v82/github"
@@ -364,23 +365,34 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	commit_author := commit.Commit.GetCommitter().GetName()
-	commit_email := commit.Commit.GetCommitter().GetEmail()
-
-	_, hasCommitAuthor := d.GetOk("commit_author")
-	_, hasCommitEmail := d.GetOk("commit_email")
-
-	// read from state if author+email is set explicitly, and if it was not github signing it for you previously
-	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
-		if err = d.Set("commit_author", commit_author); err != nil {
+	if commit_author_st, hasCommitAuthor := d.GetOk("commit_author"); hasCommitAuthor {
+		if err = d.Set("commit_author", commit_author_st.(string)); err != nil {
 			return err
 		}
-		if err = d.Set("commit_email", commit_email); err != nil {
+	} else {
+		if err = d.Set("commit_author", nil); err != nil {
 			return err
 		}
 	}
-	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
-		return err
+
+	if commit_email_st, hasCommitEmail := d.GetOk("commit_email"); hasCommitEmail {
+		if err = d.Set("commit_email", commit_email_st.(string)); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("commit_email", nil); err != nil {
+			return err
+		}
+	}
+
+	if commit_message_st, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
+		if err = d.Set("commit_message", commit_message_st.(string)); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("commit_message", nil); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -428,20 +440,31 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
+	if opts.Message == nil || *opts.Message == fmt.Sprintf("Add %s", file) {
 		m := fmt.Sprintf("Update %s", file)
 		opts.Message = &m
 	}
 
-	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return err
+	schema := resourceGithubRepositoryFile()
+	allSchemaKeys := make([]string, 0, len(schema.Schema))
+	for k := range schema.Schema {
+		allSchemaKeys = append(allSchemaKeys, k)
 	}
+	allSchemaKeysButCommitDetails := slices.DeleteFunc(allSchemaKeys, func(v string) bool {
+		return slices.Contains([]string{"commit_sha", "commit_author", "commit_email", "commit_message"}, v)
+	})
 
-	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
-		return err
+	if d.HasChanges(allSchemaKeysButCommitDetails...) {
+		create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+		if err != nil {
+			return err
+		}
+		if err = d.Set("commit_sha", create.GetSHA()); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("[DEBUG] No changes to commit, skipping commit")
 	}
-
 	return resourceGithubRepositoryFileRead(d, meta)
 }
 
@@ -460,7 +483,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
+	if opts.Message == nil || *opts.Message == fmt.Sprintf("Add %s", file) {
 		m := fmt.Sprintf("Delete %s", file)
 		opts.Message = &m
 	}
