@@ -64,10 +64,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 }
 
 func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	resourceID := d.Id()
-	tflog.Trace(ctx, "Creating EMU group mapping", map[string]any{
-		"resource_id": resourceID,
-	})
+	tflog.Trace(ctx, "Creating EMU group mapping")
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -100,12 +97,12 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("team_id", teamID); err != nil {
+	newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
-	if err != nil {
+	if err := d.Set("team_id", teamID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -207,24 +204,12 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if teamID != toInt64(d.Get("team_id")) {
-		return diag.Errorf("configured Team does not match with any team mapped to external group: %d != %d", teamID, toInt64(d.Get("team_id")))
-	}
-	if err := d.Set("team_id", teamID); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return nil
 }
 
 func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	resourceID := d.Id()
 	tflog.Trace(ctx, "Updating EMU group mapping", map[string]any{
-		"resource_id": resourceID,
+		"resource_id": d.Id(),
 	})
 
 	err := checkOrganization(meta)
@@ -331,8 +316,8 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		"strategy":  "two_part_id",
 	})
 
-	// <team-slug>:<group-id>
-	teamSlug, groupIDString, err := parseID2(d.Id())
+	// <group-id>:<team-slug>
+	groupIDString, teamSlug, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
