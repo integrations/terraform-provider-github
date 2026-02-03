@@ -662,7 +662,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}
@@ -676,10 +676,10 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
+	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, ruleset.GetID()), map[string]any{
 		"owner":      owner,
 		"name":       name,
-		"ruleset_id": *ruleset.ID,
+		"ruleset_id": ruleset.GetID(),
 	})
 
 	return nil
@@ -806,7 +806,7 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}

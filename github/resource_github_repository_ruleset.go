@@ -666,7 +666,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	}
 
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -719,7 +719,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 		return nil
 	}
 
-	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("name", ruleset.Name); err != nil {
@@ -777,7 +777,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}
