@@ -92,7 +92,7 @@ func TestGithub_MigrateEMUGroupMappingsState(t *testing.T) {
 	}{
 		{
 			testName:           "migrates v0 to v1",
-			migrationFunc:      resourceGithubEMUGroupMappingInstanceStateUpgradeV0,
+			migrationFunc:      resourceGithubEMUGroupMappingStateUpgradeV0,
 			rawState:           testResourceGithubEMUGroupMappingInstanceStateDataV0,
 			want:               testResourceGithubEMUGroupMappingInstanceStateDataV1,
 			buildMockResponses: buildMockResponsesForMigrationV0toV1,

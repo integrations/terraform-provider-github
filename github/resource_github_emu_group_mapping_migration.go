@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubEMUGroupMappingResourceV0() *schema.Resource {
+func resourceGithubEMUGroupMappingV0() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
@@ -30,7 +30,7 @@ func resourceGithubEMUGroupMappingResourceV0() *schema.Resource {
 	}
 }
 
-func resourceGithubEMUGroupMappingInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	orgName := meta.(*Owner).name
 	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration", map[string]any{"state": rawState, "owner": orgName})
 
