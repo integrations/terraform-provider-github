@@ -1,6 +1,7 @@
 package github
 
 import (
+	"io"
 	"context"
 	"errors"
 	"fmt"
@@ -314,9 +315,28 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		return nil
 	}
 
-	content, err := fc.GetContent()
-	if err != nil {
-		return err
+	encoding := fc.GetEncoding()
+
+	var content string
+
+	if encoding == "" || encoding == "none" {
+
+		reader, _, err := client.Repositories.DownloadContents(ctx, owner, repo, file, opts)
+		if err != nil {
+			return err
+		}
+		defer reader.Close()
+
+		b, err := io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		content = string(b)
+	} else {
+		content, err = fc.GetContent()
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = d.Set("content", content); err != nil {
