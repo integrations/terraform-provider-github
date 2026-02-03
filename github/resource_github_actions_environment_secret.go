@@ -46,7 +46,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ForceNew:         true,
 				Sensitive:        true,
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ConflictsWith:    []string{"plaintext_value"},
+				ConflictsWith:    []string{"plaintext_value", "plaintext_value_wo"},
 				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
@@ -55,7 +55,23 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ForceNew:      true,
 				Sensitive:     true,
 				Description:   "Plaintext value of the secret to be encrypted.",
-				ConflictsWith: []string{"encrypted_value"},
+				ConflictsWith: []string{"encrypted_value", "plaintext_value_wo"},
+			},
+			"plaintext_value_wo":{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				WriteOnly:     true,
+				Description:   "Write-Only plaintext value of the secret to be encrypted.",
+				ConflictsWith: []string{"encrypted_value", "plaintext_value"},
+				RequiredWith:  []string{"plaintext_value_wo_version"},
+			},
+			"plaintext_value_wo_version":{
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "Write-Only plaintext value of the secret to be encrypted.",
+				RequiredWith:  []string{"plaintext_value_wo"},
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -93,12 +109,26 @@ func resourceGithubActionsEnvironmentSecretCreateOrUpdate(ctx context.Context, d
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
 		encryptedValue = encryptedText.(string)
+	} else if plaintextValueWO, ok := d.GetOk("plaintext_value_wo"); ok {
+		encryptedBytes, err := encryptPlaintext(plaintextValueWO.(string), publicKey)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
+	}
+
+	// When using write-only plaintext and the resource already exists, only write to GitHub if the version changed.
+	if _, useWO := d.GetOk("plaintext_value_wo"); useWO && d.Id() != "" {
+		oldVer, newVer := d.GetChange("plaintext_value_wo_version")
+		if oldVer.(int) == newVer.(int) {
+			return resourceGithubActionsEnvironmentSecretRead(ctx, d, meta)
+		}
 	}
 
 	// Create an EncryptedSecret and encrypt the plaintext value into it
@@ -168,6 +198,9 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
 		return diag.FromErr(err)
 	}
+	if err = d.Set("plaintext_value_wo_version", d.Get("plaintext_value_wo_version")); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -189,6 +222,7 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
 		_ = d.Set("encrypted_value", "")
 		_ = d.Set("plaintext_value", "")
+		_ = d.Set("plaintext_value_wo_version", "")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
