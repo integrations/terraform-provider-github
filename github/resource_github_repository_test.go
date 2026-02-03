@@ -369,31 +369,34 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("configures topics for a repository", func(t *testing.T) {
+	t.Run("configures_topics_for_a_repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stopic-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		topicsBefore := `["terraform", "testing"]`
+		topicsAfter := `["terraform", "testing", "extra-topic"]`
+		config := `
 			resource "github_repository" "test" {
 				name        = "%s"
 				description = "Terraform acceptance tests %[1]s"
-				topics			= ["terraform", "testing"]
+				topics			= %s
 			}
-		`, testRepoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "topics.#",
-				"2",
-			),
-		)
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: fmt.Sprintf(config, testRepoName, topicsBefore),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "2"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, topicsAfter),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "3"),
+					),
 				},
 			},
 		})
@@ -415,20 +418,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
 				},
 			},
 		})
@@ -450,20 +448,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.owner, testAccConf.testOrgTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
 				},
 			},
 		})
@@ -788,40 +781,23 @@ resource "github_repository" "test" {
 						`, testRepoName, updatedMergeCommitTitle, updatedMergeCommitMessage),
 		}
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					mergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					mergeCommitMessage,
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					updatedMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					updatedMergeCommitMessage,
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", mergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", mergeCommitMessage),
+					),
 				},
 				{
 					Config: configs["after"],
-					Check:  checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", updatedMergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", updatedMergeCommitMessage),
+					),
 				},
 			},
 		})
@@ -857,24 +833,12 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					squashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					squashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", squashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", squashMergeCommitMessage),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					updatedSquashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					updatedSquashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", updatedSquashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", updatedSquashMergeCommitMessage),
 			),
 		}
 

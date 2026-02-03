@@ -683,7 +683,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 
-			d.SetId(*repo.Name)
+			d.SetId(repo.GetName())
 		}
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
@@ -963,7 +963,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(*repo.Name)
+	d.SetId(repo.GetName()) // It's possible that `repo.GetName()` is different from `repoName` if the repository is renamed
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -990,19 +990,11 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.HasChange("topics") {
-		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+		// GitHub API docs say that the ReplaceAllTopics endpoint should be used instead of updating the repository with the topics field
+		// https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#update-a-repository
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), repoReq.Topics)
 		if err != nil {
 			return diag.FromErr(err)
-		}
-		d.SetId(*repo.Name)
-
-		if d.HasChange("topics") {
-			topics := repoReq.Topics
-			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
-			if err != nil {
-				return diag.FromErr(err)
-			}
 		}
 	}
 
