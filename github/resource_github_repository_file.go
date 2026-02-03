@@ -167,8 +167,8 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		})
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
 			if d.Get("autocreate_branch").(bool) {
-				if diags := createBranch(ctx, d, meta); diags != nil {
-					return diags
+				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
+					return diag.FromErr(err)
 				}
 			} else {
 				return diag.FromErr(err)
@@ -355,8 +355,8 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 		})
 		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
 			if d.Get("autocreate_branch").(bool) {
-				if diags := createBranch(ctx, d, meta); diags != nil {
-					return diags
+				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
+					return diag.FromErr(err)
 				}
 			} else {
 				return diag.FromErr(err)
@@ -401,8 +401,8 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 		})
 		if err := checkRepositoryBranchExists(client, owner, repo, b.(string)); err != nil {
 			if d.Get("autocreate_branch").(bool) {
-				if diags := createBranch(ctx, d, meta); diags != nil {
-					return diags
+				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
+					return diag.FromErr(err)
 				}
 			} else {
 				return diag.FromErr(err)
@@ -456,7 +456,7 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	return []*schema.ResourceData{d}, nil
 }
 
-func createBranch(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	branch := d.Get("branch").(string)
@@ -469,12 +469,12 @@ func createBranch(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 	if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
 		ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
 		if err != nil {
-			return diag.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
+			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 				owner, repo, sourceBranchRefName, err.Error())
 		}
 		err = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 		if err != nil {
-			return diag.FromErr(err)
+			return fmt.Errorf("error setting autocreate_branch_source_sha: %w", err)
 		}
 	}
 	sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
@@ -483,7 +483,8 @@ func createBranch(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 		SHA: sourceBranchSHA,
 	}
 	if _, _, err := client.Git.CreateRef(ctx, owner, repo, branchRef); err != nil {
-		return diag.FromErr(err)
+		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %w",
+			owner, repo, branchRefName, err)
 	}
 	return nil
 }
