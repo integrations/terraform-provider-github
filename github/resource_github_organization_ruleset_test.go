@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -18,6 +19,19 @@ func TestAccGithubOrganizationRuleset(t *testing.T) {
 		workflowFilePath := ".github/workflows/echo.yaml"
 
 		config := fmt.Sprintf(`
+locals {
+		workflow_content = <<EOT
+name: Echo Workflow
+
+on: [pull_request]
+
+jobs:
+	echo:
+		runs-on: ubuntu-latest
+		steps:
+			- run: echo "Hello, world!"
+EOT
+}
 resource "github_repository" "test" {
 	name = "%s"
 	visibility = "private"
@@ -28,17 +42,7 @@ resource "github_repository_file" "workflow_file" {
 	repository          = github_repository.test.name
 	branch              = "main"
 	file                = "%[3]s"
-	content             = <<EOT
-name: Echo Workflow
-
-on: [pull_request]
-
-jobs:
-  echo:
-    runs-on: linux
-    steps:
-      - run: echo \"Hello, world!\"
-EOT
+	content             = replace(local.workflow_content, "\t", " ") # NOTE: 'content' must be indented with spaces, not tabs
 	commit_message      = "Managed by Terraform"
 	commit_author       = "Terraform User"
 	commit_email        = "terraform@example.com"
@@ -207,11 +211,6 @@ resource "github_organization_ruleset" "test" {
 
 	conditions {
 		repository_name {
-			include = ["~ALL"]
-			exclude = []
-		}
-
-		ref_name {
 			include = ["~ALL"]
 			exclude = []
 		}
@@ -499,6 +498,317 @@ resource "github_organization_ruleset" "test" {
 			},
 		})
 	})
+
+	t.Run("validates_branch_target_requires_ref_name_condition", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-validation-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must be set for branch target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_tag_target_requires_ref_name_condition", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test" {
+				name        = "test-tag-no-conditions-%s"
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must be set for tag target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_push_target_rejects_ref_name_condition", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-push-reject-ref-name"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-with-ref-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Push rulesets only support push-specific rules
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_push_target_rejects_branch_or_tag_rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-push-reject-branch-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-push-branch-rule-%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_branch_target_rejects_push-only_rules", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-branch-reject-push-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-branch-push-rule-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
+				},
+			},
+		})
+	})
+
+	t.Run("creates_push_ruleset", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%stest-push-%s", testResourcePrefix, randomID)
+		resourceName := "test-push-ruleset"
+		resourceFullName := fmt.Sprintf("github_organization_ruleset.%s", resourceName)
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "%s"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Push rulesets only support push-specific rules:
+					# file_path_restriction, max_file_path_length, file_extension_restriction, max_file_size
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, resourceName, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceFullName, "name", rulesetName),
+						resource.TestCheckResourceAttr(resourceFullName, "target", "push"),
+						resource.TestCheckResourceAttr(resourceFullName, "enforcement", "active"),
+						resource.TestCheckResourceAttr(resourceFullName, "rules.0.max_file_size.0.max_file_size", "100"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_rules__required_status_checks_block", func(t *testing.T) {
+		t.Run("required_check__context_block_should_not_be_empty", func(t *testing.T) {
+			resourceName := "test-required-status-checks-context-is-not-empty"
+			randomID := acctest.RandString(5)
+			config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-context-is-not-empty-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					required_status_checks {
+						required_check {
+							context = ""
+						}
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("expected \"context\" to not be an empty string"),
+					},
+				},
+			})
+		})
+		t.Run("required_check_should_be_required_when_strict_required_status_checks_policy_is_set", func(t *testing.T) {
+			resourceName := "test-required-check-is-required"
+			randomID := acctest.RandString(5)
+			config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-required-with-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					required_status_checks {
+						strict_required_status_checks_policy = true
+					}
+				}
+			}
+		`, resourceName, randomID)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("Insufficient required_check blocks"),
+					},
+				},
+			})
+		})
+	})
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
@@ -578,7 +888,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Test flatten functionality (organization rulesets use org=true)
-	flattenedResult := flattenRules(expandedRules, true)
+	flattenedResult := flattenRules(t.Context(), expandedRules, true)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))

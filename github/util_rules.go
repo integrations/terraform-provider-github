@@ -1,11 +1,12 @@
 package github
 
 import (
-	"log"
+	"context"
 	"reflect"
 	"sort"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -217,20 +218,23 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	return rulesetConditions
 }
 
-func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
-	if conditions == nil || conditions.RefName == nil {
+func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
+	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
+		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
 	}
 
 	conditionsMap := make(map[string]any)
 	refNameSlice := make([]map[string]any, 0)
 
-	refNameSlice = append(refNameSlice, map[string]any{
-		"include": conditions.RefName.Include,
-		"exclude": conditions.RefName.Exclude,
-	})
+	if conditions.RefName != nil {
+		refNameSlice = append(refNameSlice, map[string]any{
+			"include": conditions.RefName.Include,
+			"exclude": conditions.RefName.Exclude,
+		})
 
-	conditionsMap["ref_name"] = refNameSlice
+		conditionsMap["ref_name"] = refNameSlice
+	}
 
 	// org-only fields
 	if org {
@@ -528,7 +532,7 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	return rulesetRules
 }
 
-func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
+func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org bool) []any {
 	if rules == nil {
 		return []any{}
 	}
@@ -573,7 +577,7 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 		})
-		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
+		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
