@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -108,4 +109,54 @@ func diffSecretVariableVisibility(ctx context.Context, d *schema.ResourceDiff, _
 	}
 
 	return nil
+}
+
+// diffTeam compares the team_id and team_slug fields to determine if the team has changed.
+func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	// Skip for new resources - no existing team_id to compare against
+	if len(diff.Id()) == 0 {
+		return nil
+	}
+
+	if diff.HasChange("team_slug") {
+		if isNewTeamID(ctx, diff, m) {
+			return diff.ForceNew("team_slug")
+		}
+	}
+
+	return nil
+}
+
+// helper function to determine if the team has changed or was renamed.
+func isNewTeamID(ctx context.Context, diff *schema.ResourceDiff, m any) bool {
+	// Get old team_id from state
+	oldTeamID := toInt64(diff.Get("team_id"))
+	if oldTeamID == 0 {
+		return false
+	}
+	meta := m.(*Owner)
+
+	// Resolve new team_slug to team ID via API
+	oldTeamSlug, newTeamSlug := diff.GetChange("team_slug")
+	newTeamID, err := lookupTeamID(ctx, meta, newTeamSlug.(string))
+	if err != nil {
+		// If team doesn't exist or API fails, skip ForceNew check and let Read handle it
+		tflog.Debug(ctx, "Unable to resolve new team_slug to team ID, skipping ForceNew check", map[string]any{
+			"new_team_slug": newTeamSlug,
+			"error":         err.Error(),
+		})
+		return false
+	}
+
+	if newTeamID != oldTeamID {
+		tflog.Debug(ctx, "Team ID changed, forcing new resource", map[string]any{
+			"old_team_id":   oldTeamID,
+			"new_team_id":   newTeamID,
+			"new_team_slug": newTeamSlug,
+			"old_team_slug": oldTeamSlug,
+		})
+		return true
+	}
+
+	return false
 }
