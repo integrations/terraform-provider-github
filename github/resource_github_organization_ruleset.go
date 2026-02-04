@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -31,7 +30,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
-	CustomizeDiff: resourceGithubOrganizationRulesetDiff,
+		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -125,10 +124,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_property": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							Description:  "Conditions to target repositories by custom or system properties.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -193,10 +192,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							Description:  "Targets repositories that match the specified name patterns.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Targets repositories that match the specified name patterns.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -225,9 +224,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
