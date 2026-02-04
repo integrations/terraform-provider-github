@@ -50,6 +50,7 @@ func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState m
 		}
 		return nil, err
 	}
+
 	group := groupsList.Groups[0]
 	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
 	if err != nil {
