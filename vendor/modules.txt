@@ -134,11 +134,11 @@ github.com/hashicorp/hcl/v2/hclsyntax
 # github.com/hashicorp/logutils v1.0.0
 ## explicit
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform-exec v0.23.1
+# github.com/hashicorp/terraform-exec v0.24.0
 ## explicit; go 1.23.0
 github.com/hashicorp/terraform-exec/internal/version
 github.com/hashicorp/terraform-exec/tfexec
-# github.com/hashicorp/terraform-json v0.27.1
+# github.com/hashicorp/terraform-json v0.27.2
 ## explicit; go 1.21
 github.com/hashicorp/terraform-json
 # github.com/hashicorp/terraform-plugin-go v0.29.0
@@ -171,11 +171,8 @@ github.com/hashicorp/terraform-plugin-log/tfsdklog
 # github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
 ## explicit; go 1.24.0
 github.com/hashicorp/terraform-plugin-sdk/v2/diag
-github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff
-github.com/hashicorp/terraform-plugin-sdk/v2/helper/id
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging
-github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure
@@ -187,11 +184,32 @@ github.com/hashicorp/terraform-plugin-sdk/v2/internal/helper/hashcode
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/logging
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/plans/objchange
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/plugin/convert
-github.com/hashicorp/terraform-plugin-sdk/v2/internal/plugintest
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/tfdiags
 github.com/hashicorp/terraform-plugin-sdk/v2/meta
 github.com/hashicorp/terraform-plugin-sdk/v2/plugin
 github.com/hashicorp/terraform-plugin-sdk/v2/terraform
+# github.com/hashicorp/terraform-plugin-testing v1.14.0
+## explicit; go 1.24.0
+github.com/hashicorp/terraform-plugin-testing/compare
+github.com/hashicorp/terraform-plugin-testing/config
+github.com/hashicorp/terraform-plugin-testing/helper/acctest
+github.com/hashicorp/terraform-plugin-testing/helper/resource
+github.com/hashicorp/terraform-plugin-testing/helper/resource/query
+github.com/hashicorp/terraform-plugin-testing/internal/addrs
+github.com/hashicorp/terraform-plugin-testing/internal/configs/configschema
+github.com/hashicorp/terraform-plugin-testing/internal/configs/hcl2shim
+github.com/hashicorp/terraform-plugin-testing/internal/logging
+github.com/hashicorp/terraform-plugin-testing/internal/plugintest
+github.com/hashicorp/terraform-plugin-testing/internal/teststep
+github.com/hashicorp/terraform-plugin-testing/internal/tfdiags
+github.com/hashicorp/terraform-plugin-testing/knownvalue
+github.com/hashicorp/terraform-plugin-testing/plancheck
+github.com/hashicorp/terraform-plugin-testing/querycheck
+github.com/hashicorp/terraform-plugin-testing/querycheck/queryfilter
+github.com/hashicorp/terraform-plugin-testing/statecheck
+github.com/hashicorp/terraform-plugin-testing/terraform
+github.com/hashicorp/terraform-plugin-testing/tfjsonpath
+github.com/hashicorp/terraform-plugin-testing/tfversion
 # github.com/hashicorp/terraform-registry-address v0.4.0
 ## explicit; go 1.23.0
 github.com/hashicorp/terraform-registry-address
