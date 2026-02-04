@@ -48,9 +48,22 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"actions": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IP addresses in CIDR format specifying the addresses that GitHub Actions will originate from.",
+			},
+			"actions_macos": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IP addresses in CIDR format specifying the addresses that GitHub Actions macOS runners will originate from.",
+			},
+			"github_enterprise_importer": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IP addresses in CIDR format specifying the addresses that GitHub Enterprise Importer will originate from.",
 			},
 			"dependabot": {
 				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
@@ -94,9 +107,22 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"actions_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv4 addresses in CIDR format specifying the addresses that GitHub Actions will originate from.",
+			},
+			"actions_macos_ipv4": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv4 addresses in CIDR format specifying the addresses that GitHub Actions macOS runners will originate from.",
+			},
+			"github_enterprise_importer_ipv4": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv4 addresses in CIDR format specifying the addresses that GitHub Enterprise Importer will originate from.",
 			},
 			"dependabot_ipv4": {
 				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
@@ -140,9 +166,22 @@ func dataSourceGithubIpRanges() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"actions_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv6 addresses in CIDR format specifying the addresses that GitHub Actions will originate from.",
+			},
+			"actions_macos_ipv6": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv6 addresses in CIDR format specifying the addresses that GitHub Actions macOS runners will originate from.",
+			},
+			"github_enterprise_importer_ipv6": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of IPv6 addresses in CIDR format specifying the addresses that GitHub Enterprise Importer will originate from.",
 			},
 			"dependabot_ipv6": {
 				Deprecated: "This attribute is no longer returned form the API, Dependabot now uses the GitHub Actions IP addresses.",
@@ -188,6 +227,16 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
 	}
 
 	cidrActionsIpv4, cidrActionsIpv6, err := splitIpv4Ipv6Cidrs(&api.Actions)
+	if err != nil {
+		return err
+	}
+
+	cidrActionsMacosIpv4, cidrActionsMacosIpv6, err := splitIpv4Ipv6Cidrs(&api.ActionsMacos)
+	if err != nil {
+		return err
+	}
+
+	cidrGithubEnterpriseImporterIpv4, cidrGithubEnterpriseImporterIpv6, err := splitIpv4Ipv6Cidrs(&api.GithubEnterpriseImporter)
 	if err != nil {
 		return err
 	}
@@ -281,6 +330,34 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
 			return err
 		}
 		err = d.Set("actions_ipv6", cidrActionsIpv6)
+		if err != nil {
+			return err
+		}
+	}
+	if len(api.ActionsMacos) > 0 {
+		err = d.Set("actions_macos", api.ActionsMacos)
+		if err != nil {
+			return err
+		}
+		err = d.Set("actions_macos_ipv4", cidrActionsMacosIpv4)
+		if err != nil {
+			return err
+		}
+		err = d.Set("actions_macos_ipv6", cidrActionsMacosIpv6)
+		if err != nil {
+			return err
+		}
+	}
+	if len(api.GithubEnterpriseImporter) > 0 {
+		err = d.Set("github_enterprise_importer", api.GithubEnterpriseImporter)
+		if err != nil {
+			return err
+		}
+		err = d.Set("github_enterprise_importer_ipv4", cidrGithubEnterpriseImporterIpv4)
+		if err != nil {
+			return err
+		}
+		err = d.Set("github_enterprise_importer_ipv6", cidrGithubEnterpriseImporterIpv6)
 		if err != nil {
 			return err
 		}
