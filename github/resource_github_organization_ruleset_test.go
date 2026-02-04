@@ -809,6 +809,165 @@ resource "github_organization_ruleset" "test" {
 			})
 		})
 	})
+
+	t.Run("updates_required_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go", "src/**/*.ts"]
+				minimum_approvals = %d
+			}
+		}
+	}
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, teamName, rulesetName, 1),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.1", "src/**/*.ts"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, teamName, rulesetName, 2),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+					),
+				},
+				{
+					ResourceName:            "github_organization_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+	t.Run("creates_rule_with_multiple_required_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName1 := fmt.Sprintf("%steam-req-rev-1-%s", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%steam-req-rev-2-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-ruleset-multi-rev-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_team" "test1" {
+	name = "%s"
+}
+
+resource "github_team" "test2" {
+	name = "%s"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test1.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 1
+			}
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test2.id
+					type = "Team"
+				}
+				file_patterns     = ["*.md", "docs/**/*"]
+				minimum_approvals = 1
+			}
+		}
+	}
+}
+`, teamName1, teamName2, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.1.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.required_reviewers.1.file_patterns.#", "2"),
+					),
+				},
+			},
+		})
+	})
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
