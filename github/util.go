@@ -213,6 +213,108 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
+func getTeamID(teamIDString string, meta any) (int64, error) {
+	// Given a string that is either a team id or team slug, return the
+	// id of the team it is referring to.
+	ctx := context.Background()
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+
+	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	if parseIntErr == nil {
+		return teamId, nil
+	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+	if slugErr != nil {
+		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
+	}
+	return team.GetID(), nil
+}
+
+func getTeamSlug(teamIDString string, meta any) (string, error) {
+	ctx := context.Background()
+	return getTeamSlugContext(ctx, teamIDString, meta)
+}
+
+func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
+	// Given a string that is either a team id or team slug, return the
+	// team slug it is referring to.
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	orgId := meta.(*Owner).id
+
+	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	if parseIntErr != nil {
+		// The given id not an integer, assume it is a team slug
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		if slugErr != nil {
+			return "", errors.New(parseIntErr.Error() + slugErr.Error())
+		}
+		return team.GetSlug(), nil
+	}
+
+	// The given id is an integer, assume it is a team id
+	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	if teamIdErr != nil {
+		// There isn't a team with the given ID, assume it is a teamslug
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		if slugErr != nil {
+			return "", errors.New(teamIdErr.Error() + slugErr.Error())
+		}
+		return team.GetSlug(), nil
+	}
+	return team.GetSlug(), nil
+}
+
+// errIs404 checks if the error is a GitHub 404 Not Found response.
+func errIs404(err error) bool {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		return ghErr.Response.StatusCode == http.StatusNotFound
+	}
+	return false
+}
+
+// errIsRetryable checks if the error is a retryable GitHub API error.
+func errIsRetryable(err error) bool {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		switch ghErr.Response.StatusCode {
+		case http.StatusConflict, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// expandStringSet converts a schema.Set to a string slice.
+func expandStringSet(set *schema.Set) []string {
+	if set == nil {
+		return nil
+	}
+	list := set.List()
+	return expandStringList(list)
+}
+
+// chunkStringSlice splits a slice into chunks of the specified max size.
+//
+//nolint:unparam // maxSize is parameterized for reusability across different contexts
+func chunkStringSlice(items []string, maxSize int) [][]string {
+	if len(items) == 0 {
+		return nil
+	}
+	chunks := make([][]string, 0, (len(items)+maxSize-1)/maxSize)
+	for start := 0; start < len(items); start += maxSize {
+		end := min(start+maxSize, len(items))
+		chunks = append(chunks, items[start:end])
+	}
+	return chunks
+}
+
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
