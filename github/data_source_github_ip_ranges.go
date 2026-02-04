@@ -260,147 +260,123 @@ func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
 		d.SetId("github-ip-ranges")
 	}
 	if len(api.Hooks) > 0 {
-		err = d.Set("hooks", api.Hooks)
-		if err != nil {
+		if err := d.Set("hooks", api.Hooks); err != nil {
 			return err
 		}
-		err = d.Set("hooks_ipv4", cidrHooksIpv4)
-		if err != nil {
+		if err := d.Set("hooks_ipv4", cidrHooksIpv4); err != nil {
 			return err
 		}
-		err = d.Set("hooks_ipv6", cidrHooksIpv6)
-		if err != nil {
+		if err := d.Set("hooks_ipv6", cidrHooksIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Git) > 0 {
-		err = d.Set("git", api.Git)
-		if err != nil {
+		if err := d.Set("git", api.Git); err != nil {
 			return err
 		}
-		err = d.Set("git_ipv4", cidrGitIpv4)
-		if err != nil {
+		if err := d.Set("git_ipv4", cidrGitIpv4); err != nil {
 			return err
 		}
-		err = d.Set("git_ipv6", cidrGitIpv6)
-		if err != nil {
+		if err := d.Set("git_ipv6", cidrGitIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Packages) > 0 {
-		_ = d.Set("packages", api.Packages)
-		_ = d.Set("packages_ipv4", cidrPackagesIpv4)
-		_ = d.Set("packages_ipv6", cidrPackagesIpv6)
+		if err := d.Set("packages", api.Packages); err != nil {
+			return err
+		}
+		if err := d.Set("packages_ipv4", cidrPackagesIpv4); err != nil {
+			return err
+		}
+		if err := d.Set("packages_ipv6", cidrPackagesIpv6); err != nil {
+			return err
+		}
 	}
 	if len(api.Pages) > 0 {
-		err = d.Set("pages", api.Pages)
-		if err != nil {
+		if err := d.Set("pages", api.Pages); err != nil {
 			return err
 		}
-		err = d.Set("pages_ipv4", cidrPagesIpv4)
-		if err != nil {
+		if err := d.Set("pages_ipv4", cidrPagesIpv4); err != nil {
 			return err
 		}
-		err = d.Set("pages_ipv6", cidrPagesIpv6)
-		if err != nil {
+		if err := d.Set("pages_ipv6", cidrPagesIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Importer) > 0 {
-		err = d.Set("importer", api.Importer)
-		if err != nil {
+		if err := d.Set("importer", api.Importer); err != nil {
 			return err
 		}
-		err = d.Set("importer_ipv4", cidrImporterIpv4)
-		if err != nil {
+		if err := d.Set("importer_ipv4", cidrImporterIpv4); err != nil {
 			return err
 		}
-		err = d.Set("importer_ipv6", cidrImporterIpv6)
-		if err != nil {
+		if err := d.Set("importer_ipv6", cidrImporterIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Actions) > 0 {
-		err = d.Set("actions", api.Actions)
-		if err != nil {
+		if err := d.Set("actions", api.Actions); err != nil {
 			return err
 		}
-		err = d.Set("actions_ipv4", cidrActionsIpv4)
-		if err != nil {
+		if err := d.Set("actions_ipv4", cidrActionsIpv4); err != nil {
 			return err
 		}
-		err = d.Set("actions_ipv6", cidrActionsIpv6)
-		if err != nil {
+		if err := d.Set("actions_ipv6", cidrActionsIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.ActionsMacos) > 0 {
-		err = d.Set("actions_macos", api.ActionsMacos)
-		if err != nil {
+		if err := d.Set("actions_macos", api.ActionsMacos); err != nil {
 			return err
 		}
-		err = d.Set("actions_macos_ipv4", cidrActionsMacosIpv4)
-		if err != nil {
+		if err := d.Set("actions_macos_ipv4", cidrActionsMacosIpv4); err != nil {
 			return err
 		}
-		err = d.Set("actions_macos_ipv6", cidrActionsMacosIpv6)
-		if err != nil {
+		if err := d.Set("actions_macos_ipv6", cidrActionsMacosIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.GithubEnterpriseImporter) > 0 {
-		err = d.Set("github_enterprise_importer", api.GithubEnterpriseImporter)
-		if err != nil {
+		if err := d.Set("github_enterprise_importer", api.GithubEnterpriseImporter); err != nil {
 			return err
 		}
-		err = d.Set("github_enterprise_importer_ipv4", cidrGithubEnterpriseImporterIpv4)
-		if err != nil {
+		if err := d.Set("github_enterprise_importer_ipv4", cidrGithubEnterpriseImporterIpv4); err != nil {
 			return err
 		}
-		err = d.Set("github_enterprise_importer_ipv6", cidrGithubEnterpriseImporterIpv6)
-		if err != nil {
+		if err := d.Set("github_enterprise_importer_ipv6", cidrGithubEnterpriseImporterIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Dependabot) > 0 {
-		err = d.Set("dependabot", api.Dependabot)
-		if err != nil {
+		if err := d.Set("dependabot", api.Dependabot); err != nil {
 			return err
 		}
-		err = d.Set("dependabot_ipv4", cidrDependabotIpv4)
-		if err != nil {
+		if err := d.Set("dependabot_ipv4", cidrDependabotIpv4); err != nil {
 			return err
 		}
-		err = d.Set("dependabot_ipv6", cidrDependabotIpv6)
-		if err != nil {
+		if err := d.Set("dependabot_ipv6", cidrDependabotIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.Web) > 0 {
-		err = d.Set("web", api.Web)
-		if err != nil {
+		if err := d.Set("web", api.Web); err != nil {
 			return err
 		}
-		err = d.Set("web_ipv4", cidrWebIpv4)
-		if err != nil {
+		if err := d.Set("web_ipv4", cidrWebIpv4); err != nil {
 			return err
 		}
-		err = d.Set("web_ipv6", cidrWebIpv6)
-		if err != nil {
+		if err := d.Set("web_ipv6", cidrWebIpv6); err != nil {
 			return err
 		}
 	}
 	if len(api.API) > 0 {
-		err = d.Set("api", api.API)
-		if err != nil {
+		if err := d.Set("api", api.API); err != nil {
 			return err
 		}
-		err = d.Set("api_ipv4", cidrApiIpv4)
-		if err != nil {
+		if err := d.Set("api_ipv4", cidrApiIpv4); err != nil {
 			return err
 		}
-		err = d.Set("api_ipv6", cidrApiIpv6)
-		if err != nil {
+		if err := d.Set("api_ipv6", cidrApiIpv6); err != nil {
 			return err
 		}
 	}
