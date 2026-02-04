@@ -250,6 +250,8 @@ func Provider() *schema.Provider {
 			"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
 			"github_dependabot_public_key":                                          dataSourceGithubDependabotPublicKey(),
 			"github_dependabot_secrets":                                             dataSourceGithubDependabotSecrets(),
+			"github_enterprise_actions_hosted_runner":                               dataSourceGithubEnterpriseActionsHostedRunner(),
+			"github_enterprise_actions_hosted_runners":                              dataSourceGithubEnterpriseActionsHostedRunners(),
 			"github_external_groups":                                                dataSourceGithubExternalGroups(),
 			"github_ip_ranges":                                                      dataSourceGithubIpRanges(),
 			"github_issue_labels":                                                   dataSourceGithubIssueLabels(),
