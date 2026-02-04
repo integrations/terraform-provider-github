@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	gh "github.com/google/go-github/v81/github"
+	gh "github.com/google/go-github/v82/github"
 )
 
 // enterpriseSCIMListAllGroups fetches all SCIM groups for an enterprise with automatic pagination.
