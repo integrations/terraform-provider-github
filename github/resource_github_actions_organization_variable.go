@@ -142,30 +142,32 @@ func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	repoIDs := []int64{}
 	if variable.GetVisibility() == "selected" {
-		opt := &github.ListOptions{
-			PerPage: maxPerPage,
-		}
-		for {
-			results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
-			if err != nil {
+		if _, ok := d.GetOk("selected_repository_ids"); ok {
+			repoIDs := []int64{}
+			opt := &github.ListOptions{
+				PerPage: maxPerPage,
+			}
+			for {
+				results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				for _, repo := range results.Repositories {
+					repoIDs = append(repoIDs, repo.GetID())
+				}
+
+				if resp.NextPage == 0 {
+					break
+				}
+				opt.Page = resp.NextPage
+			}
+
+			if err := d.Set("selected_repository_ids", repoIDs); err != nil {
 				return diag.FromErr(err)
 			}
-
-			for _, repo := range results.Repositories {
-				repoIDs = append(repoIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
 		}
-	}
-
-	if err := d.Set("selected_repository_ids", repoIDs); err != nil {
-		return diag.FromErr(err)
 	}
 
 	return nil

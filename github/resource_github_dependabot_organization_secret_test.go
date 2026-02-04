@@ -319,6 +319,54 @@ resource "github_dependabot_organization_secret" "test" {
 		})
 	})
 
+	t.Run("create_update_visibility_selected_no_repo_ids", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
+		secretName := fmt.Sprintf("test_%s", randomID)
+		value := base64.StdEncoding.EncodeToString([]byte("foo"))
+		valueUpdated := base64.StdEncoding.EncodeToString([]byte("bar"))
+
+		config := `
+resource "github_dependabot_organization_secret" "test" {
+	secret_name      = "%s"
+	plaintext_value  = "%s"
+	visibility       = "selected"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, secretName, value),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "updated_at"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, secretName, valueUpdated),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
+						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "updated_at"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("create_update_change_visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)

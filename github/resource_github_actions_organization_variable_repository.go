@@ -10,34 +10,34 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
+func resourceGithubActionsOrganizationVariableRepository() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"secret_name": {
+			"variable_name": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				ValidateDiagFunc: validateSecretNameFunc,
-				Description:      "Name of the existing secret.",
+				Description:      "Name of the existing variable.",
 			},
 			"repository_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The repository ID that can access the organization secret.",
+				Description: "The repository ID that can access the organization variable.",
 			},
 		},
 
-		CreateContext: resourceGithubActionsOrganizationSecretRepositoryCreate,
-		ReadContext:   resourceGithubActionsOrganizationSecretRepositoryRead,
-		DeleteContext: resourceGithubActionsOrganizationSecretRepositoryDelete,
+		CreateContext: resourceGithubActionsOrganizationVariableRepositoryCreate,
+		ReadContext:   resourceGithubActionsOrganizationVariableRepositoryRead,
+		DeleteContext: resourceGithubActionsOrganizationVariableRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsOrganizationSecretRepositoryImport,
+			StateContext: resourceGithubActionsOrganizationVariableRepositoryImport,
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -46,19 +46,19 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	variableName := d.Get("variable_name").(string)
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
 		ID: github.Ptr(int64(repoID)),
 	}
 
-	_, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
+	_, err := client.Actions.AddSelectedRepoToOrgVariable(ctx, owner, variableName, repository)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(secretName, strconv.Itoa(repoID))
+	id, err := buildID(variableName, strconv.Itoa(repoID))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -67,7 +67,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -76,7 +76,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	variableName := d.Get("variable_name").(string)
 	repoID := int64(d.Get("repository_id").(int))
 
 	opt := &github.ListOptions{
@@ -84,7 +84,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	}
 
 	for {
-		repos, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+		repos, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -101,13 +101,13 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 		opt.Page = resp.NextPage
 	}
 
-	log.Printf("[INFO] Removing secret repository association %s from state because it no longer exists in GitHub", d.Id())
+	log.Printf("[INFO] Removing variable repository association %s from state because it no longer exists in GitHub", d.Id())
 	d.SetId("")
 
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -116,13 +116,13 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	variableName := d.Get("variable_name").(string)
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
 		ID: github.Ptr(int64(repoID)),
 	}
-	_, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
+	_, err := client.Actions.RemoveSelectedRepoFromOrgVariable(ctx, owner, variableName, repository)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -130,8 +130,8 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	secretName, repoIDStr, err := parseID2(d.Id())
+func resourceGithubActionsOrganizationVariableRepositoryImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	variableName, repoIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func resourceGithubActionsOrganizationSecretRepositoryImport(ctx context.Context
 		return nil, err
 	}
 
-	if err := d.Set("secret_name", secretName); err != nil {
+	if err := d.Set("variable_name", variableName); err != nil {
 		return nil, err
 	}
 	if err := d.Set("repository_id", repoID); err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
+func resourceGithubDependabotOrganizationSecretRepository() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
@@ -28,16 +28,16 @@ func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
 			},
 		},
 
-		CreateContext: resourceGithubActionsOrganizationSecretRepositoryCreate,
-		ReadContext:   resourceGithubActionsOrganizationSecretRepositoryRead,
-		DeleteContext: resourceGithubActionsOrganizationSecretRepositoryDelete,
+		CreateContext: resourceGithubDependabotOrganizationSecretRepositoryCreate,
+		ReadContext:   resourceGithubDependabotOrganizationSecretRepositoryRead,
+		DeleteContext: resourceGithubDependabotOrganizationSecretRepositoryDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsOrganizationSecretRepositoryImport,
+			StateContext: resourceGithubDependabotOrganizationSecretRepositoryImport,
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubDependabotOrganizationSecretRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -53,7 +53,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 		ID: github.Ptr(int64(repoID)),
 	}
 
-	_, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
+	_, err := client.Dependabot.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -67,7 +67,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubDependabotOrganizationSecretRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -84,7 +84,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	}
 
 	for {
-		repos, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+		repos, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -107,7 +107,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubDependabotOrganizationSecretRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -122,7 +122,7 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 	repository := &github.Repository{
 		ID: github.Ptr(int64(repoID)),
 	}
-	_, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
+	_, err := client.Dependabot.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -130,7 +130,7 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoryImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+func resourceGithubDependabotOrganizationSecretRepositoryImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	secretName, repoIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
