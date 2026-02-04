@@ -1,89 +1,111 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v82/github"
 )
 
-var (
-	testTeamID  = 432574718
-	testGroupID = 1234567890
-)
+func buildMockResponsesForMigrationV0toV1(mockResponsesOptions mockResponsesOptionsEMUGroupMappingMigrationV0V1) []*mockResponse {
+	responseBodyJson, err := json.Marshal(mockResponsesOptions.ExternalGroupList)
+	if err != nil {
+		panic(fmt.Sprintf("error marshalling external groups response: %s", err))
+	}
 
-func buildMockResponsesForMigrationV0toV1() []*mockResponse {
+	mockTeamResponseJson, err := json.Marshal(mockResponsesOptions.Team)
+	if err != nil {
+		panic(fmt.Sprintf("error marshalling mock team response: %s", err))
+	}
 	return []*mockResponse{
 		{
-			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s/external-groups", "test-org", "test-team"),
+			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s/external-groups", mockResponsesOptions.OrgSlug, mockResponsesOptions.TeamSlug),
 			ExpectedHeaders: map[string]string{
 				"Accept": "application/vnd.github.v3+json",
 			},
-			ResponseBody: fmt.Sprintf(`
-{
-	"groups": [
-		{
-			"group_id": %d,
-			"group_name": "test-group",
-			"updated_at": "2021-01-24T11:31:04-06:00"
-		}
-	]
-}`, int64(testGroupID)),
-			StatusCode: 201,
+			ResponseBody: string(responseBodyJson),
+			StatusCode:   mockResponsesOptions.externalGroupsResponseStatusCode,
 		},
 		{
-			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s", "test-org", "test-team"),
+			ExpectedUri: fmt.Sprintf("/orgs/%s/teams/%s", mockResponsesOptions.OrgSlug, mockResponsesOptions.TeamSlug),
 			ExpectedHeaders: map[string]string{
 				"Accept": "application/vnd.github.v3+json",
 			},
-			ResponseBody: fmt.Sprintf(`
-{
-	"id": %d
-}
-`, testTeamID),
-			StatusCode: 200,
+			ResponseBody: string(mockTeamResponseJson),
+			StatusCode:   mockResponsesOptions.teamResponseStatusCode,
 		},
 	}
+}
+
+type mockResponsesOptionsEMUGroupMappingMigrationV0V1 struct {
+	OrgSlug                          string
+	TeamSlug                         string
+	externalGroupsResponseStatusCode int
+	teamResponseStatusCode           int
+	ExternalGroupList                github.ExternalGroupList
+	Team                             github.Team
 }
 
 func Test_resourceGithubEMUGroupMappingStateUpgradeV0(t *testing.T) {
 	t.Parallel()
 
+	const testOrgSlug = "test-org"
+	const testTeamSlug = "test-team"
+	const testTeamID = 432574718
+	const testGroupID = 1234567890
+
 	meta := &Owner{
-		name: "test-org",
+		name: testOrgSlug,
 	}
 
 	for _, d := range []struct {
-		testName           string
-		rawState           map[string]any
-		want               map[string]any
-		buildMockResponses func() []*mockResponse
-		shouldError        bool
+		testName             string
+		rawState             map[string]any
+		want                 map[string]any
+		shouldError          bool
+		mockResponsesOptions mockResponsesOptionsEMUGroupMappingMigrationV0V1
 	}{
 		{
 			testName: "migrates v0 to v1",
 			rawState: map[string]any{
-				"id":        "teams/test-team/external-groups",
-				"team_slug": "test-team",
+				"id":        fmt.Sprintf("teams/%s/%d/external-groups", testTeamSlug, testGroupID),
+				"team_slug": testTeamSlug,
 				"group_id":  testGroupID,
 			},
 			want: map[string]any{
-				"id":        "432574718:test-team:1234567890",
-				"team_slug": "test-team",
+				"id":        fmt.Sprintf("%d:%s:%d", testTeamID, testTeamSlug, testGroupID),
+				"team_slug": testTeamSlug,
 				"team_id":   int64(testTeamID),
 				"group_id":  testGroupID,
 			},
-			buildMockResponses: buildMockResponsesForMigrationV0toV1,
-			shouldError:        false,
+			shouldError: false,
+			mockResponsesOptions: mockResponsesOptionsEMUGroupMappingMigrationV0V1{
+				OrgSlug:                          testOrgSlug,
+				TeamSlug:                         testTeamSlug,
+				externalGroupsResponseStatusCode: 201,
+				teamResponseStatusCode:           200,
+				ExternalGroupList: github.ExternalGroupList{
+					Groups: []*github.ExternalGroup{{
+						GroupID:   github.Ptr(int64(testGroupID)),
+						GroupName: github.Ptr(testOrgSlug),
+						UpdatedAt: github.Ptr(github.Timestamp{Time: time.Now()}),
+					}},
+				},
+				Team: github.Team{
+					ID: github.Ptr(int64(testTeamID)),
+				},
+			},
 		},
 	} {
 		t.Run(d.testName, func(t *testing.T) {
 			t.Parallel()
 
-			ts := githubApiMock(d.buildMockResponses())
+			ts := githubApiMock(buildMockResponsesForMigrationV0toV1(d.mockResponsesOptions))
 			defer ts.Close()
 
 			httpCl := http.DefaultClient
