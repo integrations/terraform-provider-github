@@ -236,7 +236,48 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
 									},
-									"required_reviewers": requiredReviewersSchema(),
+									"required_reviewers": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Require specific reviewers to approve pull requests targeting matching branches. Note: This feature is in beta and subject to change.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"reviewer": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MaxItems:    1,
+													Description: "The reviewer that must review matching files.",
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"id": {
+																Type:        schema.TypeInt,
+																Required:    true,
+																Description: "The ID of the reviewer that must review.",
+															},
+															"type": {
+																Type:             schema.TypeString,
+																Required:         true,
+																ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+																Description:      "The type of reviewer. Currently only `Team` is supported.",
+															},
+														},
+													},
+												},
+												"file_patterns": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MinItems:    1,
+													Description: "File patterns (fnmatch syntax) that this reviewer must approve.",
+													Elem:        &schema.Schema{Type: schema.TypeString},
+												},
+												"minimum_approvals": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.",
+												},
+											},
+										},
+									},
 								},
 							},
 						},
