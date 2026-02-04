@@ -342,3 +342,43 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	}
 	return err
 }
+
+// Helper function to safely convert interface{} to int, handling both int and float64.
+func toInt(v any) int {
+	switch val := v.(type) {
+	case int:
+		return val
+	case float64:
+		return int(val)
+	case int64:
+		return int(val)
+	default:
+		return 0
+	}
+}
+
+// Helper function to safely convert interface{} to int64, handling both int and float64.
+func toInt64(v any) int64 {
+	switch val := v.(type) {
+	case int:
+		return int64(val)
+	case int64:
+		return val
+	case float64:
+		return int64(val)
+	default:
+		return 0
+	}
+}
+
+// lookupTeamID looks up the ID of a team by its slug.
+func lookupTeamID(ctx context.Context, meta *Owner, slug string) (int64, error) {
+	client := meta.v3client
+	owner := meta.name
+
+	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, slug)
+	if err != nil {
+		return 0, err
+	}
+	return team.GetID(), nil
+}
