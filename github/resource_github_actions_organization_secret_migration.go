@@ -8,8 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceGithubActionsOrganizationSecretResourceV0() *schema.Resource {
+func resourceGithubActionsOrganizationSecretV0() *schema.Resource {
 	return &schema.Resource{
+		SchemaVersion: 0,
+
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,
@@ -66,8 +68,9 @@ func resourceGithubActionsOrganizationSecretResourceV0() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationSecretInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func resourceGithubActionsOrganizationSecretStateUpgradeV0(ctx context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	log.Printf("[DEBUG] GitHub Actions Organization Secret Attributes before migration: %#v", rawState)
+
 	// Add the destroy_on_drift field with default value true if it doesn't exist
 	if _, ok := rawState["destroy_on_drift"]; !ok {
 		rawState["destroy_on_drift"] = true

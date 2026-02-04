@@ -73,6 +73,71 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			},
 		})
 	})
+	t.Run("validates_commit_email_must_be_specified_if_commit_author_is_specified", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_commit_author_must_be_specified_if_commit_email_is_specified", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
+				},
+			},
+		})
+	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -300,8 +365,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				archived = true`, 1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

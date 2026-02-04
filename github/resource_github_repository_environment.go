@@ -112,11 +112,11 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }
@@ -218,11 +218,11 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }

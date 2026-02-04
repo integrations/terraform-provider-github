@@ -3,24 +3,17 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationVariableCreate,
-		Read:   resourceGithubActionsOrganizationVariableRead,
-		Update: resourceGithubActionsOrganizationVariableUpdate,
-		Delete: resourceGithubActionsOrganizationVariableDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
 				Type:             schema.TypeString,
@@ -34,6 +27,21 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 				Required:    true,
 				Description: "Value of the variable.",
 			},
+			"visibility": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "private", "selected"}, false)),
+				Description:      "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+			},
+			"selected_repository_ids": {
+				Type: schema.TypeSet,
+				Set:  schema.HashInt,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Optional:    true,
+				Description: "An array of repository ids that can access the organization variable.",
+			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -44,156 +52,225 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 				Computed:    true,
 				Description: "Date of 'actions_variable' update.",
 			},
-			"visibility": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				ForceNew:         true,
-				Description:      "Configures the access that repositories have to the organization variable. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
-			},
-			"selected_repository_ids": {
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{
-					Type: schema.TypeInt,
-				},
-				Set:         schema.HashInt,
-				Optional:    true,
-				Description: "An array of repository ids that can access the organization variable.",
-			},
+		},
+
+		CustomizeDiff: diffSecretVariableVisibility,
+
+		CreateContext: resourceGithubActionsOrganizationVariableCreate,
+		ReadContext:   resourceGithubActionsOrganizationVariableRead,
+		UpdateContext: resourceGithubActionsOrganizationVariableUpdate,
+		DeleteContext: resourceGithubActionsOrganizationVariableDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsOrganizationVariableImport,
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationVariableCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	name := d.Get("variable_name").(string)
-
+	varName := d.Get("variable_name").(string)
 	visibility := d.Get("visibility").(string)
-	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
+	repoIDs := github.SelectedRepoIDs{}
 
-	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
-	}
-
-	selectedRepositoryIDs := []int64{}
-
-	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
+	if v, ok := d.GetOk("selected_repository_ids"); ok {
+		ids := v.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+			repoIDs = append(repoIDs, int64(id.(int)))
 		}
 	}
 
-	repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
-
 	variable := &github.ActionsVariable{
-		Name:                  name,
+		Name:                  varName,
 		Value:                 d.Get("value").(string),
-		Visibility:            &visibility,
-		SelectedRepositoryIDs: &repoIDs,
+		Visibility:            github.Ptr(visibility),
+		SelectedRepositoryIDs: github.Ptr(repoIDs),
 	}
 	_, err := client.Actions.CreateOrgVariable(ctx, owner, variable)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(name)
-	return resourceGithubActionsOrganizationVariableRead(d, meta)
-}
+	d.SetId(varName)
 
-func resourceGithubActionsOrganizationVariableUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	name := d.Get("variable_name").(string)
-
-	visibility := d.Get("visibility").(string)
-	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
-
-	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
-	}
-
-	selectedRepositoryIDs := []int64{}
-
-	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
+		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
-
-	variable := &github.ActionsVariable{
-		Name:                  name,
-		Value:                 d.Get("value").(string),
-		Visibility:            &visibility,
-		SelectedRepositoryIDs: &repoIDs,
-	}
-
-	_, err := client.Actions.UpdateOrgVariable(ctx, owner, variable)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(name)
-	return resourceGithubActionsOrganizationVariableRead(d, meta)
+	return nil
 }
 
-func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	name := d.Id()
+	varName := d.Get("variable_name").(string)
 
-	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, name)
+	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
-					d.Id())
+				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub", d.Id())
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	if err = d.Set("variable_name", name); err != nil {
-		return err
+	if err := d.Set("value", variable.Value); err != nil {
+		return diag.FromErr(err)
 	}
-	if err = d.Set("value", variable.Value); err != nil {
-		return err
+	if err := d.Set("visibility", variable.Visibility); err != nil {
+		return diag.FromErr(err)
 	}
-	if err = d.Set("created_at", variable.CreatedAt.String()); err != nil {
-		return err
+	if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return diag.FromErr(err)
 	}
-	if err = d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
-		return err
+	if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return diag.FromErr(err)
 	}
-	if err = d.Set("visibility", *variable.Visibility); err != nil {
-		return err
+
+	repoIDs := []int64{}
+	if variable.GetVisibility() == "selected" {
+		opt := &github.ListOptions{
+			PerPage: maxPerPage,
+		}
+		for {
+			results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			for _, repo := range results.Repositories {
+				repoIDs = append(repoIDs, repo.GetID())
+			}
+
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
+		}
+	}
+
+	if err := d.Set("selected_repository_ids", repoIDs); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	varName := d.Get("variable_name").(string)
+	visibility := d.Get("visibility").(string)
+	repoIDs := github.SelectedRepoIDs{}
+
+	if v, ok := d.GetOk("selected_repository_ids"); ok {
+		ids := v.(*schema.Set).List()
+
+		for _, id := range ids {
+			repoIDs = append(repoIDs, int64(id.(int)))
+		}
+	}
+
+	variable := &github.ActionsVariable{
+		Name:                  varName,
+		Value:                 d.Get("value").(string),
+		Visibility:            github.Ptr(visibility),
+		SelectedRepositoryIDs: github.Ptr(repoIDs),
+	}
+
+	_, err := client.Actions.UpdateOrgVariable(ctx, owner, variable)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(varName)
+
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
+		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err := d.Set("updated_at", nil); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationVariableDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	varName := d.Get("variable_name").(string)
+
+	_, err := client.Actions.DeleteOrgVariable(ctx, owner, varName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationVariableImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	varName := d.Id()
+
+	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("variable_name", varName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("value", variable.Value); err != nil {
+		return nil, err
+	}
+	if err := d.Set("visibility", variable.Visibility); err != nil {
+		return nil, err
+	}
+	if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
+		return nil, err
 	}
 
 	selectedRepositoryIDs := []int64{}
-
-	if *variable.Visibility == "selected" {
+	if variable.GetVisibility() == "selected" {
 		opt := &github.ListOptions{
-			PerPage: 30,
+			PerPage: maxPerPage,
 		}
 		for {
-			results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, d.Id(), opt)
+			results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			for _, repo := range results.Repositories {
@@ -207,21 +284,9 @@ func resourceGithubActionsOrganizationVariableRead(d *schema.ResourceData, meta 
 		}
 	}
 
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return nil, err
 	}
 
-	return nil
-}
-
-func resourceGithubActionsOrganizationVariableDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	name := d.Id()
-
-	_, err := client.Actions.DeleteOrgVariable(ctx, owner, name)
-
-	return err
+	return []*schema.ResourceData{d}, nil
 }

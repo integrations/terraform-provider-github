@@ -142,7 +142,7 @@ initial repository creation and create the target branch inside of the repositor
 
 * `vulnerability_alerts` - (Optional) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to `true` to enable, set to `false` to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level.
 
-* `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read, if this is set to `true` and `vulnerability_alerts` is unset then the computed value of `vulnerability_alerts` will be nil.
+* `ignore_vulnerability_alerts_during_read` (**DEPRECATED**) (Optional) - This is ignored as the provider now handles lack of permissions automatically.
 
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 

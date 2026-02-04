@@ -402,10 +402,10 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				Deprecated: "This is ignored as the provider now handles lack of permissions automatically.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
@@ -683,7 +683,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 
-			d.SetId(*repo.Name)
+			d.SetId(repo.GetName())
 		}
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
@@ -831,6 +831,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 	_ = d.Set("node_id", repo.GetNodeID())
 	_ = d.Set("repo_id", repo.GetID())
 
+	// TODO: Validate this behavior as I can see these fields being returned even when archived
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
 		_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
@@ -888,7 +889,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	if !d.Get("ignore_vulnerability_alerts_during_read").(bool) {
+	if repo.GetSecurityAndAnalysis() != nil {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
 			return diag.Errorf("error reading repository vulnerability alerts: %s", err.Error())
@@ -896,10 +897,10 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		if err = d.Set("vulnerability_alerts", vulnerabilityAlerts); err != nil {
 			return diag.FromErr(err)
 		}
-	}
 
-	if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())); err != nil {
-		return diag.FromErr(err)
+		if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.SecurityAndAnalysis)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -962,7 +963,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(*repo.Name)
+	d.SetId(repo.GetName()) // It's possible that `repo.GetName()` is different from `repoName` if the repository is renamed
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -989,27 +990,21 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.HasChange("topics") {
-		topics := repoReq.Topics
-		_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
+		// GitHub API docs say that the ReplaceAllTopics endpoint should be used instead of updating the repository with the topics field
+		// https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#update-a-repository
+		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), repoReq.Topics)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(*repo.Name)
-
-		if d.HasChange("topics") {
-			topics := repoReq.Topics
-			_, _, err = client.Repositories.ReplaceAllTopics(ctx, owner, *repo.Name, topics)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
 	}
 
-	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
-		if val, ok := v.(bool); ok {
-			err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val)
-			if err != nil {
-				return diag.FromErr(err)
+	if d.IsNewResource() || d.HasChange("vulnerability_alerts") {
+		if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+			if val, ok := v.(bool); ok {
+				err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val)
+				if err != nil {
+					return diag.FromErr(err)
+				}
 			}
 		}
 	}
@@ -1061,9 +1056,6 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 
 func resourceGithubRepositoryImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	if err := d.Set("auto_init", false); err != nil {
-		return nil, err
-	}
-	if err := d.Set("ignore_vulnerability_alerts_during_read", true); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil

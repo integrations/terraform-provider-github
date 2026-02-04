@@ -22,20 +22,32 @@ in your code. See below for an example of this abstraction.
 ## Example Usage
 
 ```hcl
-data "github_actions_public_key" "example_public_key" {
-  repository = "example_repository"
-}
-
-resource "github_actions_secret" "example_secret" {
+resource "github_actions_secret" "example_plaintext" {
   repository       = "example_repository"
   secret_name      = "example_secret_name"
   plaintext_value  = var.some_secret_string
 }
 
-resource "github_actions_secret" "example_secret" {
+resource "github_actions_secret" "example_encrypted" {
   repository       = "example_repository"
   secret_name      = "example_secret_name"
   encrypted_value  = var.some_encrypted_secret_string
+}
+```
+
+## Example Lifecycle Ignore Changes
+
+This resource supports using the `lifecycle` `ignore_changes` block on `remote_updated_at` to support use cases where a secret value is created using a placeholder value and then modified after creation outside the scope of Terraform. This approach ensures only the initial placeholder value is referenced in your code and in the resulting state file.
+
+```hcl
+resource "github_actions_secret" "example_allow_drift" {
+  repository      = "example_repository"
+  secret_name     = "example_secret_name"
+  plaintext_value = "placeholder"
+
+  lifecycle {
+    ignore_changes = [remote_updated_at]
+  }
 }
 ```
 
@@ -43,26 +55,43 @@ resource "github_actions_secret" "example_secret" {
 
 The following arguments are supported:
 
-* `repository`        - (Required) Name of the repository
-* `secret_name`       - (Required) Name of the secret
-* `encrypted_value`   - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-* `plaintext_value`   - (Optional) Plaintext value of the secret to be encrypted
-* `destroy_on_drift`  - (Optional) Boolean indicating whether to recreate the secret if it's modified outside of Terraform. 
-                        When `true` (default), Terraform will delete and recreate the secret if it detects external changes. 
-                        When `false`, Terraform will acknowledge external changes but not recreate the secret. Defaults to `true`.
+- `repository` - (Required) Name of the repository.
+- `secret_name` - (Required) Name of the secret.
+- `key_id` - (Optional) ID of the public key used to encrypt the secret. This should be provided when setting `encrypted_value`; if it isn't then the current public key will be looked up, which could cause a missmatch. This conflicts with `plaintext_value`.
+- `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
+- `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted.
+- `destroy_on_drift` - (**DEPRECATED**) (Optional) This is ignored as drift detection is built into the resource.
+
+~> **Note**: One of either `encrypted_value` or `plaintext_value` must be specified.
 
 ## Attributes Reference
 
-* `created_at`      - Date of actions_secret creation.
-* `updated_at`      - Date of actions_secret update.
+- `repository_id` - ID of the repository.
+- `created_at` - Date the secret was created.
+- `updated_at` - Date the secret was last updated by the provider.
+- `remote_updated_at` - Date the secret was last updated in GitHub.
 
 ## Import
 
-This resource can be imported using an ID made up of the `repository` and `secret_name`:
+This resource can be imported using an ID made of the repository name, and secret name separated by a `:`.
 
-```
-$ terraform import github_actions_secret.example_secret repository/secret_name
+~> **Note**: When importing secrets, the `plaintext_value` or `encrypted_value` fields will not be populated in the state. You may need to ignore changes for these as a workaround if you're not planning on updating the secret through Terraform.
+
+### Import Block
+
+The following import imports a GitHub actions secret named `mysecret` for the repo `myrepo` to a `github_actions_secret` resource named `example`.
+
+```hcl
+import {
+  to = github_actions_secret.example
+  id = "myrepo:mysecret"
+}
 ```
 
-NOTE: the implementation is limited in that it won't fetch the value of the
-`plaintext_value` or `encrypted_value` fields when importing. You may need to ignore changes for these as a workaround.
+### Import Command
+
+The following command imports a GitHub actions secret named `mysecret` for the repo `myrepo` to a `github_actions_secret` resource named `example`.
+
+```shell
+terraform import github_actions_secret.example myrepo:mysecret
+```

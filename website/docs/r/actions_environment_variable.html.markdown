@@ -13,28 +13,29 @@ You must have write access to a repository to use this resource.
 ## Example Usage
 
 ```hcl
-resource "github_actions_environment_variable" "example_variable" {
-  environment       = "example_environment"
-  variable_name     = "example_variable_name"
-  value             = "example_variable_value"
+resource "github_actions_environment_variable" "example" {
+  repository    = "example-repo"
+  environment   = "example-environment"
+  variable_name = "example_variable_name"
+  value         = "example-value"
 }
 ```
 
 ```hcl
-data "github_repository" "repo" {
+data "github_repository" "example" {
   full_name = "my-org/repo"
 }
 
-resource "github_repository_environment" "repo_environment" {
-  repository       = data.github_repository.repo.name
+resource "github_repository_environment" "example" {
+  repository       = data.github_repository.example.name
   environment      = "example_environment"
 }
 
-resource "github_actions_environment_variable" "example_variable" {
-  repository       = data.github_repository.repo.name
-  environment      = github_repository_environment.repo_environment.environment
-  variable_name    = "example_variable_name"
-  value            = "example_variable_value"
+resource "github_actions_environment_variable" "example" {
+  repository    = data.github_repository.example.name
+  environment   = github_repository_environment.example.environment
+  variable_name = "example_variable_name"
+  value         = "example-value"
 }
 ```
 
@@ -42,19 +43,35 @@ resource "github_actions_environment_variable" "example_variable" {
 
 The following arguments are supported:
 
-* `repository` - (Required) Name of the repository.
-* `environment` - (Required) Name of the environment.
-* `variable_name` - (Required) Name of the variable.
-* `value` - (Required) Value of the variable
+- `repository` - (Required) Name of the repository.
+- `environment` - (Required) Name of the environment.
+- `variable_name` - (Required) Name of the variable.
+- `value` - (Required) Value of the variable.
 
 ## Attributes Reference
 
-* `created_at` - Date of actions_environment_secret creation.
-* `updated_at` - Date of actions_environment_secret update.
+- `repository_id` - ID of the repository.
+- `created_at` - Date the variable was created.
+- `updated_at` - Date the variable was last updated.
 
 ## Import
 
-This resource can be imported using an ID made of the repository name, environment name (any `:` in the name need to be escaped as `??`), and variable name all separated by a `:`.
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the environment name need to be escaped as `??`), and variable name all separated by a `:`.
+
+### Import Block
+
+The following import imports a GitHub actions environment variable named `myvariable` for the repo `myrepo` and environment `myenv` to a `github_actions_environment_variable` resource named `example`.
+
+```hcl
+import {
+  to = github_actions_environment_variable.example
+  id = "myrepo:myenv:myvariable"
+}
+```
+
+### Import Command
+
+The following command imports a GitHub actions environment variable named `myvariable` for the repo `myrepo` and environment `myenv` to a `github_actions_environment_variable` resource named `example`.
 
 ```shell
 terraform import github_actions_environment_variable.example myrepo:myenv:myvariable
