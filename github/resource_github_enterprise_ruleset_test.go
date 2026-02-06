@@ -46,7 +46,7 @@ func TestAccGithubEnterpriseRuleset_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -159,7 +159,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -221,7 +221,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -275,7 +275,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -352,7 +352,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -439,7 +439,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: configs["before"],
@@ -540,7 +540,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: configs["with_actors"],
@@ -645,7 +645,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: configs["before"],
@@ -706,7 +706,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -757,7 +757,7 @@ resource "github_enterprise_ruleset" "test" {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -805,7 +805,7 @@ func TestAccGithubEnterpriseRuleset_import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
-		Providers: testAccProviders,
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

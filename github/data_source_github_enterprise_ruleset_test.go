@@ -79,7 +79,7 @@ func TestAccGithubEnterpriseRulesetDataSource(t *testing.T) {
 			PreCheck: func() {
 				skipUnlessEnterprise(t)
 			},
-			Providers: testAccProviders,
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
