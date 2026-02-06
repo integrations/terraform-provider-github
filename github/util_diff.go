@@ -24,6 +24,14 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 		client := meta.v3client
 		owner := meta.name
 
+		var repoName string
+		old, n := diff.GetChange("repository")
+		if v, ok := n.(string); ok {
+			repoName = v
+		} else {
+			return fmt.Errorf("repository is not a string")
+		}
+
 		var repoID int
 		if o, ok := diff.GetOk("repository_id"); ok {
 			if v, ok := o.(int); ok {
@@ -32,18 +40,8 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 				return fmt.Errorf("repository_id is not an int")
 			}
 		} else {
-			return fmt.Errorf("repository_id is not set")
-		}
-
-		var repoName string
-		if o, ok := diff.GetOk("repository"); ok {
-			if v, ok := o.(string); ok {
-				repoName = v
-			} else {
-				return fmt.Errorf("repository is not a string")
-			}
-		} else {
-			return fmt.Errorf("repository is not set")
+			log.Printf("[INFO] No repository_id in schema so changing repository from %s to %s forces the resource to be recreated", old.(string), repoName)
+			return diff.ForceNew("repository")
 		}
 
 		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
