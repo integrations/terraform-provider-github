@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-github/v82/github"
@@ -864,7 +865,7 @@ func TestFlattenConditionsOrganizationID(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(conditions, true)
+	result := flattenConditions(context.Background(), conditions, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -904,7 +905,7 @@ func TestRoundTripConditionsWithAllProperties(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenConditions(expandedConditions, true)
+	flattenedResult := flattenConditions(context.Background(), expandedConditions, true)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
